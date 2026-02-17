@@ -975,7 +975,17 @@ export default function NewClientQuotePage() {
               </div>
               <button
                 type="button"
-                onClick={() => setValue('firstLook', !watchedValues.firstLook)}
+                onClick={() => {
+                  const newVal = !watchedValues.firstLook
+                  setValue('firstLook', newVal)
+                  // Reorder timeline: First Look ON moves Park before Ceremony
+                  const customIds = timelineOrder.filter(id => id.startsWith('custom-'))
+                  if (newVal) {
+                    setTimelineOrder(['groom', 'bride', 'park', 'ceremony', ...customIds, 'reception'])
+                  } else {
+                    setTimelineOrder(['groom', 'bride', 'ceremony', 'park', ...customIds, 'reception'])
+                  }
+                }}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   watchedValues.firstLook ? 'bg-indigo-500' : 'bg-stone-300'
                 }`}
@@ -1029,7 +1039,7 @@ export default function NewClientQuotePage() {
                           className={`w-28 px-2 py-1 text-xs font-semibold ${loc.color} bg-white border border-stone-300 rounded`}
                         />
                       ) : (
-                        <span className={`text-xs font-semibold ${loc.color} w-28`}>{loc.label}</span>
+                        <span className={`text-xs font-semibold ${loc.color} w-28`}>{locId === 'park' && watchedValues.firstLook ? 'First Look + Park' : loc.label}</span>
                       )}
                       
                       {/* Time Selects */}
@@ -1431,16 +1441,18 @@ export default function NewClientQuotePage() {
                       {location.value === 'brides_choice' && <span className="text-xs font-medium text-amber-600">+$200</span>}
                     </label>
                   ))}
-                  {watchedValues.engagementLocation === 'brides_choice' && (
-                    <div className="mt-2 ml-7">
-                      <input
-                        type="text"
-                        {...register('bridesChoiceLocation')}
-                        placeholder="Enter preferred location..."
-                        className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500"
-                      />
-                    </div>
-                  )}
+                </div>
+              )}
+
+              {watchedValues.engagementLocation === 'brides_choice' && (
+                <div className="mt-2">
+                  <label className="text-xs font-medium text-stone-600 mb-1 block">Preferred Location</label>
+                  <input
+                    type="text"
+                    {...register('bridesChoiceLocation')}
+                    placeholder="Enter preferred location..."
+                    className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500"
+                  />
                 </div>
               )}
             </div>
