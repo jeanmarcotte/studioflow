@@ -93,6 +93,7 @@ const quoteSchema = z.object({
   
   // Engagement
   engagementLocation: z.string(),
+  bridesChoiceLocation: z.string().optional(),
   
   // Albums - Couple Album
   albumType: z.enum(['none', 'standard', 'premium']),
@@ -966,6 +967,25 @@ export default function NewClientQuotePage() {
               <p className="text-xs text-stone-400">Use arrows to reorder locations</p>
             </div>
 
+            {/* First Look Toggle */}
+            <div className="flex items-center justify-between p-3 mb-4 bg-stone-50 border border-stone-200 rounded">
+              <div>
+                <span className="text-sm font-medium text-stone-800">First Look</span>
+                <p className="text-xs text-stone-500">Couple sees each other before the ceremony</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setValue('firstLook', !watchedValues.firstLook)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  watchedValues.firstLook ? 'bg-indigo-500' : 'bg-stone-300'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  watchedValues.firstLook ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+
             <div className="space-y-3">
               {timelineOrder.map((locId, index) => {
                 const loc = getLocationData(locId)
@@ -1411,6 +1431,16 @@ export default function NewClientQuotePage() {
                       {location.value === 'brides_choice' && <span className="text-xs font-medium text-amber-600">+$200</span>}
                     </label>
                   ))}
+                  {watchedValues.engagementLocation === 'brides_choice' && (
+                    <div className="mt-2 ml-7">
+                      <input
+                        type="text"
+                        {...register('bridesChoiceLocation')}
+                        placeholder="Enter preferred location..."
+                        className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
