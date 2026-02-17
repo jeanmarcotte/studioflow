@@ -281,8 +281,9 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     doc.setFontSize(8)
     doc.setTextColor(...COLORS.dark)
     doc.text('Add-ons: ', margin + 2, y)
+    const addOnsLabelW = doc.getTextWidth('Add-ons: ')
     doc.setFont('helvetica', 'normal')
-    doc.text(addOns.join(', '), margin + 2 + doc.getTextWidth('Add-ons: '), y)
+    doc.text(addOns.join(', '), margin + 2 + addOnsLabelW, y)
     y += 5
   }
 
@@ -292,8 +293,9 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(8)
     doc.text('Album: ', margin + 2, y)
+    const albumLabelW = doc.getTextWidth('Album: ')
     doc.setFont('helvetica', 'normal')
-    doc.text(albumLabel, margin + 2 + doc.getTextWidth('Album: '), y)
+    doc.text(albumLabel, margin + 2 + albumLabelW, y)
     y += 5
   }
 
@@ -301,9 +303,10 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(8)
     doc.text('Parent Albums: ', margin + 2, y)
+    const parentAlbumsLabelW = doc.getTextWidth('Parent Albums: ')
     doc.setFont('helvetica', 'normal')
     const parentLabel = `${data.parentAlbumQty}${data.freeParentAlbums ? ' (complimentary)' : ''}`
-    doc.text(parentLabel, margin + 2 + doc.getTextWidth('Parent Albums: '), y)
+    doc.text(parentLabel, margin + 2 + parentAlbumsLabelW, y)
     y += 5
   }
 
@@ -316,7 +319,12 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
   if (hasTimeline) {
     checkPageBreak(10 + data.timeline.length * 6)
     drawSectionHeader(doc, 'Wedding Day Timeline', margin, y, contentWidth)
-    y += 8
+    y += 5
+    doc.setFont('helvetica', 'italic')
+    doc.setFontSize(7)
+    doc.setTextColor(...COLORS.muted)
+    doc.text('(approximate, not confirmed)', margin + 3, y)
+    y += 5
 
     doc.setFontSize(8)
     data.timeline.forEach(entry => {
