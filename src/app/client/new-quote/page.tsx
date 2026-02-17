@@ -1201,14 +1201,25 @@ export default function NewClientQuotePage() {
             
             {/* Timeline Summary */}
             {(() => {
-              const startTime = watchedValues.groomStart || watchedValues.brideStart
-              const endTime = watchedValues.receptionEnd
+              // Find first start time and last end time from the actual timeline order
+              let startTime: string | undefined
+              let endTime: string | undefined
+              for (const locId of timelineOrder) {
+                const loc = getLocationData(locId)
+                if (!loc) continue
+                const isCustom = loc.type === 'custom'
+                const customData = isCustom ? customLocations.find(c => c.id === locId) : null
+                const locStart = isCustom ? customData?.startTime : (loc.startField ? watchedValues[loc.startField as keyof typeof watchedValues] as string : undefined)
+                const locEnd = isCustom ? customData?.endTime : (loc.endField ? watchedValues[loc.endField as keyof typeof watchedValues] as string : undefined)
+                if (locStart && !startTime) startTime = locStart
+                if (locEnd) endTime = locEnd
+              }
               const startMins = startTime ? timeToMinutes(startTime) : null
               const endMins = endTime ? timeToMinutes(endTime) : null
-              const totalHours = startMins !== null && endMins !== null 
-                ? Math.round((endMins - startMins) / 60 * 10) / 10 
+              const totalHours = startMins !== null && endMins !== null
+                ? Math.round((endMins - startMins) / 60 * 10) / 10
                 : null
-              
+
               if (startTime || endTime) {
                 return (
                   <div className="mt-4 pt-4 border-t border-stone-200 flex items-center justify-between">
