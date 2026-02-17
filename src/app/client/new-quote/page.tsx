@@ -60,10 +60,10 @@ const quoteSchema = z.object({
   
   // Wedding Details - only date required
   weddingDate: z.string().min(1, 'Wedding date is required'),
-  guestCount: z.union([z.number(), z.nan()]).optional().transform(val => (Number.isNaN(val) ? undefined : val)),
-  bridalPartyCount: z.union([z.number(), z.nan()]).optional().transform(val => (Number.isNaN(val) ? undefined : val)),
-  flowerGirl: z.union([z.number(), z.nan()]).optional().transform(val => (Number.isNaN(val) ? undefined : val)),
-  ringBearer: z.union([z.number(), z.nan()]).optional().transform(val => (Number.isNaN(val) ? undefined : val)),
+  guestCount: z.union([z.number(), z.nan()]).transform(val => (Number.isNaN(val) ? undefined : val)).optional(),
+  bridalPartyCount: z.union([z.number(), z.nan()]).transform(val => (Number.isNaN(val) ? undefined : val)).optional(),
+  flowerGirl: z.union([z.number(), z.nan()]).transform(val => (Number.isNaN(val) ? undefined : val)).optional(),
+  ringBearer: z.union([z.number(), z.nan()]).transform(val => (Number.isNaN(val) ? undefined : val)).optional(),
   ceremonyVenue: z.string().optional(),
   receptionVenue: z.string().optional(),
   djName: z.string().optional(),
@@ -1027,8 +1027,8 @@ export default function NewClientQuotePage() {
                                   const prevCustom = customLocations.find(c => c.id === prevLocId)
                                   const prevEnd = prevLoc.type === 'custom' ? prevCustom?.endTime : watchedValues[prevLoc.endField as keyof typeof watchedValues]
                                   const prevDrive = prevLoc.type === 'custom' ? prevCustom?.driveTime : watchedValues[prevLoc.driveField as keyof typeof watchedValues]
-                                  if (prevEnd) {
-                                    const newStart = addDriveTime(prevEnd, prevDrive as string)
+                                  if (prevEnd && typeof prevEnd === 'string') {
+                                    const newStart = addDriveTime(prevEnd, String(prevDrive ?? ''))
                                     if (newStart) updateCustomLocation(locId, 'startTime', newStart)
                                   }
                                 }
@@ -1172,8 +1172,8 @@ export default function NewClientQuotePage() {
             {(() => {
               const startTime = watchedValues.groomStart || watchedValues.brideStart
               const endTime = watchedValues.receptionEnd
-              const startMins = timeToMinutes(startTime)
-              const endMins = timeToMinutes(endTime)
+              const startMins = startTime ? timeToMinutes(startTime) : null
+              const endMins = endTime ? timeToMinutes(endTime) : null
               const totalHours = startMins !== null && endMins !== null 
                 ? Math.round((endMins - startMins) / 60 * 10) / 10 
                 : null
