@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { Layout } from '@/components/layout/layout'
 import { studioflowClientConfig } from '@/config/sidebar'
 import { searchLeadByCouple, createQuote } from '@/lib/supabase'
+import { generateQuotePdf } from '@/lib/generateQuotePdf'
 import { 
   Calendar, Phone, MapPin, Users, DollarSign, FileText, Save, Send, 
   AlertCircle, Camera, Video, Check, Plus, Trash2, Clock, Heart,
@@ -2006,13 +2007,72 @@ export default function NewClientQuotePage() {
               <Save className="h-4 w-4" />
               {isLoading ? 'Saving...' : 'Save Quote'}
             </button>
-            <button 
-              type="button" 
-              onClick={() => window.print()}
+            <button
+              type="button"
+              onClick={async () => {
+                const selectedPkg = PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]
+                const engLoc = ENGAGEMENT_LOCATIONS.find(l => l.value === watchedValues.engagementLocation)
+                const engLabel = watchedValues.engagementLocation === 'brides_choice' && watchedValues.bridesChoiceLocation
+                  ? `Bride's Choice — ${watchedValues.bridesChoiceLocation}`
+                  : engLoc?.label || watchedValues.engagementLocation
+
+                // Build timeline from current order
+                const timeline = timelineOrder
+                  .map(locId => {
+                    const loc = getLocationData(locId)
+                    if (!loc) return null
+                    const isCustom = loc.type === 'custom'
+                    const customData = isCustom ? customLocations.find(c => c.id === locId) : null
+                    const startTime = isCustom ? (customData?.startTime || '') : (watchedValues[loc.startField as keyof typeof watchedValues] as string || '')
+                    const endTime = isCustom ? (customData?.endTime || '') : (watchedValues[loc.endField as keyof typeof watchedValues] as string || '')
+                    const driveTime = isCustom ? (customData?.driveTime || '') : (loc.driveField ? (watchedValues[loc.driveField as keyof typeof watchedValues] as string || '') : '')
+                    const name = locId === 'park' && watchedValues.firstLook ? 'First Look + Park Photos' : loc.name
+                    return { name, startTime, endTime, driveTime: driveTime || undefined }
+                  })
+                  .filter((t): t is NonNullable<typeof t> => t !== null)
+
+                await generateQuotePdf({
+                  brideFirstName: watchedValues.brideFirstName || '',
+                  brideLastName: watchedValues.brideLastName || '',
+                  groomFirstName: watchedValues.groomFirstName || '',
+                  groomLastName: watchedValues.groomLastName || '',
+                  brideEmail: watchedValues.brideEmail || '',
+                  bridePhone: watchedValues.bridePhone || '',
+                  groomEmail: watchedValues.groomEmail || '',
+                  groomPhone: watchedValues.groomPhone || '',
+                  weddingDate: watchedValues.weddingDate || '',
+                  ceremonyVenue: watchedValues.ceremonyVenue || '',
+                  receptionVenue: watchedValues.receptionVenue || '',
+                  guestCount: watchedValues.guestCount,
+                  bridalPartyCount: watchedValues.bridalPartyCount,
+                  selectedPackage: watchedValues.selectedPackage,
+                  packageName: selectedPkg?.name || '',
+                  packageHours: selectedPkg?.hours || 0,
+                  packageFeatures: selectedPkg?.features || [],
+                  extraPhotographer: watchedValues.extraPhotographer,
+                  extraHours: watchedValues.extraHours,
+                  engagementLocation: watchedValues.engagementLocation,
+                  engagementLocationLabel: engLabel,
+                  albumType: watchedValues.albumType,
+                  albumSize: watchedValues.albumSize,
+                  acrylicCover: watchedValues.acrylicCover,
+                  parentAlbumQty: watchedValues.parentAlbumQty,
+                  firstLook: watchedValues.firstLook,
+                  pricing,
+                  freeParentAlbums: parentAlbumsIncluded === 'free',
+                  freePrints: printsIncluded === 'free',
+                  printsTotal,
+                  timeline,
+                  installments,
+                  discountType: watchedValues.discountType,
+                  discountAmount: watchedValues.discountAmount,
+                  discount2Amount: watchedValues.discount2Amount,
+                })
+              }}
               className="flex-1 bg-stone-100 text-stone-800 hover:bg-stone-200 px-6 py-3 rounded font-medium flex items-center justify-center gap-2 transition-colors"
             >
               <FileText className="h-4 w-4" />
-              Print / Save PDF
+              Download PDF
             </button>
             <button 
               type="button" 
