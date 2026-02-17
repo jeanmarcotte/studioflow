@@ -1217,7 +1217,7 @@ export default function NewClientQuotePage() {
               const startMins = startTime ? timeToMinutes(startTime) : null
               const endMins = endTime ? timeToMinutes(endTime) : null
               const totalHours = startMins !== null && endMins !== null
-                ? Math.round((endMins - startMins) / 60 * 10) / 10
+                ? Math.round(((endMins >= startMins ? endMins : endMins + 1440) - startMins) / 60 * 10) / 10
                 : null
 
               if (startTime || endTime) {
