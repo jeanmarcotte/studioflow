@@ -250,6 +250,19 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
   drawSectionHeader(doc, 'Your Package', margin, y, contentWidth)
   y += 8
 
+  // Package type badge
+  const isPhotoOnly = data.selectedPackage === 'exclusively_photo'
+  const badgeText = isPhotoOnly ? 'PHOTO ONLY' : 'PHOTO AND VIDEO'
+  const badgeColor: [number, number, number] = isPhotoOnly ? [16, 185, 129] : [59, 130, 246]
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9)
+  const badgeW = doc.getTextWidth(badgeText) + 8
+  doc.setFillColor(...badgeColor)
+  doc.roundedRect(margin, y - 4, badgeW, 6.5, 1, 1, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.text(badgeText, margin + 4, y + 0.5)
+  y += 10
+
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
   doc.setTextColor(...COLORS.dark)

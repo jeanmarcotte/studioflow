@@ -1,134 +1,87 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-
-// Form validation schema (simplified for demo)
-const quoteSchema = z.object({
-  brideFirstName: z.string().min(1, 'Required'),
-  groomFirstName: z.string().min(1, 'Required'),
-  weddingDate: z.string().min(1, 'Required'),
-  packageType: z.enum(['photo_only', 'photo_video']),
-  hoursOfCoverage: z.number().min(4).max(16),
-})
+import { generateQuotePdf } from '@/lib/generateQuotePdf'
 
 export default function TestQuotePage() {
-  const [pricing, setPricing] = useState({ total: 5000, hst: 650 })
-
-  const { register, watch } = useForm({
-    resolver: zodResolver(quoteSchema),
-    defaultValues: {
-      packageType: 'photo_only',
-      hoursOfCoverage: 8,
-    }
-  })
-
-  const watchedValues = watch()
-
-  // Real-time pricing calculation
-  useEffect(() => {
-    const basePrice = watchedValues.packageType === 'photo_only' ? 5000 : 7500
-    const total = basePrice + (watchedValues.hoursOfCoverage - 8) * 400
-    const hst = total * 0.13
-    setPricing({ total, hst })
-  }, [watchedValues])
+  const handleGenerateTestPdf = async () => {
+    await generateQuotePdf({
+      brideFirstName: 'Sarah',
+      brideLastName: 'Johnson',
+      groomFirstName: 'Michael',
+      groomLastName: 'Chen',
+      brideEmail: 'sarah@example.com',
+      bridePhone: '416-555-1234',
+      groomEmail: 'michael@example.com',
+      groomPhone: '416-555-5678',
+      weddingDate: '2026-09-12',
+      ceremonyVenue: 'St. James Cathedral',
+      receptionVenue: 'The Fairmont Royal York',
+      guestCount: 150,
+      bridalPartyCount: 8,
+      selectedPackage: 'photo_only',
+      packageName: 'Photography Collection',
+      packageHours: 8,
+      packageFeatures: [
+        '2 Lead Photographers',
+        'Online Gallery',
+        'Full Editing & Retouching',
+        'Engagement Session',
+        'Wedding Day Coverage',
+        'Digital Downloads',
+      ],
+      extraPhotographer: true,
+      extraHours: 3,
+      engagementLocation: 'brides_choice',
+      engagementLocationLabel: "Bride's Choice — Distillery District",
+      albumType: 'premium',
+      albumSize: '10x8',
+      acrylicCover: true,
+      parentAlbumQty: 2,
+      firstLook: true,
+      pricing: {
+        basePrice: 3000,
+        extraPhotographerPrice: 500,
+        extraHoursPrice: 1050,
+        albumPrice: 1200,
+        acrylicCoverPrice: 200,
+        parentAlbumsPrice: 590,
+        locationFee: 200,
+        printsPrice: 150,
+        subtotal: 6890,
+        discount: 500,
+        hst: 830.7,
+        total: 7220.7,
+      },
+      freeParentAlbums: false,
+      freePrints: false,
+      printsTotal: 150,
+      timeline: [
+        { name: 'Groom Prep', startTime: '1:00 PM', endTime: '2:00 PM' },
+        { name: 'Bride Prep', startTime: '1:00 PM', endTime: '3:00 PM' },
+        { name: 'First Look + Park Photos', startTime: '3:00 PM', endTime: '4:30 PM', driveTime: '15 min' },
+        { name: 'Ceremony', startTime: '4:30 PM', endTime: '5:30 PM', driveTime: '20 min' },
+        { name: 'Reception', startTime: '6:00 PM', endTime: '12:00 AM', driveTime: '10 min' },
+      ],
+      installments: [
+        { label: 'Deposit (upon signing)', amount: 1500 },
+        { label: '2nd Payment (60 days before)', amount: 2000 },
+        { label: '3rd Payment (30 days before)', amount: 2000 },
+        { label: 'Final Payment (wedding day)', amount: 1720.7 },
+      ],
+      discountType: 'flat',
+      discountAmount: 500,
+      discount2Amount: 0,
+    })
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-6">
-        <div className="bg-white rounded-lg shadow p-8">
-          <h1 className="text-3xl font-bold mb-2">StudioFlow Demo</h1>
-          <p className="text-gray-600 mb-8">Professional Quote Builder</p>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-1">Bride First Name *</label>
-                <input
-                  {...register('brideFirstName')}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="Enter bride's name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Groom First Name *</label>
-                <input
-                  {...register('groomFirstName')}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="Enter groom's name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Wedding Date *</label>
-                <input
-                  type="date"
-                  {...register('weddingDate')}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Package Type</label>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input type="radio" {...register('packageType')} value="photo_only" className="mr-2" />
-                    Photo Only ($5,000 base)
-                  </label>
-                  <label className="flex items-center">
-                    <input type="radio" {...register('packageType')} value="photo_video" className="mr-2" />
-                    Photo + Video ($7,500 base)
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Hours of Coverage</label>
-                <select
-                  {...register('hoursOfCoverage', { valueAsNumber: true })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                >
-                  {[4, 5, 6, 7, 8, 9, 10, 11, 12].map(hours => (
-                    <option key={hours} value={hours}>{hours} hours</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-4">Real-Time Pricing</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Package Total</span>
-                  <span>${pricing.total.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>HST (13%)</span>
-                  <span>${pricing.hst.toLocaleString()}</span>
-                </div>
-                <div className="border-t pt-2">
-                  <div className="flex justify-between text-xl font-bold">
-                    <span>Final Total</span>
-                    <span>${(pricing.total + pricing.hst).toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-3">
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium">
-                  Save Quote
-                </button>
-                <button className="w-full border border-blue-600 text-blue-600 py-2 rounded-lg font-medium">
-                  Generate PDF
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <button
+        onClick={handleGenerateTestPdf}
+        className="px-8 py-4 bg-stone-800 text-white rounded-lg text-lg font-medium hover:bg-stone-900 transition-colors"
+      >
+        Generate Test PDF
+      </button>
     </div>
   )
 }
