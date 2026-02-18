@@ -1,4 +1,4 @@
-import { LucideIcon, Home, Settings, Users, Calendar, FileText, DollarSign, BarChart3, Mail, Camera, Video, Package } from 'lucide-react'
+import { LucideIcon, Home, Settings, Users, FileText, DollarSign, BarChart3, Mail, Camera, Video, Package } from 'lucide-react'
 
 export interface SidebarItem {
   title: string
@@ -43,16 +43,6 @@ export const studioflowConfig: SidebarConfig = {
           title: 'Extras Quote',
           href: '/client/extras-quote',
           icon: DollarSign,
-        },
-        {
-          title: 'Wedding Calendar',
-          href: '/client/calendar',
-          icon: Calendar,
-        },
-        {
-          title: 'Communications',
-          href: '/client/communications',
-          icon: Mail,
         }
       ]
     },
@@ -132,19 +122,9 @@ export const studioflowClientConfig: SidebarConfig = {
           icon: FileText,
         },
         {
-          title: 'Extras Quote',
+          title: 'Frames & Albums',
           href: '/client/extras-quote',
           icon: DollarSign,
-        },
-        {
-          title: 'Wedding Calendar',
-          href: '/client/calendar',
-          icon: Calendar,
-        },
-        {
-          title: 'Communications',
-          href: '/client/communications',
-          icon: Mail,
         }
       ]
     }

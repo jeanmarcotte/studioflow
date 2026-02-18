@@ -1,8 +1,6 @@
 {
-  "/_not-found": "app/_not-found.js",
-  "/auth/callback/page": "app/auth/callback/page.js",
-  "/login/page": "app/login/page.js",
+  "/not-found": "app/not-found.js",
+  "/client/extras-quote/page": "app/client/extras-quote/page.js",
   "/page": "app/page.js",
-  "/test-quote/page": "app/test-quote/page.js",
   "/client/new-quote/page": "app/client/new-quote/page.js"
 }

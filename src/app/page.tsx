@@ -38,7 +38,7 @@ export default function HomePage() {
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold">StudioFlow</h2>
           <p className="text-muted-foreground">Loading your dashboard...</p>
-          <p className="text-sm text-muted-foreground mt-4">Isaac was here</p>
+          <p className="text-sm text-muted-foreground mt-4">Isaac is a BUTT!</p>
         </div>
       </div>
     </div>
