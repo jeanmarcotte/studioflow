@@ -1,6 +1,0 @@
-{
-  "/not-found": "app/not-found.js",
-  "/client/extras-quote/page": "app/client/extras-quote/page.js",
-  "/page": "app/page.js",
-  "/client/new-quote/page": "app/client/new-quote/page.js"
-}

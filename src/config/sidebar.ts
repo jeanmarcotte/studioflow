@@ -105,6 +105,82 @@ export const studioflowConfig: SidebarConfig = {
   ]
 }
 
+// Admin-focused config (logo links to admin dashboard)
+export const studioflowAdminConfig: SidebarConfig = {
+  logo: {
+    src: '/sigs-logo.png',
+    alt: 'SIGS Photography',
+    href: '/admin/dashboard',
+    text: 'StudioFlow'
+  },
+  sections: [
+    {
+      title: 'Admin',
+      items: [
+        {
+          title: 'Dashboard',
+          href: '/admin/dashboard',
+          icon: Home,
+        },
+        {
+          title: 'Couples',
+          href: '/admin/couples',
+          icon: Users,
+        },
+        {
+          title: 'Photo Editing',
+          href: '/admin/photo-editing',
+          icon: Camera,
+        },
+        {
+          title: 'Video Editing',
+          href: '/admin/video-editing',
+          icon: Video,
+        },
+        {
+          title: 'Production',
+          href: '/admin/production',
+          icon: Package,
+        },
+        {
+          title: 'Finance',
+          href: '/admin/finance',
+          icon: DollarSign,
+        },
+        {
+          title: 'Communications',
+          href: '/admin/communications',
+          icon: Mail,
+        }
+      ]
+    },
+    {
+      title: 'Client Tools',
+      items: [
+        {
+          title: 'New Client Quote',
+          href: '/client/new-quote',
+          icon: FileText,
+        },
+        {
+          title: 'Frames & Albums',
+          href: '/client/extras-quote',
+          icon: DollarSign,
+        }
+      ]
+    },
+    {
+      items: [
+        {
+          title: 'Settings',
+          href: '/settings',
+          icon: Settings,
+        }
+      ]
+    }
+  ]
+}
+
 // Client-only config (for sales calls)
 export const studioflowClientConfig: SidebarConfig = {
   logo: {
