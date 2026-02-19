@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { extractPdfData, ExtractedPdfData } from '@/lib/extractPdfData'
+import type { ExtractedPdfData } from '@/lib/extractPdfData'
 import {
   ChevronDown, ChevronRight, Upload, FileText, Loader2,
   CheckCircle2, AlertCircle, XCircle, Trash2
@@ -61,14 +61,21 @@ export default function PdfImporter({ onImportComplete }: PdfImporterProps) {
     setQueue(prev => [...prev, ...newItems])
     setResult(null)
 
-    // Extract sequentially — update each item by matching its file reference
+    // Send each file to server-side API for extraction
     for (let i = 0; i < pdfFiles.length; i++) {
       const targetFile = pdfFiles[i]
       const targetId = fileIds[i]
       try {
-        console.log(`[PDF Importer] Extracting: ${targetFile.name}`)
-        const data = await extractPdfData(targetFile)
-        console.log(`[PDF Importer] Extracted ${targetFile.name}:`, data.coupleName, data.confidence)
+        const formData = new FormData()
+        formData.append('file', targetFile)
+
+        const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData })
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+          throw new Error(errBody.error || `Server error ${res.status}`)
+        }
+
+        const data: ExtractedPdfData = await res.json()
         setQueue(prev => prev.map(item =>
           (item as any)._id === targetId
             ? { ...item, data, status: 'ready' as const, selected: data.confidence !== 'low' && !!data.coupleName }
