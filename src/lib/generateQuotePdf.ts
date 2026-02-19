@@ -444,7 +444,7 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     { label: 'Acrylic Cover', amount: data.pricing.acrylicCoverPrice, show: data.pricing.acrylicCoverPrice > 0 },
     { label: `Parent Albums (${data.parentAlbumQty})`, amount: data.pricing.parentAlbumsPrice, show: data.pricing.parentAlbumsPrice > 0 },
     { label: "Bride's Choice Location", amount: data.pricing.locationFee, show: data.pricing.locationFee > 0 },
-    { label: 'Prints & Thank You Cards', amount: data.pricing.printsPrice, show: data.pricing.printsPrice > 0 },
+    { label: 'Prints', amount: data.pricing.printsPrice, show: data.pricing.printsPrice > 0 },
   ]
 
   lines.filter(l => l.show).forEach(line => {

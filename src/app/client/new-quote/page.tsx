@@ -1874,14 +1874,14 @@ export default function NewClientQuotePage() {
               
               {pricing.printsPrice > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Prints & Thank You Cards</span>
+                  <span className="text-stone-400">Prints</span>
                   <span>${pricing.printsPrice.toLocaleString()}</span>
                 </div>
               )}
               
               {printsIncluded === 'free' && printsTotal > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Prints & Thank You Cards (included)</span>
+                  <span className="text-stone-400">Prints (included)</span>
                   <span className="text-emerald-400">$0</span>
                 </div>
               )}
