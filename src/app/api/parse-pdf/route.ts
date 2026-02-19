@@ -2,107 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { ExtractedPdfData } from '@/lib/extractPdfData'
 
 // ============================================================
-// TEXT EXTRACTION (server-side, no worker needed)
-// ============================================================
-
-interface TextItem {
-  str: string
-  x: number
-  y: number
-  width: number
-}
-
-interface TextLine {
-  y: number
-  items: TextItem[]
-  text: string
-}
-
-async function extractTextFromBuffer(buffer: ArrayBuffer, fileName: string): Promise<TextLine[]> {
-  // Use legacy build for Node.js compatibility (no DOM/canvas deps)
-  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
-
-  // Disable worker in Node.js — runs synchronously in main thread
-  pdfjsLib.GlobalWorkerOptions.workerSrc = ''
-
-  const doc = await pdfjsLib.getDocument({
-    data: new Uint8Array(buffer),
-    useSystemFonts: true,
-    isEvalSupported: false,
-    disableFontFace: true,
-  }).promise
-
-  const allLines: TextLine[] = []
-  console.log(`[PDF API] ${fileName}: ${doc.numPages} page(s)`)
-
-  for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
-    const page = await doc.getPage(pageNum)
-    const content = await page.getTextContent()
-
-    const items: TextItem[] = content.items
-      .filter((item: any) => typeof item.str === 'string' && item.str.trim())
-      .map((item: any) => ({
-        str: item.str,
-        x: item.transform ? item.transform[4] : 0,
-        y: item.transform ? item.transform[5] : 0,
-        width: item.width || 0,
-      }))
-
-    console.log(`[PDF API] Page ${pageNum}: ${items.length} text items`)
-
-    // Group by Y coordinate (2.0 unit tolerance)
-    const lineMap = new Map<number, TextItem[]>()
-    for (const item of items) {
-      let foundY: number | null = null
-      for (const existingY of Array.from(lineMap.keys())) {
-        if (Math.abs(existingY - item.y) < 2.0) {
-          foundY = existingY
-          break
-        }
-      }
-      if (foundY !== null) {
-        lineMap.get(foundY)!.push(item)
-      } else {
-        lineMap.set(item.y, [item])
-      }
-    }
-
-    // Sort lines top to bottom (descending Y in PDF coords)
-    const sortedYs = Array.from(lineMap.keys()).sort((a, b) => b - a)
-    for (const y of sortedYs) {
-      const lineItems = lineMap.get(y)!.sort((a, b) => a.x - b.x)
-
-      // Detect two-column layout via gap > 30 units
-      let splitIdx = -1
-      let maxGap = 30
-      for (let i = 1; i < lineItems.length; i++) {
-        const prevEnd = lineItems[i - 1].x + Math.max(lineItems[i - 1].width, 1)
-        const gap = lineItems[i].x - prevEnd
-        if (gap > maxGap) {
-          maxGap = gap
-          splitIdx = i
-        }
-      }
-
-      if (splitIdx > 0) {
-        const leftText = lineItems.slice(0, splitIdx).map(i => i.str).join('').trim()
-        const rightText = lineItems.slice(splitIdx).map(i => i.str).join('').trim()
-        allLines.push({ y, items: lineItems, text: leftText + ' ||| ' + rightText })
-      } else {
-        const text = lineItems.map(i => i.str).join('').trim()
-        allLines.push({ y, items: lineItems, text })
-      }
-    }
-  }
-
-  console.log(`[PDF API] ${fileName}: ${allLines.length} lines extracted`)
-  allLines.forEach((l, i) => console.log(`  [${i}] "${l.text}"`))
-
-  return allLines
-}
-
-// ============================================================
-// PARSER
+// PARSER HELPERS
 // ============================================================
 
 type Section = 'HEADER' | 'COUPLE_INFO' | 'WEDDING_DETAILS' | 'PACKAGE' | 'TIMELINE' | 'PRICING' | 'PAYMENT' | 'CLOSING'
@@ -171,7 +71,11 @@ function extractNameParts(text: string, label: string): { first: string; last: s
   return { first: '', last: '' }
 }
 
-function parseExtractedText(lines: TextLine[], fileName: string): ExtractedPdfData {
+// ============================================================
+// MAIN PARSER (works with plain text lines from pdf-parse)
+// ============================================================
+
+function parseExtractedText(lines: string[], fileName: string): ExtractedPdfData {
   const warnings: string[] = []
   const result: ExtractedPdfData = {
     fileName,
@@ -194,7 +98,7 @@ function parseExtractedText(lines: TextLine[], fileName: string): ExtractedPdfDa
     return result
   }
 
-  const allText = lines.map(l => l.text).join(' ')
+  const allText = lines.join(' ')
   if (!allText.toUpperCase().includes('SIGS')) {
     warnings.push('This does not appear to be a SIGS Photography quote PDF')
     return result
@@ -208,12 +112,14 @@ function parseExtractedText(lines: TextLine[], fileName: string): ExtractedPdfDa
   }
 
   for (const line of lines) {
-    const detected = detectSection(line.text)
+    const detected = detectSection(line)
     if (detected) {
       currentSection = detected
       continue
     }
-    sectionLines[currentSection].push(line.text)
+    if (line.trim()) {
+      sectionLines[currentSection].push(line.trim())
+    }
   }
 
   // Log sections for debugging
@@ -224,37 +130,24 @@ function parseExtractedText(lines: TextLine[], fileName: string): ExtractedPdfDa
   }
 
   // ── Parse COUPLE_INFO ──────────────────────────────────────
+  // pdf-parse returns each column item on its own line, so bride/groom
+  // names appear as separate lines rather than side-by-side columns
   for (const text of sectionLines.COUPLE_INFO) {
-    if (text.includes('|||')) {
-      const parts = text.split('|||').map(s => s.trim())
-      const left = parts[0] || ''
-      const right = parts[1] || ''
-
-      if (left.match(/bride/i) || right.match(/groom/i)) {
-        const bride = extractNameParts(left, 'Bride')
-        const groom = extractNameParts(right, 'Groom')
-        if (bride.first) { result.brideFirstName = bride.first; result.brideLastName = bride.last }
-        if (groom.first) { result.groomFirstName = groom.first; result.groomLastName = groom.last }
-      } else if (left.includes('@') || right.includes('@')) {
-        if (left.includes('@')) result.brideEmail = left
-        if (right.includes('@')) result.groomEmail = right
-      } else if (left.match(/\d{3}[-.\s)]\d{3}/)) {
-        result.bridePhone = left
-        result.groomPhone = right
-      }
-    } else {
-      if (text.match(/bride/i)) {
-        const bride = extractNameParts(text, 'Bride')
-        if (bride.first) { result.brideFirstName = bride.first; result.brideLastName = bride.last }
-      }
-      if (text.match(/groom/i)) {
-        const groom = extractNameParts(text, 'Groom')
-        if (groom.first) { result.groomFirstName = groom.first; result.groomLastName = groom.last }
-      }
-      if (text.includes('@') && !text.match(/bride|groom/i)) {
-        if (!result.brideEmail) result.brideEmail = text.trim()
-        else if (!result.groomEmail) result.groomEmail = text.trim()
-      }
+    if (text.match(/bride/i)) {
+      const bride = extractNameParts(text, 'Bride')
+      if (bride.first) { result.brideFirstName = bride.first; result.brideLastName = bride.last }
+    }
+    if (text.match(/groom/i)) {
+      const groom = extractNameParts(text, 'Groom')
+      if (groom.first) { result.groomFirstName = groom.first; result.groomLastName = groom.last }
+    }
+    if (text.includes('@') && !text.match(/bride|groom/i)) {
+      if (!result.brideEmail) result.brideEmail = text.trim()
+      else if (!result.groomEmail) result.groomEmail = text.trim()
+    }
+    if (text.match(/\d{3}[-.\s)]\d{3}/) && !text.match(/bride|groom/i)) {
+      if (!result.bridePhone) result.bridePhone = text.trim()
+      else if (!result.groomPhone) result.groomPhone = text.trim()
     }
   }
 
@@ -393,7 +286,19 @@ export async function POST(request: NextRequest) {
     console.log(`[PDF API] Processing: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`)
 
     const buffer = await file.arrayBuffer()
-    const lines = await extractTextFromBuffer(buffer, file.name)
+
+    // Use pdf-parse v1 (pure Node.js, no DOM dependencies)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ numpages: number; text: string }>
+    const parsed = await pdfParse(Buffer.from(buffer))
+
+    console.log(`[PDF API] ${file.name}: ${parsed.numpages} page(s), ${parsed.text.length} chars extracted`)
+
+    // Split into lines and filter empty
+    const lines = parsed.text.split('\n').filter((l: string) => l.trim())
+    console.log(`[PDF API] ${file.name}: ${lines.length} non-empty lines`)
+    lines.forEach((l: string, i: number) => console.log(`  [${i}] "${l}"`))
+
     const result = parseExtractedText(lines, file.name)
 
     return NextResponse.json(result)
