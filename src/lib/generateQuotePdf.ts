@@ -19,6 +19,8 @@ export interface QuotePdfData {
   receptionVenue: string
   guestCount?: number
   bridalPartyCount?: number
+  flowerGirl?: number
+  ringBearer?: number
 
   selectedPackage: string
   packageName: string
@@ -95,6 +97,24 @@ function formatDate(dateStr: string): string {
   } catch {
     return dateStr
   }
+}
+
+function subtractMinutes(timeStr: string, mins: number): string | null {
+  // Parse "3:00 PM" style times
+  const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+  if (!match) return null
+  let hours = parseInt(match[1])
+  const minutes = parseInt(match[2])
+  const period = match[3].toUpperCase()
+  if (period === 'PM' && hours !== 12) hours += 12
+  if (period === 'AM' && hours === 12) hours = 0
+  let total = hours * 60 + minutes - mins
+  if (total < 0) total += 24 * 60
+  const h = Math.floor(total / 60)
+  const m = total % 60
+  const dispH = h === 0 ? 12 : h > 12 ? h - 12 : h
+  const dispP = h >= 12 ? 'PM' : 'AM'
+  return `${dispH}:${m.toString().padStart(2, '0')} ${dispP}`
 }
 
 function fmt(amount: number, forceDecimals = false): string {
@@ -231,11 +251,11 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
   const detailParts: string[] = []
   if (data.guestCount) detailParts.push(`${data.guestCount} Guests`)
   if (data.bridalPartyCount) detailParts.push(`${data.bridalPartyCount} Bridal Party`)
+  detailParts.push(`${data.flowerGirl ?? 0} Flower Girl`)
+  detailParts.push(`${data.ringBearer ?? 0} Ring Bearer`)
   if (data.firstLook) detailParts.push('First Look')
-  if (detailParts.length > 0) {
-    drawLabelValue(doc, 'Details', detailParts.join('  |  '), margin, y)
-    y += 6
-  }
+  drawLabelValue(doc, 'Details', detailParts.join('  |  '), margin, y)
+  y += 6
 
   if (data.engagementLocationLabel) {
     drawLabelValue(doc, 'Engagement Session', data.engagementLocationLabel, margin, y)
@@ -361,8 +381,25 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     doc.setFontSize(8)
     data.timeline.forEach(entry => {
       if (!entry.startTime && !entry.endTime) return
+
+      // Insert 30-min arrival buffer before Ceremony
+      if (entry.name === 'Ceremony' && entry.startTime) {
+        const arrivalTime = subtractMinutes(entry.startTime, 30)
+        if (arrivalTime) {
+          checkPageBreak(7)
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(8)
+          doc.setTextColor(...COLORS.muted)
+          doc.text('SIGS team must arrive at ceremony', margin + 2, y)
+          doc.setFont('helvetica', 'normal')
+          doc.text(arrivalTime, margin + 55, y)
+          y += 6
+        }
+      }
+
       checkPageBreak(7)
       doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
       doc.setTextColor(...COLORS.dark)
       doc.text(entry.name, margin + 2, y)
       doc.setFont('helvetica', 'normal')

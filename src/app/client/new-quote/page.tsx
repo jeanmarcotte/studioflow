@@ -2056,6 +2056,8 @@ export default function NewClientQuotePage() {
                   receptionVenue: watchedValues.receptionVenue || '',
                   guestCount: watchedValues.guestCount,
                   bridalPartyCount: watchedValues.bridalPartyCount,
+                  flowerGirl: watchedValues.flowerGirl,
+                  ringBearer: watchedValues.ringBearer,
                   selectedPackage: watchedValues.selectedPackage,
                   packageName: selectedPkg?.name || '',
                   packageHours: selectedPkg?.hours || 0,

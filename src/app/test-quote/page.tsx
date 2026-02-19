@@ -18,6 +18,8 @@ export default function TestQuotePage() {
       receptionVenue: 'The Fairmont Royal York',
       guestCount: 150,
       bridalPartyCount: 8,
+      flowerGirl: 1,
+      ringBearer: 0,
       selectedPackage: 'photo_only',
       packageName: 'Photography Collection',
       packageHours: 8,
