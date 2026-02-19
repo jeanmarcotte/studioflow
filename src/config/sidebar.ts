@@ -186,7 +186,7 @@ export const studioflowClientConfig: SidebarConfig = {
   logo: {
     src: '/sigs-logo.png',
     alt: 'SIGS Photography',
-    href: '/client',
+    href: '/client/new-quote',
     text: 'StudioFlow'
   },
   sections: [
