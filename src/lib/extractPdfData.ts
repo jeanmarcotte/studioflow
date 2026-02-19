@@ -1,4 +1,4 @@
-// pdfjs-dist is loaded dynamically to avoid SSR issues (DOMMatrix not available in Node)
+// react-pdf wraps pdfjs-dist and handles worker config; loaded dynamically for SSR safety
 
 // ============================================================
 // TYPES
@@ -63,31 +63,41 @@ interface TextLine {
 }
 
 async function extractTextFromPdf(file: File): Promise<TextLine[]> {
-  const pdfjsLib = await import('pdfjs-dist')
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
+  const { pdfjs } = await import('react-pdf')
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`
 
   const arrayBuffer = await file.arrayBuffer()
-  const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+  const doc = await pdfjs.getDocument({ data: arrayBuffer }).promise
   const allLines: TextLine[] = []
+
+  console.log(`[PDF Extract] ${file.name}: ${doc.numPages} page(s)`)
 
   for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
     const page = await doc.getPage(pageNum)
     const content = await page.getTextContent()
+
+    console.log(`[PDF Extract] Page ${pageNum}: ${content.items.length} raw items`)
+
     const items: TextItem[] = content.items
-      .filter((item: any) => item.str && item.str.trim())
+      .filter((item: any) => typeof item.str === 'string' && item.str.trim())
       .map((item: any) => ({
         str: item.str,
-        x: item.transform[4],
-        y: item.transform[5],
-        width: item.width,
+        x: item.transform ? item.transform[4] : 0,
+        y: item.transform ? item.transform[5] : 0,
+        width: item.width || 0,
       }))
 
-    // Group by Y coordinate (1.5 unit tolerance)
+    console.log(`[PDF Extract] Page ${pageNum}: ${items.length} text items after filtering`)
+    if (items.length > 0) {
+      console.log(`[PDF Extract] First 5 items:`, items.slice(0, 5).map(i => `"${i.str}" (x:${i.x.toFixed(1)}, y:${i.y.toFixed(1)}, w:${i.width.toFixed(1)})`))
+    }
+
+    // Group by Y coordinate (2.0 unit tolerance for slight vertical offsets)
     const lineMap = new Map<number, TextItem[]>()
     for (const item of items) {
       let foundY: number | null = null
       for (const existingY of Array.from(lineMap.keys())) {
-        if (Math.abs(existingY - item.y) < 1.5) {
+        if (Math.abs(existingY - item.y) < 2.0) {
           foundY = existingY
           break
         }
@@ -103,38 +113,41 @@ async function extractTextFromPdf(file: File): Promise<TextLine[]> {
     const sortedYs = Array.from(lineMap.keys()).sort((a, b) => b - a)
     for (const y of sortedYs) {
       const lineItems = lineMap.get(y)!.sort((a, b) => a.x - b.x)
-      // Detect two-column layout: if there's a gap > 50 units between items
-      const hasColumnGap = lineItems.some((item, i) => {
-        if (i === 0) return false
-        return item.x - (lineItems[i - 1].x + lineItems[i - 1].width) > 50
-      })
 
-      if (hasColumnGap) {
-        // Split into left and right columns
-        let splitIdx = 0
-        let maxGap = 0
-        for (let i = 1; i < lineItems.length; i++) {
-          const gap = lineItems[i].x - (lineItems[i - 1].x + lineItems[i - 1].width)
-          if (gap > maxGap) {
-            maxGap = gap
-            splitIdx = i
-          }
+      // Detect two-column layout: if there's a gap > 30 units between items
+      let splitIdx = -1
+      let maxGap = 30 // minimum gap to consider as column split
+      for (let i = 1; i < lineItems.length; i++) {
+        const prevEnd = lineItems[i - 1].x + Math.max(lineItems[i - 1].width, 1)
+        const gap = lineItems[i].x - prevEnd
+        if (gap > maxGap) {
+          maxGap = gap
+          splitIdx = i
         }
+      }
+
+      if (splitIdx > 0) {
         const leftItems = lineItems.slice(0, splitIdx)
         const rightItems = lineItems.slice(splitIdx)
-        const leftText = leftItems.map(i => i.str).join(' ').trim()
-        const rightText = rightItems.map(i => i.str).join(' ').trim()
-        // Store as single line with column separator
+        const leftText = leftItems.map(i => i.str).join('').trim()
+        const rightText = rightItems.map(i => i.str).join('').trim()
         allLines.push({
           y,
           items: lineItems,
           text: leftText + ' ||| ' + rightText,
         })
       } else {
-        const text = lineItems.map(i => i.str).join(' ').trim()
+        // Join without extra spaces — pdfjs items often already include spacing
+        const text = lineItems.map(i => i.str).join('').trim()
         allLines.push({ y, items: lineItems, text })
       }
     }
+  }
+
+  console.log(`[PDF Extract] Total lines extracted: ${allLines.length}`)
+  if (allLines.length > 0) {
+    console.log(`[PDF Extract] All lines:`)
+    allLines.forEach((l, i) => console.log(`  [${i}] "${l.text}"`))
   }
 
   return allLines
@@ -146,13 +159,23 @@ async function extractTextFromPdf(file: File): Promise<TextLine[]> {
 
 type Section = 'HEADER' | 'COUPLE_INFO' | 'WEDDING_DETAILS' | 'PACKAGE' | 'TIMELINE' | 'PRICING' | 'PAYMENT' | 'CLOSING'
 
-const SECTION_MARKERS: Record<string, Section> = {
-  'COUPLE INFORMATION': 'COUPLE_INFO',
-  'WEDDING DETAILS': 'WEDDING_DETAILS',
-  'YOUR PACKAGE': 'PACKAGE',
-  'WEDDING DAY TIMELINE': 'TIMELINE',
-  'PRICING SUMMARY': 'PRICING',
-  'PAYMENT SCHEDULE': 'PAYMENT',
+const SECTION_KEYWORDS: Array<{ keyword: string; section: Section }> = [
+  { keyword: 'COUPLE INFORMATION', section: 'COUPLE_INFO' },
+  { keyword: 'WEDDING DETAILS', section: 'WEDDING_DETAILS' },
+  { keyword: 'YOUR PACKAGE', section: 'PACKAGE' },
+  { keyword: 'WEDDING DAY TIMELINE', section: 'TIMELINE' },
+  { keyword: 'PRICING SUMMARY', section: 'PRICING' },
+  { keyword: 'PAYMENT SCHEDULE', section: 'PAYMENT' },
+]
+
+function detectSection(lineText: string): Section | null {
+  const upper = lineText.toUpperCase().replace(/\s+/g, ' ').trim()
+  for (const { keyword, section } of SECTION_KEYWORDS) {
+    if (upper.includes(keyword)) {
+      return section
+    }
+  }
+  return null
 }
 
 function parseMoney(str: string): number | null {
@@ -162,7 +185,6 @@ function parseMoney(str: string): number | null {
 }
 
 function parseWeddingDate(dateStr: string): { iso: string | null; display: string; year: number | null } {
-  // Handle formats like "February 16, 2026" or "March 8, 2025"
   const match = dateStr.match(/(\w+)\s+(\d{1,2}),?\s+(\d{4})/)
   if (!match) return { iso: null, display: dateStr, year: null }
 
@@ -183,10 +205,40 @@ function parseWeddingDate(dateStr: string): { iso: string | null; display: strin
 }
 
 function extractLabelValue(text: string, label: string): string {
-  // Match "Label: Value" or "Label : Value"
-  const regex = new RegExp(`${label}\\s*:\\s*(.+)`, 'i')
+  // Handle cases where colon may be separate or attached: "Bride: Jane" or "Bride : Jane" or "Bride:Jane"
+  const regex = new RegExp(`${label}\\s*:?\\s*[:.]?\\s*(.+)`, 'i')
   const match = text.match(regex)
-  return match ? match[1].trim() : ''
+  if (!match) return ''
+  // Clean up the captured value
+  let val = match[1].trim()
+  // Remove leading colon/dot if label regex didn't consume it
+  val = val.replace(/^[:.]\s*/, '')
+  return val
+}
+
+function extractNameParts(text: string, label: string): { first: string; last: string } {
+  // Try multiple patterns for "Bride: FirstName LastName"
+  // Pattern 1: "Bride: First Last" (colon attached)
+  // Pattern 2: "Bride : First Last" (colon separated)
+  // Pattern 3: "Bride:First Last" (no space after colon)
+  const patterns = [
+    new RegExp(`${label}\\s*:\\s*(.+)`, 'i'),
+    new RegExp(`${label}\\s+(.+)`, 'i'),
+  ]
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern)
+    if (match) {
+      const fullName = match[1].trim()
+      // Remove any leading colon or punctuation
+      const cleaned = fullName.replace(/^[:.]\s*/, '').trim()
+      if (cleaned) {
+        const parts = cleaned.split(/\s+/)
+        return { first: parts[0] || '', last: parts.slice(1).join(' ') }
+      }
+    }
+  }
+  return { first: '', last: '' }
 }
 
 export async function extractPdfData(file: File): Promise<ExtractedPdfData> {
@@ -211,21 +263,27 @@ export async function extractPdfData(file: File): Promise<ExtractedPdfData> {
   try {
     lines = await extractTextFromPdf(file)
   } catch (e) {
-    warnings.push(`Failed to read PDF: ${e instanceof Error ? e.message : 'Unknown error'}`)
+    const msg = e instanceof Error ? e.message : 'Unknown error'
+    console.error(`[PDF Extract] FAILED to read ${file.name}:`, e)
+    warnings.push(`Failed to read PDF: ${msg}`)
     return result
   }
 
   if (lines.length === 0) {
+    console.warn(`[PDF Extract] ${file.name}: No text lines extracted`)
     warnings.push('PDF appears to be empty or image-based')
     return result
   }
 
   // Check if this looks like a SIGS PDF
   const allText = lines.map(l => l.text).join(' ')
-  if (!allText.includes('SIGS Photography') && !allText.includes('SIGS')) {
+  if (!allText.toUpperCase().includes('SIGS')) {
+    console.warn(`[PDF Extract] ${file.name}: No 'SIGS' found in text`)
     warnings.push('This does not appear to be a SIGS Photography quote PDF')
     return result
   }
+
+  console.log(`[PDF Parse] ${file.name}: Detected as SIGS PDF, parsing sections...`)
 
   // State machine: walk through lines, detect sections
   let currentSection: Section = 'HEADER'
@@ -235,68 +293,57 @@ export async function extractPdfData(file: File): Promise<ExtractedPdfData> {
   }
 
   for (const line of lines) {
-    const upper = line.text.toUpperCase().trim()
-
-    // Check for section markers
-    let matched = false
-    for (const [marker, section] of Object.entries(SECTION_MARKERS)) {
-      if (upper === marker || upper.startsWith(marker)) {
-        currentSection = section
-        matched = true
-        break
-      }
+    const detected = detectSection(line.text)
+    if (detected) {
+      currentSection = detected
+      console.log(`[PDF Parse] Section: ${currentSection} (from: "${line.text}")`)
+      continue // don't add the section header line itself to content
     }
+    sectionLines[currentSection].push(line.text)
+  }
 
-    if (!matched) {
-      sectionLines[currentSection].push(line.text)
+  // Log section contents
+  for (const [section, slines] of Object.entries(sectionLines)) {
+    if (slines.length > 0) {
+      console.log(`[PDF Parse] ${section} (${slines.length} lines):`, slines)
     }
   }
 
   // ── Parse COUPLE_INFO ──────────────────────────────────────
   for (const text of sectionLines.COUPLE_INFO) {
     if (text.includes('|||')) {
-      const [left, right] = text.split('|||').map(s => s.trim())
+      const parts = text.split('|||').map(s => s.trim())
+      const left = parts[0] || ''
+      const right = parts[1] || ''
 
-      // Bride: FirstName LastName ||| Groom: FirstName LastName
-      const brideMatch = left.match(/Bride\s*:\s*(.+)/i)
-      const groomMatch = right.match(/Groom\s*:\s*(.+)/i)
-      if (brideMatch) {
-        const parts = brideMatch[1].trim().split(/\s+/)
-        result.brideFirstName = parts[0] || ''
-        result.brideLastName = parts.slice(1).join(' ')
+      // Check for Bride/Groom names
+      if (left.match(/bride/i) || right.match(/groom/i)) {
+        const bride = extractNameParts(left, 'Bride')
+        const groom = extractNameParts(right, 'Groom')
+        if (bride.first) { result.brideFirstName = bride.first; result.brideLastName = bride.last }
+        if (groom.first) { result.groomFirstName = groom.first; result.groomLastName = groom.last }
       }
-      if (groomMatch) {
-        const parts = groomMatch[1].trim().split(/\s+/)
-        result.groomFirstName = parts[0] || ''
-        result.groomLastName = parts.slice(1).join(' ')
-      }
-
       // Email lines (contain @)
-      if (left.includes('@') && !left.match(/Bride|Groom/i)) {
-        result.brideEmail = left.trim()
-        result.groomEmail = right.trim()
+      else if (left.includes('@') || right.includes('@')) {
+        if (left.includes('@')) result.brideEmail = left
+        if (right.includes('@')) result.groomEmail = right
       }
-
-      // Phone lines (contain digits with dashes/parens)
-      if (left.match(/\d{3}/) && !left.includes('@') && !left.match(/Bride|Groom/i)) {
-        result.bridePhone = left.trim()
-        result.groomPhone = right.trim()
+      // Phone lines
+      else if (left.match(/\d{3}[-.\s)]\d{3}/)) {
+        result.bridePhone = left
+        result.groomPhone = right
       }
     } else {
-      // Single column fallback
-      const brideMatch = text.match(/Bride\s*:\s*(.+)/i)
-      const groomMatch = text.match(/Groom\s*:\s*(.+)/i)
-      if (brideMatch) {
-        const parts = brideMatch[1].trim().split(/\s+/)
-        result.brideFirstName = parts[0] || ''
-        result.brideLastName = parts.slice(1).join(' ')
+      // Single-column lines
+      if (text.match(/bride/i)) {
+        const bride = extractNameParts(text, 'Bride')
+        if (bride.first) { result.brideFirstName = bride.first; result.brideLastName = bride.last }
       }
-      if (groomMatch) {
-        const parts = groomMatch[1].trim().split(/\s+/)
-        result.groomFirstName = parts[0] || ''
-        result.groomLastName = parts.slice(1).join(' ')
+      if (text.match(/groom/i)) {
+        const groom = extractNameParts(text, 'Groom')
+        if (groom.first) { result.groomFirstName = groom.first; result.groomLastName = groom.last }
       }
-      if (text.includes('@') && !text.match(/Bride|Groom/i)) {
+      if (text.includes('@') && !text.match(/bride|groom/i)) {
         if (!result.brideEmail) result.brideEmail = text.trim()
         else if (!result.groomEmail) result.groomEmail = text.trim()
       }
@@ -305,26 +352,47 @@ export async function extractPdfData(file: File): Promise<ExtractedPdfData> {
 
   // ── Parse WEDDING_DETAILS ──────────────────────────────────
   for (const text of sectionLines.WEDDING_DETAILS) {
-    const dateVal = extractLabelValue(text, 'Date')
-    if (dateVal) {
-      const parsed = parseWeddingDate(dateVal)
-      result.weddingDate = parsed.iso
-      result.weddingDateDisplay = parsed.display
-      result.weddingYear = parsed.year
+    // Date - try label:value first, then scan for date pattern anywhere
+    if (text.match(/date/i)) {
+      const dateVal = extractLabelValue(text, 'Date')
+      if (dateVal) {
+        const parsed = parseWeddingDate(dateVal)
+        result.weddingDate = parsed.iso
+        result.weddingDateDisplay = parsed.display
+        result.weddingYear = parsed.year
+      }
+    }
+    // Also scan for date pattern in any line (fallback)
+    if (!result.weddingDate) {
+      const datePattern = text.match(/(\w+)\s+(\d{1,2}),?\s+(\d{4})/)
+      if (datePattern) {
+        const parsed = parseWeddingDate(datePattern[0])
+        if (parsed.iso) {
+          result.weddingDate = parsed.iso
+          result.weddingDateDisplay = parsed.display
+          result.weddingYear = parsed.year
+        }
+      }
     }
 
-    const ceremony = extractLabelValue(text, 'Ceremony')
-    if (ceremony) result.ceremonyVenue = ceremony
+    if (text.match(/ceremony/i)) {
+      const ceremony = extractLabelValue(text, 'Ceremony')
+      if (ceremony) result.ceremonyVenue = ceremony
+    }
 
-    const reception = extractLabelValue(text, 'Reception')
-    if (reception) result.receptionVenue = reception
+    if (text.match(/reception/i)) {
+      const reception = extractLabelValue(text, 'Reception')
+      if (reception) result.receptionVenue = reception
+    }
 
-    const details = extractLabelValue(text, 'Details')
-    if (details) {
-      const guestMatch = details.match(/(\d+)\s*Guests/i)
-      if (guestMatch) result.guestCount = parseInt(guestMatch[1])
-      const partyMatch = details.match(/(\d+)\s*Bridal Party/i)
-      if (partyMatch) result.bridalPartyCount = parseInt(partyMatch[1])
+    if (text.match(/details/i)) {
+      const details = extractLabelValue(text, 'Details')
+      if (details) {
+        const guestMatch = details.match(/(\d+)\s*Guests/i)
+        if (guestMatch) result.guestCount = parseInt(guestMatch[1])
+        const partyMatch = details.match(/(\d+)\s*Bridal Party/i)
+        if (partyMatch) result.bridalPartyCount = parseInt(partyMatch[1])
+      }
     }
   }
 
@@ -333,12 +401,12 @@ export async function extractPdfData(file: File): Promise<ExtractedPdfData> {
     const upper = text.toUpperCase()
     if (upper.includes('PHOTO ONLY')) {
       result.packageType = 'photo_only'
-    } else if (upper.includes('PHOTO AND VIDEO')) {
+    } else if (upper.includes('PHOTO AND VIDEO') || upper.includes('PHOTO+VIDEO') || upper.includes('PHOTO & VIDEO')) {
       result.packageType = 'photo_video'
     }
 
-    // Package name — X hours
-    const hoursMatch = text.match(/(.+?)\s*—\s*(\d+)\s*hours/i)
+    // Package name — X hours (the em dash may render as different characters)
+    const hoursMatch = text.match(/(.+?)\s*[—–\-]\s*(\d+)\s*hours/i)
     if (hoursMatch) {
       result.packageName = hoursMatch[1].trim()
       result.coverageHours = parseInt(hoursMatch[2])
@@ -355,8 +423,10 @@ export async function extractPdfData(file: File): Promise<ExtractedPdfData> {
     if (upper.includes('HST')) {
       result.hst = parseMoney(text)
     }
+    // TOTAL line — must have TOTAL but not SUBTOTAL or HST
     if (upper.includes('TOTAL') && !upper.includes('SUB') && !upper.includes('HST')) {
-      result.total = parseMoney(text)
+      const money = parseMoney(text)
+      if (money) result.total = money
     }
     if (upper.includes('DISCOUNT')) {
       result.discount = parseMoney(text)
@@ -364,9 +434,16 @@ export async function extractPdfData(file: File): Promise<ExtractedPdfData> {
   }
 
   // ── Construct couple name ──────────────────────────────────
-  const brideName = result.brideFirstName || 'Unknown'
-  const groomFull = [result.groomFirstName, result.groomLastName].filter(Boolean).join(' ') || 'Unknown'
-  result.coupleName = `${brideName} & ${groomFull}`
+  const brideName = result.brideFirstName || ''
+  const groomFull = [result.groomFirstName, result.groomLastName].filter(Boolean).join(' ')
+  if (brideName && groomFull) {
+    result.coupleName = `${brideName} & ${groomFull}`
+  } else if (brideName) {
+    result.coupleName = brideName
+  } else if (groomFull) {
+    result.coupleName = groomFull
+  }
+  // coupleName stays empty if nothing was extracted — importer will block this
 
   // ── Compute confidence ─────────────────────────────────────
   let score = 0
@@ -385,6 +462,15 @@ export async function extractPdfData(file: File): Promise<ExtractedPdfData> {
   if (score >= 5) result.confidence = 'high'
   else if (score >= 3) result.confidence = 'medium'
   else result.confidence = 'low'
+
+  console.log(`[PDF Parse] ${file.name}: Result —`, {
+    coupleName: result.coupleName,
+    weddingDate: result.weddingDate,
+    packageType: result.packageType,
+    total: result.total,
+    confidence: result.confidence,
+    warnings,
+  })
 
   return result
 }

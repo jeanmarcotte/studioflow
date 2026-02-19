@@ -47,37 +47,43 @@ export default function PdfImporter({ onImportComplete }: PdfImporterProps) {
 
     if (pdfFiles.length === 0) return
 
-    // Add to queue as extracting
-    const newItems: QueueItem[] = pdfFiles.map(f => ({
+    // Generate unique IDs for each file so we can track them through state updates
+    const fileIds = pdfFiles.map((_, i) => `pdf-${Date.now()}-${i}`)
+
+    const newItems: QueueItem[] = pdfFiles.map((f, i) => ({
       file: f,
       data: null,
       status: 'extracting' as const,
       selected: false,
+      _id: fileIds[i],
     }))
 
     setQueue(prev => [...prev, ...newItems])
     setResult(null)
 
-    // Extract in parallel
-    const startIdx = queue.length
+    // Extract sequentially — update each item by matching its file reference
     for (let i = 0; i < pdfFiles.length; i++) {
-      const idx = startIdx + i
+      const targetFile = pdfFiles[i]
+      const targetId = fileIds[i]
       try {
-        const data = await extractPdfData(pdfFiles[i])
-        setQueue(prev => prev.map((item, j) =>
-          j === idx
-            ? { ...item, data, status: 'ready', selected: data.confidence !== 'low' }
+        console.log(`[PDF Importer] Extracting: ${targetFile.name}`)
+        const data = await extractPdfData(targetFile)
+        console.log(`[PDF Importer] Extracted ${targetFile.name}:`, data.coupleName, data.confidence)
+        setQueue(prev => prev.map(item =>
+          (item as any)._id === targetId
+            ? { ...item, data, status: 'ready' as const, selected: data.confidence !== 'low' && !!data.coupleName }
             : item
         ))
       } catch (e) {
-        setQueue(prev => prev.map((item, j) =>
-          j === idx
-            ? { ...item, status: 'error', error: e instanceof Error ? e.message : 'Extraction failed' }
+        console.error(`[PDF Importer] Error extracting ${targetFile.name}:`, e)
+        setQueue(prev => prev.map(item =>
+          (item as any)._id === targetId
+            ? { ...item, status: 'error' as const, error: e instanceof Error ? e.message : 'Extraction failed' }
             : item
         ))
       }
     }
-  }, [queue.length])
+  }, [])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -107,7 +113,7 @@ export default function PdfImporter({ onImportComplete }: PdfImporterProps) {
   const importSelected = async () => {
     const selectedItems = queue
       .map((item, idx) => ({ item, idx }))
-      .filter(({ item }) => item.selected && item.status === 'ready' && item.data)
+      .filter(({ item }) => item.selected && item.status === 'ready' && item.data && item.data.coupleName)
 
     if (selectedItems.length === 0) return
 
