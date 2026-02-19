@@ -27,7 +27,7 @@ export const studioflowConfig: SidebarConfig = {
   logo: {
     src: '/sigs-logo.png',
     alt: 'SIGS Photography',
-    href: '/client',
+    href: '/admin/dashboard',
     text: 'StudioFlow'
   },
   sections: [
