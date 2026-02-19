@@ -1001,13 +1001,33 @@ export default function NewClientQuotePage() {
               {timelineOrder.map((locId, index) => {
                 const loc = getLocationData(locId)
                 if (!loc) return null
-                
+
                 const isCustom = loc.type === 'custom'
                 const customData = isCustom ? customLocations.find(c => c.id === locId) : null
                 const nextLoc = index < timelineOrder.length - 1 ? getLocationData(timelineOrder[index + 1]) : null
-                
+
+                // Auto-calculated arrival row before Ceremony
+                const ceremonyStartVal = watchedValues.ceremonyStart as string | undefined
+                const arrivalStartMins = ceremonyStartVal ? timeToMinutes(ceremonyStartVal) : null
+                const showArrivalRow = locId === 'ceremony'
+
                 return (
                   <div key={locId}>
+                    {/* Photo/Video Arrival — auto-calculated, read-only */}
+                    {showArrivalRow && (
+                      <div className="flex items-center gap-2 p-3 bg-stone-100 rounded border border-stone-300 mb-3 opacity-90">
+                        <div className="w-[52px]" /> {/* spacer to align with arrow buttons */}
+                        <span className="text-xs font-semibold text-stone-600 w-28">Photo/Video Arrival</span>
+                        <span className="px-2 py-1.5 border border-stone-200 rounded text-xs bg-stone-50 text-stone-600">
+                          {arrivalStartMins !== null ? minutesToTime(arrivalStartMins - 30) : '—'}
+                        </span>
+                        <span className="text-stone-400 text-xs">to</span>
+                        <span className="px-2 py-1.5 border border-stone-200 rounded text-xs bg-stone-50 text-stone-600">
+                          {ceremonyStartVal || '—'}
+                        </span>
+                        <span className="text-[10px] text-stone-400 italic ml-1">30 min before ceremony</span>
+                      </div>
+                    )}
                     {/* Location Row */}
                     <div className={`flex items-center gap-2 p-3 ${loc.bgColor} rounded border ${loc.borderColor}`}>
                       {/* Move Arrows */}

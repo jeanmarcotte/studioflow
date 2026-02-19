@@ -390,9 +390,9 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
           doc.setFont('helvetica', 'bold')
           doc.setFontSize(8)
           doc.setTextColor(...COLORS.muted)
-          doc.text('SIGS Arrives', margin + 2, y)
+          doc.text('Photo/Video Arrival', margin + 2, y)
           doc.setFont('helvetica', 'normal')
-          doc.text(arrivalTime, margin + 55, y)
+          doc.text(`${arrivalTime} — ${entry.startTime}`, margin + 55, y)
           y += 6
         }
       }
