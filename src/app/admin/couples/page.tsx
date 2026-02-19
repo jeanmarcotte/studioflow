@@ -3,8 +3,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Users, Search, Filter, ChevronUp, ChevronDown } from 'lucide-react'
+import { Users, Search, Filter, ChevronUp, ChevronDown, Calendar, Camera, Frame } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
+import PdfImporter from '@/components/admin/PdfImporter'
 
 interface Couple {
   id: string
@@ -70,6 +71,7 @@ export default function CouplesPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sortField, setSortField] = useState<SortField>('wedding_date')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     const fetchCouples = async () => {
@@ -84,7 +86,7 @@ export default function CouplesPage() {
       setLoading(false)
     }
     fetchCouples()
-  }, [])
+  }, [refreshKey])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -151,6 +153,25 @@ export default function CouplesPage() {
       : <ChevronDown className="h-3 w-3" />
   }
 
+  // Stats computed from loaded data
+  const stats = useMemo(() => {
+    const byYear = { 2025: 0, 2026: 0, 2027: 0 }
+    const byPackage = { photo_only: 0, photo_video: 0 }
+    const byFrame = { bought: 0, pending: 0, noSale: 0 }
+
+    couples.forEach(c => {
+      if (c.wedding_year && c.wedding_year in byYear) byYear[c.wedding_year as keyof typeof byYear]++
+      if (c.package_type === 'photo_only') byPackage.photo_only++
+      else if (c.package_type === 'photo_video') byPackage.photo_video++
+      const fs = c.frame_sale_status?.toUpperCase()
+      if (fs === 'BOUGHT') byFrame.bought++
+      else if (fs === 'NO FRAME SALE') byFrame.noSale++
+      else byFrame.pending++
+    })
+
+    return { byYear, byPackage, byFrame }
+  }, [couples])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -166,6 +187,68 @@ export default function CouplesPage() {
         <div>
           <h1 className="text-2xl font-bold">Couples</h1>
           <p className="text-muted-foreground">{couples.length} couples in database</p>
+        </div>
+      </div>
+
+      {/* PDF Importer */}
+      <PdfImporter onImportComplete={() => setRefreshKey(k => k + 1)} />
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Weddings by Year */}
+        <div className="rounded-xl border bg-card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Calendar className="h-4 w-4 text-blue-500" />
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Weddings by Year</h3>
+          </div>
+          <div className="space-y-1.5">
+            {([2025, 2026, 2027] as const).map(yr => (
+              <div key={yr} className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">{yr}</span>
+                <span className="text-sm font-semibold">{stats.byYear[yr]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Package Type */}
+        <div className="rounded-xl border bg-card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Camera className="h-4 w-4 text-emerald-500" />
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Package Type</h3>
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Photo Only</span>
+              <span className="text-sm font-semibold">{stats.byPackage.photo_only}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Photo + Video</span>
+              <span className="text-sm font-semibold">{stats.byPackage.photo_video}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Frame Sales */}
+        <div className="rounded-xl border bg-card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Frame className="h-4 w-4 text-amber-500" />
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Frame Sales</h3>
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Bought</span>
+              <span className="text-sm font-semibold text-green-600">{stats.byFrame.bought}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Pending</span>
+              <span className="text-sm font-semibold text-amber-600">{stats.byFrame.pending}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">No Sale</span>
+              <span className="text-sm font-semibold text-gray-500">{stats.byFrame.noSale}</span>
+            </div>
+          </div>
         </div>
       </div>
 

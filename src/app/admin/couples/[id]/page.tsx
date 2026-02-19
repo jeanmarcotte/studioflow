@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import {
   ArrowLeft, Calendar, MapPin, Camera, Heart, DollarSign,
   Clock, Users, Package, FileText, CreditCard, CheckCircle2,
-  AlertCircle, Truck, StickyNote
+  AlertCircle, Truck, StickyNote, Upload, Download, Trash2, Loader2
 } from 'lucide-react'
 import { format, parseISO, differenceInDays } from 'date-fns'
 
@@ -101,6 +101,8 @@ export default function CoupleDetailPage() {
   const [deliverables, setDeliverables] = useState<Deliverable[]>([])
   const [staff, setStaff] = useState<StaffAssignment[]>([])
   const [loading, setLoading] = useState(true)
+  const [documents, setDocuments] = useState<{name: string, created_at: string}[]>([])
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -115,10 +117,45 @@ export default function CoupleDetailPage() {
       if (paymentsRes.data) setPayments(paymentsRes.data)
       if (deliverablesRes.data) setDeliverables(deliverablesRes.data)
       if (staffRes.data) setStaff(staffRes.data)
+
+      // Fetch documents from storage
+      const { data: files } = await supabase.storage
+        .from('couple-documents')
+        .list(coupleId, { sortBy: { column: 'created_at', order: 'desc' } })
+      if (files) setDocuments(files.map(f => ({ name: f.name, created_at: f.created_at })))
+
       setLoading(false)
     }
     fetchAll()
   }, [coupleId])
+
+  const uploadDocument = async (file: File) => {
+    setUploading(true)
+    const filePath = `${coupleId}/${file.name}`
+    const { error } = await supabase.storage
+      .from('couple-documents')
+      .upload(filePath, file, { upsert: true })
+    if (!error) {
+      setDocuments(prev => [{ name: file.name, created_at: new Date().toISOString() }, ...prev])
+    }
+    setUploading(false)
+  }
+
+  const deleteDocument = async (fileName: string) => {
+    const { error } = await supabase.storage
+      .from('couple-documents')
+      .remove([`${coupleId}/${fileName}`])
+    if (!error) {
+      setDocuments(prev => prev.filter(d => d.name !== fileName))
+    }
+  }
+
+  const getDocumentUrl = (fileName: string) => {
+    const { data } = supabase.storage
+      .from('couple-documents')
+      .getPublicUrl(`${coupleId}/${fileName}`)
+    return data.publicUrl
+  }
 
   if (loading) {
     return (
@@ -488,6 +525,77 @@ export default function CoupleDetailPage() {
                       <AlertCircle className="h-3 w-3" /> Pending
                     </span>
                   )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Documents */}
+      <div className="rounded-xl border bg-card">
+        <div className="p-4 border-b flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-indigo-600" />
+            <h2 className="font-semibold">Documents</h2>
+            {documents.length > 0 && (
+              <span className="text-xs bg-muted rounded-full px-2 py-0.5">{documents.length}</span>
+            )}
+          </div>
+          <label className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg cursor-pointer transition-colors ${
+            uploading ? 'bg-muted text-muted-foreground' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+          }`}>
+            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+            {uploading ? 'Uploading...' : 'Upload PDF'}
+            <input
+              type="file"
+              accept=".pdf"
+              className="hidden"
+              disabled={uploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) uploadDocument(file)
+                e.target.value = ''
+              }}
+            />
+          </label>
+        </div>
+        {documents.length === 0 ? (
+          <div className="p-6 text-center text-sm text-muted-foreground">
+            No documents uploaded yet.
+          </div>
+        ) : (
+          <div className="divide-y">
+            {documents.map((doc) => (
+              <div key={doc.name} className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileText className="h-4 w-4 text-red-500 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{doc.name}</div>
+                    {doc.created_at && (
+                      <div className="text-xs text-muted-foreground">
+                        {format(new Date(doc.created_at), 'MMM d, yyyy')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <a
+                    href={getDocumentUrl(doc.name)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 rounded hover:bg-muted transition-colors text-blue-600"
+                    title="Download"
+                  >
+                    <Download className="h-4 w-4" />
+                  </a>
+                  <button
+                    onClick={() => deleteDocument(doc.name)}
+                    className="p-1.5 rounded hover:bg-muted transition-colors text-red-500"
+                    title="Delete"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             ))}
