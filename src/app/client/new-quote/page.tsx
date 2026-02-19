@@ -2073,6 +2073,7 @@ export default function NewClientQuotePage() {
                   freeParentAlbums: parentAlbumsIncluded === 'free',
                   freePrints: printsIncluded === 'free',
                   printsTotal,
+                  printOrders,
                   timeline,
                   installments,
                   discountType: watchedValues.discountType,

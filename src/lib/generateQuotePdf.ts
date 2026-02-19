@@ -53,6 +53,7 @@ export interface QuotePdfData {
   freeParentAlbums: boolean
   freePrints: boolean
   printsTotal: number
+  printOrders: {[key: string]: number}
 
   timeline: Array<{
     name: string
@@ -320,6 +321,24 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     doc.setFont('helvetica', 'normal')
     const parentLabel = `${data.parentAlbumQty}${data.freeParentAlbums ? ' (complimentary)' : ''}`
     doc.text(parentLabel, margin + 2 + parentAlbumsLabelW, y)
+    y += 5
+  }
+
+  // Prints
+  const printEntries = Object.entries(data.printOrders || {}).filter(([, qty]) => qty > 0)
+  if (printEntries.length > 0) {
+    const SIZE_LABELS: {[key: string]: string} = {
+      '5x7': '5×7', '8x10': '8×10', '11x14': '11×14',
+      '16x20': '16×20', '20x24': '20×24', '24x30': '24×30',
+    }
+    const printParts = printEntries.map(([size, qty]) => `${qty}× ${SIZE_LABELS[size] || size}`)
+    const printDesc = printParts.join(', ') + (data.freePrints ? ' (included)' : '')
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8)
+    doc.text('Prints: ', margin + 2, y)
+    const printsLabelW = doc.getTextWidth('Prints: ')
+    doc.setFont('helvetica', 'normal')
+    doc.text(printDesc, margin + 2 + printsLabelW, y)
     y += 5
   }
 

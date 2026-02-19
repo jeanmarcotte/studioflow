@@ -55,6 +55,7 @@ export default function TestQuotePage() {
       freeParentAlbums: false,
       freePrints: false,
       printsTotal: 150,
+      printOrders: { '5x7': 0, '8x10': 0, '11x14': 3, '16x20': 0, '20x24': 0, '24x30': 1 },
       timeline: [
         { name: 'Groom Prep', startTime: '1:00 PM', endTime: '2:00 PM' },
         { name: 'Bride Prep', startTime: '1:00 PM', endTime: '3:00 PM' },
