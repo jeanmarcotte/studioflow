@@ -399,7 +399,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
-    console.error('[PDF API] Error:', e)
+    const stack = e instanceof Error ? e.stack : ''
+    console.error('[PDF API] Error:', msg)
+    console.error('[PDF API] Stack:', stack)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

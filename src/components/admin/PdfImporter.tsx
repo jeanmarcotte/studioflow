@@ -339,7 +339,7 @@ export default function PdfImporter({ onImportComplete }: PdfImporterProps) {
                         ) : item.status === 'done' ? (
                           <span className="text-xs text-green-600 font-medium">Imported</span>
                         ) : item.status === 'error' ? (
-                          <span className="text-xs text-red-600" title={item.error}>Error</span>
+                          <span className="text-xs text-red-600">{item.error || 'Error'}</span>
                         ) : item.status === 'importing' ? (
                           <span className="text-xs text-muted-foreground">Importing...</span>
                         ) : null}
