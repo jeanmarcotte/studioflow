@@ -72,6 +72,8 @@ export interface QuotePdfData {
   discountType: string
   discountAmount?: number
   discount2Amount?: number
+
+  contractMode?: boolean
 }
 
 // ============================================================
@@ -161,6 +163,145 @@ function drawHRule(doc: jsPDF, y: number, margin: number, rightEdge: number) {
   doc.setDrawColor(...COLORS.border)
   doc.setLineWidth(0.3)
   doc.line(margin, y, rightEdge, y)
+}
+
+// ============================================================
+// CONTRACT TERMS PAGE (Page 3)
+// ============================================================
+
+function drawContractTermsPage(doc: jsPDF, data: QuotePdfData) {
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 20
+  const contentWidth = pageWidth - margin * 2
+  const rightEdge = pageWidth - margin
+
+  doc.addPage()
+  let y = 15
+
+  const checkPageBreak = (needed: number) => {
+    if (y + needed > pageHeight - 15) {
+      doc.addPage()
+      y = 15
+      // Repeat header on continuation pages
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      doc.setTextColor(...COLORS.dark)
+      doc.text('SIGS Photography Ltd.', margin, y)
+      doc.text('Page | ' + doc.getNumberOfPages(), rightEdge, y, { align: 'right' })
+      y += 8
+    }
+  }
+
+  // Header
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(8)
+  doc.setTextColor(...COLORS.dark)
+  doc.text('SIGS Photography Ltd.', margin, y)
+  doc.text('Page | 3', rightEdge, y, { align: 'right' })
+  y += 8
+
+  // Name & Date line
+  const bride = [data.brideFirstName, data.brideLastName].filter(Boolean).join(' ')
+  const groom = [data.groomFirstName, data.groomLastName].filter(Boolean).join(' ')
+  const coupleName = [bride, groom].filter(Boolean).join(' & ')
+  const weddingDateDisplay = formatDate(data.weddingDate)
+  const todayDisplay = formatDate(new Date().toISOString().split('T')[0])
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(...COLORS.dark)
+  doc.text(`Name & Wedding Date: ${coupleName} ${weddingDateDisplay}`, margin, y)
+  doc.text(`Today's Date: ${todayDisplay}`, rightEdge, y, { align: 'right' })
+  y += 4
+
+  // Underline
+  doc.setDrawColor(...COLORS.border)
+  doc.setLineWidth(0.3)
+  doc.line(margin, y, rightEdge, y)
+  y += 6
+
+  // Terms paragraphs
+  const terms = [
+    `1. This contract constitutes an order for Wedding photographs & video. It is understood that video raw footage & unedited photos are not included, & remain the property of SIGS Photography Ltd. We may use images & video for advertising display &/ or any other purpose. Wedding photo order placed within 2 weeks from the time of receiving proof files. Wedding photo orders must be picked up within 30 days of completion; USB/DROPBOX is provided to all customers 300 DPI 1200x1800 pixels, no watermark unless otherwise specified. Park permits & fees are the responsibility of the couple. In the event, the bride & groom go to a park and we get a fine \u2026 they must pay 100% of the fine. All items not specified in this contract are extra.`,
+
+    `2. The Videographer & Photographer are not liable for damages, including delays or omissions, arising from inherent equipment defect or fault, or any other causes. Photographers & videographers cannot be liable for specifically requested image(s)/video shots of any kind because a wedding is an uncontrolled event, there is no guarantee on the delivery of any specific image or images. We accept Visa/ MC, E-Transfer., money order or cash. The last payment will be made the day before the final photo pick-up via E-Transfer.`,
+
+    `3. Engagement photography, digital files, mounting, frames, and albums are excluded from all packages unless explicitly stated otherwise. As discussed during the initial consultation, the engagement session is included and comprises 50 watermarked digital images. Unless an alternative location is specified, all engagement photo and video sessions will be conducted at Mill Pond. The engagement photo session must be scheduled no later than 6 to 9 months before the wedding date. Please note that all pricing is subject to change without prior notification.`,
+
+    `4. SIGS Photography Ltd. is the exclusive contractor for the services described herein. To ensure the best quality, and to avoid interruption or distraction, only SIGS Photography Ltd. will be permitted to take photographs at any location on the Wedding Day. A breach of this agreement may constitute a reason for non-completion of the assignment with no liability to SIGS Photography Ltd., & the loss of all installments paid by the signing parties. Family & friends / Photo Booths may take photos as long as they are not a distraction to the photographer/videographer.`,
+
+    `5. All payments must be made on the above-noted dates. A failure to do so may result in the non-completion of the work, with no liability to SIGS Photography Ltd. and forfeiture of deposits paid to date by signing parties. It is understood that payment in full is required in the event of cancellation. Photo coverage is as specified. Additional hours are $200 per hour plus tax. Photography & video commence and conclude simultaneously.`,
+
+    `6. It is understood that SIGS Photography Ltd. is the owner of the Copyrights. All photos & video footage are Copyrighted by law; no reproduction in whole or in part may be done including any & all forms of reproduction. In case of breach of this agreement, the customer agrees to pay SIGS Photography Ltd. full price for the items reproduced/copied.`,
+
+    `7. The staff of SIGS Photography Ltd. are to be seated with the guests, & receive the same meal as the guests. There will be no exchanges, changes, or refunds of any kind whatsoever. Once items are approved or an order is placed, it cannot be cancelled for any reason. Retouching and Digital Manipulation are extra *(Max 10 min per photo chosen to enlarge)`,
+
+    `8. Upon signing, SIGS Photography Ltd. guarantees the time & date agreed upon. For this reason, all deposits are non-refundable & non-transferable (exception see #10 below). The photographer & videographer will be specified to you no later than 3 weeks prior to the Wedding unless an emergency arises. Unless specified Packages include 1 photographer and 1 videographer. Parent Albums are printed on paper as are any albums in the Photo Book class. The length of the video is up to 2 hours. Director's cut & additional editing is available for an extra charge. Unless specified, Photographers/Videographer teams cannot be split to work at separate locations. Additional fees will apply.`,
+
+    `8. All orders for photos, videos, frames, albums etc. are placed immediately. Products may be changed in the event suppliers change so long as they are of equivalent value & price. Late payments are subject to late fees (10% monthly). There are no Verbal Understandings. All changes must be added thereto in writing by SIGS Photography Ltd. Only customers in good standing will receive any "free" promotions.`,
+
+    `9. Use of Kopter/Drone is NOT guaranteed, and may not be used in poor weather, non-accessible areas & other unforeseeable circumstances.`,
+
+    `10. SIGS Photo allows for a complimentary rescheduling of a wedding date due to circumstances related to COVID-19 or pregnancy, subject to our availability on the requested new date.`,
+  ]
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(7)
+  doc.setTextColor(...COLORS.body)
+
+  const lineHeight = 3.2
+
+  for (const para of terms) {
+    const lines = doc.splitTextToSize(para, contentWidth) as string[]
+    const blockHeight = lines.length * lineHeight + 3
+
+    checkPageBreak(Math.min(blockHeight, lineHeight * 3))
+
+    for (const line of lines) {
+      checkPageBreak(lineHeight + 1)
+      doc.text(line, margin, y)
+      y += lineHeight
+    }
+    y += 3
+  }
+
+  // Closing line
+  checkPageBreak(10)
+  y += 2
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7.5)
+  doc.setTextColor(...COLORS.dark)
+  doc.text('All terms of this agreement are understood and agreed upon.', margin, y)
+  y += 10
+
+  // Signature lines
+  checkPageBreak(30)
+  doc.setDrawColor(...COLORS.dark)
+  doc.setLineWidth(0.3)
+
+  doc.line(margin, y, margin + 80, y)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(7)
+  doc.setTextColor(...COLORS.muted)
+  doc.text('Client Signature', margin, y + 4)
+
+  doc.line(margin + 95, y, rightEdge, y)
+  doc.text('Date', margin + 95, y + 4)
+  y += 14
+
+  doc.line(margin, y, margin + 80, y)
+  doc.text('Client Signature', margin, y + 4)
+
+  doc.line(margin + 95, y, rightEdge, y)
+  doc.text('Date', margin + 95, y + 4)
+  y += 14
+
+  doc.line(margin, y, margin + 80, y)
+  doc.text('SIGS Photography Ltd.', margin, y + 4)
+
+  doc.line(margin + 95, y, rightEdge, y)
+  doc.text('Date', margin + 95, y + 4)
 }
 
 // ============================================================
@@ -586,16 +727,23 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
   y += 3.5
   doc.text('416-831-8942  |  info@sigsphoto.ca', pageWidth / 2, y, { align: 'center' })
 
-  // ── 11. Document Properties & Save ───────────────────────
+  // ── 11. Contract Terms Page (when converting to contract) ─
+  if (data.contractMode) {
+    drawContractTermsPage(doc, data)
+  }
+
+  // ── 12. Document Properties & Save ───────────────────────
+  const isContract = data.contractMode
   doc.setProperties({
-    title: `SIGS Photography Quote - ${data.brideFirstName} & ${data.groomFirstName}`,
-    subject: 'Wedding Photography Proposal',
+    title: `SIGS Photography ${isContract ? 'Contract' : 'Quote'} - ${data.brideFirstName} & ${data.groomFirstName}`,
+    subject: isContract ? 'Wedding Photography Agreement' : 'Wedding Photography Proposal',
     author: 'SIGS Photography Ltd.',
-    creator: 'StudioFlow Quote Builder',
+    creator: isContract ? 'StudioFlow Contract Generator' : 'StudioFlow Quote Builder',
   })
 
   const bride = data.brideFirstName || 'Bride'
   const groom = data.groomFirstName || 'Groom'
   const dateStamp = new Date().toISOString().split('T')[0]
-  doc.save(`SIGS_Quote_${bride}_${groom}_${dateStamp}.pdf`)
+  const prefix = isContract ? 'SIGS_Contract' : 'SIGS_Quote'
+  doc.save(`${prefix}_${bride}_${groom}_${dateStamp}.pdf`)
 }

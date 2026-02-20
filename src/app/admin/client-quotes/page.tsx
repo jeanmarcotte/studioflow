@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText } from 'lucide-react'
 import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus } from '@/lib/supabase'
-import { generateContractPdf, ContractPdfData } from '@/lib/generateContractPdf'
+import { generateQuotePdf, QuotePdfData } from '@/lib/generateQuotePdf'
 
 interface Appointment {
   num: number
@@ -15,6 +16,7 @@ interface Appointment {
   weddingDateSort: string
   quoted: number | null
   status: 'Booked' | 'Failed' | 'Pending'
+  coupleId?: string
 }
 
 const APPOINTMENTS: Appointment[] = [
@@ -22,16 +24,16 @@ const APPOINTMENTS: Appointment[] = [
   { num: 2, date: 'Jan 21, 2026', dateSort: '2026-01-21', couple: 'Candace & Felice', bridalShow: 'CBS Winter 2026', weddingDate: 'June 20, 2026', weddingDateSort: '2026-06-20', quoted: 3300, status: 'Booked' },
   { num: 3, date: 'Jan 23, 2026', dateSort: '2026-01-23', couple: 'Sydney & Jason', bridalShow: 'CBS Winter 2026', weddingDate: 'Aug 2, 2026', weddingDateSort: '2026-08-02', quoted: 3955, status: 'Booked' },
   { num: 4, date: 'Jan 24, 2026', dateSort: '2026-01-24', couple: 'Danielle & Jesse', bridalShow: 'CBS Winter 2026', weddingDate: 'Nov 6, 2026', weddingDateSort: '2026-11-06', quoted: 4000, status: 'Failed' },
-  { num: 5, date: 'Jan 26, 2026', dateSort: '2026-01-26', couple: 'Cheryl & Thomas', bridalShow: 'CBS Winter 2026', weddingDate: 'Jan 30, 2027', weddingDateSort: '2027-01-30', quoted: 3600, status: 'Failed' },
+  { num: 5, date: 'Jan 26, 2026', dateSort: '2026-01-26', couple: 'Cheryl & Thomas', bridalShow: 'CBS Winter 2026', weddingDate: 'Jan 30, 2027', weddingDateSort: '2027-01-30', quoted: 3600, status: 'Pending' },
   { num: 6, date: 'Jan 26, 2026', dateSort: '2026-01-26', couple: 'Rebecca & Andrew', bridalShow: 'CBS Winter 2026', weddingDate: 'Aug 14, 2027', weddingDateSort: '2027-08-14', quoted: 3955, status: 'Failed' },
-  { num: 7, date: 'Feb 3, 2026', dateSort: '2026-02-03', couple: 'Siba', bridalShow: 'CBS Winter 2026', weddingDate: 'Sept 11, 2026', weddingDateSort: '2026-09-11', quoted: 3955, status: 'Pending' },
+  { num: 7, date: 'Feb 3, 2026', dateSort: '2026-02-03', couple: 'Siba', bridalShow: 'CBS Winter 2026', weddingDate: 'Sept 11, 2026', weddingDateSort: '2026-09-11', quoted: 3955, status: 'Failed' },
   { num: 8, date: 'Feb 4, 2026', dateSort: '2026-02-04', couple: 'Alyssa & Pasquale', bridalShow: 'CBS Winter 2026', weddingDate: 'May 22, 2027', weddingDateSort: '2027-05-22', quoted: 3955, status: 'Booked' },
   { num: 9, date: 'Feb 5, 2026', dateSort: '2026-02-05', couple: 'Sydney & Liam', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 11, 2026', weddingDateSort: '2026-10-11', quoted: 3600, status: 'Booked' },
   { num: 10, date: 'Feb 5, 2026', dateSort: '2026-02-05', couple: 'Anu & Arun', bridalShow: 'CBS Winter 2026', weddingDate: 'June 26-27, 2027', weddingDateSort: '2027-06-26', quoted: 5000, status: 'Failed' },
   { num: 11, date: 'Feb 9, 2026', dateSort: '2026-02-09', couple: 'Emma & Noah', bridalShow: 'HBS Winter 2026', weddingDate: 'Apr 23, 2027', weddingDateSort: '2027-04-23', quoted: 3200, status: 'Failed' },
   { num: 12, date: 'Feb 13, 2026', dateSort: '2026-02-13', couple: 'Christina & Eric', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 17, 2026', weddingDateSort: '2026-10-17', quoted: 3616, status: 'Booked' },
   { num: 13, date: 'Feb 13, 2026', dateSort: '2026-02-13', couple: 'Janet/Karina & Max', bridalShow: 'HBS Winter 2026', weddingDate: 'Sept 3, 2026', weddingDateSort: '2026-09-03', quoted: 3600, status: 'Pending' },
-  { num: 14, date: 'Feb 18, 2026', dateSort: '2026-02-18', couple: 'Trina & Matt', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 24, 2026', weddingDateSort: '2026-10-24', quoted: 3616, status: 'Pending' },
+  { num: 14, date: 'Feb 18, 2026', dateSort: '2026-02-18', couple: 'Trina & Matt', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 24, 2026', weddingDateSort: '2026-10-24', quoted: 3616, status: 'Pending', coupleId: 'f4b8efeb-43e6-4b99-8402-04df57233736' },
 ]
 
 interface LeadSource {
@@ -56,24 +58,12 @@ const LEAD_SOURCES: LeadSource[] = [
 type SortField = 'num' | 'date' | 'couple' | 'bridalShow' | 'weddingDate' | 'quoted' | 'status'
 type SortDir = 'asc' | 'desc'
 
-function statusBadge(status: Appointment['status']) {
-  const map: Record<string, string> = {
-    Booked: 'bg-green-100 text-green-700',
-    Failed: 'bg-red-100 text-red-700',
-    Pending: 'bg-amber-100 text-amber-700',
-  }
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${map[status]}`}>
-      {status}
-    </span>
-  )
-}
-
 function fmtMoney(n: number): string {
   return '$' + n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 export default function CoupleQuotesPage() {
+  const router = useRouter()
   const [sortField, setSortField] = useState<SortField>('num')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [showCosts, setShowCosts] = useState<Record<string, number>>(() => {
@@ -81,7 +71,7 @@ export default function CoupleQuotesPage() {
     LEAD_SOURCES.forEach(s => { init[s.name] = s.defaultShowCost })
     return init
   })
-  const [statusOverrides, setStatusOverrides] = useState<Record<number, 'Booked'>>({})
+  const [statusOverrides, setStatusOverrides] = useState<Record<number, Appointment['status']>>({})
   const [convertingNum, setConvertingNum] = useState<number | null>(null)
 
   // Merge overrides into appointments for stats and rendering
@@ -154,7 +144,7 @@ export default function CoupleQuotesPage() {
         return name.includes(brideFirst.toLowerCase()) && (!groomFirst || name.includes(groomFirst.toLowerCase()))
       })
 
-      let contractData: ContractPdfData
+      let pdfData: QuotePdfData
 
       if (coupleRecord) {
         // Try to get quote data for richer contract
@@ -162,38 +152,28 @@ export default function CoupleQuotesPage() {
         const fd = quoteData?.form_data
 
         if (fd) {
-          // Rich contract from quote form_data
-          const subtotal = fd.pricing?.subtotal || appt.quoted || 0
-          const discount = fd.pricing?.discount || 0
-          const hst = fd.pricing?.hst || subtotal * 0.13
-          const total = fd.pricing?.total || (subtotal - discount + hst)
-
-          contractData = {
-            brideFirstName: fd.brideFirstName || brideFirst,
-            brideLastName: fd.brideLastName || '',
-            groomFirstName: fd.groomFirstName || groomFirst,
-            groomLastName: fd.groomLastName || '',
-            brideEmail: fd.brideEmail || coupleRecord.bride_email || '',
-            bridePhone: fd.bridePhone || coupleRecord.bride_phone || '',
-            groomEmail: fd.groomEmail || coupleRecord.groom_email || '',
-            groomPhone: fd.groomPhone || coupleRecord.groom_phone || '',
-            weddingDate: fd.weddingDate || coupleRecord.wedding_date || appt.weddingDateSort,
-            weddingDateDisplay: appt.weddingDate,
-            ceremonyVenue: fd.ceremonyVenue || coupleRecord.ceremony_venue || '',
-            receptionVenue: fd.receptionVenue || coupleRecord.reception_venue || '',
-            packageName: fd.packageName || 'Exclusively Photography',
-            packageHours: fd.packageHours || 8,
-            packageFeatures: fd.packageFeatures || [],
-            pricing: { subtotal, discount, hst, total },
-            installments: fd.installments || buildDefaultInstallments(total),
+          // form_data nests form fields under formValues — flatten for QuotePdfData
+          pdfData = {
+            ...fd.formValues,
+            pricing: fd.pricing,
+            installments: fd.installments,
+            printOrders: fd.printOrders || {},
+            freeParentAlbums: fd.parentAlbumsIncluded === 'free',
+            freePrints: fd.printsIncluded === 'free',
+            printsTotal: 0,
+            timeline: [],
+            packageName: fd.formValues?.selectedPackage === 'exclusively_photo' ? 'Exclusively Photography' : fd.formValues?.selectedPackage === 'package_b' ? 'Photo + Video' : 'Photography Package',
+            packageHours: fd.formValues?.selectedPackage === 'exclusively_photo' ? 8 : 8,
+            packageFeatures: buildPackageFeatures(fd),
+            contractMode: true,
           }
         } else {
-          // Couple in DB but no quote — use hardcoded + DB data
-          contractData = buildMinimalContract(appt, brideFirst, groomFirst, coupleRecord)
+          // Couple in DB but no quote — build minimal QuotePdfData
+          pdfData = buildMinimalQuoteData(appt, brideFirst, groomFirst, coupleRecord)
         }
 
         // Update DB status
-        const total = contractData.pricing.total
+        const total = pdfData.pricing.total
         const today = new Date().toISOString().split('T')[0]
         await updateCoupleStatus(coupleRecord.id, 'booked', today, total)
         if (quoteData?.id) {
@@ -201,16 +181,29 @@ export default function CoupleQuotesPage() {
         }
       } else {
         // No DB record — minimal contract from hardcoded data
-        contractData = buildMinimalContract(appt, brideFirst, groomFirst)
+        pdfData = buildMinimalQuoteData(appt, brideFirst, groomFirst)
       }
 
-      await generateContractPdf(contractData)
+      await generateQuotePdf(pdfData)
       setStatusOverrides(prev => ({ ...prev, [appt.num]: 'Booked' }))
     } catch (err) {
       console.error('Contract generation failed:', err)
       alert('Failed to generate contract. Check console for details.')
     } finally {
       setConvertingNum(null)
+    }
+  }
+
+  const handleStatusChange = async (appt: Appointment, newStatus: Appointment['status']) => {
+    if (newStatus === appt.status) return
+    setStatusOverrides(prev => ({ ...prev, [appt.num]: newStatus }))
+
+    // Try to update DB if couple exists
+    if (appt.coupleId) {
+      const dbStatus = newStatus === 'Booked' ? 'booked' : newStatus === 'Failed' ? 'lost' : 'lead'
+      const today = new Date().toISOString().split('T')[0]
+      const bookedDate = newStatus === 'Booked' ? today : undefined
+      await updateCoupleStatus(appt.coupleId, dbStatus, bookedDate, appt.quoted || undefined).catch(console.error)
     }
   }
 
@@ -391,14 +384,25 @@ export default function CoupleQuotesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {sorted.map((appt) => (
+                {sorted.map((appt) => {
+                  const rowBg = appt.status === 'Booked' ? 'bg-green-50' : appt.status === 'Pending' ? 'bg-teal-50' : ''
+                  return (
                   <tr
                     key={appt.num}
-                    className="hover:bg-accent/50 transition-colors"
+                    className={`hover:bg-accent/50 transition-colors ${rowBg}`}
                   >
                     <td className="p-3 text-muted-foreground">{appt.num}</td>
                     <td className="p-3 whitespace-nowrap">{appt.date}</td>
-                    <td className="p-3 font-medium">{appt.couple}</td>
+                    <td className="p-3 font-medium">
+                      {appt.coupleId ? (
+                        <button
+                          onClick={() => router.push(`/client/new-quote?couple_id=${appt.coupleId}`)}
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {appt.couple}
+                        </button>
+                      ) : appt.couple}
+                    </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">
                       {appt.bridalShow || <span className="text-muted-foreground">—</span>}
                     </td>
@@ -409,7 +413,21 @@ export default function CoupleQuotesPage() {
                         : <span className="text-muted-foreground">—</span>
                       }
                     </td>
-                    <td className="p-3">{statusBadge(appt.status)}</td>
+                    <td className="p-3">
+                      <select
+                        value={appt.status}
+                        onChange={(e) => handleStatusChange(appt, e.target.value as Appointment['status'])}
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary ${
+                          appt.status === 'Booked' ? 'bg-green-100 text-green-700' :
+                          appt.status === 'Failed' ? 'bg-red-100 text-red-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}
+                      >
+                        <option value="Booked">Booked</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Failed">Failed</option>
+                      </select>
+                    </td>
                     <td className="p-3">
                       {appt.status === 'Pending' && (
                         <button
@@ -432,7 +450,8 @@ export default function CoupleQuotesPage() {
                       )}
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -443,18 +462,20 @@ export default function CoupleQuotesPage() {
 }
 
 // ============================================================
-// HELPER: Build minimal contract from hardcoded appointment data
+// HELPER: Build minimal QuotePdfData from hardcoded appointment data
 // ============================================================
 
-function buildMinimalContract(
+function buildMinimalQuoteData(
   appt: Appointment,
   brideFirst: string,
   groomFirst: string,
   coupleRecord?: Record<string, unknown>
-): ContractPdfData {
-  const subtotal = appt.quoted || 3000
-  const hst = Math.round(subtotal * 0.13 * 100) / 100
-  const total = subtotal + hst
+): QuotePdfData {
+  const basePrice = appt.quoted || 3000
+  const hst = Math.round(basePrice * 0.13 * 100) / 100
+  const total = basePrice + hst
+  const deposit = Math.round(total * 0.25 * 100) / 100
+  const remainder = Math.round((total - deposit) * 100) / 100
 
   return {
     brideFirstName: brideFirst,
@@ -466,21 +487,78 @@ function buildMinimalContract(
     groomEmail: (coupleRecord?.groom_email as string) || '',
     groomPhone: (coupleRecord?.groom_phone as string) || '',
     weddingDate: appt.weddingDateSort,
-    weddingDateDisplay: appt.weddingDate,
     ceremonyVenue: (coupleRecord?.ceremony_venue as string) || '',
     receptionVenue: (coupleRecord?.reception_venue as string) || '',
+    selectedPackage: 'exclusively_photo',
     packageName: 'Exclusively Photography',
     packageHours: 8,
-    pricing: { subtotal, discount: 0, hst, total },
-    installments: buildDefaultInstallments(total),
+    packageFeatures: [
+      'Lead Photographer',
+      'Online Gallery',
+      'Edited Digital Files',
+      'Print Release',
+    ],
+    extraPhotographer: false,
+    extraHours: 0,
+    engagementLocation: 'mill_pond',
+    engagementLocationLabel: 'Mill Pond',
+    albumType: 'none',
+    albumSize: '10x8',
+    acrylicCover: false,
+    parentAlbumQty: 0,
+    firstLook: false,
+    pricing: {
+      basePrice,
+      extraPhotographerPrice: 0,
+      extraHoursPrice: 0,
+      albumPrice: 0,
+      acrylicCoverPrice: 0,
+      parentAlbumsPrice: 0,
+      locationFee: 0,
+      printsPrice: 0,
+      subtotal: basePrice,
+      discount: 0,
+      hst,
+      total,
+    },
+    freeParentAlbums: false,
+    freePrints: false,
+    printsTotal: 0,
+    printOrders: {},
+    timeline: [],
+    installments: [
+      { label: 'Deposit (due upon signing)', amount: deposit },
+      { label: 'Final payment (due 30 days before wedding)', amount: remainder },
+    ],
+    discountType: 'none',
+    contractMode: true,
   }
 }
 
-function buildDefaultInstallments(total: number): ContractPdfData['installments'] {
-  const deposit = Math.round(total * 0.25 * 100) / 100
-  const remainder = Math.round((total - deposit) * 100) / 100
-  return [
-    { label: 'Deposit (due upon signing)', amount: deposit },
-    { label: 'Final payment (due 30 days before wedding)', amount: remainder },
-  ]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildPackageFeatures(fd: any): string[] {
+  const features: string[] = []
+  const photo = fd.photoInclusions || {}
+  const video = fd.videoInclusions || {}
+  const web = fd.webInclusions || {}
+
+  if (photo.digitalImages) features.push('Edited Digital Images')
+  if (photo.usbDropbox) features.push('USB / Dropbox Delivery')
+  if (photo.engagementShoot) features.push('Engagement Photo Session')
+  if (photo.postProduction) features.push('Professional Post-Production')
+  if (photo.dronePhoto) features.push('Drone Photography')
+  if (photo.weddingPrints) features.push('Wedding Prints')
+  if (photo.thankYouCards) features.push('Thank You Cards')
+  if (video.hdVideo) features.push('HD Video')
+  if (video.highlightClips) features.push('Highlight Clips')
+  if (video.droneVideo) features.push('Drone Video')
+  if (video.slideshow) features.push('Slideshow')
+  if (video.endCredits) features.push('End Credits')
+  if (video.instagramVideo) features.push('Instagram Video')
+  if (web.weddingGallery) features.push('Online Wedding Gallery')
+  if (web.personalWebPage) features.push('Personal Web Page')
+  if (fd.parentAlbumsIncluded === 'free') features.push('Complimentary Parent Albums')
+  if (fd.printsIncluded === 'free') features.push('Complimentary Prints')
+
+  return features
 }
