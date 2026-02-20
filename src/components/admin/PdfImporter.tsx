@@ -151,30 +151,44 @@ export default function PdfImporter({ onImportComplete }: PdfImporterProps) {
           contract_total: data.total,
         }
 
-        // Try to match existing couple by wedding_date OR bride+groom first names
+        // Try to match existing couple — combine date + name for precision
         let coupleId: string | null = null
 
-        // Match 1: by wedding date (most reliable)
-        if (data.weddingDate) {
-          const { data: dateMatch } = await supabase
+        // Match 1: date + bride first name (most precise)
+        if (data.weddingDate && data.brideFirstName) {
+          const { data: match } = await supabase
             .from('couples')
             .select('id, couple_name')
             .eq('wedding_date', data.weddingDate)
-          if (dateMatch && dateMatch.length === 1) {
-            coupleId = dateMatch[0].id
-            console.log(`[PDF Import] Matched by date: ${dateMatch[0].couple_name}`)
+            .ilike('couple_name', `${data.brideFirstName}%`)
+          if (match && match.length >= 1) {
+            coupleId = match[0].id
+            console.log(`[PDF Import] Matched by date+name: ${match[0].couple_name}`)
           }
         }
 
-        // Match 2: by bride first name in couple_name
+        // Match 2: date + groom first name
+        if (!coupleId && data.weddingDate && data.groomFirstName) {
+          const { data: match } = await supabase
+            .from('couples')
+            .select('id, couple_name')
+            .eq('wedding_date', data.weddingDate)
+            .ilike('couple_name', `%${data.groomFirstName}%`)
+          if (match && match.length >= 1) {
+            coupleId = match[0].id
+            console.log(`[PDF Import] Matched by date+groom: ${match[0].couple_name}`)
+          }
+        }
+
+        // Match 3: bride first name only (if unique)
         if (!coupleId && data.brideFirstName) {
-          const { data: nameMatch } = await supabase
+          const { data: match } = await supabase
             .from('couples')
             .select('id, couple_name')
             .ilike('couple_name', `${data.brideFirstName}%`)
-          if (nameMatch && nameMatch.length === 1) {
-            coupleId = nameMatch[0].id
-            console.log(`[PDF Import] Matched by name: ${nameMatch[0].couple_name}`)
+          if (match && match.length === 1) {
+            coupleId = match[0].id
+            console.log(`[PDF Import] Matched by bride name: ${match[0].couple_name}`)
           }
         }
 
