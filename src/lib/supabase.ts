@@ -223,6 +223,34 @@ export const getQuoteByCoupleId = async (coupleId: string) => {
   return { data, error }
 }
 
+// Update couple status (used by Convert to Contract)
+export const updateCoupleStatus = async (coupleId: string, status: string, booked_date?: string, contract_total?: number) => {
+  const updates: Record<string, unknown> = { status }
+  if (booked_date) updates.booked_date = booked_date
+  if (contract_total !== undefined) updates.contract_total = contract_total
+
+  const { data, error } = await supabase
+    .from('couples')
+    .update(updates)
+    .eq('id', coupleId)
+    .select()
+    .single()
+
+  return { data, error }
+}
+
+// Update quote status (used by Convert to Contract)
+export const updateQuoteStatus = async (quoteId: string, status: string) => {
+  const { data, error } = await supabase
+    .from('quotes')
+    .update({ status })
+    .eq('id', quoteId)
+    .select()
+    .single()
+
+  return { data, error }
+}
+
 // BridalFlow integration - search leads
 export const searchLeadByCouple = async (brideName: string, groomName: string) => {
   const { data, error } = await supabase
