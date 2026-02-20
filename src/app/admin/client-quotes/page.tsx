@@ -1,180 +1,105 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { supabase } from '@/lib/supabase'
-import { FileText, Search, ChevronUp, ChevronDown } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
+import { useMemo } from 'react'
+import { Calendar, CheckCircle, XCircle, Clock, TrendingUp } from 'lucide-react'
 
-interface Quote {
-  id: string
-  couple_id: string | null
-  quote_type: string | null
-  quote_date: string | null
-  subtotal: number | null
-  tax: number | null
-  total: number | null
-  status: string | null
-  sent_date: string | null
-  created_at: string | null
-  couples: { couple_name: string } | null
+interface Appointment {
+  num: number
+  date: string
+  couple: string
+  bridalShow: string | null
+  weddingDate: string
+  quoted: number | null
+  status: 'Booked' | 'Failed' | 'Pending'
 }
 
-type SortField = 'couple_name' | 'quote_date' | 'total' | 'status' | 'created_at'
-type SortDir = 'asc' | 'desc'
-
-const STATUSES = [
-  { value: 'all', label: 'All Statuses' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'sent', label: 'Sent' },
-  { value: 'accepted', label: 'Accepted' },
-  { value: 'expired', label: 'Expired' },
+const APPOINTMENTS: Appointment[] = [
+  { num: 1, date: 'Jan 20, 2026', couple: 'Victoria & Andrew', bridalShow: 'CBS Fall 2025', weddingDate: 'Sept 12, 2026', quoted: 3850, status: 'Booked' },
+  { num: 2, date: 'Jan 21, 2026', couple: 'Candace & Felice', bridalShow: 'CBS Winter 2026', weddingDate: 'June 20, 2026', quoted: 3300, status: 'Booked' },
+  { num: 3, date: 'Jan 23, 2026', couple: 'Sydney & Jason', bridalShow: 'CBS Winter 2026', weddingDate: 'Aug 2, 2026', quoted: 3955, status: 'Booked' },
+  { num: 4, date: 'Jan 24, 2026', couple: 'Danielle & Jesse', bridalShow: 'CBS Winter 2026', weddingDate: 'Nov 6, 2026', quoted: 4000, status: 'Failed' },
+  { num: 5, date: 'Jan 26, 2026', couple: 'Cheryl & Thomas', bridalShow: 'CBS Winter 2026', weddingDate: 'Jan 30, 2027', quoted: 3600, status: 'Failed' },
+  { num: 6, date: 'Jan 26, 2026', couple: 'Rebecca & Andrew', bridalShow: 'CBS Winter 2026', weddingDate: 'Aug 14, 2027', quoted: 3955, status: 'Failed' },
+  { num: 7, date: 'Feb 3, 2026', couple: 'Siba', bridalShow: 'CBS Winter 2026', weddingDate: 'Sept 11, 2026', quoted: 3955, status: 'Pending' },
+  { num: 8, date: 'Feb 4, 2026', couple: 'Alyssa & Pasquale', bridalShow: 'CBS Winter 2026', weddingDate: 'May 22, 2027', quoted: 3955, status: 'Booked' },
+  { num: 9, date: 'Feb 5, 2026', couple: 'Sydney & Liam', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 11, 2026', quoted: 3600, status: 'Booked' },
+  { num: 10, date: 'Feb 5, 2026', couple: 'Anu & Arun', bridalShow: 'CBS Winter 2026', weddingDate: 'June 26-27, 2027', quoted: 5000, status: 'Failed' },
+  { num: 11, date: 'Feb 9, 2026', couple: 'Emma & Noah', bridalShow: 'HBS Winter 2026', weddingDate: 'Apr 23, 2027', quoted: 3200, status: 'Failed' },
+  { num: 12, date: 'Feb 13, 2026', couple: 'Christina & Eric', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 17, 2026', quoted: 3616, status: 'Booked' },
+  { num: 13, date: 'Feb 13, 2026', couple: 'Janet/Karina & Max', bridalShow: 'HBS Winter 2026', weddingDate: 'Sept 3, 2026', quoted: 3600, status: 'Pending' },
+  { num: 14, date: 'Feb 18, 2026', couple: 'Trina & Matt', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 24, 2026', quoted: 3616, status: 'Pending' },
 ]
 
-function statusBadge(status: string | null) {
-  if (!status) return <span className="text-muted-foreground text-xs">—</span>
+function statusBadge(status: Appointment['status']) {
   const map: Record<string, string> = {
-    draft: 'bg-gray-100 text-gray-700',
-    sent: 'bg-blue-100 text-blue-700',
-    accepted: 'bg-green-100 text-green-700',
-    expired: 'bg-red-100 text-red-700',
+    Booked: 'bg-green-100 text-green-700',
+    Failed: 'bg-red-100 text-red-700',
+    Pending: 'bg-amber-100 text-amber-700',
   }
-  const cls = map[status] || 'bg-gray-100 text-gray-600'
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${map[status]}`}>
+      {status}
     </span>
   )
 }
 
-function formatQuoteType(type: string | null): string {
-  if (!type) return '—'
-  if (type === 'photo_only') return 'Photo Only'
-  if (type === 'photo_video') return 'Photo + Video'
-  return type
-}
-
-export default function ClientQuotesPage() {
-  const [quotes, setQuotes] = useState<Quote[]>([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [sortField, setSortField] = useState<SortField>('created_at')
-  const [sortDir, setSortDir] = useState<SortDir>('desc')
-
-  useEffect(() => {
-    const fetchQuotes = async () => {
-      const { data, error } = await supabase
-        .from('quotes')
-        .select('id, couple_id, quote_type, quote_date, subtotal, tax, total, status, sent_date, created_at, couples(couple_name)')
-        .order('created_at', { ascending: false })
-
-      if (!error && data) {
-        setQuotes(data as unknown as Quote[])
-      }
-      setLoading(false)
-    }
-    fetchQuotes()
+export default function CoupleQuotesPage() {
+  const stats = useMemo(() => {
+    const total = APPOINTMENTS.length
+    const booked = APPOINTMENTS.filter(a => a.status === 'Booked').length
+    const failed = APPOINTMENTS.filter(a => a.status === 'Failed').length
+    const pending = APPOINTMENTS.filter(a => a.status === 'Pending').length
+    // Conversion % = booked / (booked + failed) — excludes pending and existing
+    const decided = booked + failed
+    const conversion = decided > 0 ? Math.round((booked / decided * 100)) : 0
+    return { total, booked, failed, pending, conversion }
   }, [])
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDir('asc')
-    }
-  }
-
-  const filtered = useMemo(() => {
-    let result = [...quotes]
-
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      result = result.filter(r =>
-        r.couples?.couple_name?.toLowerCase().includes(q) ||
-        r.quote_type?.toLowerCase().includes(q)
-      )
-    }
-
-    if (statusFilter !== 'all') {
-      result = result.filter(r => r.status === statusFilter)
-    }
-
-    result.sort((a, b) => {
-      let cmp = 0
-      switch (sortField) {
-        case 'couple_name':
-          cmp = (a.couples?.couple_name || '').localeCompare(b.couples?.couple_name || '')
-          break
-        case 'quote_date':
-          cmp = (a.quote_date || '').localeCompare(b.quote_date || '')
-          break
-        case 'total':
-          cmp = (Number(a.total) || 0) - (Number(b.total) || 0)
-          break
-        case 'status':
-          cmp = (a.status || '').localeCompare(b.status || '')
-          break
-        case 'created_at':
-          cmp = (a.created_at || '').localeCompare(b.created_at || '')
-          break
-      }
-      return sortDir === 'asc' ? cmp : -cmp
-    })
-
-    return result
-  }, [quotes, search, statusFilter, sortField, sortDir])
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30" />
-    return sortDir === 'asc'
-      ? <ChevronUp className="h-3 w-3" />
-      : <ChevronDown className="h-3 w-3" />
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Client Quotes</h1>
-        <p className="text-muted-foreground">{quotes.length} quotes from the quote builder</p>
+        <h1 className="text-2xl font-bold">Couple Quotes</h1>
+        <p className="text-muted-foreground">Winter 2026 appointments (Jan–Aug)</p>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by couple name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 !w-full"
-          />
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="rounded-xl border bg-card p-4">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+            <Calendar className="h-4 w-4" />
+            Appointments
+          </div>
+          <div className="text-2xl font-bold">{stats.total}</div>
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="!w-auto"
-        >
-          {STATUSES.map(s => (
-            <option key={s.value} value={s.value}>{s.label}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Results count */}
-      <div className="text-sm text-muted-foreground">
-        Showing {filtered.length} of {quotes.length} quotes
-        {statusFilter !== 'all' && ` — ${statusFilter}`}
+        <div className="rounded-xl border bg-card p-4">
+          <div className="flex items-center gap-2 text-green-600 text-sm mb-1">
+            <CheckCircle className="h-4 w-4" />
+            Booked
+          </div>
+          <div className="text-2xl font-bold text-green-600">{stats.booked}</div>
+        </div>
+        <div className="rounded-xl border bg-card p-4">
+          <div className="flex items-center gap-2 text-red-600 text-sm mb-1">
+            <XCircle className="h-4 w-4" />
+            Failed
+          </div>
+          <div className="text-2xl font-bold text-red-600">{stats.failed}</div>
+        </div>
+        <div className="rounded-xl border bg-card p-4">
+          <div className="flex items-center gap-2 text-amber-600 text-sm mb-1">
+            <Clock className="h-4 w-4" />
+            Pending
+          </div>
+          <div className="text-2xl font-bold text-amber-600">{stats.pending}</div>
+        </div>
+        <div className="rounded-xl border bg-card p-4 col-span-2 sm:col-span-1">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+            <TrendingUp className="h-4 w-4" />
+            Conversion
+          </div>
+          <div className="text-2xl font-bold">{stats.conversion}%</div>
+        </div>
       </div>
 
       {/* Table */}
@@ -183,75 +108,37 @@ export default function ClientQuotesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left p-3 font-medium">
-                  <button onClick={() => handleSort('couple_name')} className="group flex items-center gap-1 hover:text-foreground">
-                    Couple <SortIcon field="couple_name" />
-                  </button>
-                </th>
-                <th className="text-left p-3 font-medium hidden md:table-cell">Type</th>
-                <th className="text-left p-3 font-medium">
-                  <button onClick={() => handleSort('quote_date')} className="group flex items-center gap-1 hover:text-foreground">
-                    Quote Date <SortIcon field="quote_date" />
-                  </button>
-                </th>
-                <th className="text-left p-3 font-medium hidden md:table-cell">
-                  <button onClick={() => handleSort('status')} className="group flex items-center gap-1 hover:text-foreground">
-                    Status <SortIcon field="status" />
-                  </button>
-                </th>
-                <th className="text-right p-3 font-medium">
-                  <button onClick={() => handleSort('total')} className="group flex items-center gap-1 justify-end hover:text-foreground">
-                    Total <SortIcon field="total" />
-                  </button>
-                </th>
-                <th className="text-left p-3 font-medium hidden lg:table-cell">
-                  <button onClick={() => handleSort('created_at')} className="group flex items-center gap-1 hover:text-foreground">
-                    Created <SortIcon field="created_at" />
-                  </button>
-                </th>
+                <th className="text-left p-3 font-medium w-10">#</th>
+                <th className="text-left p-3 font-medium">Date</th>
+                <th className="text-left p-3 font-medium">Couple</th>
+                <th className="text-left p-3 font-medium hidden md:table-cell">Bridal Show</th>
+                <th className="text-left p-3 font-medium hidden sm:table-cell">Wedding Date</th>
+                <th className="text-right p-3 font-medium">Quoted $</th>
+                <th className="text-left p-3 font-medium">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                    <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    No quotes found.
+              {APPOINTMENTS.map((appt) => (
+                <tr
+                  key={appt.num}
+                  className="hover:bg-accent/50 transition-colors"
+                >
+                  <td className="p-3 text-muted-foreground">{appt.num}</td>
+                  <td className="p-3 whitespace-nowrap">{appt.date}</td>
+                  <td className="p-3 font-medium">{appt.couple}</td>
+                  <td className="p-3 hidden md:table-cell text-muted-foreground">
+                    {appt.bridalShow || <span className="text-muted-foreground">—</span>}
                   </td>
+                  <td className="p-3 hidden sm:table-cell whitespace-nowrap">{appt.weddingDate}</td>
+                  <td className="p-3 text-right">
+                    {appt.quoted
+                      ? <span className="font-medium">${appt.quoted.toLocaleString()}</span>
+                      : <span className="text-muted-foreground">—</span>
+                    }
+                  </td>
+                  <td className="p-3">{statusBadge(appt.status)}</td>
                 </tr>
-              ) : (
-                filtered.map((quote) => (
-                  <tr key={quote.id} className="hover:bg-accent/50 transition-colors">
-                    <td className="p-3">
-                      <div className="font-medium">{quote.couples?.couple_name || 'Unknown'}</div>
-                    </td>
-                    <td className="p-3 hidden md:table-cell text-muted-foreground">
-                      {formatQuoteType(quote.quote_type)}
-                    </td>
-                    <td className="p-3">
-                      {quote.quote_date
-                        ? format(parseISO(quote.quote_date), 'MMM d, yyyy')
-                        : <span className="text-muted-foreground">—</span>
-                      }
-                    </td>
-                    <td className="p-3 hidden md:table-cell">
-                      {statusBadge(quote.status)}
-                    </td>
-                    <td className="p-3 text-right">
-                      {quote.total
-                        ? <span className="font-medium">${Number(quote.total).toLocaleString()}</span>
-                        : <span className="text-muted-foreground">—</span>
-                      }
-                    </td>
-                    <td className="p-3 hidden lg:table-cell text-muted-foreground">
-                      {quote.created_at
-                        ? format(parseISO(quote.created_at), 'MMM d, yyyy')
-                        : '—'
-                      }
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>

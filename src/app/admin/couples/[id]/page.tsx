@@ -91,6 +91,14 @@ function deliverableStatusColor(status: string | null) {
   }
 }
 
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 10)
+  if (digits.length === 0) return value
+  if (digits.length <= 3) return `(${digits}`
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+}
+
 export default function CoupleDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -402,13 +410,13 @@ export default function CoupleDetailPage() {
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bride</div>
               <div className="text-sm">{couple.bride_name || '—'}</div>
               {couple.bride_email && <div className="text-sm text-muted-foreground">{couple.bride_email}</div>}
-              {couple.bride_phone && <div className="text-sm text-muted-foreground">{couple.bride_phone}</div>}
+              {couple.bride_phone && <div className="text-sm text-muted-foreground">{formatPhone(couple.bride_phone)}</div>}
             </div>
             <div className="p-4 space-y-2">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Groom</div>
               <div className="text-sm">{couple.groom_name || '—'}</div>
               {couple.groom_email && <div className="text-sm text-muted-foreground">{couple.groom_email}</div>}
-              {couple.groom_phone && <div className="text-sm text-muted-foreground">{couple.groom_phone}</div>}
+              {couple.groom_phone && <div className="text-sm text-muted-foreground">{formatPhone(couple.groom_phone)}</div>}
             </div>
           </div>
         </div>

@@ -88,12 +88,12 @@ export const studioflowConfig: SidebarConfig = {
       title: 'Sales & Marketing',
       items: [
         {
-          title: 'Client Quotes',
+          title: 'Couple Quotes',
           href: '/admin/client-quotes',
           icon: FileText,
         },
         {
-          title: 'Extras Quotes',
+          title: 'Frames & Albums',
           href: '/admin/extras-quotes',
           icon: ShoppingBag,
         },
@@ -174,12 +174,12 @@ export const studioflowAdminConfig: SidebarConfig = {
       title: 'Sales & Marketing',
       items: [
         {
-          title: 'Client Quotes',
+          title: 'Couple Quotes',
           href: '/admin/client-quotes',
           icon: FileText,
         },
         {
-          title: 'Extras Quotes',
+          title: 'Frames & Albums',
           href: '/admin/extras-quotes',
           icon: ShoppingBag,
         },

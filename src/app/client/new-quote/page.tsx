@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Layout } from '@/components/layout/layout'
 import { studioflowClientConfig } from '@/config/sidebar'
-import { searchLeadByCouple, createQuote } from '@/lib/supabase'
+import { searchLeadByCouple, findOrCreateCouple, upsertQuote, getQuoteByCoupleId } from '@/lib/supabase'
 import { generateQuotePdf } from '@/lib/generateQuotePdf'
 import { 
   Calendar, Phone, MapPin, Users, DollarSign, FileText, Save, Send, 
@@ -310,7 +311,25 @@ const FALL_INSTALLMENTS = [
 // COMPONENT
 // ============================================================
 export default function NewClientQuotePage() {
+  return (
+    <Suspense fallback={
+      <Layout sidebarConfig={studioflowClientConfig}>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900"></div>
+        </div>
+      </Layout>
+    }>
+      <QuoteBuilderInner />
+    </Suspense>
+  )
+}
+
+function QuoteBuilderInner() {
+  const searchParams = useSearchParams()
+  const editCoupleId = searchParams.get('couple_id')
   const [isLoading, setIsLoading] = useState(false)
+  const [loadingQuote, setLoadingQuote] = useState(!!editCoupleId)
+  const [editingVersion, setEditingVersion] = useState<number | null>(null)
   const [existingLead, setExistingLead] = useState<any>(null)
   const [showOtherLocations, setShowOtherLocations] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
@@ -422,6 +441,49 @@ export default function NewClientQuotePage() {
 
   const watchedValues = watch()
 
+  // Restore saved quote when editing via ?couple_id= URL param
+  useEffect(() => {
+    if (!editCoupleId) return
+    const loadQuote = async () => {
+      setLoadingQuote(true)
+      try {
+        const { data: quote, error } = await getQuoteByCoupleId(editCoupleId)
+        if (error || !quote?.form_data) {
+          console.error('Error loading quote:', error)
+          setLoadingQuote(false)
+          return
+        }
+
+        const saved = quote.form_data
+
+        // Restore React Hook Form values
+        if (saved.formValues) {
+          const fields = saved.formValues as Record<string, any>
+          Object.entries(fields).forEach(([key, value]) => {
+            setValue(key as any, value)
+          })
+        }
+
+        // Restore all useState values
+        if (saved.installments) setInstallments(saved.installments)
+        if (saved.installmentSchedule) setInstallmentSchedule(saved.installmentSchedule)
+        if (saved.photoInclusions) setPhotoInclusions(saved.photoInclusions)
+        if (saved.videoInclusions) setVideoInclusions(saved.videoInclusions)
+        if (saved.webInclusions) setWebInclusions(saved.webInclusions)
+        if (saved.printOrders) setPrintOrders(saved.printOrders)
+        if (saved.printsIncluded !== undefined) setPrintsIncluded(saved.printsIncluded)
+        if (saved.parentAlbumsIncluded !== undefined) setParentAlbumsIncluded(saved.parentAlbumsIncluded)
+
+        setEditingVersion(quote.version || 1)
+      } catch (err) {
+        console.error('Failed to restore quote:', err)
+      } finally {
+        setLoadingQuote(false)
+      }
+    }
+    loadQuote()
+  }, [editCoupleId, setValue])
+
   // Check for existing BridalFlow lead
   useEffect(() => {
     const checkExistingLead = async () => {
@@ -437,7 +499,7 @@ export default function NewClientQuotePage() {
             setValue('brideLastName', lead.bride_last_name || '')
             setValue('groomLastName', lead.groom_last_name || '')
             setValue('weddingDate', lead.wedding_date || '')
-            setValue('bridePhone', lead.cell_phone || '')
+            setValue('bridePhone', lead.cell_phone ? formatPhone(lead.cell_phone) : '')
             setValue('ceremonyVenue', lead.venue_name || '')
           } else {
             setExistingLead(null)
@@ -606,10 +668,95 @@ export default function NewClientQuotePage() {
 
   const installmentTotal = installments.reduce((sum, inst) => sum + (inst.amount || 0), 0)
 
+  // Format phone number as (XXX) XXX-XXXX
+  const formatPhone = (value: string): string => {
+    const digits = value.replace(/\D/g, '').slice(0, 10)
+    if (digits.length === 0) return ''
+    if (digits.length <= 3) return `(${digits}`
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+
+  const handlePhoneChange = (field: 'bridePhone' | 'groomPhone') => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(field, formatPhone(e.target.value))
+  }
+
   const onSubmit = async (data: QuoteFormData) => {
     setIsLoading(true)
     try {
-      alert('Quote saved successfully!')
+      // 1. Find or create couple
+      const { data: couple, error: coupleError } = await findOrCreateCouple({
+        brideFirstName: data.brideFirstName,
+        brideLastName: data.brideLastName,
+        groomFirstName: data.groomFirstName,
+        groomLastName: data.groomLastName,
+        brideEmail: data.brideEmail,
+        bridePhone: data.bridePhone,
+        groomEmail: data.groomEmail,
+        groomPhone: data.groomPhone,
+        weddingDate: data.weddingDate,
+        ceremonyVenue: data.ceremonyVenue,
+        receptionVenue: data.receptionVenue,
+        leadSource: data.leadSource,
+      })
+
+      if (coupleError || !couple) {
+        alert(`Error finding/creating couple: ${coupleError?.message || 'Unknown error'}`)
+        return
+      }
+
+      // 2. Build items summary for the quote record
+      const selectedPkg = PACKAGES[data.selectedPackage as keyof typeof PACKAGES]
+      const items = {
+        package: { key: data.selectedPackage, name: selectedPkg?.name, price: selectedPkg?.price },
+        extraPhotographer: data.extraPhotographer,
+        extraHours: data.extraHours,
+        albumType: data.albumType,
+        albumSize: data.albumSize,
+        albumSpreads: data.albumSpreads,
+        acrylicCover: data.acrylicCover,
+        parentAlbumQty: data.parentAlbumQty,
+        engagementLocation: data.engagementLocation,
+        bridesChoiceLocation: data.bridesChoiceLocation,
+        printOrders: printsIncluded ? printOrders : null,
+        printsIncluded,
+        parentAlbumsIncluded,
+      }
+
+      // 3. Serialize complete form state for restoration
+      const formData = {
+        formValues: data,
+        installments,
+        installmentSchedule,
+        photoInclusions,
+        videoInclusions,
+        webInclusions,
+        printOrders,
+        printsIncluded,
+        parentAlbumsIncluded,
+        pricing,
+      }
+
+      // 4. Upsert quote with versioning
+      const { data: quote, error: quoteError, isUpdate, version } = await upsertQuote(couple.id, {
+        quote_type: selectedPkg?.type === 'photo_only' ? 'photo_only' : 'photo_video',
+        items,
+        subtotal: pricing.subtotal,
+        tax: pricing.hst,
+        discount_type: data.discountType !== 'none' ? data.discountType : null,
+        discount_value: pricing.discount,
+        total: pricing.total,
+        form_data: formData,
+        notes: data.notes,
+      })
+
+      if (quoteError) {
+        alert(`Error saving quote: ${quoteError.message}`)
+        return
+      }
+
+      const action = isUpdate ? 'updated' : 'created'
+      alert(`Quote ${action} successfully! (v${version}) — $${pricing.total.toLocaleString('en-CA', { minimumFractionDigits: 2 })}`)
     } catch (error) {
       console.error('Error saving quote:', error)
       alert('Error saving quote. Please try again.')
@@ -785,17 +932,28 @@ export default function NewClientQuotePage() {
   return (
     <Layout sidebarConfig={studioflowClientConfig}>
       <div className="min-h-screen bg-stone-50">
+        {loadingQuote && (
+          <div className="fixed inset-0 bg-white/80 z-50 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900 mx-auto mb-3"></div>
+              <p className="text-stone-600 text-sm">Loading quote...</p>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="bg-stone-900 text-white py-6 px-8 mb-8">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <img 
-                src="/images/sigslogo.png" 
-                alt="SIGS Photography" 
+              <img
+                src="/images/sigslogo.png"
+                alt="SIGS Photography"
                 className="h-14 w-auto object-contain"
               />
               <div>
                 <p className="text-stone-400 text-sm">Wedding Package Quote</p>
+                {editingVersion && (
+                  <p className="text-amber-400 text-xs font-medium">Editing v{editingVersion} — changes will save as v{editingVersion + 1}</p>
+                )}
               </div>
             </div>
             <div className="text-right text-sm">
@@ -888,7 +1046,7 @@ export default function NewClientQuotePage() {
                   <input {...register('brideLastName')} placeholder="Last Name *" className="px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
                 </div>
                 <input {...register('brideEmail')} type="email" placeholder="Email" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
-                <input {...register('bridePhone')} placeholder="Phone" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                <input {...register('bridePhone')} onChange={handlePhoneChange('bridePhone')} placeholder="(416) 555-1234" type="tel" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
               </div>
               
               {/* Groom */}
@@ -901,7 +1059,7 @@ export default function NewClientQuotePage() {
                   <input {...register('groomLastName')} placeholder="Last Name *" className="px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
                 </div>
                 <input {...register('groomEmail')} type="email" placeholder="Email" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
-                <input {...register('groomPhone')} placeholder="Phone" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                <input {...register('groomPhone')} onChange={handlePhoneChange('groomPhone')} placeholder="(416) 555-1234" type="tel" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
               </div>
             </div>
           </div>
