@@ -136,47 +136,85 @@ export default function PdfImporter({ onImportComplete }: PdfImporterProps) {
       setQueue(prev => prev.map((q, i) => i === idx ? { ...q, status: 'importing' as const } : q))
 
       try {
-        // Build couple record
-        const coupleRecord: Record<string, any> = {
-          couple_name: data.coupleName,
+        // Build update fields from extracted data
+        const updateFields: Record<string, any> = {
           bride_name: [data.brideFirstName, data.brideLastName].filter(Boolean).join(' ') || null,
           bride_email: data.brideEmail || null,
           bride_phone: data.bridePhone || null,
           groom_name: [data.groomFirstName, data.groomLastName].filter(Boolean).join(' ') || null,
           groom_email: data.groomEmail || null,
           groom_phone: data.groomPhone || null,
-          wedding_date: data.weddingDate,
-          wedding_year: data.weddingYear,
           ceremony_venue: data.ceremonyVenue || null,
           reception_venue: data.receptionVenue || null,
           package_type: data.packageType,
           coverage_hours: data.coverageHours,
           contract_total: data.total,
-          balance_owing: data.total,
-          status: 'booked',
-          lead_source: 'pdf_import',
-          notes: `Imported from ${data.fileName}`,
         }
 
-        // Insert couple
-        const { data: inserted, error } = await supabase
-          .from('couples')
-          .insert(coupleRecord)
-          .select('id')
-          .single()
+        // Try to match existing couple by wedding_date OR bride+groom first names
+        let coupleId: string | null = null
 
-        if (error) throw error
+        // Match 1: by wedding date (most reliable)
+        if (data.weddingDate) {
+          const { data: dateMatch } = await supabase
+            .from('couples')
+            .select('id, couple_name')
+            .eq('wedding_date', data.weddingDate)
+          if (dateMatch && dateMatch.length === 1) {
+            coupleId = dateMatch[0].id
+            console.log(`[PDF Import] Matched by date: ${dateMatch[0].couple_name}`)
+          }
+        }
 
-        const coupleId = inserted.id
+        // Match 2: by bride first name in couple_name
+        if (!coupleId && data.brideFirstName) {
+          const { data: nameMatch } = await supabase
+            .from('couples')
+            .select('id, couple_name')
+            .ilike('couple_name', `${data.brideFirstName}%`)
+          if (nameMatch && nameMatch.length === 1) {
+            coupleId = nameMatch[0].id
+            console.log(`[PDF Import] Matched by name: ${nameMatch[0].couple_name}`)
+          }
+        }
+
+        if (coupleId) {
+          // UPDATE existing record
+          const { error } = await supabase
+            .from('couples')
+            .update(updateFields)
+            .eq('id', coupleId)
+          if (error) throw error
+        } else {
+          // CREATE new record
+          const insertRecord = {
+            ...updateFields,
+            couple_name: data.coupleName,
+            wedding_date: data.weddingDate,
+            wedding_year: data.weddingYear,
+            balance_owing: data.total,
+            status: 'booked',
+            lead_source: 'pdf_import',
+            notes: `Imported from ${data.fileName}`,
+          }
+          const { data: inserted, error } = await supabase
+            .from('couples')
+            .insert(insertRecord)
+            .select('id')
+            .single()
+          if (error) throw error
+          coupleId = inserted.id
+        }
 
         // Upload PDF to storage
-        const filePath = `${coupleId}/${item.file.name}`
+        // Upload PDF to storage
+        const filePath = `${coupleId!}/${item.file.name}`
         await supabase.storage
           .from('couple-documents')
           .upload(filePath, item.file, { upsert: true })
 
         setQueue(prev => prev.map((q, i) =>
-          i === idx ? { ...q, status: 'done' as const, coupleId } : q
+          i === idx ? { ...q, status: 'done' as const, coupleId: coupleId! } : q
         ))
         success++
       } catch (e) {
