@@ -100,27 +100,44 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
               <ul className="space-y-1">
                 {section.items.map((item, itemIndex) => (
                   <li key={itemIndex}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                        item.disabled
-                          ? "text-muted-foreground cursor-not-allowed opacity-50"
-                          : "hover:bg-accent hover:text-accent-foreground"
-                      )}
-                    >
-                      <item.icon className="h-4 w-4 flex-shrink-0" />
-                      {!sidebarCollapsed && (
-                        <>
+                    {item.external ? (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          "hover:bg-accent hover:text-accent-foreground"
+                        )}
+                      >
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        {!sidebarCollapsed && (
                           <span className="flex-1">{item.title}</span>
-                          {item.badge && (
-                            <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
-                              {item.badge}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </Link>
+                        )}
+                      </a>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          item.disabled
+                            ? "text-muted-foreground cursor-not-allowed opacity-50"
+                            : "hover:bg-accent hover:text-accent-foreground"
+                        )}
+                      >
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        {!sidebarCollapsed && (
+                          <>
+                            <span className="flex-1">{item.title}</span>
+                            {item.badge && (
+                              <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+                                {item.badge}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

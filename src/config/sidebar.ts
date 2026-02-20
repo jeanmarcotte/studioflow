@@ -1,4 +1,4 @@
-import { LucideIcon, Home, Settings, Users, FileText, DollarSign, BarChart3, Mail, Camera, Video, Package } from 'lucide-react'
+import { LucideIcon, Home, Settings, Users, FileText, DollarSign, BarChart3, Mail, Camera, Video, Package, ShoppingBag, ExternalLink } from 'lucide-react'
 
 export interface SidebarItem {
   title: string
@@ -7,6 +7,7 @@ export interface SidebarItem {
   badge?: string | number
   children?: SidebarItem[]
   disabled?: boolean
+  external?: boolean
 }
 
 export interface SidebarConfig {
@@ -81,6 +82,31 @@ export const studioflowConfig: SidebarConfig = {
           href: '/admin/production',
           icon: Package,
         },
+      ]
+    },
+    {
+      title: 'Sales & Marketing',
+      items: [
+        {
+          title: 'Client Quotes',
+          href: '/admin/client-quotes',
+          icon: FileText,
+        },
+        {
+          title: 'Extras Quotes',
+          href: '/admin/extras-quotes',
+          icon: ShoppingBag,
+        },
+        {
+          title: 'Extras Invoices',
+          href: 'https://sigs-extras-invoice.vercel.app/',
+          icon: ExternalLink,
+          external: true,
+        },
+      ]
+    },
+    {
+      items: [
         {
           title: 'Finance',
           href: '/admin/finance',
@@ -142,6 +168,31 @@ export const studioflowAdminConfig: SidebarConfig = {
           href: '/admin/production',
           icon: Package,
         },
+      ]
+    },
+    {
+      title: 'Sales & Marketing',
+      items: [
+        {
+          title: 'Client Quotes',
+          href: '/admin/client-quotes',
+          icon: FileText,
+        },
+        {
+          title: 'Extras Quotes',
+          href: '/admin/extras-quotes',
+          icon: ShoppingBag,
+        },
+        {
+          title: 'Extras Invoices',
+          href: 'https://sigs-extras-invoice.vercel.app/',
+          icon: ExternalLink,
+          external: true,
+        },
+      ]
+    },
+    {
+      items: [
         {
           title: 'Finance',
           href: '/admin/finance',
