@@ -221,7 +221,6 @@ export default function PdfImporter({ onImportComplete }: PdfImporterProps) {
         }
 
         // Upload PDF to storage
-        // Upload PDF to storage
         const filePath = `${coupleId!}/${item.file.name}`
         await supabase.storage
           .from('couple-documents')
@@ -231,8 +230,9 @@ export default function PdfImporter({ onImportComplete }: PdfImporterProps) {
           i === idx ? { ...q, status: 'done' as const, coupleId: coupleId! } : q
         ))
         success++
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Import failed'
+      } catch (e: any) {
+        const msg = e instanceof Error ? e.message : e?.message || JSON.stringify(e) || 'Import failed'
+        console.error(`[PDF Import] Error importing ${data.coupleName}:`, e)
         setQueue(prev => prev.map((q, i) =>
           i === idx ? { ...q, status: 'error' as const, error: msg } : q
         ))
