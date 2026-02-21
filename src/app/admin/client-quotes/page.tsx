@@ -188,7 +188,8 @@ export default function CoupleQuotesPage() {
       setStatusOverrides(prev => ({ ...prev, [appt.num]: 'Booked' }))
     } catch (err) {
       console.error('Contract generation failed:', err)
-      alert('Failed to generate contract. Check console for details.')
+      const msg = err instanceof Error ? err.message : String(err)
+      alert(`Failed to generate contract:\n\n${msg}`)
     } finally {
       setConvertingNum(null)
     }

@@ -206,7 +206,9 @@ function drawContractTermsPage(doc: jsPDF, data: QuotePdfData) {
   const groom = [data.groomFirstName, data.groomLastName].filter(Boolean).join(' ')
   const coupleName = [bride, groom].filter(Boolean).join(' & ')
   const weddingDateDisplay = formatDate(data.weddingDate)
-  const todayDisplay = formatDate(new Date().toISOString().split('T')[0])
+  const now = new Date()
+  const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const todayDisplay = formatDate(todayLocal)
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
@@ -273,35 +275,6 @@ function drawContractTermsPage(doc: jsPDF, data: QuotePdfData) {
   doc.setFontSize(7.5)
   doc.setTextColor(...COLORS.dark)
   doc.text('All terms of this agreement are understood and agreed upon.', margin, y)
-  y += 10
-
-  // Signature lines
-  checkPageBreak(30)
-  doc.setDrawColor(...COLORS.dark)
-  doc.setLineWidth(0.3)
-
-  doc.line(margin, y, margin + 80, y)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7)
-  doc.setTextColor(...COLORS.muted)
-  doc.text('Client Signature', margin, y + 4)
-
-  doc.line(margin + 95, y, rightEdge, y)
-  doc.text('Date', margin + 95, y + 4)
-  y += 14
-
-  doc.line(margin, y, margin + 80, y)
-  doc.text('Client Signature', margin, y + 4)
-
-  doc.line(margin + 95, y, rightEdge, y)
-  doc.text('Date', margin + 95, y + 4)
-  y += 14
-
-  doc.line(margin, y, margin + 80, y)
-  doc.text('SIGS Photography Ltd.', margin, y + 4)
-
-  doc.line(margin + 95, y, rightEdge, y)
-  doc.text('Date', margin + 95, y + 4)
 }
 
 // ============================================================
@@ -332,9 +305,14 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
   } catch { /* logo optional */ }
 
   if (logoBase64) {
-    const logoSize = 28
-    doc.addImage(logoBase64, 'JPEG', (pageWidth - logoSize) / 2, y, logoSize, logoSize)
-    y += logoSize + 4
+    try {
+      const logoSize = 28
+      doc.addImage(logoBase64, 'JPEG', (pageWidth - logoSize) / 2, y, logoSize, logoSize)
+      y += logoSize + 4
+    } catch (imgErr) {
+      console.warn('Logo addImage failed, skipping:', imgErr)
+      // Continue without logo
+    }
   }
 
   // ── 2. Title ─────────────────────────────────────────────
@@ -710,9 +688,13 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
   checkPageBreak(30)
 
   if (logoBase64) {
-    const smallLogo = 15
-    doc.addImage(logoBase64, 'JPEG', (pageWidth - smallLogo) / 2, y, smallLogo, smallLogo)
-    y += smallLogo + 3
+    try {
+      const smallLogo = 15
+      doc.addImage(logoBase64, 'JPEG', (pageWidth - smallLogo) / 2, y, smallLogo, smallLogo)
+      y += smallLogo + 3
+    } catch {
+      // Continue without footer logo
+    }
   }
 
   doc.setFont('helvetica', 'bold')
@@ -743,7 +725,8 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
 
   const bride = data.brideFirstName || 'Bride'
   const groom = data.groomFirstName || 'Groom'
-  const dateStamp = new Date().toISOString().split('T')[0]
+  const nowStamp = new Date()
+  const dateStamp = `${nowStamp.getFullYear()}-${String(nowStamp.getMonth() + 1).padStart(2, '0')}-${String(nowStamp.getDate()).padStart(2, '0')}`
   const prefix = isContract ? 'SIGS_Contract' : 'SIGS_Quote'
   doc.save(`${prefix}_${bride}_${groom}_${dateStamp}.pdf`)
 }
