@@ -7,6 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #1737 | 4:40 PM | 🔵 | Complete StudioFlow Database Schema Documentation | ~1220 |
-| #1733 | " | 🔵 | Comprehensive Analysis of Couple Detail Page Architecture and Patterns | ~1090 |
+| #1722 | 4:39 PM | 🔵 | PDF Parsing API Route with Claude AI Extraction | ~881 |
 </claude-mem-context>

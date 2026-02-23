@@ -8,5 +8,4 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #1737 | 4:40 PM | 🔵 | Complete StudioFlow Database Schema Documentation | ~1220 |
-| #1733 | " | 🔵 | Comprehensive Analysis of Couple Detail Page Architecture and Patterns | ~1090 |
 </claude-mem-context>

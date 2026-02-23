@@ -7,6 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #1741 | 4:41 PM | 🔵 | Extras Orders Page with 2026 Sales Filtering | ~663 |
 | #1737 | 4:40 PM | 🔵 | Complete StudioFlow Database Schema Documentation | ~1220 |
-| #1733 | " | 🔵 | Comprehensive Analysis of Couple Detail Page Architecture and Patterns | ~1090 |
 </claude-mem-context>
