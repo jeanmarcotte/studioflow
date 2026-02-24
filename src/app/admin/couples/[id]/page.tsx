@@ -347,8 +347,8 @@ export default function CoupleDetailPage() {
   const contractTotal = Number(couple.contract_total) || 0
   const extrasTotal = Number(couple.extras_total) || 0
   const totalPaid = Number(couple.total_paid) || 0
-  const balanceOwing = Number(couple.balance_owing) || 0
   const grandTotal = contractTotal + extrasTotal
+  const balanceOwing = grandTotal > 0 ? grandTotal - totalPaid : (Number(couple.balance_owing) || 0)
 
   // Journey milestones
   const milestones = computeJourneyMilestones({
@@ -405,15 +405,22 @@ export default function CoupleDetailPage() {
     }] : []),
   ]
 
-  // Extras items (safely parsed)
-  const extrasItems: Array<{ item: string; description?: string; price: number; note?: string }> =
+  // Extras items (safely parsed — handles both {item,price} and {name,price} formats)
+  const extrasItems: Array<{ item: string; description?: string; price: number | null; note?: string }> =
     extrasOrders.length > 0 && Array.isArray(extrasOrders[0]?.items)
-      ? extrasOrders[0].items
+      ? extrasOrders[0].items.map((raw: any) => ({
+          item: raw.item || raw.name || '',
+          description: raw.description,
+          price: typeof raw.price === 'number' ? raw.price : null,
+          note: raw.note,
+        }))
       : []
   const extrasInclusions: string[] =
     extrasOrders.length > 0 && Array.isArray(extrasOrders[0]?.inclusions)
       ? extrasOrders[0].inclusions
-      : []
+      : (extrasOrders.length > 0 && extrasOrders[0]?.notes?.startsWith('Inclusions: ')
+          ? extrasOrders[0].notes.replace('Inclusions: ', '').split('; ')
+          : [])
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -475,12 +482,12 @@ export default function CoupleDetailPage() {
             )}
             {daysUntil !== null && daysUntil > 0 && (
               <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/30">
-                \u23f3 PRE-WEDDING
+                {'⏳'} PRE-WEDDING
               </span>
             )}
             {couple.engagement_status === 'completed' && (
               <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/30">
-                \u2705 ENGAGEMENT DONE
+                {'✅'} ENGAGEMENT DONE
               </span>
             )}
             {extrasOrders.length > 0 && (
@@ -506,12 +513,12 @@ export default function CoupleDetailPage() {
               <div className="text-sm opacity-65 mt-1 space-y-0.5">
                 {weddingDate && (
                   <div>
-                    \ud83d\udcc5 {format(weddingDate, 'EEEE, MMMM d, yyyy')}
-                    {couple.coverage_hours ? ` \u2022 ${couple.coverage_hours} hours` : ''}
+                    {'📅'} {format(weddingDate, 'EEEE, MMMM d, yyyy')}
+                    {couple.coverage_hours ? ` • ${couple.coverage_hours} hours` : ''}
                   </div>
                 )}
                 {(couple.ceremony_venue || couple.reception_venue) && (
-                  <div>\ud83c\udff0 {couple.reception_venue || couple.ceremony_venue}</div>
+                  <div>{'🏰'} {couple.reception_venue || couple.ceremony_venue}</div>
                 )}
               </div>
             </div>
@@ -548,10 +555,10 @@ export default function CoupleDetailPage() {
           <span className="text-sm font-bold">Client Journey</span>
           <div className="flex items-center gap-3">
             <div className="flex gap-2 text-xs text-muted-foreground">
-              <span>\u2705 {doneCount}</span>
-              {urgentCount > 0 && <span className="text-red-500 font-bold">\ud83d\udea8 {urgentCount} urgent</span>}
-              {activeCount > 0 && <span>\ud83d\udd04 {activeCount}</span>}
-              <span>\u25cb {totalRelevant - doneCount - activeCount - urgentCount}</span>
+              <span>✅ {doneCount}</span>
+              {urgentCount > 0 && <span className="text-red-500 font-bold">🚨 {urgentCount} urgent</span>}
+              {activeCount > 0 && <span>🔄 {activeCount}</span>}
+              <span>○ {totalRelevant - doneCount - activeCount - urgentCount}</span>
             </div>
             <span className="text-2xl font-extrabold text-teal-600">{journeyPct}%</span>
           </div>
@@ -579,12 +586,12 @@ export default function CoupleDetailPage() {
                   return (
                     <div key={m.id} className="flex flex-col items-center gap-1">
                       <div className={`${isComplete ? 'w-10 h-10' : 'w-8 h-8'} rounded-full ${st.bg} border-2 ${st.border} flex items-center justify-center ${st.extra}`}>
-                        {m.status === 'done' && <span className="text-white text-xs font-extrabold">\u2713</span>}
-                        {m.status === 'skip' && <span className={`${st.text} text-[10px] font-bold`}>\u2715</span>}
-                        {m.status === 'active' && <span className="text-white text-xs">\u27f3</span>}
+                        {m.status === 'done' && <span className="text-white text-xs font-extrabold">✓</span>}
+                        {m.status === 'skip' && <span className={`${st.text} text-[10px] font-bold`}>✕</span>}
+                        {m.status === 'active' && <span className="text-white text-xs">⟳</span>}
                         {m.status === 'urgent' && <span className="text-white text-xs font-extrabold">!</span>}
-                        {m.status === 'pending' && !isComplete && <span className={`${st.text} text-[10px]`}>\u25cb</span>}
-                        {m.status === 'pending' && isComplete && <span className="text-base">\ud83c\udf89</span>}
+                        {m.status === 'pending' && !isComplete && <span className={`${st.text} text-[10px]`}>○</span>}
+                        {m.status === 'pending' && isComplete && <span className="text-base">🎉</span>}
                       </div>
                       <span className={`text-[9px] font-semibold ${st.label} text-center leading-tight max-w-[72px] min-h-[22px] ${m.status === 'skip' ? 'line-through' : ''}`}>
                         {m.label}
@@ -681,13 +688,13 @@ export default function CoupleDetailPage() {
                         <span className="text-xs text-muted-foreground ml-2">Lead Photographer</span>
                       </div>
                       {couple.photographer && (
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-teal-600/10 text-teal-600">\u2713</span>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-teal-600/10 text-teal-600">{'✓'}</span>
                       )}
                     </div>
                     {isPhotoVideo && (
                       <div className="flex items-center justify-between py-2">
                         <div>
-                          <span className="text-sm font-semibold text-amber-600">\u26a0\ufe0f Not Assigned</span>
+                          <span className="text-sm font-semibold text-amber-600">⚠️ Not Assigned</span>
                           <span className="text-xs text-muted-foreground ml-2">Videographer</span>
                         </div>
                       </div>
@@ -706,7 +713,7 @@ export default function CoupleDetailPage() {
                         <span className="text-xs text-muted-foreground ml-2 capitalize">{s.role.replace(/_/g, ' ')}</span>
                       </div>
                       {s.confirmed ? (
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-teal-600/10 text-teal-600">\u2713 Confirmed</span>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-teal-600/10 text-teal-600">{'✓'} Confirmed</span>
                       ) : (
                         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Pending</span>
                       )}
@@ -959,20 +966,20 @@ export default function CoupleDetailPage() {
               <div className="space-y-1.5">
                 {showDayFormBanner && (
                   <button className="w-full text-left px-4 py-2.5 rounded-lg border-2 border-red-500 bg-red-50 text-red-700 text-sm font-semibold">
-                    \ud83d\udcc4 Send Day Form Reminder
+                    📄 Send Day Form Reminder
                   </button>
                 )}
                 <button className="w-full text-left px-4 py-2.5 rounded-lg border bg-card text-sm font-semibold hover:bg-muted/50 transition-colors">
-                  \ud83d\udcb3 Record Payment
+                  💳 Record Payment
                 </button>
                 <button className="w-full text-left px-4 py-2.5 rounded-lg border bg-card text-sm font-semibold hover:bg-muted/50 transition-colors">
-                  \ud83d\udce7 Send Payment Reminder
+                  📧 Send Payment Reminder
                 </button>
                 <button className="w-full text-left px-4 py-2.5 rounded-lg border bg-card text-sm font-semibold hover:bg-muted/50 transition-colors">
-                  \ud83d\udccb Update Production
+                  📋 Update Production
                 </button>
                 <button className="w-full text-left px-4 py-2.5 rounded-lg border bg-card text-sm font-semibold hover:bg-muted/50 transition-colors">
-                  \u2795 Create Add-On Invoice
+                  ➕ Create Add-On Invoice
                 </button>
               </div>
             </div>
@@ -989,7 +996,7 @@ export default function CoupleDetailPage() {
               <span className="text-sm font-semibold">Wedding Day Timeline</span>
             </div>
             {!hasDayForm && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-500">\u26a0\ufe0f INCOMPLETE</span>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-500">⚠️ INCOMPLETE</span>
             )}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
@@ -1008,7 +1015,7 @@ export default function CoupleDetailPage() {
           </div>
           {!hasDayForm && (
             <div className="mt-3 p-2.5 bg-red-50 rounded-lg text-xs text-red-800 font-semibold">
-              \ud83d\udea8 Day form required for complete timeline &mdash; addresses, emergency contacts, vendors, and drive times all missing
+              🚨 Day form required for complete timeline &mdash; addresses, emergency contacts, vendors, and drive times all missing
             </div>
           )}
         </div>
@@ -1031,12 +1038,12 @@ export default function CoupleDetailPage() {
               {/* Items column */}
               <div>
                 <div className="text-[11px] font-bold text-amber-600 tracking-wider uppercase mb-3 pb-1.5 border-b-2 border-amber-500">ITEMS PURCHASED</div>
-                {extrasItems.map((item: { item: string; description?: string; price: number; note?: string }, i: number) => (
+                {extrasItems.map((item: { item: string; description?: string; price: number | null; note?: string }, i: number) => (
                   <div key={i} className="py-2.5 border-b last:border-b-0">
                     <div className="flex justify-between">
                       <span className="text-xs font-semibold">{item.item}</span>
                       <span className={`text-xs font-semibold ${item.price === 0 ? 'text-teal-600' : ''}`}>
-                        {item.price === 0 ? 'FREE' : formatMoney(item.price)}
+                        {item.price == null ? '—' : item.price === 0 ? 'FREE' : formatMoney(item.price)}
                       </span>
                     </div>
                     {item.description && <div className="text-[10px] text-muted-foreground">{item.description}</div>}
@@ -1051,7 +1058,7 @@ export default function CoupleDetailPage() {
                   <div className="text-[11px] font-bold text-amber-600 tracking-wider uppercase mb-3 pb-1.5 border-b-2 border-amber-500">ADDITIONAL INCLUSIONS</div>
                   {extrasInclusions.map((inc: string, i: number) => (
                     <div key={i} className="flex items-center gap-1.5 py-1.5 border-b last:border-b-0">
-                      <span className="text-[11px] text-teal-600 font-bold">\u2713</span>
+                      <span className="text-[11px] text-teal-600 font-bold">✓</span>
                       <span className="text-xs">{inc}</span>
                     </div>
                   ))}
@@ -1061,11 +1068,11 @@ export default function CoupleDetailPage() {
               {/* Pricing column */}
               <div>
                 <div className="text-[11px] font-bold text-amber-600 tracking-wider uppercase mb-3 pb-1.5 border-b-2 border-amber-500">PRICING BREAKDOWN</div>
-                {extrasItems.map((item: { item: string; price: number }, i: number) => (
+                {extrasItems.map((item: { item: string; price: number | null }, i: number) => (
                   <div key={i} className="flex justify-between py-1 border-b last:border-b-0">
                     <span className="text-xs text-muted-foreground">{item.item}</span>
                     <span className={`text-xs font-semibold ${item.price === 0 ? 'text-teal-600' : ''}`}>
-                      {item.price === 0 ? 'FREE' : formatMoney(item.price)}
+                      {item.price == null ? '—' : item.price === 0 ? 'FREE' : formatMoney(item.price)}
                     </span>
                   </div>
                 ))}
@@ -1082,8 +1089,8 @@ export default function CoupleDetailPage() {
         </div>
       )}
 
-      {/* ═══ CONTRACT PACKAGE (conditional) ═══ */}
-      {quote && fd && (
+      {/* ═══ CONTRACT PACKAGE ═══ */}
+      {(quote && fd) ? (
         <div className="rounded-xl border bg-card overflow-hidden">
           <div className="bg-gradient-to-r from-slate-800 to-slate-600 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -1128,7 +1135,7 @@ export default function CoupleDetailPage() {
                 {Object.entries(photoInclusions).filter(([, v]) => v).length > 0 ? (
                   Object.entries(photoInclusions).filter(([, v]) => v).map(([key]) => (
                     <div key={key} className="flex items-center gap-1.5 py-1 border-b last:border-b-0">
-                      <span className="text-[11px] text-teal-600 font-bold">\u2713</span>
+                      <span className="text-[11px] text-teal-600 font-bold">✓</span>
                       <span className="text-[11px]">{key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim()}</span>
                     </div>
                   ))
@@ -1144,7 +1151,7 @@ export default function CoupleDetailPage() {
                   {Object.entries(videoInclusions).filter(([, v]) => v).length > 0 ? (
                     Object.entries(videoInclusions).filter(([, v]) => v).map(([key]) => (
                       <div key={key} className="flex items-center gap-1.5 py-1 border-b last:border-b-0">
-                        <span className="text-[11px] text-teal-600 font-bold">\u2713</span>
+                        <span className="text-[11px] text-teal-600 font-bold">✓</span>
                         <span className="text-[11px]">{key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim()}</span>
                       </div>
                     ))
@@ -1165,7 +1172,7 @@ export default function CoupleDetailPage() {
                 {Object.entries(webInclusions).filter(([, v]) => v).length > 0 ? (
                   Object.entries(webInclusions).filter(([, v]) => v).map(([key]) => (
                     <div key={key} className="flex items-center gap-1.5 py-1 border-b last:border-b-0">
-                      <span className="text-[11px] text-teal-600 font-bold">\u2713</span>
+                      <span className="text-[11px] text-teal-600 font-bold">✓</span>
                       <span className="text-xs">{key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim()}</span>
                     </div>
                   ))
@@ -1182,16 +1189,89 @@ export default function CoupleDetailPage() {
             {/* Contract summary footer */}
             <div className="mt-6 px-4 py-3 bg-muted/30 rounded-lg border flex flex-wrap gap-4 text-[11px] text-muted-foreground items-center justify-between">
               <div className="flex gap-4 flex-wrap">
-                <span>\ud83d\udccb Contract: <strong className="text-foreground">{formatMoney(contractTotal)}</strong></span>
-                {extrasTotal > 0 && <span>\ud83d\uded2 Extras: <strong className="text-amber-600">{formatMoney(extrasTotal)}</strong></span>}
-                <span>\ud83d\udcb0 Grand Total: <strong className="text-foreground">{formatMoney(grandTotal)}</strong></span>
-                <span>\u2705 Paid: <strong className="text-teal-600">{formatMoney(totalPaid)}</strong></span>
-                {balanceOwing > 0 && <span>\ud83d\udd34 Owing: <strong className="text-red-500">{formatMoney(balanceOwing)}</strong></span>}
+                <span>{'📋'} Contract: <strong className="text-foreground">{formatMoney(contractTotal)}</strong></span>
+                {extrasTotal > 0 && <span>{'🛒'} Extras: <strong className="text-amber-600">{formatMoney(extrasTotal)}</strong></span>}
+                <span>{'💰'} Grand Total: <strong className="text-foreground">{formatMoney(grandTotal)}</strong></span>
+                <span>{'✅'} Paid: <strong className="text-teal-600">{formatMoney(totalPaid)}</strong></span>
+                {balanceOwing > 0 && <span>{'🔴'} Owing: <strong className="text-red-500">{formatMoney(balanceOwing)}</strong></span>}
               </div>
             </div>
           </div>
         </div>
-      )}
+      ) : contractTotal > 0 ? (
+        /* Fallback: show basic contract info from couple record when no quote exists */
+        <div className="rounded-xl border bg-card overflow-hidden">
+          <div className="bg-gradient-to-r from-slate-800 to-slate-600 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-white" />
+              <span className="text-base font-bold text-white">Contract Package &mdash; As Signed</span>
+            </div>
+            <div className="flex items-center gap-3">
+              {couple.booked_date && (
+                <span className="text-xs text-white/60">Signed {format(parseISO(couple.booked_date), 'MMM d, yyyy')}</span>
+              )}
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-teal-400/30 text-teal-300">ACTIVE</span>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Coverage */}
+              <div>
+                <div className="text-[11px] font-bold text-teal-600 tracking-wider uppercase mb-3 pb-1.5 border-b-2 border-teal-600">COVERAGE</div>
+                <InfoRow label="Package" value={formatPackage(couple.package_type)} />
+                <InfoRow label="Hours" value={couple.coverage_hours ? `${couple.coverage_hours}` : '\u2014'} />
+                <InfoRow label="Ceremony" value={couple.ceremony_venue || 'TBD'} />
+                <InfoRow label="Reception" value={couple.reception_venue || 'TBD'} />
+                {couple.park_location && <InfoRow label="Park" value={couple.park_location} />}
+              </div>
+
+              {/* Engagement */}
+              <div>
+                <div className="text-[11px] font-bold text-teal-600 tracking-wider uppercase mb-3 pb-1.5 border-b-2 border-teal-600">ENGAGEMENT</div>
+                <div className={`p-2 rounded-lg text-xs ${
+                  couple.engagement_status === 'completed'
+                    ? 'bg-green-50 border border-green-200 text-teal-600 font-semibold'
+                    : 'bg-muted/30 border text-muted-foreground'
+                }`}>
+                  {couple.engagement_status === 'completed' ? '\u2713 Completed' : couple.engagement_status === 'scheduled' ? 'Scheduled' : 'Not scheduled'}
+                  {couple.engagement_location && ` \u2014 ${couple.engagement_location}`}
+                </div>
+                {couple.engagement_date && (
+                  <div className="text-xs text-muted-foreground mt-2">Date: {format(parseISO(couple.engagement_date), 'MMM d, yyyy')}</div>
+                )}
+              </div>
+
+              {/* Team */}
+              <div>
+                <div className="text-[11px] font-bold text-teal-600 tracking-wider uppercase mb-3 pb-1.5 border-b-2 border-teal-600">TEAM</div>
+                <InfoRow label="Photographer" value={couple.photographer || 'Not assigned'} />
+                {isPhotoVideo && <InfoRow label="Videographer" value="Not assigned" />}
+              </div>
+
+              {/* Financial */}
+              <div>
+                <div className="text-[11px] font-bold text-teal-600 tracking-wider uppercase mb-3 pb-1.5 border-b-2 border-teal-600">CONTRACT TERMS</div>
+                <InfoRow label="Contract Total" value={formatMoney(contractTotal)} />
+                {extrasTotal > 0 && <InfoRow label="Extras" value={formatMoney(extrasTotal)} />}
+                <InfoRow label="Grand Total" value={formatMoney(grandTotal)} bold />
+                <InfoRow label="Paid" value={formatMoney(totalPaid)} valueColor="text-teal-600" />
+                <InfoRow label="Balance" value={formatMoney(balanceOwing)} valueColor={balanceOwing > 0 ? 'text-red-500' : 'text-teal-600'} bold />
+              </div>
+            </div>
+
+            {/* Contract summary footer */}
+            <div className="mt-6 px-4 py-3 bg-muted/30 rounded-lg border flex flex-wrap gap-4 text-[11px] text-muted-foreground items-center justify-between">
+              <div className="flex gap-4 flex-wrap">
+                <span>{'📋'} Contract: <strong className="text-foreground">{formatMoney(contractTotal)}</strong></span>
+                {extrasTotal > 0 && <span>{'🛒'} Extras: <strong className="text-amber-600">{formatMoney(extrasTotal)}</strong></span>}
+                <span>{'💰'} Grand Total: <strong className="text-foreground">{formatMoney(grandTotal)}</strong></span>
+                <span>{'✅'} Paid: <strong className="text-teal-600">{formatMoney(totalPaid)}</strong></span>
+                {balanceOwing > 0 && <span>{'🔴'} Owing: <strong className="text-red-500">{formatMoney(balanceOwing)}</strong></span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

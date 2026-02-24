@@ -3,9 +3,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Users, Search, Filter, ChevronUp, ChevronDown, Calendar, Camera, Frame } from 'lucide-react'
+import { Users, Search, Filter, ChevronUp, ChevronDown, Calendar, Camera, Frame, FileText, Package } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import PdfImporter from '@/components/admin/PdfImporter'
+import ExtrasImporter from '@/components/admin/ExtrasImporter'
 
 interface Couple {
   id: string
@@ -72,6 +73,7 @@ export default function CouplesPage() {
   const [sortField, setSortField] = useState<SortField>('wedding_date')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [activeImporter, setActiveImporter] = useState<'none' | 'contract' | 'extras'>('none')
 
   useEffect(() => {
     const fetchCouples = async () => {
@@ -183,15 +185,50 @@ export default function CouplesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Couples</h1>
           <p className="text-muted-foreground">{couples.length} couples in database</p>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveImporter(v => v === 'contract' ? 'none' : 'contract')}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeImporter === 'contract'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'
+            }`}
+          >
+            <FileText className="h-4 w-4" />
+            New Couple Contract
+          </button>
+          <button
+            onClick={() => setActiveImporter(v => v === 'extras' ? 'none' : 'extras')}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeImporter === 'extras'
+                ? 'bg-teal-600 text-white'
+                : 'bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200'
+            }`}
+          >
+            <Package className="h-4 w-4" />
+            Frames & Albums Invoice
+          </button>
+        </div>
       </div>
 
-      {/* PDF Importer */}
-      <PdfImporter onImportComplete={() => setRefreshKey(k => k + 1)} />
+      {/* Importers — toggled by header buttons */}
+      {activeImporter === 'contract' && (
+        <PdfImporter
+          defaultOpen
+          onImportComplete={() => { setRefreshKey(k => k + 1); setActiveImporter('none') }}
+        />
+      )}
+      {activeImporter === 'extras' && (
+        <ExtrasImporter
+          defaultOpen
+          onImportComplete={() => { setRefreshKey(k => k + 1); setActiveImporter('none') }}
+        />
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

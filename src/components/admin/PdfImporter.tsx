@@ -10,6 +10,7 @@ import {
 
 interface PdfImporterProps {
   onImportComplete: () => void
+  defaultOpen?: boolean
 }
 
 interface QueueItem {
@@ -32,8 +33,8 @@ function confidenceBadge(c: ExtractedPdfData['confidence']) {
   }
 }
 
-export default function PdfImporter({ onImportComplete }: PdfImporterProps) {
-  const [open, setOpen] = useState(false)
+export default function PdfImporter({ onImportComplete, defaultOpen = false }: PdfImporterProps) {
+  const [open, setOpen] = useState(defaultOpen)
   const [queue, setQueue] = useState<QueueItem[]>([])
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState<{ success: number; failed: number } | null>(null)
