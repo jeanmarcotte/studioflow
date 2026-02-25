@@ -164,13 +164,17 @@ export default function CoupleQuotesPage() {
     return () => { cancelled = true }
   }, [])
 
-  // Merge static + DB appointments, deduplicating by couple name
+  // Merge static + DB appointments
+  // Only ADD new rows for 'lead' status (new quotes from quote builder)
+  // Use booked/lost DB records only to enrich static entries with coupleId
   const mergedAppointments = useMemo(() => {
     const staticEntries = [...STATIC_APPOINTMENTS]
     const staticNames = new Set(staticEntries.map(a => a.couple.toLowerCase().trim()))
 
-    // DB entries not already in static list
-    const newFromDb = dbAppointments.filter(a => !staticNames.has(a.couple.toLowerCase().trim()))
+    // Only add DB entries that are leads (Pending) and not already in static list
+    const newFromDb = dbAppointments.filter(a =>
+      a.status === 'Pending' && !staticNames.has(a.couple.toLowerCase().trim())
+    )
 
     // Enrich static entries with coupleId from DB matches
     const dbNameMap = new Map(dbAppointments.map(a => [a.couple.toLowerCase().trim(), a]))

@@ -67,8 +67,9 @@ export const getCouples = async () => {
   return { data, error }
 }
 
-// Fetch couples in sales funnel with their latest quote total
+// Fetch couples for sales pipeline: new leads + lookup data for static entries
 export const getCouplesWithQuotes = async () => {
+  // Fetch leads (new from quote builder) and booked (to enrich static list with coupleId)
   const { data: couples, error: couplesError } = await supabase
     .from('couples')
     .select('id, couple_name, wedding_date, lead_source, status, contract_total, created_at')
