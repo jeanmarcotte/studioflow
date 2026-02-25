@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText, Pencil } from 'lucide-react'
+import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText, Pencil, Download } from 'lucide-react'
 import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus, getCouplesWithQuotes } from '@/lib/supabase'
+import jsPDF from 'jspdf'
 import { format, parseISO } from 'date-fns'
 import { generateQuotePdf, QuotePdfData } from '@/lib/generateQuotePdf'
 
@@ -122,6 +123,15 @@ type SortDir = 'asc' | 'desc'
 
 function fmtMoney(n: number): string {
   return '$' + n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+const REPORT_COLORS = {
+  dark: [41, 37, 36] as [number, number, number],
+  body: [87, 83, 78] as [number, number, number],
+  muted: [120, 113, 108] as [number, number, number],
+  border: [214, 211, 209] as [number, number, number],
+  bgLight: [245, 245, 244] as [number, number, number],
+  green: [16, 185, 129] as [number, number, number],
 }
 
 export default function CoupleQuotesPage() {
@@ -380,6 +390,285 @@ export default function CoupleQuotesPage() {
     }
   }, [leadSourceRows])
 
+  const generatePipelineReport = async () => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const margin = 20
+    const contentWidth = pageWidth - margin * 2
+    const rightEdge = pageWidth - margin
+    let y = 15
+
+    const checkPageBreak = (needed: number) => {
+      if (y + needed > pageHeight - 20) {
+        doc.addPage()
+        y = 20
+      }
+    }
+
+    const drawSectionBanner = (title: string) => {
+      doc.setFillColor(...REPORT_COLORS.bgLight)
+      doc.rect(margin, y - 4.5, contentWidth, 7.5, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(...REPORT_COLORS.dark)
+      doc.text(title, margin + 3, y + 0.5)
+      y += 8
+    }
+
+    // ── Logo ──
+    let logoBase64: string | null = null
+    try {
+      const response = await fetch('/images/sigslogo.png')
+      const blob = await response.blob()
+      logoBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+    } catch { /* logo optional */ }
+
+    if (logoBase64) {
+      try {
+        const logoSize = 28
+        doc.addImage(logoBase64, 'JPEG', (pageWidth - logoSize) / 2, y, logoSize, logoSize)
+        y += logoSize + 4
+      } catch { /* skip logo */ }
+    }
+
+    // ── Title ──
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(16)
+    doc.setTextColor(...REPORT_COLORS.dark)
+    doc.text('SIGS Photography', pageWidth / 2, y, { align: 'center' })
+    y += 7
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(11)
+    doc.setTextColor(...REPORT_COLORS.body)
+    doc.text('Sales Pipeline Report', pageWidth / 2, y, { align: 'center' })
+    y += 6
+    const generated = new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' })
+    doc.setFontSize(8)
+    doc.setTextColor(...REPORT_COLORS.muted)
+    doc.text(`Generated: ${generated}`, pageWidth / 2, y, { align: 'center' })
+    y += 4
+    doc.setDrawColor(...REPORT_COLORS.border)
+    doc.setLineWidth(0.3)
+    doc.line(margin, y, rightEdge, y)
+    y += 8
+
+    // ── Summary Stats ──
+    drawSectionBanner('SUMMARY STATISTICS')
+    const statPairs: [string, string][] = [
+      ['Total Appointments', `${stats.total}`],
+      ['Booked', `${stats.booked}`],
+      ['Pending', `${stats.pending}`],
+      ['Failed', `${stats.failed}`],
+      ['Conversion Rate', `${stats.conversion}%`],
+    ]
+    doc.setFontSize(9)
+    for (const [label, value] of statPairs) {
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...REPORT_COLORS.muted)
+      doc.text(`${label}:`, margin + 5, y)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...REPORT_COLORS.dark)
+      doc.text(value, margin + 55, y)
+      y += 5.5
+    }
+    y += 4
+
+    // ── Revenue Summary ──
+    drawSectionBanner('REVENUE SUMMARY')
+    const totalQuoted = effectiveAppointments.reduce((sum, a) => sum + (a.quoted || 0), 0)
+    const bookedValue = effectiveAppointments.filter(a => a.status === 'Booked').reduce((sum, a) => sum + (a.quoted || 0), 0)
+    const pendingValue = effectiveAppointments.filter(a => a.status === 'Pending').reduce((sum, a) => sum + (a.quoted || 0), 0)
+    const revPairs: [string, string][] = [
+      ['Total Quoted', fmtMoney(totalQuoted)],
+      ['Booked Value', fmtMoney(bookedValue)],
+      ['Pending (Potential)', fmtMoney(pendingValue)],
+    ]
+    doc.setFontSize(9)
+    for (const [label, value] of revPairs) {
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...REPORT_COLORS.muted)
+      doc.text(`${label}:`, margin + 5, y)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...REPORT_COLORS.dark)
+      doc.text(value, margin + 55, y)
+      y += 5.5
+    }
+    y += 4
+
+    // ── Lead Source Breakdown ──
+    checkPageBreak(30)
+    drawSectionBanner('LEAD SOURCE BREAKDOWN')
+    const rowH = 6
+    const lsAppts = rightEdge - 70
+    const lsBooked = rightEdge - 55
+    const lsFailed = rightEdge - 40
+    const lsPending = rightEdge - 25
+    const lsClose = rightEdge
+
+    doc.setFillColor(...REPORT_COLORS.bgLight)
+    doc.rect(margin, y - 3.5, contentWidth, rowH, 'F')
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(7)
+    doc.setTextColor(...REPORT_COLORS.dark)
+    doc.text('Source', margin + 2, y + 0.5)
+    doc.text('Appts', lsAppts, y + 0.5, { align: 'right' })
+    doc.text('Booked', lsBooked, y + 0.5, { align: 'right' })
+    doc.text('Failed', lsFailed, y + 0.5, { align: 'right' })
+    doc.text('Pending', lsPending, y + 0.5, { align: 'right' })
+    doc.text('Close %', lsClose, y + 0.5, { align: 'right' })
+    y += rowH
+    doc.setDrawColor(...REPORT_COLORS.border)
+    doc.line(margin, y - 2, rightEdge, y - 2)
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7)
+    for (const row of leadSourceRows.filter(r => r.appointments > 0)) {
+      checkPageBreak(rowH)
+      doc.setTextColor(...REPORT_COLORS.body)
+      doc.text(row.name, margin + 2, y + 0.5)
+      doc.text(`${row.appointments}`, lsAppts, y + 0.5, { align: 'right' })
+      doc.text(`${row.bookings}`, lsBooked, y + 0.5, { align: 'right' })
+      doc.text(`${row.fail}`, lsFailed, y + 0.5, { align: 'right' })
+      doc.text(`${row.pending}`, lsPending, y + 0.5, { align: 'right' })
+      const decided = row.bookings + row.fail
+      doc.text(decided > 0 ? `${Math.round(row.bookings / decided * 100)}%` : '\u2014', lsClose, y + 0.5, { align: 'right' })
+      y += rowH
+    }
+
+    doc.setDrawColor(...REPORT_COLORS.border)
+    doc.line(margin, y - 2, rightEdge, y - 2)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...REPORT_COLORS.dark)
+    doc.text('TOTALS', margin + 2, y + 0.5)
+    doc.text(`${leadTotals.appointments}`, lsAppts, y + 0.5, { align: 'right' })
+    doc.text(`${leadTotals.bookings}`, lsBooked, y + 0.5, { align: 'right' })
+    doc.text(`${leadTotals.fail}`, lsFailed, y + 0.5, { align: 'right' })
+    doc.text(`${leadTotals.pending}`, lsPending, y + 0.5, { align: 'right' })
+    const totalDecided = leadTotals.bookings + leadTotals.fail
+    doc.text(totalDecided > 0 ? `${Math.round(leadTotals.bookings / totalDecided * 100)}%` : '\u2014', lsClose, y + 0.5, { align: 'right' })
+    y += rowH + 6
+
+    // ── Pending Leads ──
+    const pendingAppts = effectiveAppointments.filter(a => a.status === 'Pending')
+    if (pendingAppts.length > 0) {
+      checkPageBreak(20)
+      drawSectionBanner('ACTION REQUIRED \u2014 PENDING LEADS')
+      const pCouple = margin + 2
+      const pWedding = margin + 55
+      const pSource = margin + 90
+      const pQuoted = rightEdge - 20
+      const pDays = rightEdge
+
+      doc.setFillColor(...REPORT_COLORS.bgLight)
+      doc.rect(margin, y - 3.5, contentWidth, rowH, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(7)
+      doc.setTextColor(...REPORT_COLORS.dark)
+      doc.text('Couple', pCouple, y + 0.5)
+      doc.text('Wedding Date', pWedding, y + 0.5)
+      doc.text('Lead Source', pSource, y + 0.5)
+      doc.text('Quoted', pQuoted, y + 0.5, { align: 'right' })
+      doc.text('Days', pDays, y + 0.5, { align: 'right' })
+      y += rowH
+      doc.setDrawColor(...REPORT_COLORS.border)
+      doc.line(margin, y - 2, rightEdge, y - 2)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      for (const appt of pendingAppts) {
+        checkPageBreak(rowH)
+        doc.setTextColor(...REPORT_COLORS.body)
+        doc.text(appt.couple.length > 28 ? appt.couple.substring(0, 26) + '...' : appt.couple, pCouple, y + 0.5)
+        doc.text(appt.weddingDate, pWedding, y + 0.5)
+        doc.text(appt.bridalShow || '\u2014', pSource, y + 0.5)
+        doc.text(appt.quoted ? fmtMoney(appt.quoted) : '\u2014', pQuoted, y + 0.5, { align: 'right' })
+        let daysSince = '\u2014'
+        if (appt.dateSort) {
+          const diff = Math.floor((today.getTime() - new Date(appt.dateSort + 'T12:00:00').getTime()) / 86400000)
+          daysSince = `${diff}`
+        }
+        doc.text(daysSince, pDays, y + 0.5, { align: 'right' })
+        y += rowH
+      }
+      y += 6
+    }
+
+    // ── Booked Summary ──
+    const bookedAppts = effectiveAppointments.filter(a => a.status === 'Booked')
+    if (bookedAppts.length > 0) {
+      checkPageBreak(20)
+      drawSectionBanner('BOOKED SUMMARY')
+      doc.setFillColor(...REPORT_COLORS.bgLight)
+      doc.rect(margin, y - 3.5, contentWidth, rowH, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(7)
+      doc.setTextColor(...REPORT_COLORS.dark)
+      doc.text('Couple', margin + 2, y + 0.5)
+      doc.text('Wedding Date', margin + 65, y + 0.5)
+      doc.text('Amount', rightEdge, y + 0.5, { align: 'right' })
+      y += rowH
+      doc.setDrawColor(...REPORT_COLORS.border)
+      doc.line(margin, y - 2, rightEdge, y - 2)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      for (const appt of bookedAppts) {
+        checkPageBreak(rowH)
+        doc.setTextColor(...REPORT_COLORS.body)
+        doc.text(appt.couple, margin + 2, y + 0.5)
+        doc.text(appt.weddingDate, margin + 65, y + 0.5)
+        doc.text(appt.quoted ? fmtMoney(appt.quoted) : '\u2014', rightEdge, y + 0.5, { align: 'right' })
+        y += rowH
+      }
+      doc.setDrawColor(...REPORT_COLORS.border)
+      doc.line(margin, y - 2, rightEdge, y - 2)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...REPORT_COLORS.dark)
+      doc.text('Total Booked Value', margin + 2, y + 0.5)
+      doc.text(fmtMoney(bookedValue), rightEdge, y + 0.5, { align: 'right' })
+      y += rowH + 6
+    }
+
+    // ── Failed/Lost ──
+    const failedAppts = effectiveAppointments.filter(a => a.status === 'Failed')
+    if (failedAppts.length > 0) {
+      checkPageBreak(15)
+      drawSectionBanner('FAILED / LOST')
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(...REPORT_COLORS.body)
+      for (const appt of failedAppts) {
+        checkPageBreak(5)
+        doc.text(`\u2022 ${appt.couple}`, margin + 5, y)
+        y += 5
+      }
+    }
+
+    // ── Footers on all pages ──
+    const totalPages = doc.getNumberOfPages()
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      doc.setTextColor(...REPORT_COLORS.muted)
+      doc.text('SIGS Photography \u2014 Confidential', margin, pageHeight - 10)
+      doc.text(`Page ${i} of ${totalPages}`, rightEdge, pageHeight - 10, { align: 'right' })
+    }
+
+    // ── Save ──
+    const d = new Date()
+    const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    doc.save(`SIGS_Sales_Pipeline_Report_${stamp}.pdf`)
+  }
+
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30" />
     return sortDir === 'asc'
@@ -406,9 +695,18 @@ export default function CoupleQuotesPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Couple Quotes</h1>
-        <p className="text-muted-foreground">Winter 2026 appointments (Jan–Aug)</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Couple Quotes</h1>
+          <p className="text-muted-foreground">Winter 2026 appointments (Jan–Aug)</p>
+        </div>
+        <button
+          onClick={generatePipelineReport}
+          className="inline-flex items-center gap-2 rounded-lg bg-stone-800 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700 transition-colors"
+        >
+          <Download className="h-4 w-4" />
+          Download Report
+        </button>
       </div>
 
       {dbError && (
