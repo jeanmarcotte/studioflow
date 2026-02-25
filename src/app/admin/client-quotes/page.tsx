@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText } from 'lucide-react'
+import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText, Pencil } from 'lucide-react'
 import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus, getCouplesWithQuotes } from '@/lib/supabase'
 import { format, parseISO } from 'date-fns'
 import { generateQuotePdf, QuotePdfData } from '@/lib/generateQuotePdf'
@@ -248,39 +248,50 @@ export default function CoupleQuotesPage() {
       const brideFirst = (parts[0] || '').trim()
       const groomFirst = (parts[1] || '').trim()
 
-      // Try to find couple in database
-      const { data: coupleRows } = await supabase
-        .from('couples')
-        .select('*')
-        .or(`couple_name.ilike.%${brideFirst}%,bride_name.ilike.%${brideFirst}%`)
-        .limit(5)
-
-      // Find best match
-      const coupleRecord = coupleRows?.find(c => {
-        const name = (c.couple_name || '').toLowerCase()
-        return name.includes(brideFirst.toLowerCase()) && (!groomFirst || name.includes(groomFirst.toLowerCase()))
-      })
+      // Find couple in database — use coupleId directly if available, else search by name
+      let coupleRecord: Record<string, unknown> | undefined
+      if (appt.coupleId) {
+        const { data } = await supabase.from('couples').select('*').eq('id', appt.coupleId).single()
+        if (data) coupleRecord = data
+      }
+      if (!coupleRecord) {
+        const { data: coupleRows } = await supabase
+          .from('couples')
+          .select('*')
+          .or(`couple_name.ilike.%${brideFirst}%,bride_name.ilike.%${brideFirst}%`)
+          .limit(5)
+        coupleRecord = coupleRows?.find(c => {
+          const name = (c.couple_name || '').toLowerCase()
+          return name.includes(brideFirst.toLowerCase()) && (!groomFirst || name.includes(groomFirst.toLowerCase()))
+        })
+      }
 
       let pdfData: QuotePdfData
 
       if (coupleRecord) {
         // Try to get quote data for richer contract
-        const { data: quoteData } = await getQuoteByCoupleId(coupleRecord.id)
+        const { data: quoteData } = await getQuoteByCoupleId(coupleRecord.id as string)
         const fd = quoteData?.form_data
 
         if (fd) {
-          // form_data nests form fields under formValues — flatten for QuotePdfData
+          const fv = fd.formValues || {}
+          // Reconstruct timeline from saved form values
+          const timeline = buildTimelineFromFormValues(fv)
+          // Calculate prints total
+          const po = fd.printOrders || {}
+          const printsTotal = Object.values(po).reduce((sum: number, qty) => sum + (Number(qty) || 0), 0)
+
           pdfData = {
-            ...fd.formValues,
+            ...fv,
             pricing: fd.pricing,
             installments: fd.installments,
-            printOrders: fd.printOrders || {},
+            printOrders: po,
             freeParentAlbums: fd.parentAlbumsIncluded === 'free',
             freePrints: fd.printsIncluded === 'free',
-            printsTotal: 0,
-            timeline: [],
-            packageName: ({ exclusively_photo: 'Exclusively Photography', package_c: 'Photography & Video Package C', package_b: 'Photography & Video Package B', package_a: 'Photography & Video Package A' } as Record<string, string>)[fd.formValues?.selectedPackage] || 'Photography Package',
-            packageHours: ({ exclusively_photo: 8, package_c: 8, package_b: 10, package_a: 12 } as Record<string, number>)[fd.formValues?.selectedPackage] || 8,
+            printsTotal,
+            timeline,
+            packageName: ({ exclusively_photo: 'Exclusively Photography', package_c: 'Photography & Video Package C', package_b: 'Photography & Video Package B', package_a: 'Photography & Video Package A' } as Record<string, string>)[fv.selectedPackage] || 'Photography Package',
+            packageHours: ({ exclusively_photo: 8, package_c: 8, package_b: 10, package_a: 12 } as Record<string, number>)[fv.selectedPackage] || 8,
             packageFeatures: buildPackageFeatures(fd),
             contractMode: true,
           }
@@ -292,7 +303,7 @@ export default function CoupleQuotesPage() {
         // Update DB status
         const total = pdfData.pricing.total
         const today = new Date().toISOString().split('T')[0]
-        await updateCoupleStatus(coupleRecord.id, 'booked', today, total)
+        await updateCoupleStatus(coupleRecord.id as string, 'booked', today, total)
         if (quoteData?.id) {
           await updateQuoteStatus(quoteData.id, 'accepted')
         }
@@ -578,25 +589,37 @@ export default function CoupleQuotesPage() {
                       </select>
                     </td>
                     <td className="p-3">
-                      {appt.status === 'Pending' && (
-                        <button
-                          onClick={() => handleConvertToContract(appt)}
-                          disabled={convertingNum !== null}
-                          className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {convertingNum === appt.num ? (
-                            <>
-                              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                              Converting...
-                            </>
-                          ) : (
-                            <>
-                              <FileText className="h-3 w-3" />
-                              Convert to Contract
-                            </>
-                          )}
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {appt.coupleId && (
+                          <button
+                            onClick={() => router.push(`/client/new-quote?couple_id=${appt.coupleId}`)}
+                            className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+                            title="Edit quote"
+                          >
+                            <Pencil className="h-3 w-3" />
+                            Edit
+                          </button>
+                        )}
+                        {appt.status === 'Pending' && (
+                          <button
+                            onClick={() => handleConvertToContract(appt)}
+                            disabled={convertingNum !== null}
+                            className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {convertingNum === appt.num ? (
+                              <>
+                                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                Converting...
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="h-3 w-3" />
+                                Contract
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                   )
@@ -608,6 +631,36 @@ export default function CoupleQuotesPage() {
       </div>
     </div>
   )
+}
+
+// ============================================================
+// HELPER: Reconstruct timeline from saved formValues
+// ============================================================
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildTimelineFromFormValues(fv: any): Array<{ name: string; startTime: string; endTime: string; driveTime?: string }> {
+  const timeline: Array<{ name: string; startTime: string; endTime: string; driveTime?: string }> = []
+  const locations = [
+    { key: 'groom', name: 'Groom Getting Ready', start: 'groomStart', end: 'groomEnd', drive: 'driveGroomToBride' },
+    { key: 'bride', name: 'Bride Getting Ready', start: 'brideStart', end: 'brideEnd', drive: 'driveBrideToNext' },
+  ]
+  // If firstLook, park comes before ceremony
+  if (fv.firstLook) {
+    locations.push({ key: 'park', name: 'First Look + Park Photos', start: 'parkStart', end: 'parkEnd', drive: 'driveParkToNext' })
+  }
+  locations.push({ key: 'ceremony', name: 'Ceremony', start: 'ceremonyStart', end: 'ceremonyEnd', drive: 'driveCeremonyToNext' })
+  if (!fv.firstLook) {
+    locations.push({ key: 'park', name: 'Park / Outdoor Photos', start: 'parkStart', end: 'parkEnd', drive: 'driveParkToNext' })
+  }
+  locations.push({ key: 'reception', name: 'Reception', start: 'receptionStart', end: 'receptionEnd', drive: '' })
+
+  for (const loc of locations) {
+    const startTime = fv[loc.start] || ''
+    const endTime = fv[loc.end] || ''
+    if (startTime || endTime) {
+      timeline.push({ name: loc.name, startTime, endTime, driveTime: loc.drive ? fv[loc.drive] || undefined : undefined })
+    }
+  }
+  return timeline
 }
 
 // ============================================================
