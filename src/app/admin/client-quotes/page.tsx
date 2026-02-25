@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText } from 'lucide-react'
-import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus } from '@/lib/supabase'
+import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus, getCouplesWithQuotes } from '@/lib/supabase'
+import { format, parseISO } from 'date-fns'
 import { generateQuotePdf, QuotePdfData } from '@/lib/generateQuotePdf'
 
 interface Appointment {
@@ -19,7 +20,7 @@ interface Appointment {
   coupleId?: string
 }
 
-const APPOINTMENTS: Appointment[] = [
+const STATIC_APPOINTMENTS: Appointment[] = [
   { num: 1, date: 'Jan 20, 2026', dateSort: '2026-01-20', couple: 'Victoria & Andrew', bridalShow: 'CBS Fall 2025', weddingDate: 'Sept 12, 2026', weddingDateSort: '2026-09-12', quoted: 3850, status: 'Booked' },
   { num: 2, date: 'Jan 21, 2026', dateSort: '2026-01-21', couple: 'Candace & Felice', bridalShow: 'CBS Winter 2026', weddingDate: 'June 20, 2026', weddingDateSort: '2026-06-20', quoted: 3300, status: 'Booked' },
   { num: 3, date: 'Jan 23, 2026', dateSort: '2026-01-23', couple: 'Sydney & Jason', bridalShow: 'CBS Winter 2026', weddingDate: 'Aug 2, 2026', weddingDateSort: '2026-08-02', quoted: 3955, status: 'Booked' },
@@ -34,26 +35,87 @@ const APPOINTMENTS: Appointment[] = [
   { num: 12, date: 'Feb 13, 2026', dateSort: '2026-02-13', couple: 'Christina & Eric', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 17, 2026', weddingDateSort: '2026-10-17', quoted: 3616, status: 'Booked' },
   { num: 13, date: 'Feb 13, 2026', dateSort: '2026-02-13', couple: 'Janet/Karina & Max', bridalShow: 'HBS Winter 2026', weddingDate: 'Sept 3, 2026', weddingDateSort: '2026-09-03', quoted: 3600, status: 'Pending' },
   { num: 14, date: 'Feb 18, 2026', dateSort: '2026-02-18', couple: 'Trina & Matt', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 24, 2026', weddingDateSort: '2026-10-24', quoted: 3616, status: 'Pending', coupleId: 'f4b8efeb-43e6-4b99-8402-04df57233736' },
+  { num: 15, date: 'Feb 24, 2026', dateSort: '2026-02-24', couple: 'Nicole & Cory', bridalShow: 'HBS Winter 2026', weddingDate: 'July 25, 2026', weddingDateSort: '2026-07-25', quoted: 3955, status: 'Pending' },
 ]
 
-interface LeadSource {
+// Normalize freeform DB lead_source values to abbreviated bridalShow display names
+function normalizeLeadSource(leadSource: string): string {
+  const s = leadSource.toLowerCase()
+  // CBS patterns
+  if ((s.includes('canada') || s.includes('cbs')) && s.includes('2026')) return 'CBS Winter 2026'
+  if ((s.includes('canada') || s.includes('cbs')) && s.includes('fall 2025')) return 'CBS Fall 2025'
+  // HBS / Hamilton patterns
+  if ((s.includes('hamilton') || s.includes('hbs') || s.includes('ham-')) && s.includes('2026')) return 'HBS Winter 2026'
+  // MBS / Modern patterns
+  if ((s.includes('modern') || s.includes('mbs')) && s.includes('2026')) return 'MBS Winter 2026'
+  // OBS / Oakville patterns
+  if ((s.includes('oakville') || s.includes('obs')) && s.includes('2026')) return 'OBS Winter 2026'
+  // NBS / Newmarket patterns
+  if ((s.includes('newmarket') || s.includes('nbs')) && s.includes('2026')) return 'NBS Winter 2026'
+  // Online
+  if (s.includes('instagram') || s.includes('facebook') || s.includes('meta')) return 'META/Instagram'
+  if (s.includes('referral') || s.includes('ref ') || s.startsWith('ref-')) return 'Referrals'
+  return leadSource // pass through as-is
+}
+
+// Map bridalShow abbreviations → lead source display names for stats grouping
+const BRIDAL_SHOW_TO_SOURCE: Record<string, string> = {
+  'CBS Fall 2025': 'CBS Jan 2026 (Canada\'s Bridal Show)',
+  'CBS Winter 2026': 'CBS Jan 2026 (Canada\'s Bridal Show)',
+  'HBS Winter 2026': 'HBS Jan 2026 (Hamilton Wedding Ring)',
+  'NBS Winter 2026': 'NBS Apr 2026 (Newmarket/Uxbridge Wedding Ring)',
+  'OBS Winter 2026': 'OBS Mar 2026 (Oakville Wedding Ring)',
+  'MBS Winter 2026': 'MBS Feb 2026 (Modern Wedding Show)',
+  'META/Instagram': 'META/Instagram',
+  'Referrals': 'Referrals',
+}
+
+interface LeadSourceConfig {
   name: string
-  appointments: number
-  bookings: number
-  fail: number
-  pending: number
   defaultShowCost: number
 }
 
-const LEAD_SOURCES: LeadSource[] = [
-  { name: 'CBS Jan 2026 (Canada\'s Bridal Show)', appointments: 8, bookings: 3, fail: 4, pending: 1, defaultShowCost: 3223 },
-  { name: 'HBS Jan 2026 (Hamilton Wedding Ring)', appointments: 4, bookings: 2, fail: 1, pending: 1, defaultShowCost: 695 },
-  { name: 'NBS Apr 2026 (Newmarket/Uxbridge Wedding Ring)', appointments: 0, bookings: 0, fail: 0, pending: 0, defaultShowCost: 525 },
-  { name: 'OBS Mar 2026 (Oakville Wedding Ring)', appointments: 0, bookings: 0, fail: 0, pending: 0, defaultShowCost: 695 },
-  { name: 'MBS Feb 2026 (Modern Wedding Show)', appointments: 0, bookings: 0, fail: 0, pending: 0, defaultShowCost: 1595 },
-  { name: 'META/Instagram', appointments: 0, bookings: 0, fail: 0, pending: 0, defaultShowCost: 0 },
-  { name: 'Referrals', appointments: 0, bookings: 0, fail: 0, pending: 0, defaultShowCost: 0 },
+const LEAD_SOURCES_CONFIG: LeadSourceConfig[] = [
+  { name: 'CBS Jan 2026 (Canada\'s Bridal Show)', defaultShowCost: 3223 },
+  { name: 'HBS Jan 2026 (Hamilton Wedding Ring)', defaultShowCost: 695 },
+  { name: 'NBS Apr 2026 (Newmarket/Uxbridge Wedding Ring)', defaultShowCost: 525 },
+  { name: 'OBS Mar 2026 (Oakville Wedding Ring)', defaultShowCost: 695 },
+  { name: 'MBS Feb 2026 (Modern Wedding Show)', defaultShowCost: 1595 },
+  { name: 'META/Instagram', defaultShowCost: 0 },
+  { name: 'Referrals', defaultShowCost: 0 },
 ]
+
+// Convert a DB couple record to an Appointment
+function dbCoupleToAppointment(
+  couple: { id: string; couple_name: string; wedding_date: string | null; lead_source: string | null; status: string | null; contract_total: number | null; created_at: string | null; quote_total: number | null; quote_date: string | null },
+  num: number
+): Appointment {
+  const appointmentDateRaw = couple.quote_date || couple.created_at?.split('T')[0] || ''
+  let dateDisplay = appointmentDateRaw
+  const dateSort = appointmentDateRaw
+  if (appointmentDateRaw) {
+    try { dateDisplay = format(parseISO(appointmentDateRaw), 'MMM d, yyyy') } catch { /* keep raw */ }
+  }
+
+  let weddingDateDisplay = 'TBD'
+  let weddingDateSort = '9999-12-31'
+  if (couple.wedding_date) {
+    try {
+      weddingDateDisplay = format(parseISO(couple.wedding_date), 'MMM d, yyyy')
+      weddingDateSort = couple.wedding_date
+    } catch {
+      weddingDateDisplay = couple.wedding_date
+      weddingDateSort = couple.wedding_date
+    }
+  }
+
+  const statusMap: Record<string, Appointment['status']> = { booked: 'Booked', lost: 'Failed', lead: 'Pending' }
+  const status = statusMap[couple.status || 'lead'] || 'Pending'
+  const quoted = couple.quote_total ?? couple.contract_total ?? null
+  const bridalShow = couple.lead_source ? normalizeLeadSource(couple.lead_source) : null
+
+  return { num, date: dateDisplay, dateSort, couple: couple.couple_name, bridalShow, weddingDate: weddingDateDisplay, weddingDateSort, quoted, status, coupleId: couple.id }
+}
 
 type SortField = 'num' | 'date' | 'couple' | 'bridalShow' | 'weddingDate' | 'quoted' | 'status'
 type SortDir = 'asc' | 'desc'
@@ -68,21 +130,72 @@ export default function CoupleQuotesPage() {
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [showCosts, setShowCosts] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {}
-    LEAD_SOURCES.forEach(s => { init[s.name] = s.defaultShowCost })
+    LEAD_SOURCES_CONFIG.forEach(s => { init[s.name] = s.defaultShowCost })
     return init
   })
   const [statusOverrides, setStatusOverrides] = useState<Record<number, Appointment['status']>>({})
   const [convertingNum, setConvertingNum] = useState<number | null>(null)
+  const [dbAppointments, setDbAppointments] = useState<Appointment[]>([])
+  const [loading, setLoading] = useState(true)
+  const [dbError, setDbError] = useState(false)
 
-  // Merge overrides into appointments for stats and rendering
+  // Fetch couples from database on mount
+  useEffect(() => {
+    let cancelled = false
+    const fetchDbAppointments = async () => {
+      try {
+        const { data, error } = await getCouplesWithQuotes()
+        if (cancelled) return
+        if (error || !data) {
+          console.error('Failed to fetch couples:', error)
+          setDbError(true)
+          setLoading(false)
+          return
+        }
+        setDbAppointments(data.map((c, i) => dbCoupleToAppointment(c, 1000 + i)))
+      } catch (err) {
+        console.error('DB fetch error:', err)
+        if (!cancelled) setDbError(true)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    fetchDbAppointments()
+    return () => { cancelled = true }
+  }, [])
+
+  // Merge static + DB appointments, deduplicating by couple name
+  const mergedAppointments = useMemo(() => {
+    const staticEntries = [...STATIC_APPOINTMENTS]
+    const staticNames = new Set(staticEntries.map(a => a.couple.toLowerCase().trim()))
+
+    // DB entries not already in static list
+    const newFromDb = dbAppointments.filter(a => !staticNames.has(a.couple.toLowerCase().trim()))
+
+    // Enrich static entries with coupleId from DB matches
+    const dbNameMap = new Map(dbAppointments.map(a => [a.couple.toLowerCase().trim(), a]))
+    const enrichedStatic = staticEntries.map(appt => {
+      const dbMatch = dbNameMap.get(appt.couple.toLowerCase().trim())
+      if (dbMatch) {
+        return { ...appt, coupleId: appt.coupleId || dbMatch.coupleId, quoted: appt.quoted ?? dbMatch.quoted }
+      }
+      return appt
+    })
+
+    const combined = [...enrichedStatic, ...newFromDb]
+    combined.forEach((appt, i) => { appt.num = i + 1 })
+    return combined
+  }, [dbAppointments])
+
+  // Apply status overrides on top of merged data
   const effectiveAppointments = useMemo(() => {
-    return APPOINTMENTS.map(appt => {
+    return mergedAppointments.map(appt => {
       if (statusOverrides[appt.num]) {
         return { ...appt, status: statusOverrides[appt.num] }
       }
       return appt
     })
-  }, [statusOverrides])
+  }, [mergedAppointments, statusOverrides])
 
   const stats = useMemo(() => {
     const total = effectiveAppointments.length
@@ -209,13 +322,30 @@ export default function CoupleQuotesPage() {
   }
 
   const leadSourceRows = useMemo(() => {
-    return LEAD_SOURCES.map(s => {
-      const cost = showCosts[s.name] || 0
-      const costPerLead = s.appointments > 0 ? cost / s.appointments : null
-      const costPerSale = s.bookings > 0 ? cost / s.bookings : null
-      return { ...s, showCost: cost, costPerLead, costPerSale }
+    // Dynamically compute counts from actual appointments
+    const countsBySource: Record<string, { appointments: number; bookings: number; fail: number; pending: number }> = {}
+    LEAD_SOURCES_CONFIG.forEach(s => { countsBySource[s.name] = { appointments: 0, bookings: 0, fail: 0, pending: 0 } })
+
+    effectiveAppointments.forEach(appt => {
+      const sourceName = appt.bridalShow ? (BRIDAL_SHOW_TO_SOURCE[appt.bridalShow] || appt.bridalShow) : null
+      if (!sourceName) return
+      if (!countsBySource[sourceName]) {
+        countsBySource[sourceName] = { appointments: 0, bookings: 0, fail: 0, pending: 0 }
+      }
+      countsBySource[sourceName].appointments++
+      if (appt.status === 'Booked') countsBySource[sourceName].bookings++
+      else if (appt.status === 'Failed') countsBySource[sourceName].fail++
+      else countsBySource[sourceName].pending++
     })
-  }, [showCosts])
+
+    return LEAD_SOURCES_CONFIG.map(s => {
+      const counts = countsBySource[s.name] || { appointments: 0, bookings: 0, fail: 0, pending: 0 }
+      const cost = showCosts[s.name] || 0
+      const costPerLead = counts.appointments > 0 ? cost / counts.appointments : null
+      const costPerSale = counts.bookings > 0 ? cost / counts.bookings : null
+      return { ...s, ...counts, showCost: cost, costPerLead, costPerSale }
+    })
+  }, [showCosts, effectiveAppointments])
 
   const leadTotals = useMemo(() => {
     const t = leadSourceRows.reduce(
@@ -250,6 +380,14 @@ export default function CoupleQuotesPage() {
     </th>
   )
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -257,6 +395,12 @@ export default function CoupleQuotesPage() {
         <h1 className="text-2xl font-bold">Couple Quotes</h1>
         <p className="text-muted-foreground">Winter 2026 appointments (Jan–Aug)</p>
       </div>
+
+      {dbError && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          Could not load database records. Showing cached appointments only.
+        </div>
+      )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">

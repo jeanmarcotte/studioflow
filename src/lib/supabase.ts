@@ -67,6 +67,48 @@ export const getCouples = async () => {
   return { data, error }
 }
 
+// Fetch couples in sales funnel with their latest quote total
+export const getCouplesWithQuotes = async () => {
+  const { data: couples, error: couplesError } = await supabase
+    .from('couples')
+    .select('id, couple_name, wedding_date, lead_source, status, contract_total, created_at')
+    .in('status', ['lead', 'booked', 'lost'])
+    .order('created_at', { ascending: true })
+
+  if (couplesError || !couples) {
+    return { data: null, error: couplesError }
+  }
+
+  const coupleIds = couples.map(c => c.id)
+  if (coupleIds.length === 0) return { data: [], error: null }
+
+  const { data: quotes, error: quotesError } = await supabase
+    .from('quotes')
+    .select('couple_id, total, quote_date, created_at')
+    .in('couple_id', coupleIds)
+    .order('created_at', { ascending: false })
+
+  if (quotesError) console.warn('Failed to fetch quotes:', quotesError)
+
+  // Map: couple_id → latest quote (first seen per couple since ordered desc)
+  const quoteMap: Record<string, { total: number | null; quote_date: string | null }> = {}
+  if (quotes) {
+    for (const q of quotes) {
+      if (!quoteMap[q.couple_id]) {
+        quoteMap[q.couple_id] = { total: q.total, quote_date: q.quote_date }
+      }
+    }
+  }
+
+  const result = couples.map(c => ({
+    ...c,
+    quote_total: quoteMap[c.id]?.total ?? null,
+    quote_date: quoteMap[c.id]?.quote_date ?? null,
+  }))
+
+  return { data: result, error: null }
+}
+
 export const getCoupleBySlug = async (slug: string) => {
   const { data, error } = await supabase
     .from('couples')
