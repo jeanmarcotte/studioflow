@@ -162,8 +162,8 @@ export default function CoupleQuotesPage() {
             freePrints: fd.printsIncluded === 'free',
             printsTotal: 0,
             timeline: [],
-            packageName: fd.formValues?.selectedPackage === 'exclusively_photo' ? 'Exclusively Photography' : fd.formValues?.selectedPackage === 'package_b' ? 'Photo + Video' : 'Photography Package',
-            packageHours: fd.formValues?.selectedPackage === 'exclusively_photo' ? 8 : 8,
+            packageName: ({ exclusively_photo: 'Exclusively Photography', package_c: 'Photography & Video Package C', package_b: 'Photography & Video Package B', package_a: 'Photography & Video Package A' } as Record<string, string>)[fd.formValues?.selectedPackage] || 'Photography Package',
+            packageHours: ({ exclusively_photo: 8, package_c: 8, package_b: 10, package_a: 12 } as Record<string, number>)[fd.formValues?.selectedPackage] || 8,
             packageFeatures: buildPackageFeatures(fd),
             contractMode: true,
           }
