@@ -35,7 +35,7 @@ const STATIC_APPOINTMENTS: Appointment[] = [
   { num: 12, date: 'Feb 13, 2026', dateSort: '2026-02-13', couple: 'Christina & Eric', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 17, 2026', weddingDateSort: '2026-10-17', quoted: 3616, status: 'Booked' },
   { num: 13, date: 'Feb 13, 2026', dateSort: '2026-02-13', couple: 'Janet/Karina & Max', bridalShow: 'HBS Winter 2026', weddingDate: 'Sept 3, 2026', weddingDateSort: '2026-09-03', quoted: 3600, status: 'Pending' },
   { num: 14, date: 'Feb 18, 2026', dateSort: '2026-02-18', couple: 'Trina & Matt', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 24, 2026', weddingDateSort: '2026-10-24', quoted: 3616, status: 'Pending', coupleId: 'f4b8efeb-43e6-4b99-8402-04df57233736' },
-  { num: 15, date: 'Feb 24, 2026', dateSort: '2026-02-24', couple: 'Nicole & Cory', bridalShow: 'HBS Winter 2026', weddingDate: 'July 25, 2026', weddingDateSort: '2026-07-25', quoted: 3955, status: 'Pending' },
+  { num: 15, date: 'Feb 24, 2026', dateSort: '2026-02-24', couple: 'Nicole Couto & Cory Fonseca', bridalShow: 'HBS Winter 2026', weddingDate: 'July 25, 2026', weddingDateSort: '2026-07-25', quoted: 3955, status: 'Pending', coupleId: '01cfdd68-359a-470b-b093-7eb101620833' },
 ]
 
 // Normalize freeform DB lead_source values to abbreviated bridalShow display names
@@ -554,7 +554,7 @@ export default function CoupleQuotesPage() {
                     <td className="p-3 text-muted-foreground">{appt.num}</td>
                     <td className="p-3 whitespace-nowrap">{appt.date}</td>
                     <td className="p-3 font-medium">
-                      {appt.coupleId ? (
+                      {appt.status === 'Pending' && appt.coupleId ? (
                         <button
                           onClick={() => router.push(`/client/new-quote?couple_id=${appt.coupleId}`)}
                           className="text-blue-600 hover:text-blue-800 hover:underline"
@@ -590,7 +590,7 @@ export default function CoupleQuotesPage() {
                     </td>
                     <td className="p-3">
                       <div className="flex items-center gap-1.5">
-                        {appt.coupleId && (
+                        {appt.status === 'Pending' && appt.coupleId && (
                           <button
                             onClick={() => router.push(`/client/new-quote?couple_id=${appt.coupleId}`)}
                             className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
