@@ -30,7 +30,6 @@ const STATUSES = [
   { value: 'all', label: 'All Statuses' },
   { value: 'booked', label: 'Booked' },
   { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' },
 ]
 
 function formatPackage(pkg: string | null): string {
@@ -58,8 +57,6 @@ function statusBadge(status: string | null) {
     return <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 text-xs font-medium">Booked</span>
   if (status === 'completed')
     return <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-medium">Completed</span>
-  if (status === 'cancelled')
-    return <span className="inline-flex items-center rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-medium">Cancelled</span>
   return <span className="text-xs text-muted-foreground">{status}</span>
 }
 

@@ -472,7 +472,7 @@ export default function CoupleDetailPage() {
           <div className="flex items-center gap-2 mb-2 flex-wrap relative z-10">
             {couple.status && (
               <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-white/15">
-                {couple.status === 'booked' ? 'BOOKED' : couple.status === 'completed' ? '\u2705 COMPLETED' : couple.status === 'cancelled' ? '\u274c CANCELLED' : couple.status.toUpperCase()}
+                {couple.status === 'booked' ? 'BOOKED' : couple.status === 'completed' ? '\u2705 COMPLETED' : couple.status.toUpperCase()}
               </span>
             )}
             {couple.package_type && (

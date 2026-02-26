@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText, Pencil, Download } from 'lucide-react'
-import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus, getCouplesWithQuotes } from '@/lib/supabase'
+import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus } from '@/lib/supabase'
 import jsPDF from 'jspdf'
-import { format, parseISO } from 'date-fns'
 import { generateQuotePdf, QuotePdfData } from '@/lib/generateQuotePdf'
 
 interface Appointment {
@@ -36,28 +35,8 @@ const STATIC_APPOINTMENTS: Appointment[] = [
   { num: 12, date: 'Feb 13, 2026', dateSort: '2026-02-13', couple: 'Christina & Eric', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 17, 2026', weddingDateSort: '2026-10-17', quoted: 3616, status: 'Booked' },
   { num: 13, date: 'Feb 13, 2026', dateSort: '2026-02-13', couple: 'Janet/Karina & Max', bridalShow: 'HBS Winter 2026', weddingDate: 'Sept 3, 2026', weddingDateSort: '2026-09-03', quoted: 3600, status: 'Pending' },
   { num: 14, date: 'Feb 18, 2026', dateSort: '2026-02-18', couple: 'Trina & Matt', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 24, 2026', weddingDateSort: '2026-10-24', quoted: 3616, status: 'Pending', coupleId: 'f4b8efeb-43e6-4b99-8402-04df57233736' },
-  { num: 15, date: 'Feb 24, 2026', dateSort: '2026-02-24', couple: 'Nicole Couto & Cory Fonseca', bridalShow: 'HBS Winter 2026', weddingDate: 'July 25, 2026', weddingDateSort: '2026-07-25', quoted: 3955, status: 'Pending', coupleId: '01cfdd68-359a-470b-b093-7eb101620833' },
+  { num: 15, date: 'Feb 24, 2026', dateSort: '2026-02-24', couple: 'Nicole Couto & Cory Fonseca', bridalShow: 'MBS Winter 2026', weddingDate: 'July 25, 2026', weddingDateSort: '2026-07-25', quoted: 3955, status: 'Pending', coupleId: '01cfdd68-359a-470b-b093-7eb101620833' },
 ]
-
-// Normalize freeform DB lead_source values to abbreviated bridalShow display names
-function normalizeLeadSource(leadSource: string): string {
-  const s = leadSource.toLowerCase()
-  // CBS patterns
-  if ((s.includes('canada') || s.includes('cbs')) && s.includes('2026')) return 'CBS Winter 2026'
-  if ((s.includes('canada') || s.includes('cbs')) && s.includes('fall 2025')) return 'CBS Fall 2025'
-  // HBS / Hamilton patterns
-  if ((s.includes('hamilton') || s.includes('hbs') || s.includes('ham-')) && s.includes('2026')) return 'HBS Winter 2026'
-  // MBS / Modern patterns
-  if ((s.includes('modern') || s.includes('mbs')) && s.includes('2026')) return 'MBS Winter 2026'
-  // OBS / Oakville patterns
-  if ((s.includes('oakville') || s.includes('obs')) && s.includes('2026')) return 'OBS Winter 2026'
-  // NBS / Newmarket patterns
-  if ((s.includes('newmarket') || s.includes('nbs')) && s.includes('2026')) return 'NBS Winter 2026'
-  // Online
-  if (s.includes('instagram') || s.includes('facebook') || s.includes('meta')) return 'META/Instagram'
-  if (s.includes('referral') || s.includes('ref ') || s.startsWith('ref-')) return 'Referrals'
-  return leadSource // pass through as-is
-}
 
 // Map bridalShow abbreviations → lead source display names for stats grouping
 const BRIDAL_SHOW_TO_SOURCE: Record<string, string> = {
@@ -86,38 +65,6 @@ const LEAD_SOURCES_CONFIG: LeadSourceConfig[] = [
   { name: 'Referrals', defaultShowCost: 0 },
 ]
 
-// Convert a DB couple record to an Appointment
-function dbCoupleToAppointment(
-  couple: { id: string; couple_name: string; wedding_date: string | null; lead_source: string | null; status: string | null; contract_total: number | null; created_at: string | null; quote_total: number | null; quote_date: string | null },
-  num: number
-): Appointment {
-  const appointmentDateRaw = couple.quote_date || couple.created_at?.split('T')[0] || ''
-  let dateDisplay = appointmentDateRaw
-  const dateSort = appointmentDateRaw
-  if (appointmentDateRaw) {
-    try { dateDisplay = format(parseISO(appointmentDateRaw), 'MMM d, yyyy') } catch { /* keep raw */ }
-  }
-
-  let weddingDateDisplay = 'TBD'
-  let weddingDateSort = '9999-12-31'
-  if (couple.wedding_date) {
-    try {
-      weddingDateDisplay = format(parseISO(couple.wedding_date), 'MMM d, yyyy')
-      weddingDateSort = couple.wedding_date
-    } catch {
-      weddingDateDisplay = couple.wedding_date
-      weddingDateSort = couple.wedding_date
-    }
-  }
-
-  const statusMap: Record<string, Appointment['status']> = { booked: 'Booked', lost: 'Failed', lead: 'Pending' }
-  const status = statusMap[couple.status || 'lead'] || 'Pending'
-  const quoted = couple.quote_total ?? couple.contract_total ?? null
-  const bridalShow = couple.lead_source ? normalizeLeadSource(couple.lead_source) : null
-
-  return { num, date: dateDisplay, dateSort, couple: couple.couple_name, bridalShow, weddingDate: weddingDateDisplay, weddingDateSort, quoted, status, coupleId: couple.id }
-}
-
 type SortField = 'num' | 'date' | 'couple' | 'bridalShow' | 'weddingDate' | 'quoted' | 'status'
 type SortDir = 'asc' | 'desc'
 
@@ -145,80 +92,16 @@ export default function CoupleQuotesPage() {
   })
   const [statusOverrides, setStatusOverrides] = useState<Record<number, Appointment['status']>>({})
   const [convertingNum, setConvertingNum] = useState<number | null>(null)
-  const [dbAppointments, setDbAppointments] = useState<Appointment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [dbError, setDbError] = useState(false)
 
-  // Fetch couples from database on mount
-  useEffect(() => {
-    let cancelled = false
-    const fetchDbAppointments = async () => {
-      try {
-        const { data, error } = await getCouplesWithQuotes()
-        if (cancelled) return
-        if (error || !data) {
-          console.error('Failed to fetch couples:', error)
-          setDbError(true)
-          setLoading(false)
-          return
-        }
-        setDbAppointments(data.map((c, i) => dbCoupleToAppointment(c, 1000 + i)))
-      } catch (err) {
-        console.error('DB fetch error:', err)
-        if (!cancelled) setDbError(true)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    fetchDbAppointments()
-    return () => { cancelled = true }
-  }, [])
-
-  // Merge static + DB appointments
-  // Only ADD new rows for 'lead' status (new quotes from quote builder)
-  // Use booked/lost DB records only to enrich static entries with coupleId
-  const mergedAppointments = useMemo(() => {
-    const staticEntries = [...STATIC_APPOINTMENTS]
-    const staticNames = new Set(staticEntries.map(a => a.couple.toLowerCase().trim()))
-
-    // Only add DB entries that are leads (Pending) and not already in static list
-    const newFromDb = dbAppointments.filter(a =>
-      a.status === 'Pending' && !staticNames.has(a.couple.toLowerCase().trim())
-    )
-
-    // Enrich static entries with DB values — database is source of truth
-    const dbNameMap = new Map(dbAppointments.map(a => [a.couple.toLowerCase().trim(), a]))
-    // Also index by coupleId for entries that have one
-    const dbIdMap = new Map(dbAppointments.filter(a => a.coupleId).map(a => [a.coupleId!, a]))
-    const enrichedStatic = staticEntries.map(appt => {
-      const dbMatch = (appt.coupleId && dbIdMap.get(appt.coupleId)) || dbNameMap.get(appt.couple.toLowerCase().trim())
-      if (dbMatch) {
-        return {
-          ...appt,
-          coupleId: dbMatch.coupleId || appt.coupleId,
-          quoted: dbMatch.quoted ?? appt.quoted,
-          bridalShow: dbMatch.bridalShow || appt.bridalShow,
-          weddingDate: dbMatch.weddingDate !== 'TBD' ? dbMatch.weddingDate : appt.weddingDate,
-          weddingDateSort: dbMatch.weddingDateSort !== '9999-12-31' ? dbMatch.weddingDateSort : appt.weddingDateSort,
-        }
-      }
-      return appt
-    })
-
-    const combined = [...enrichedStatic, ...newFromDb]
-    combined.forEach((appt, i) => { appt.num = i + 1 })
-    return combined
-  }, [dbAppointments])
-
-  // Apply status overrides on top of merged data
+  // Apply status overrides on top of static data
   const effectiveAppointments = useMemo(() => {
-    return mergedAppointments.map(appt => {
+    return STATIC_APPOINTMENTS.map(appt => {
       if (statusOverrides[appt.num]) {
         return { ...appt, status: statusOverrides[appt.num] }
       }
       return appt
     })
-  }, [mergedAppointments, statusOverrides])
+  }, [statusOverrides])
 
   const stats = useMemo(() => {
     const total = effectiveAppointments.length
@@ -346,12 +229,10 @@ export default function CoupleQuotesPage() {
     if (newStatus === appt.status) return
     setStatusOverrides(prev => ({ ...prev, [appt.num]: newStatus }))
 
-    // Try to update DB if couple exists
-    if (appt.coupleId) {
-      const dbStatus = newStatus === 'Booked' ? 'booked' : newStatus === 'Failed' ? 'lost' : 'lead'
+    // Only write to DB when booking (leads are tracked in BridalFlow, not here)
+    if (newStatus === 'Booked' && appt.coupleId) {
       const today = new Date().toISOString().split('T')[0]
-      const bookedDate = newStatus === 'Booked' ? today : undefined
-      await updateCoupleStatus(appt.coupleId, dbStatus, bookedDate, appt.quoted || undefined).catch(console.error)
+      await updateCoupleStatus(appt.coupleId, 'booked', today, appt.quoted || undefined).catch(console.error)
     }
   }
 
@@ -693,14 +574,6 @@ export default function CoupleQuotesPage() {
     </th>
   )
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -717,12 +590,6 @@ export default function CoupleQuotesPage() {
           Download Report
         </button>
       </div>
-
-      {dbError && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          Could not load database records. Showing cached appointments only.
-        </div>
-      )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">

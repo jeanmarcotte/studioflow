@@ -73,7 +73,7 @@ export const getCouplesWithQuotes = async () => {
   const { data: couples, error: couplesError } = await supabase
     .from('couples')
     .select('id, couple_name, wedding_date, lead_source, status, contract_total, created_at')
-    .in('status', ['lead', 'booked', 'lost'])
+    .in('status', ['booked', 'completed'])
     .order('created_at', { ascending: true })
 
   if (couplesError || !couples) {
@@ -179,7 +179,7 @@ export const findOrCreateCouple = async (coupleInfo: {
       ceremony_venue: coupleInfo.ceremonyVenue || null,
       reception_venue: coupleInfo.receptionVenue || null,
       lead_source: coupleInfo.leadSource || null,
-      status: 'lead',
+      status: 'booked',
     })
     .select()
     .single()
