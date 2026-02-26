@@ -17,7 +17,7 @@ export default function AuthCallbackPage() {
         return
       }
 
-      const allowedEmails = ['jeanmarcotte@gmail.com', 'marianna@sigsphoto.ca']
+      const allowedEmails = ['jeanmarcotte@gmail.com', 'marianna@sigsphoto.ca', 'mariannakogan@gmail.com']
 
       if (user.email && allowedEmails.includes(user.email)) {
         console.log('User authorized:', user.email)

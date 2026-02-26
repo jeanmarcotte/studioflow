@@ -186,12 +186,21 @@ export default function CoupleQuotesPage() {
       a.status === 'Pending' && !staticNames.has(a.couple.toLowerCase().trim())
     )
 
-    // Enrich static entries with coupleId from DB matches
+    // Enrich static entries with DB values — database is source of truth
     const dbNameMap = new Map(dbAppointments.map(a => [a.couple.toLowerCase().trim(), a]))
+    // Also index by coupleId for entries that have one
+    const dbIdMap = new Map(dbAppointments.filter(a => a.coupleId).map(a => [a.coupleId!, a]))
     const enrichedStatic = staticEntries.map(appt => {
-      const dbMatch = dbNameMap.get(appt.couple.toLowerCase().trim())
+      const dbMatch = (appt.coupleId && dbIdMap.get(appt.coupleId)) || dbNameMap.get(appt.couple.toLowerCase().trim())
       if (dbMatch) {
-        return { ...appt, coupleId: appt.coupleId || dbMatch.coupleId, quoted: appt.quoted ?? dbMatch.quoted }
+        return {
+          ...appt,
+          coupleId: dbMatch.coupleId || appt.coupleId,
+          quoted: dbMatch.quoted ?? appt.quoted,
+          bridalShow: dbMatch.bridalShow || appt.bridalShow,
+          weddingDate: dbMatch.weddingDate !== 'TBD' ? dbMatch.weddingDate : appt.weddingDate,
+          weddingDateSort: dbMatch.weddingDateSort !== '9999-12-31' ? dbMatch.weddingDateSort : appt.weddingDateSort,
+        }
       }
       return appt
     })
