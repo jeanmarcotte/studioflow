@@ -998,39 +998,6 @@ export default function CoupleDetailPage() {
         </div>
       </div>
 
-      {/* ═══ WEDDING DAY TIMELINE ═══ */}
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-teal-600" />
-              <span className="text-sm font-semibold">Wedding Day Timeline</span>
-            </div>
-            {!hasDayForm && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-500">⚠️ INCOMPLETE</span>
-            )}
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-            {[
-              { event: '\ud83e\udd35 Groom Prep', location: couple.groom_name ? `${couple.groom_name}'s location` : 'Address: TBD' },
-              { event: '\ud83d\udc70 Bride Prep', location: couple.bride_name ? `${couple.bride_name}'s location` : 'Address: TBD' },
-              { event: '\u26ea Ceremony', location: couple.ceremony_venue || 'Location: TBD' },
-              { event: '\ud83c\udf33 Park', location: couple.park_location || 'TBD' },
-              { event: '\ud83c\udff0 Reception', location: couple.reception_venue || 'Location: TBD' },
-            ].map((slot, i) => (
-              <div key={i} className="p-3 bg-muted/30 rounded-xl border border-dashed border-amber-200 relative">
-                <div className="text-sm font-bold mb-1">{slot.event}</div>
-                <div className="text-[11px] text-amber-600 font-medium">{slot.location}</div>
-              </div>
-            ))}
-          </div>
-          {!hasDayForm && (
-            <div className="mt-3 p-2.5 bg-red-50 rounded-lg text-xs text-red-800 font-semibold">
-              🚨 Day form required for complete timeline &mdash; addresses, emergency contacts, vendors, and drive times all missing
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* ═══ EXTRAS SECTION (conditional) ═══ */}
       {extrasItems.length > 0 && (
