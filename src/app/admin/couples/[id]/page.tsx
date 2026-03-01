@@ -405,16 +405,27 @@ export default function CoupleDetailPage() {
     }] : []),
   ]
 
-  // Extras items (safely parsed — handles both {item,price} and {name,price} formats)
-  const extrasItems: Array<{ item: string; description?: string; price: number | null; note?: string }> =
-    extrasOrders.length > 0 && Array.isArray(extrasOrders[0]?.items)
-      ? extrasOrders[0].items.map((raw: any) => ({
-          item: raw.item || raw.name || '',
-          description: raw.description,
-          price: typeof raw.price === 'number' ? raw.price : null,
-          note: raw.note,
-        }))
-      : []
+  // Extras items (safely parsed — handles array [{item,price}], array [{name,price}], and flat object {key: "description"})
+  const extrasItems: Array<{ item: string; description?: string; price: number | null; note?: string }> = (() => {
+    if (extrasOrders.length === 0 || !extrasOrders[0]?.items) return []
+    const raw = extrasOrders[0].items
+    if (Array.isArray(raw)) {
+      return raw.map((r: any) => ({
+        item: r.item || r.name || '',
+        description: r.description,
+        price: typeof r.price === 'number' ? r.price : null,
+        note: r.note,
+      }))
+    }
+    if (typeof raw === 'object') {
+      return Object.entries(raw).map(([key, value]) => ({
+        item: key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, c => c.toUpperCase()),
+        description: typeof value === 'string' ? value : undefined,
+        price: typeof value === 'number' ? value : null,
+      }))
+    }
+    return []
+  })()
   const extrasInclusions: string[] =
     extrasOrders.length > 0 && Array.isArray(extrasOrders[0]?.inclusions)
       ? extrasOrders[0].inclusions
