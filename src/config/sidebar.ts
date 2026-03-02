@@ -1,8 +1,23 @@
-import { LucideIcon, Home, Settings, Users, FileText, DollarSign, BarChart3, Mail, Camera, Video, Package, ShoppingBag, StickyNote, Globe } from 'lucide-react'
+import {
+  LucideIcon,
+  Home,
+  Settings,
+  Users,
+  FileText,
+  DollarSign,
+  BarChart3,
+  Mail,
+  Camera,
+  Video,
+  Package,
+  ShoppingBag,
+  StickyNote,
+  Globe,
+} from 'lucide-react'
 
 export interface SidebarItem {
   title: string
-  href: string
+  href?: string
   icon: LucideIcon
   badge?: string | number
   children?: SidebarItem[]
@@ -23,124 +38,66 @@ export interface SidebarConfig {
   }[]
 }
 
-// Admin sidebar — main config used by /admin layout
+// Admin sidebar — used by /admin layout
 export const studioflowAdminConfig: SidebarConfig = {
   logo: {
     src: '/sigs-logo.png',
     alt: 'SIGS Photography',
-    href: '/admin/dashboard',
-    text: 'StudioFlow'
+    href: '/admin',
+    text: 'StudioFlow',
   },
   sections: [
     {
       items: [
-        {
-          title: 'Mission Control',
-          href: '/admin/dashboard',
-          icon: Home,
-        },
-        {
-          title: 'Couples',
-          href: '/admin/couples',
-          icon: Users,
-        },
-      ]
+        { title: 'Dashboard', href: '/admin', icon: Home },
+        { title: 'Couples', href: '/admin/couples', icon: Users },
+      ],
     },
     {
-      title: 'Production',
       items: [
         {
-          title: 'Photo Editing',
-          href: '/admin/photo-editing',
-          icon: Camera,
-        },
-        {
-          title: 'Video Editing',
-          href: '/admin/video-editing',
-          icon: Video,
-        },
-        {
-          title: 'Team Notes',
-          href: '/admin/team-notes',
-          icon: StickyNote,
-        },
-      ]
-    },
-    {
-      title: 'Finance',
-      items: [
-        {
-          title: 'Finance',
-          href: '/admin/finance',
-          icon: DollarSign,
-        },
-      ]
-    },
-    {
-      title: 'Marketing',
-      items: [
-        {
-          title: 'SIGS Photo',
-          href: '/admin/marketing/sigs-photo',
-          icon: BarChart3,
-        },
-        {
-          title: 'JeanMarcotte',
-          href: '/admin/marketing/jeanmarcotte',
-          icon: Globe,
-        },
-      ]
-    },
-    {
-      title: 'Sales',
-      items: [
-        {
-          title: 'Couple Quotes',
-          href: '/admin/client-quotes',
-          icon: FileText,
-        },
-        {
-          title: 'Frames & Albums',
-          href: '/admin/frames-albums',
-          icon: ShoppingBag,
-        },
-        {
-          title: 'Extras Sales',
-          href: '/admin/extras-sales',
+          title: 'Production',
           icon: Package,
+          children: [
+            { title: 'Photo Editing', href: '/admin/production/photo', icon: Camera },
+            { title: 'Video Editing', href: '/admin/production/video', icon: Video },
+            { title: 'Team Notes', href: '/admin/production/team-notes', icon: StickyNote },
+          ],
         },
-      ]
-    },
-    {
-      title: 'Client Tools',
-      items: [
         {
-          title: 'New Client Quote',
-          href: '/client/new-quote',
+          title: 'Marketing',
+          icon: BarChart3,
+          children: [
+            { title: 'SIGS Photo', href: '/admin/marketing/sigs', icon: BarChart3 },
+            { title: 'JeanMarcotte', href: '/admin/marketing/jeanmarcotte', icon: Globe },
+          ],
+        },
+        {
+          title: 'Sales',
+          icon: ShoppingBag,
+          children: [
+            { title: 'Couple Quotes', href: '/admin/sales/quotes', icon: FileText },
+            { title: 'Frames & Albums', href: '/admin/sales/frames', icon: ShoppingBag },
+            { title: 'Extras Sales', href: '/admin/sales/extras', icon: Package },
+          ],
+        },
+        {
+          title: 'Client Portal',
           icon: FileText,
+          children: [
+            { title: 'New Client Quote', href: '/admin/client/new-quote', icon: FileText },
+            { title: 'Communication', href: '/admin/client/communication', icon: Mail },
+          ],
         },
-        {
-          title: 'Frames & Albums',
-          href: '/client/extras-quote',
-          icon: DollarSign,
-        },
-        {
-          title: 'Communication',
-          href: '/admin/communication',
-          icon: Mail,
-        },
-      ]
+      ],
     },
     {
       items: [
-        {
-          title: 'Settings',
-          href: '/settings',
-          icon: Settings,
-        }
-      ]
-    }
-  ]
+        { title: 'Finance', href: '/admin/finance', icon: DollarSign },
+        { title: 'Settings', href: '/admin/settings', icon: Settings },
+      ],
+    },
+  ],
 }
 
 // Client-only config (for sales calls — minimal sidebar)
@@ -148,26 +105,15 @@ export const studioflowClientConfig: SidebarConfig = {
   logo: {
     src: '/sigs-logo.png',
     alt: 'SIGS Photography',
-    href: '/admin/dashboard',
-    text: 'StudioFlow'
+    href: '/admin',
+    text: 'StudioFlow',
   },
   sections: [
     {
       items: [
-        {
-          title: 'New Client Quote',
-          href: '/client/new-quote',
-          icon: FileText,
-        },
-        {
-          title: 'Frames & Albums',
-          href: '/client/extras-quote',
-          icon: DollarSign,
-        }
-      ]
-    }
-  ]
+        { title: 'New Client Quote', href: '/client/new-quote', icon: FileText },
+        { title: 'Frames & Albums', href: '/client/extras-quote', icon: DollarSign },
+      ],
+    },
+  ],
 }
-
-// Legacy alias — keep backward compat for any imports
-export const studioflowConfig = studioflowAdminConfig

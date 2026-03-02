@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { supabase, getCurrentUser } from '@/lib/supabase'
-import { SidebarConfig } from '@/config/sidebar'
+import { SidebarConfig, SidebarItem } from '@/config/sidebar'
 import { cn } from '@/lib/utils'
-import { Menu, X, Settings, LogOut, ChevronDown } from 'lucide-react'
+import { Menu, Settings, LogOut, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -19,7 +18,32 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
   const [loading, setLoading] = useState(true)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
   const router = useRouter()
+  const pathname = usePathname()
+
+  // Auto-expand sidebar section that contains the current page
+  useEffect(() => {
+    const expanded = new Set<string>()
+    for (const section of sidebarConfig.sections) {
+      for (const item of section.items) {
+        if (item.children) {
+          for (const child of item.children) {
+            if (child.href && pathname === child.href) {
+              expanded.add(item.title)
+            }
+          }
+        }
+      }
+    }
+    if (expanded.size > 0) {
+      setExpandedSections(prev => {
+        const next = new Set(prev)
+        expanded.forEach(s => next.add(s))
+        return next
+      })
+    }
+  }, [pathname, sidebarConfig])
 
   useEffect(() => {
     const checkUser = async () => {
@@ -51,6 +75,15 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
     router.push('/login')
   }
 
+  const toggleSection = (title: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev)
+      if (next.has(title)) next.delete(title)
+      else next.add(title)
+      return next
+    })
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -68,6 +101,114 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'
   const userEmail = user?.email
   const userAvatar = user?.user_metadata?.avatar_url || '/default-avatar.png'
+
+  const isActive = (href?: string) => {
+    if (!href) return false
+    if (href === '/admin') return pathname === '/admin'
+    return pathname === href || pathname.startsWith(href + '/')
+  }
+
+  const renderSidebarItem = (item: SidebarItem, itemIndex: number) => {
+    // Collapsible parent with children
+    if (item.children && item.children.length > 0) {
+      const isExpanded = expandedSections.has(item.title)
+      const hasActiveChild = item.children.some(c => isActive(c.href))
+
+      return (
+        <li key={itemIndex}>
+          <button
+            onClick={() => toggleSection(item.title)}
+            className={cn(
+              "flex items-center w-full rounded-lg px-3 py-2 text-sm transition-colors",
+              "hover:bg-accent hover:text-accent-foreground",
+              hasActiveChild && "text-accent-foreground font-medium"
+            )}
+          >
+            <item.icon className="h-4 w-4 flex-shrink-0" />
+            {!sidebarCollapsed && (
+              <>
+                <span className="flex-1 text-left ml-3">{item.title}</span>
+                <ChevronRight className={cn(
+                  "h-3.5 w-3.5 transition-transform duration-200",
+                  isExpanded && "rotate-90"
+                )} />
+              </>
+            )}
+          </button>
+          {isExpanded && !sidebarCollapsed && (
+            <ul className="mt-1 ml-4 space-y-0.5 border-l border-border pl-3">
+              {item.children.map((child, childIndex) => (
+                <li key={childIndex}>
+                  <Link
+                    href={child.href || '#'}
+                    className={cn(
+                      "flex items-center space-x-3 rounded-lg px-3 py-1.5 text-sm transition-colors",
+                      isActive(child.href)
+                        ? "bg-accent text-accent-foreground font-medium"
+                        : "hover:bg-accent hover:text-accent-foreground text-muted-foreground"
+                    )}
+                  >
+                    <child.icon className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>{child.title}</span>
+                    {child.badge && (
+                      <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+                        {child.badge}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </li>
+      )
+    }
+
+    // Direct link (no children)
+    if (item.external) {
+      return (
+        <li key={itemIndex}>
+          <a
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <item.icon className="h-4 w-4 flex-shrink-0" />
+            {!sidebarCollapsed && <span className="flex-1">{item.title}</span>}
+          </a>
+        </li>
+      )
+    }
+
+    return (
+      <li key={itemIndex}>
+        <Link
+          href={item.href || '#'}
+          className={cn(
+            "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors",
+            item.disabled
+              ? "text-muted-foreground cursor-not-allowed opacity-50"
+              : isActive(item.href)
+                ? "bg-accent text-accent-foreground font-medium"
+                : "hover:bg-accent hover:text-accent-foreground"
+          )}
+        >
+          <item.icon className="h-4 w-4 flex-shrink-0" />
+          {!sidebarCollapsed && (
+            <>
+              <span className="flex-1">{item.title}</span>
+              {item.badge && (
+                <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+                  {item.badge}
+                </span>
+              )}
+            </>
+          )}
+        </Link>
+      </li>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -98,48 +239,7 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
                 </h3>
               )}
               <ul className="space-y-1">
-                {section.items.map((item, itemIndex) => (
-                  <li key={itemIndex}>
-                    {item.external ? (
-                      <a
-                        href={item.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                          "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                          "hover:bg-accent hover:text-accent-foreground"
-                        )}
-                      >
-                        <item.icon className="h-4 w-4 flex-shrink-0" />
-                        {!sidebarCollapsed && (
-                          <span className="flex-1">{item.title}</span>
-                        )}
-                      </a>
-                    ) : (
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                          item.disabled
-                            ? "text-muted-foreground cursor-not-allowed opacity-50"
-                            : "hover:bg-accent hover:text-accent-foreground"
-                        )}
-                      >
-                        <item.icon className="h-4 w-4 flex-shrink-0" />
-                        {!sidebarCollapsed && (
-                          <>
-                            <span className="flex-1">{item.title}</span>
-                            {item.badge && (
-                              <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
-                                {item.badge}
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </Link>
-                    )}
-                  </li>
-                ))}
+                {section.items.map((item, itemIndex) => renderSidebarItem(item, itemIndex))}
               </ul>
             </div>
           ))}
@@ -211,7 +311,7 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
                   {/* Menu Items */}
                   <div className="space-y-1">
                     <Link
-                      href="/settings"
+                      href="/admin/settings"
                       onClick={() => setProfileDropdownOpen(false)}
                       className="flex w-full items-center space-x-3 rounded-lg p-2 text-left hover:bg-accent transition-colors"
                     >
