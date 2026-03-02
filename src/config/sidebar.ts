@@ -86,6 +86,7 @@ export const studioflowAdminConfig: SidebarConfig = {
           icon: FileText,
           children: [
             { title: 'New Client Quote', href: '/admin/client/new-quote', icon: FileText },
+            { title: 'Extras Sales', href: '/admin/client/extras-sales', icon: Package },
             { title: 'Communication', href: '/admin/client/communication', icon: Mail },
           ],
         },
