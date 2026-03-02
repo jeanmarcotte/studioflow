@@ -294,6 +294,80 @@ export const updateQuoteStatus = async (quoteId: string, status: string) => {
   return { data, error }
 }
 
+// Find or create a couple record from pipeline appointment data
+export const findOrCreateCoupleFromPipeline = async (params: {
+  coupleName: string
+  weddingDate: string      // ISO date e.g. "2026-09-12"
+  contractTotal?: number
+  leadSource?: string
+  bookedDate?: string
+}) => {
+  const { coupleName, weddingDate, contractTotal, leadSource, bookedDate } = params
+
+  // Parse bride/groom names from "Bride & Groom" format
+  const parts = coupleName.split(' & ')
+  const brideName = (parts[0] || '').trim() || null
+  const groomName = parts.length > 1 ? (parts[1] || '').trim() : null
+
+  // Try exact match on couple_name + wedding_date
+  const { data: exact } = await supabase
+    .from('couples')
+    .select('id, status')
+    .eq('wedding_date', weddingDate)
+    .ilike('couple_name', coupleName)
+    .limit(1)
+
+  if (exact && exact.length > 0) {
+    const match = exact[0]
+    if (match.status !== 'booked') {
+      await supabase.from('couples')
+        .update({ status: 'booked', booked_date: bookedDate, contract_total: contractTotal })
+        .eq('id', match.id)
+    }
+    return { id: match.id as string, created: false }
+  }
+
+  // Fallback: partial match on bride first name + date
+  if (brideName) {
+    const firstName = brideName.split(' ')[0]
+    const { data: partial } = await supabase
+      .from('couples')
+      .select('id')
+      .eq('wedding_date', weddingDate)
+      .ilike('couple_name', `${firstName}%`)
+      .limit(1)
+
+    if (partial && partial.length > 0) {
+      return { id: partial[0].id as string, created: false }
+    }
+  }
+
+  // No match — create new record
+  const weddingYear = weddingDate ? new Date(weddingDate + 'T12:00:00').getFullYear() : null
+  const { data: inserted, error } = await supabase
+    .from('couples')
+    .insert({
+      couple_name: coupleName,
+      bride_name: brideName,
+      groom_name: groomName,
+      wedding_date: weddingDate,
+      wedding_year: weddingYear,
+      contract_total: contractTotal || null,
+      booked_date: bookedDate || new Date().toISOString().split('T')[0],
+      status: 'booked',
+      lead_source: leadSource || null,
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    console.error('[findOrCreateCoupleFromPipeline] Insert failed:', error)
+    return { id: null, created: false }
+  }
+
+  return { id: inserted.id as string, created: true }
+}
+
 // BridalFlow integration - search leads
 export const searchLeadByCouple = async (brideName: string, groomName: string) => {
   const { data, error } = await supabase

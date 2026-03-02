@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText, Pencil, Download } from 'lucide-react'
-import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus } from '@/lib/supabase'
+import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus, findOrCreateCoupleFromPipeline } from '@/lib/supabase'
 import jsPDF from 'jspdf'
 import { generateQuotePdf, QuotePdfData } from '@/lib/generateQuotePdf'
 
@@ -91,64 +91,101 @@ export default function CoupleQuotesPage() {
     return init
   })
   const [statusOverrides, setStatusOverrides] = useState<Record<number, Appointment['status']>>({})
+  const [coupleIdMap, setCoupleIdMap] = useState<Record<number, string>>({})
   const [convertingNum, setConvertingNum] = useState<number | null>(null)
 
-  // On mount, sync statuses from DB for appointments that have a coupleId
-  // Also create missing couple records for booked appointments
+  // On mount, sync statuses from DB and backfill missing couple records for all booked appointments
   useEffect(() => {
-    const apptsWithCouple = STATIC_APPOINTMENTS.filter(a => a.coupleId)
-    if (apptsWithCouple.length === 0) return
+    const syncAppointments = async () => {
+      const today = new Date().toISOString().split('T')[0]
 
-    const coupleIds = apptsWithCouple.map(a => a.coupleId!)
-    supabase
-      .from('couples')
-      .select('id, status')
-      .in('id', coupleIds)
-      .then(async ({ data }) => {
-        if (!data) data = []
-        const statusMap = new Map(data.map(c => [c.id, c.status]))
-        const overrides: Record<number, Appointment['status']> = {}
+      // Fetch all couples matching any of the appointment wedding dates in one query
+      const weddingDates = [...new Set(STATIC_APPOINTMENTS.map(a => a.weddingDateSort))]
+      const { data: existingCouples } = await supabase
+        .from('couples')
+        .select('id, couple_name, wedding_date, status')
+        .in('wedding_date', weddingDates)
 
-        for (const appt of apptsWithCouple) {
-          const dbStatus = statusMap.get(appt.coupleId!)
+      // Build lookup: "couplename|weddingdate" -> { id, status }
+      const dbLookup = new Map<string, { id: string; status: string }>()
+      if (existingCouples) {
+        for (const c of existingCouples) {
+          const key = `${(c.couple_name || '').toLowerCase()}|${c.wedding_date}`
+          dbLookup.set(key, { id: c.id, status: c.status })
+        }
+      }
+
+      // Also do direct ID lookup for appointments with hardcoded coupleId
+      const apptsWithId = STATIC_APPOINTMENTS.filter(a => a.coupleId)
+      const directLookup = new Map<string, string>()
+      if (apptsWithId.length > 0) {
+        const { data: directMatches } = await supabase
+          .from('couples')
+          .select('id, status')
+          .in('id', apptsWithId.map(a => a.coupleId!))
+        if (directMatches) {
+          for (const dm of directMatches) {
+            directLookup.set(dm.id, dm.status)
+          }
+        }
+      }
+
+      const newOverrides: Record<number, Appointment['status']> = {}
+      const newIdMap: Record<number, string> = {}
+
+      for (const appt of STATIC_APPOINTMENTS) {
+        // 1. Appointments with hardcoded coupleId that exists in DB
+        if (appt.coupleId && directLookup.has(appt.coupleId)) {
+          const dbStatus = directLookup.get(appt.coupleId)
           if (dbStatus === 'booked' && appt.status !== 'Booked') {
-            overrides[appt.num] = 'Booked'
+            newOverrides[appt.num] = 'Booked'
           }
-          // Create missing couple records for booked appointments
-          if (!statusMap.has(appt.coupleId!) && appt.status === 'Booked') {
-            let weddingDateISO: string | null = null
-            try {
-              const parsed = new Date(appt.weddingDate)
-              if (!isNaN(parsed.getTime())) weddingDateISO = parsed.toISOString().split('T')[0]
-            } catch { /* ignore */ }
-            const weddingYear = weddingDateISO ? new Date(weddingDateISO).getFullYear() : null
-            await supabase.from('couples').insert({
-              id: appt.coupleId,
-              couple_name: appt.couple,
-              wedding_date: weddingDateISO,
-              wedding_year: weddingYear,
-              contract_total: appt.quoted || null,
-              booked_date: new Date().toISOString().split('T')[0],
-              status: 'booked',
-              lead_source: appt.bridalShow || null,
-            }).catch(console.error)
+          continue
+        }
+
+        // 2. Try name+date match for all other appointments
+        const key = `${appt.couple.toLowerCase()}|${appt.weddingDateSort}`
+        const match = dbLookup.get(key)
+
+        if (match) {
+          newIdMap[appt.num] = match.id
+          if (match.status === 'booked' && appt.status !== 'Booked') {
+            newOverrides[appt.num] = 'Booked'
+          }
+        } else if (appt.status === 'Booked') {
+          // 3. Booked but no DB record — create one
+          const result = await findOrCreateCoupleFromPipeline({
+            coupleName: appt.couple,
+            weddingDate: appt.weddingDateSort,
+            contractTotal: appt.quoted || undefined,
+            leadSource: appt.bridalShow || undefined,
+            bookedDate: today,
+          })
+          if (result.id) {
+            newIdMap[appt.num] = result.id
           }
         }
-        if (Object.keys(overrides).length > 0) {
-          setStatusOverrides(prev => ({ ...prev, ...overrides }))
-        }
-      })
+      }
+
+      if (Object.keys(newOverrides).length > 0) {
+        setStatusOverrides(prev => ({ ...prev, ...newOverrides }))
+      }
+      if (Object.keys(newIdMap).length > 0) {
+        setCoupleIdMap(prev => ({ ...prev, ...newIdMap }))
+      }
+    }
+
+    syncAppointments()
   }, [])
 
-  // Apply status overrides on top of static data
+  // Apply status overrides and resolved coupleIds on top of static data
   const effectiveAppointments = useMemo(() => {
     return STATIC_APPOINTMENTS.map(appt => {
-      if (statusOverrides[appt.num]) {
-        return { ...appt, status: statusOverrides[appt.num] }
-      }
-      return appt
+      const status = statusOverrides[appt.num] || appt.status
+      const coupleId = appt.coupleId || coupleIdMap[appt.num] || undefined
+      return { ...appt, status, coupleId }
     })
-  }, [statusOverrides])
+  }, [statusOverrides, coupleIdMap])
 
   const stats = useMemo(() => {
     const total = effectiveAppointments.length
@@ -197,10 +234,11 @@ export default function CoupleQuotesPage() {
       const brideFirst = (parts[0] || '').trim()
       const groomFirst = (parts[1] || '').trim()
 
-      // Find couple in database — use coupleId directly if available, else search by name
+      // Find couple in database — use coupleId or resolved ID, else search by name
+      const resolvedId = appt.coupleId || coupleIdMap[appt.num]
       let coupleRecord: Record<string, unknown> | undefined
-      if (appt.coupleId) {
-        const { data } = await supabase.from('couples').select('*').eq('id', appt.coupleId).single()
+      if (resolvedId) {
+        const { data } = await supabase.from('couples').select('*').eq('id', resolvedId).single()
         if (data) coupleRecord = data
       }
       if (!coupleRecord) {
@@ -276,30 +314,25 @@ export default function CoupleQuotesPage() {
     if (newStatus === appt.status) return
     setStatusOverrides(prev => ({ ...prev, [appt.num]: newStatus }))
 
-    // Write to DB when booking
-    if (newStatus === 'Booked' && appt.coupleId) {
+    if (newStatus === 'Booked') {
       const today = new Date().toISOString().split('T')[0]
-      // Try update first; if couple doesn't exist yet, create it
-      const { data } = await updateCoupleStatus(appt.coupleId, 'booked', today, appt.quoted || undefined).catch(() => ({ data: null }))
-      if (!data) {
-        // Parse wedding date from display format to ISO
-        const wd = appt.weddingDate
-        let weddingDateISO: string | null = null
-        try {
-          const parsed = new Date(wd)
-          if (!isNaN(parsed.getTime())) weddingDateISO = parsed.toISOString().split('T')[0]
-        } catch { /* ignore */ }
-        const weddingYear = weddingDateISO ? new Date(weddingDateISO).getFullYear() : null
-        await supabase.from('couples').insert({
-          id: appt.coupleId,
-          couple_name: appt.couple,
-          wedding_date: weddingDateISO,
-          wedding_year: weddingYear,
-          contract_total: appt.quoted || null,
-          booked_date: today,
-          status: 'booked',
-          lead_source: appt.bridalShow || null,
-        }).catch(console.error)
+      const resolvedCoupleId = appt.coupleId || coupleIdMap[appt.num]
+
+      if (resolvedCoupleId) {
+        // Couple record exists — update its status
+        await updateCoupleStatus(resolvedCoupleId, 'booked', today, appt.quoted || undefined).catch(console.error)
+      } else {
+        // No couple record — create one
+        const result = await findOrCreateCoupleFromPipeline({
+          coupleName: appt.couple,
+          weddingDate: appt.weddingDateSort,
+          contractTotal: appt.quoted || undefined,
+          leadSource: appt.bridalShow || undefined,
+          bookedDate: today,
+        })
+        if (result.id) {
+          setCoupleIdMap(prev => ({ ...prev, [appt.num]: result.id! }))
+        }
       }
     }
   }
