@@ -92,17 +92,38 @@ export default function CoupleQuotesPage() {
     return init
   })
   const [statusOverrides, setStatusOverrides] = useState<Record<number, Appointment['status']>>({})
+  const [statusesLoaded, setStatusesLoaded] = useState(false)
   const [coupleIdMap, setCoupleIdMap] = useState<Record<number, string>>({})
   const [convertingNum, setConvertingNum] = useState<number | null>(null)
 
-  // On mount, sync booked appointments to the couples DB via server-side API (bypasses RLS)
+  // Load persisted appointment statuses on mount
   useEffect(() => {
+    const loadStatuses = async () => {
+      try {
+        const res = await fetch('/api/appointment-status')
+        const { statuses } = await res.json()
+        if (statuses && Object.keys(statuses).length > 0) {
+          setStatusOverrides(statuses)
+        }
+      } catch (err) {
+        console.error('[loadStatuses] Failed to load persisted statuses:', err)
+      } finally {
+        setStatusesLoaded(true)
+      }
+    }
+    loadStatuses()
+  }, [])
+
+  // Sync booked appointments to the couples DB (runs after statuses are loaded)
+  useEffect(() => {
+    if (!statusesLoaded) return
+
     const syncAppointments = async () => {
       const today = new Date().toISOString().split('T')[0]
 
-      // Collect all booked appointments that need DB records
+      // Collect all appointments whose effective status is 'Booked'
       const bookedToSync = STATIC_APPOINTMENTS
-        .filter(a => a.status === 'Booked')
+        .filter(a => (statusOverrides[a.num] || a.status) === 'Booked')
         .map(a => ({
           coupleName: a.couple,
           weddingDate: a.weddingDateSort,
@@ -125,7 +146,6 @@ export default function CoupleQuotesPage() {
         if (results) {
           for (const r of results) {
             if (r.id) {
-              // Find the matching appointment by name
               const appt = STATIC_APPOINTMENTS.find(a => a.couple === r.coupleName)
               if (appt && !appt.coupleId) {
                 newIdMap[appt.num] = r.id
@@ -142,7 +162,8 @@ export default function CoupleQuotesPage() {
     }
 
     syncAppointments()
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusesLoaded])
 
   // Apply status overrides and resolved coupleIds on top of static data
   const effectiveAppointments = useMemo(() => {
@@ -267,6 +288,13 @@ export default function CoupleQuotesPage() {
 
       await generateQuotePdf(pdfData)
       setStatusOverrides(prev => ({ ...prev, [appt.num]: 'Booked' }))
+
+      // Persist status change to database
+      fetch('/api/appointment-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointmentNum: appt.num, status: 'Booked' }),
+      }).catch(err => console.error('[handleConvertToContract] Failed to persist status:', err))
     } catch (err) {
       console.error('Contract generation failed:', err)
       const msg = err instanceof Error ? err.message : String(err)
@@ -279,6 +307,17 @@ export default function CoupleQuotesPage() {
   const handleStatusChange = async (appt: Appointment, newStatus: Appointment['status']) => {
     if (newStatus === appt.status) return
     setStatusOverrides(prev => ({ ...prev, [appt.num]: newStatus }))
+
+    // Persist status change to database
+    try {
+      await fetch('/api/appointment-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointmentNum: appt.num, status: newStatus }),
+      })
+    } catch (err) {
+      console.error('[handleStatusChange] Failed to persist status:', err)
+    }
 
     if (newStatus === 'Booked') {
       const today = new Date().toISOString().split('T')[0]
