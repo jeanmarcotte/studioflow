@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText, Pencil, Download } from 'lucide-react'
 import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus } from '@/lib/supabase'
@@ -92,6 +92,32 @@ export default function CoupleQuotesPage() {
   })
   const [statusOverrides, setStatusOverrides] = useState<Record<number, Appointment['status']>>({})
   const [convertingNum, setConvertingNum] = useState<number | null>(null)
+
+  // On mount, sync statuses from DB for appointments that have a coupleId
+  useEffect(() => {
+    const apptsWithCouple = STATIC_APPOINTMENTS.filter(a => a.coupleId)
+    if (apptsWithCouple.length === 0) return
+
+    const coupleIds = apptsWithCouple.map(a => a.coupleId!)
+    supabase
+      .from('couples')
+      .select('id, status')
+      .in('id', coupleIds)
+      .then(({ data }) => {
+        if (!data) return
+        const statusMap = new Map(data.map(c => [c.id, c.status]))
+        const overrides: Record<number, Appointment['status']> = {}
+        for (const appt of apptsWithCouple) {
+          const dbStatus = statusMap.get(appt.coupleId!)
+          if (dbStatus === 'booked' && appt.status !== 'Booked') {
+            overrides[appt.num] = 'Booked'
+          }
+        }
+        if (Object.keys(overrides).length > 0) {
+          setStatusOverrides(prev => ({ ...prev, ...overrides }))
+        }
+      })
+  }, [])
 
   // Apply status overrides on top of static data
   const effectiveAppointments = useMemo(() => {
