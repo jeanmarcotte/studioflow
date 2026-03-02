@@ -100,7 +100,7 @@ export default function CoupleQuotesPage() {
       const today = new Date().toISOString().split('T')[0]
 
       // Fetch all couples matching any of the appointment wedding dates in one query
-      const weddingDates = [...new Set(STATIC_APPOINTMENTS.map(a => a.weddingDateSort))]
+      const weddingDates = Array.from(new Set(STATIC_APPOINTMENTS.map(a => a.weddingDateSort)))
       const { data: existingCouples } = await supabase
         .from('couples')
         .select('id, couple_name, wedding_date, status')
