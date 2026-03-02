@@ -94,6 +94,7 @@ export default function CoupleQuotesPage() {
   const [convertingNum, setConvertingNum] = useState<number | null>(null)
 
   // On mount, sync statuses from DB for appointments that have a coupleId
+  // Also create missing couple records for booked appointments
   useEffect(() => {
     const apptsWithCouple = STATIC_APPOINTMENTS.filter(a => a.coupleId)
     if (apptsWithCouple.length === 0) return
@@ -103,14 +104,34 @@ export default function CoupleQuotesPage() {
       .from('couples')
       .select('id, status')
       .in('id', coupleIds)
-      .then(({ data }) => {
-        if (!data) return
+      .then(async ({ data }) => {
+        if (!data) data = []
         const statusMap = new Map(data.map(c => [c.id, c.status]))
         const overrides: Record<number, Appointment['status']> = {}
+
         for (const appt of apptsWithCouple) {
           const dbStatus = statusMap.get(appt.coupleId!)
           if (dbStatus === 'booked' && appt.status !== 'Booked') {
             overrides[appt.num] = 'Booked'
+          }
+          // Create missing couple records for booked appointments
+          if (!statusMap.has(appt.coupleId!) && appt.status === 'Booked') {
+            let weddingDateISO: string | null = null
+            try {
+              const parsed = new Date(appt.weddingDate)
+              if (!isNaN(parsed.getTime())) weddingDateISO = parsed.toISOString().split('T')[0]
+            } catch { /* ignore */ }
+            const weddingYear = weddingDateISO ? new Date(weddingDateISO).getFullYear() : null
+            await supabase.from('couples').insert({
+              id: appt.coupleId,
+              couple_name: appt.couple,
+              wedding_date: weddingDateISO,
+              wedding_year: weddingYear,
+              contract_total: appt.quoted || null,
+              booked_date: new Date().toISOString().split('T')[0],
+              status: 'booked',
+              lead_source: appt.bridalShow || null,
+            }).catch(console.error)
           }
         }
         if (Object.keys(overrides).length > 0) {
@@ -255,10 +276,31 @@ export default function CoupleQuotesPage() {
     if (newStatus === appt.status) return
     setStatusOverrides(prev => ({ ...prev, [appt.num]: newStatus }))
 
-    // Only write to DB when booking (leads are tracked in BridalFlow, not here)
+    // Write to DB when booking
     if (newStatus === 'Booked' && appt.coupleId) {
       const today = new Date().toISOString().split('T')[0]
-      await updateCoupleStatus(appt.coupleId, 'booked', today, appt.quoted || undefined).catch(console.error)
+      // Try update first; if couple doesn't exist yet, create it
+      const { data } = await updateCoupleStatus(appt.coupleId, 'booked', today, appt.quoted || undefined).catch(() => ({ data: null }))
+      if (!data) {
+        // Parse wedding date from display format to ISO
+        const wd = appt.weddingDate
+        let weddingDateISO: string | null = null
+        try {
+          const parsed = new Date(wd)
+          if (!isNaN(parsed.getTime())) weddingDateISO = parsed.toISOString().split('T')[0]
+        } catch { /* ignore */ }
+        const weddingYear = weddingDateISO ? new Date(weddingDateISO).getFullYear() : null
+        await supabase.from('couples').insert({
+          id: appt.coupleId,
+          couple_name: appt.couple,
+          wedding_date: weddingDateISO,
+          wedding_year: weddingYear,
+          contract_total: appt.quoted || null,
+          booked_date: today,
+          status: 'booked',
+          lead_source: appt.bridalShow || null,
+        }).catch(console.error)
+      }
     }
   }
 
