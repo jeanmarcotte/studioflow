@@ -385,12 +385,12 @@ export default function CouplesPage() {
                       <td className="p-3">
                         <div className="font-medium">{couple.couple_name}</div>
                         <div className="text-xs text-muted-foreground md:hidden">
-                          {couple.wedding_date ? format(parseISO(couple.wedding_date), 'MMM d, yyyy') : 'TBD'}
+                          {couple.wedding_date ? format(parseISO(couple.wedding_date), 'EEE, MMM d, yyyy') : 'TBD'}
                         </div>
                       </td>
                       <td className="p-3 hidden md:table-cell">
                         {couple.wedding_date
-                          ? format(parseISO(couple.wedding_date), 'MMM d, yyyy')
+                          ? format(parseISO(couple.wedding_date), 'EEE, MMM d, yyyy')
                           : <span className="text-muted-foreground">TBD</span>
                         }
                       </td>
