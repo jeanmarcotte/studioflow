@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText, Pencil, Download } from 'lucide-react'
-import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus, findOrCreateCoupleFromPipeline } from '@/lib/supabase'
+import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus } from '@/lib/supabase'
 import jsPDF from 'jspdf'
 import { generateQuotePdf, QuotePdfData } from '@/lib/generateQuotePdf'
 
@@ -94,84 +94,49 @@ export default function CoupleQuotesPage() {
   const [coupleIdMap, setCoupleIdMap] = useState<Record<number, string>>({})
   const [convertingNum, setConvertingNum] = useState<number | null>(null)
 
-  // On mount, sync statuses from DB and backfill missing couple records for all booked appointments
+  // On mount, sync booked appointments to the couples DB via server-side API (bypasses RLS)
   useEffect(() => {
     const syncAppointments = async () => {
       const today = new Date().toISOString().split('T')[0]
 
-      // Fetch all couples matching any of the appointment wedding dates in one query
-      const weddingDates = Array.from(new Set(STATIC_APPOINTMENTS.map(a => a.weddingDateSort)))
-      const { data: existingCouples } = await supabase
-        .from('couples')
-        .select('id, couple_name, wedding_date, status')
-        .in('wedding_date', weddingDates)
+      // Collect all booked appointments that need DB records
+      const bookedToSync = STATIC_APPOINTMENTS
+        .filter(a => a.status === 'Booked')
+        .map(a => ({
+          coupleName: a.couple,
+          weddingDate: a.weddingDateSort,
+          contractTotal: a.quoted || undefined,
+          leadSource: a.bridalShow || undefined,
+          bookedDate: today,
+        }))
 
-      // Build lookup: "couplename|weddingdate" -> { id, status }
-      const dbLookup = new Map<string, { id: string; status: string }>()
-      if (existingCouples) {
-        for (const c of existingCouples) {
-          const key = `${(c.couple_name || '').toLowerCase()}|${c.wedding_date}`
-          dbLookup.set(key, { id: c.id, status: c.status })
-        }
-      }
+      if (bookedToSync.length === 0) return
 
-      // Also do direct ID lookup for appointments with hardcoded coupleId
-      const apptsWithId = STATIC_APPOINTMENTS.filter(a => a.coupleId)
-      const directLookup = new Map<string, string>()
-      if (apptsWithId.length > 0) {
-        const { data: directMatches } = await supabase
-          .from('couples')
-          .select('id, status')
-          .in('id', apptsWithId.map(a => a.coupleId!))
-        if (directMatches) {
-          for (const dm of directMatches) {
-            directLookup.set(dm.id, dm.status)
+      try {
+        const res = await fetch('/api/sync-couples', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ couples: bookedToSync }),
+        })
+        const { results } = await res.json()
+
+        const newIdMap: Record<number, string> = {}
+        if (results) {
+          for (const r of results) {
+            if (r.id) {
+              // Find the matching appointment by name
+              const appt = STATIC_APPOINTMENTS.find(a => a.couple === r.coupleName)
+              if (appt && !appt.coupleId) {
+                newIdMap[appt.num] = r.id
+              }
+            }
           }
         }
-      }
-
-      const newOverrides: Record<number, Appointment['status']> = {}
-      const newIdMap: Record<number, string> = {}
-
-      for (const appt of STATIC_APPOINTMENTS) {
-        // 1. Appointments with hardcoded coupleId that exists in DB
-        if (appt.coupleId && directLookup.has(appt.coupleId)) {
-          const dbStatus = directLookup.get(appt.coupleId)
-          if (dbStatus === 'booked' && appt.status !== 'Booked') {
-            newOverrides[appt.num] = 'Booked'
-          }
-          continue
+        if (Object.keys(newIdMap).length > 0) {
+          setCoupleIdMap(prev => ({ ...prev, ...newIdMap }))
         }
-
-        // 2. Try name+date match for all other appointments
-        const key = `${appt.couple.toLowerCase()}|${appt.weddingDateSort}`
-        const match = dbLookup.get(key)
-
-        if (match) {
-          newIdMap[appt.num] = match.id
-          if (match.status === 'booked' && appt.status !== 'Booked') {
-            newOverrides[appt.num] = 'Booked'
-          }
-        } else if (appt.status === 'Booked') {
-          // 3. Booked but no DB record — create one
-          const result = await findOrCreateCoupleFromPipeline({
-            coupleName: appt.couple,
-            weddingDate: appt.weddingDateSort,
-            contractTotal: appt.quoted || undefined,
-            leadSource: appt.bridalShow || undefined,
-            bookedDate: today,
-          })
-          if (result.id) {
-            newIdMap[appt.num] = result.id
-          }
-        }
-      }
-
-      if (Object.keys(newOverrides).length > 0) {
-        setStatusOverrides(prev => ({ ...prev, ...newOverrides }))
-      }
-      if (Object.keys(newIdMap).length > 0) {
-        setCoupleIdMap(prev => ({ ...prev, ...newIdMap }))
+      } catch (err) {
+        console.error('[syncAppointments] API call failed:', err)
       }
     }
 
@@ -316,23 +281,26 @@ export default function CoupleQuotesPage() {
 
     if (newStatus === 'Booked') {
       const today = new Date().toISOString().split('T')[0]
-      const resolvedCoupleId = appt.coupleId || coupleIdMap[appt.num]
-
-      if (resolvedCoupleId) {
-        // Couple record exists — update its status
-        await updateCoupleStatus(resolvedCoupleId, 'booked', today, appt.quoted || undefined).catch(console.error)
-      } else {
-        // No couple record — create one
-        const result = await findOrCreateCoupleFromPipeline({
-          coupleName: appt.couple,
-          weddingDate: appt.weddingDateSort,
-          contractTotal: appt.quoted || undefined,
-          leadSource: appt.bridalShow || undefined,
-          bookedDate: today,
+      try {
+        const res = await fetch('/api/sync-couples', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            couples: [{
+              coupleName: appt.couple,
+              weddingDate: appt.weddingDateSort,
+              contractTotal: appt.quoted || undefined,
+              leadSource: appt.bridalShow || undefined,
+              bookedDate: today,
+            }],
+          }),
         })
-        if (result.id) {
-          setCoupleIdMap(prev => ({ ...prev, [appt.num]: result.id! }))
+        const { results } = await res.json()
+        if (results?.[0]?.id && !appt.coupleId) {
+          setCoupleIdMap(prev => ({ ...prev, [appt.num]: results[0].id }))
         }
+      } catch (err) {
+        console.error('[handleStatusChange] sync failed:', err)
       }
     }
   }

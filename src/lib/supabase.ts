@@ -306,8 +306,12 @@ export const findOrCreateCoupleFromPipeline = async (params: {
 
   // Parse bride/groom names from "Bride & Groom" format
   const parts = coupleName.split(' & ')
-  const brideName = (parts[0] || '').trim() || null
-  const groomName = parts.length > 1 ? (parts[1] || '').trim() : null
+  const brideFullName = (parts[0] || '').trim() || ''
+  const groomFullName = parts.length > 1 ? (parts[1] || '').trim() : ''
+  const brideFirst = brideFullName.split(' ')[0] || null
+  const brideLast = brideFullName.split(' ').slice(1).join(' ') || null
+  const groomFirst = groomFullName.split(' ')[0] || null
+  const groomLast = groomFullName.split(' ').slice(1).join(' ') || null
 
   // Try exact match on couple_name + wedding_date
   const { data: exact } = await supabase
@@ -328,8 +332,8 @@ export const findOrCreateCoupleFromPipeline = async (params: {
   }
 
   // Fallback: partial match on bride first name + date
-  if (brideName) {
-    const firstName = brideName.split(' ')[0]
+  if (brideFirst) {
+    const firstName = brideFirst
     const { data: partial } = await supabase
       .from('couples')
       .select('id')
@@ -348,8 +352,10 @@ export const findOrCreateCoupleFromPipeline = async (params: {
     .from('couples')
     .insert({
       couple_name: coupleName,
-      bride_name: brideName,
-      groom_name: groomName,
+      bride_first_name: brideFirst,
+      bride_last_name: brideLast,
+      groom_first_name: groomFirst,
+      groom_last_name: groomLast,
       wedding_date: weddingDate,
       wedding_year: weddingYear,
       contract_total: contractTotal || null,
