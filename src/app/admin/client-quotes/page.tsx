@@ -36,7 +36,7 @@ const STATIC_APPOINTMENTS: Appointment[] = [
   { num: 13, date: 'Feb 13, 2026', dateSort: '2026-02-13', couple: 'Janet/Karina & Max', bridalShow: 'HBS Winter 2026', weddingDate: 'Sept 3, 2026', weddingDateSort: '2026-09-03', quoted: 3600, status: 'Pending' },
   { num: 14, date: 'Feb 18, 2026', dateSort: '2026-02-18', couple: 'Trina & Matt', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 24, 2026', weddingDateSort: '2026-10-24', quoted: 3616, status: 'Booked', coupleId: 'f4b8efeb-43e6-4b99-8402-04df57233736' },
   { num: 15, date: 'Feb 24, 2026', dateSort: '2026-02-24', couple: 'Nicole Couto & Cory Fonseca', bridalShow: 'MBS Winter 2026', weddingDate: 'July 25, 2026', weddingDateSort: '2026-07-25', quoted: 3955, status: 'Pending', coupleId: '01cfdd68-359a-470b-b093-7eb101620833' },
-  { num: 16, date: 'Feb 21, 2026', dateSort: '2026-02-21', couple: 'Noureen Ali & Mohammed Hassan-Ali', bridalShow: 'MBS Winter 2026', weddingDate: 'Aug 9, 2026', weddingDateSort: '2026-08-09', quoted: 4915.50, status: 'Booked' },
+  { num: 16, date: 'Feb 21, 2026', dateSort: '2026-02-21', couple: 'Noureen Ali & Mohammed Hassan-Ali', bridalShow: 'MBS Winter 2026', weddingDate: 'Aug 9, 2026', weddingDateSort: '2026-08-09', quoted: 4915.50, status: 'Pending' },
 ]
 
 // Map bridalShow abbreviations → lead source display names for stats grouping
