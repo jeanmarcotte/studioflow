@@ -1,4 +1,4 @@
-import { LucideIcon, Home, Settings, Users, FileText, DollarSign, BarChart3, Mail, Camera, Video, Package, ShoppingBag, ExternalLink } from 'lucide-react'
+import { LucideIcon, Home, Settings, Users, FileText, DollarSign, BarChart3, Mail, Camera, Video, Package, ShoppingBag, StickyNote, Globe } from 'lucide-react'
 
 export interface SidebarItem {
   title: string
@@ -23,115 +23,7 @@ export interface SidebarConfig {
   }[]
 }
 
-// StudioFlow Configuration - Two Modes
-export const studioflowConfig: SidebarConfig = {
-  logo: {
-    src: '/sigs-logo.png',
-    alt: 'SIGS Photography',
-    href: '/admin/dashboard',
-    text: 'StudioFlow'
-  },
-  sections: [
-    {
-      title: 'Client Mode',
-      items: [
-        {
-          title: 'New Client Quote',
-          href: '/client/new-quote',
-          icon: FileText,
-        },
-        {
-          title: 'Extras Quote',
-          href: '/client/extras-quote',
-          icon: DollarSign,
-        }
-      ]
-    },
-    {
-      title: 'Admin Mode',
-      items: [
-        {
-          title: 'Dashboard',
-          href: '/admin/dashboard',
-          icon: Home,
-        },
-        {
-          title: 'Couples',
-          href: '/admin/couples',
-          icon: Users,
-          badge: 31 // 2026 active couples
-        },
-        {
-          title: 'Photo Editing',
-          href: '/admin/photo-editing',
-          icon: Camera,
-        },
-        {
-          title: 'Video Editing',
-          href: '/admin/video-editing',
-          icon: Video,
-          badge: 20 // Outstanding videos
-        },
-        {
-          title: 'Marketing',
-          href: '/admin/marketing',
-          icon: BarChart3,
-        },
-        {
-          title: 'Production',
-          href: '/admin/production',
-          icon: Package,
-        },
-      ]
-    },
-    {
-      title: 'Sales & Marketing',
-      items: [
-        {
-          title: 'Couple Quotes',
-          href: '/admin/client-quotes',
-          icon: FileText,
-        },
-        {
-          title: 'Frames & Albums',
-          href: '/admin/extras-quotes',
-          icon: ShoppingBag,
-        },
-        {
-          title: 'Extras Invoices',
-          href: 'https://sigs-extras-invoice.vercel.app/',
-          icon: ExternalLink,
-          external: true,
-        },
-      ]
-    },
-    {
-      items: [
-        {
-          title: 'Finance',
-          href: '/admin/finance',
-          icon: DollarSign,
-        },
-        {
-          title: 'Communications',
-          href: '/admin/communications',
-          icon: Mail,
-        }
-      ]
-    },
-    {
-      items: [
-        {
-          title: 'Settings',
-          href: '/settings',
-          icon: Settings,
-        }
-      ]
-    }
-  ]
-}
-
-// Admin-focused config (logo links to admin dashboard)
+// Admin sidebar — main config used by /admin layout
 export const studioflowAdminConfig: SidebarConfig = {
   logo: {
     src: '/sigs-logo.png',
@@ -141,10 +33,9 @@ export const studioflowAdminConfig: SidebarConfig = {
   },
   sections: [
     {
-      title: 'Admin',
       items: [
         {
-          title: 'Dashboard',
+          title: 'Mission Control',
           href: '/admin/dashboard',
           icon: Home,
         },
@@ -153,6 +44,11 @@ export const studioflowAdminConfig: SidebarConfig = {
           href: '/admin/couples',
           icon: Users,
         },
+      ]
+    },
+    {
+      title: 'Production',
+      items: [
         {
           title: 'Photo Editing',
           href: '/admin/photo-editing',
@@ -164,14 +60,39 @@ export const studioflowAdminConfig: SidebarConfig = {
           icon: Video,
         },
         {
-          title: 'Production',
-          href: '/admin/production',
-          icon: Package,
+          title: 'Team Notes',
+          href: '/admin/team-notes',
+          icon: StickyNote,
         },
       ]
     },
     {
-      title: 'Sales & Marketing',
+      title: 'Finance',
+      items: [
+        {
+          title: 'Finance',
+          href: '/admin/finance',
+          icon: DollarSign,
+        },
+      ]
+    },
+    {
+      title: 'Marketing',
+      items: [
+        {
+          title: 'SIGS Photo',
+          href: '/admin/marketing/sigs-photo',
+          icon: BarChart3,
+        },
+        {
+          title: 'JeanMarcotte',
+          href: '/admin/marketing/jeanmarcotte',
+          icon: Globe,
+        },
+      ]
+    },
+    {
+      title: 'Sales',
       items: [
         {
           title: 'Couple Quotes',
@@ -180,29 +101,14 @@ export const studioflowAdminConfig: SidebarConfig = {
         },
         {
           title: 'Frames & Albums',
-          href: '/admin/extras-quotes',
+          href: '/admin/frames-albums',
           icon: ShoppingBag,
         },
         {
-          title: 'Extras Invoices',
-          href: 'https://sigs-extras-invoice.vercel.app/',
-          icon: ExternalLink,
-          external: true,
+          title: 'Extras Sales',
+          href: '/admin/extras-sales',
+          icon: Package,
         },
-      ]
-    },
-    {
-      items: [
-        {
-          title: 'Finance',
-          href: '/admin/finance',
-          icon: DollarSign,
-        },
-        {
-          title: 'Communications',
-          href: '/admin/communications',
-          icon: Mail,
-        }
       ]
     },
     {
@@ -217,7 +123,12 @@ export const studioflowAdminConfig: SidebarConfig = {
           title: 'Frames & Albums',
           href: '/client/extras-quote',
           icon: DollarSign,
-        }
+        },
+        {
+          title: 'Communication',
+          href: '/admin/communication',
+          icon: Mail,
+        },
       ]
     },
     {
@@ -232,12 +143,12 @@ export const studioflowAdminConfig: SidebarConfig = {
   ]
 }
 
-// Client-only config (for sales calls)
+// Client-only config (for sales calls — minimal sidebar)
 export const studioflowClientConfig: SidebarConfig = {
   logo: {
     src: '/sigs-logo.png',
     alt: 'SIGS Photography',
-    href: '/admin/dashboard',
+    href: '/client/new-quote',
     text: 'StudioFlow'
   },
   sections: [
@@ -257,3 +168,6 @@ export const studioflowClientConfig: SidebarConfig = {
     }
   ]
 }
+
+// Legacy alias — keep backward compat for any imports
+export const studioflowConfig = studioflowAdminConfig
