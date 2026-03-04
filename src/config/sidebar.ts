@@ -13,6 +13,7 @@ import {
   ShoppingBag,
   StickyNote,
   Globe,
+  Search,
 } from 'lucide-react'
 
 export interface SidebarItem {
@@ -68,8 +69,8 @@ export const studioflowAdminConfig: SidebarConfig = {
           title: 'Marketing',
           icon: BarChart3,
           children: [
-            { title: 'SIGS Photo', href: '/admin/marketing/sigs', icon: BarChart3 },
-            { title: 'JeanMarcotte', href: '/admin/marketing/jeanmarcotte', icon: Globe },
+            { title: 'SIGS SEO', href: '/admin/marketing/sigs-seo', icon: Search },
+            { title: 'BridalFlow Leads', href: 'https://bridalflow.vercel.app/admin', icon: Globe, external: true },
           ],
         },
         {
