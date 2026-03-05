@@ -1,58 +1,21 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { JetBrains_Mono, Space_Grotesk } from 'next/font/google'
 import {
   Plus, X, Search, Trash2, BookOpen, ChevronDown, ChevronUp,
-  AlertTriangle, CheckCircle, AlertCircle, Filter, SlidersHorizontal
+  AlertCircle, SlidersHorizontal
 } from 'lucide-react'
 import type {
   TeamNoteWithTags, NoteIssueTag, CoupleOption, Severity,
 } from '@/types/team-notes'
 import { SHOOTERS, WEDDING_PHASES, SEVERITIES } from '@/types/team-notes'
 
-// ── Fonts ────────────────────────────────────────────────────────
-
-const mono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  weight: ['400', '500', '700'],
-})
-
-const grotesk = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-grotesk',
-  weight: ['400', '500', '600', '700'],
-})
-
-// ── Design tokens (inline dark theme) ────────────────────────────
-
-const T = {
-  bg: '#08080d',
-  surface: '#0f0f16',
-  surfaceRaised: '#15151f',
-  border: '#1c1c2a',
-  borderFocus: '#d4a853',
-  text: '#dcdce4',
-  textSecondary: '#65657a',
-  textMuted: '#3a3a50',
-  amber: '#d4a853',
-  amberDim: '#a8842f',
-  amberGlow: 'rgba(212,168,83,0.12)',
-  red: '#e5484d',
-  redDim: '#3b1219',
-  green: '#30a46c',
-  greenDim: '#0d3020',
-  yellow: '#e5c100',
-  yellowDim: '#2b2105',
-} as const
-
 // ── Severity config ──────────────────────────────────────────────
 
-const SEV: Record<Severity, { label: string; icon: string; color: string; bg: string; border: string }> = {
-  low: { label: 'Low', icon: '●', color: T.green, bg: T.greenDim, border: '#1a4d32' },
-  medium: { label: 'Medium', icon: '●', color: T.yellow, bg: T.yellowDim, border: '#4d3f0a' },
-  high: { label: 'High', icon: '●', color: T.red, bg: T.redDim, border: '#4d1a1f' },
+const SEV: Record<Severity, { label: string; dot: string; badge: string }> = {
+  low: { label: 'Low', dot: 'bg-green-500', badge: 'bg-green-100 text-green-700 border-green-200' },
+  medium: { label: 'Medium', dot: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700 border-amber-200' },
+  high: { label: 'High', dot: 'bg-red-500', badge: 'bg-red-100 text-red-700 border-red-200' },
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -174,7 +137,6 @@ export default function TeamNotesPage() {
   const addNewTag = () => {
     const trimmed = newTagInput.trim().toLowerCase()
     if (!trimmed) return
-    // Check if tag already exists in allTags
     const existing = allTags.find(t => t.tag === trimmed)
     if (existing) {
       if (!selectedTagIds.includes(existing.id)) {
@@ -233,7 +195,6 @@ export default function TeamNotesPage() {
     })
 
     if (res.ok) {
-      // Reset form but keep couple selected
       setShooters([])
       setOtherShooter('')
       setShowOtherShooter(false)
@@ -243,7 +204,6 @@ export default function TeamNotesPage() {
       setPendingNewTags([])
       setNoteText('')
       setIsLesson(false)
-      // Refresh data
       await Promise.all([fetchNotes(), fetchTags()])
     }
 
@@ -264,377 +224,267 @@ export default function TeamNotesPage() {
   // ══════════════════════════════════════════════════════════════
 
   return (
-    <div
-      className={`${mono.variable} ${grotesk.variable} min-h-screen`}
-      style={{ background: T.bg, color: T.text }}
-    >
-      <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold">Team Notes</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Field observations, teaching moments, and production log
+        </p>
+      </div>
 
-        {/* ── Header ──────────────────────────────────────────── */}
-        <div className="mb-8">
-          <h1
-            className="text-2xl font-bold tracking-tight"
-            style={{ fontFamily: 'var(--font-grotesk), sans-serif' }}
-          >
-            Team Notes
-          </h1>
-          <p
-            className="text-sm mt-1"
-            style={{ color: T.textSecondary, fontFamily: 'var(--font-mono), monospace' }}
-          >
-            field observations &middot; teaching moments &middot; production log
-          </p>
-        </div>
+      {/* ══════════════════════════════════════════════════════ */}
+      {/* FORM                                                  */}
+      {/* ══════════════════════════════════════════════════════ */}
+      <form ref={formRef} onSubmit={handleSubmit}>
+        <div className="rounded-xl border bg-card p-5 sm:p-6 space-y-5">
 
-        {/* ══════════════════════════════════════════════════════ */}
-        {/* FORM                                                  */}
-        {/* ══════════════════════════════════════════════════════ */}
-        <form ref={formRef} onSubmit={handleSubmit}>
-          <div
-            className="rounded-lg p-5 sm:p-6 mb-6"
-            style={{ background: T.surface, border: `1px solid ${T.border}` }}
-          >
-
-            {/* ── Couple ────────────────────────────────────── */}
-            <div className="mb-5" ref={coupleDropdownRef}>
-              <Label>Couple</Label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={coupleSearch}
-                  onChange={(e) => {
-                    setCoupleSearch(e.target.value)
-                    setCoupleDropdownOpen(true)
-                    if (!e.target.value) { setCoupleId(''); setCoupleName('') }
-                  }}
-                  onFocus={() => { setCoupleDropdownOpen(true); fetchCouples(coupleSearch) }}
-                  placeholder="Search by couple name..."
-                  className="w-full rounded-md text-sm outline-none transition-colors"
-                  style={{
-                    background: T.surfaceRaised,
-                    border: `1px solid ${coupleId ? T.amber : T.border}`,
-                    color: T.text,
-                    padding: '10px 12px',
-                    fontFamily: 'var(--font-grotesk), sans-serif',
-                  }}
-                />
-                {coupleId && (
-                  <button
-                    type="button"
-                    onClick={() => { setCoupleId(''); setCoupleName(''); setCoupleSearch('') }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded hover:opacity-80"
-                    style={{ color: T.textSecondary }}
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-                {coupleDropdownOpen && coupleOptions.length > 0 && (
-                  <div
-                    className="absolute z-50 w-full mt-1 rounded-md shadow-2xl overflow-auto"
-                    style={{
-                      background: T.surfaceRaised,
-                      border: `1px solid ${T.border}`,
-                      maxHeight: 280,
-                    }}
-                  >
-                    {groupedCouples.map(({ year, couples }) => (
-                      <div key={year}>
-                        <div
-                          className="px-3 py-1.5 text-[10px] uppercase tracking-widest sticky top-0"
-                          style={{
-                            background: T.surface,
-                            color: T.textSecondary,
-                            fontFamily: 'var(--font-mono), monospace',
-                            borderBottom: `1px solid ${T.border}`,
-                          }}
-                        >
-                          {year || 'No Date'}
-                        </div>
-                        {couples.map(c => (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => selectCouple(c)}
-                            className="w-full text-left px-3 py-2 text-sm transition-colors"
-                            style={{ fontFamily: 'var(--font-grotesk)' }}
-                            onMouseEnter={e => (e.currentTarget.style.background = T.amberGlow)}
-                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                          >
-                            <span style={{ color: T.text }}>{c.couple_name}</span>
-                            {c.wedding_date && (
-                              <span
-                                className="ml-2 text-xs"
-                                style={{ color: T.textSecondary, fontFamily: 'var(--font-mono)' }}
-                              >
-                                {formatDate(c.wedding_date)}
-                              </span>
-                            )}
-                          </button>
-                        ))}
+          {/* ── Couple ────────────────────────────────────── */}
+          <div ref={coupleDropdownRef}>
+            <Label>Couple</Label>
+            <div className="relative">
+              <input
+                type="text"
+                value={coupleSearch}
+                onChange={(e) => {
+                  setCoupleSearch(e.target.value)
+                  setCoupleDropdownOpen(true)
+                  if (!e.target.value) { setCoupleId(''); setCoupleName('') }
+                }}
+                onFocus={() => { setCoupleDropdownOpen(true); fetchCouples(coupleSearch) }}
+                placeholder="Search by couple name..."
+                className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400 ${coupleId ? 'border-stone-800' : 'border-input'}`}
+              />
+              {coupleId && (
+                <button
+                  type="button"
+                  onClick={() => { setCoupleId(''); setCoupleName(''); setCoupleSearch('') }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground"
+                >
+                  <X size={14} />
+                </button>
+              )}
+              {coupleDropdownOpen && coupleOptions.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 rounded-lg border bg-card shadow-lg overflow-auto max-h-[280px]">
+                  {groupedCouples.map(({ year, couples }) => (
+                    <div key={year}>
+                      <div className="px-3 py-1.5 text-[10px] uppercase tracking-widest sticky top-0 bg-muted/50 text-muted-foreground border-b">
+                        {year || 'No Date'}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* ── Shooters ──────────────────────────────────── */}
-            <div className="mb-5">
-              <Label>Shooters</Label>
-              <div className="flex flex-wrap gap-2">
-                {SHOOTERS.map(name => (
-                  <PillButton
-                    key={name}
-                    label={name}
-                    active={shooters.includes(name)}
-                    onClick={() => toggleShooter(name)}
-                  />
-                ))}
-                <PillButton
-                  label="+ Other"
-                  active={showOtherShooter}
-                  onClick={() => setShowOtherShooter(!showOtherShooter)}
-                  variant="ghost"
-                />
-              </div>
-              {showOtherShooter && (
-                <input
-                  type="text"
-                  value={otherShooter}
-                  onChange={e => setOtherShooter(e.target.value)}
-                  placeholder="Name..."
-                  className="mt-2 rounded-md text-sm outline-none w-48"
-                  style={{
-                    background: T.surfaceRaised,
-                    border: `1px solid ${T.border}`,
-                    color: T.text,
-                    padding: '6px 10px',
-                    fontFamily: 'var(--font-grotesk)',
-                  }}
-                />
+                      {couples.map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => selectCouple(c)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 transition-colors"
+                        >
+                          <span>{c.couple_name}</span>
+                          {c.wedding_date && (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              {formatDate(c.wedding_date)}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
+          </div>
 
-            {/* ── Wedding Phase ──────────────────────────────── */}
-            <div className="mb-5">
-              <Label>Wedding Phase</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {WEDDING_PHASES.map(phase => (
-                  <PillButton
-                    key={phase}
-                    label={phase}
-                    active={phases.includes(phase)}
-                    onClick={() => togglePhase(phase)}
-                    size="sm"
-                  />
-                ))}
-              </div>
+          {/* ── Shooters ──────────────────────────────────── */}
+          <div>
+            <Label>Shooters</Label>
+            <div className="flex flex-wrap gap-2">
+              {SHOOTERS.map(name => (
+                <PillButton
+                  key={name}
+                  label={name}
+                  active={shooters.includes(name)}
+                  onClick={() => toggleShooter(name)}
+                />
+              ))}
+              <PillButton
+                label="+ Other"
+                active={showOtherShooter}
+                onClick={() => setShowOtherShooter(!showOtherShooter)}
+                variant="ghost"
+              />
             </div>
+            {showOtherShooter && (
+              <input
+                type="text"
+                value={otherShooter}
+                onChange={e => setOtherShooter(e.target.value)}
+                placeholder="Name..."
+                className="mt-2 rounded-lg border border-input bg-background px-3 py-1.5 text-sm outline-none w-48 focus:border-stone-400"
+              />
+            )}
+          </div>
 
-            {/* ── Severity ──────────────────────────────────── */}
-            <div className="mb-5">
-              <Label>Severity</Label>
-              <div className="flex gap-2">
-                {SEVERITIES.map(sev => {
-                  const cfg = SEV[sev]
-                  const active = severity === sev
+          {/* ── Wedding Phase ──────────────────────────────── */}
+          <div>
+            <Label>Wedding Phase</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {WEDDING_PHASES.map(phase => (
+                <PillButton
+                  key={phase}
+                  label={phase}
+                  active={phases.includes(phase)}
+                  onClick={() => togglePhase(phase)}
+                  size="sm"
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* ── Severity ──────────────────────────────────── */}
+          <div>
+            <Label>Severity</Label>
+            <div className="flex gap-2">
+              {SEVERITIES.map(sev => {
+                const cfg = SEV[sev]
+                const active = severity === sev
+                return (
+                  <button
+                    key={sev}
+                    type="button"
+                    onClick={() => setSeverity(sev)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                      active ? cfg.badge : 'border-input text-muted-foreground hover:bg-accent/50'
+                    }`}
+                  >
+                    <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${cfg.dot}`} />
+                    {cfg.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* ── Issue Tags ────────────────────────────────── */}
+          <div>
+            <Label>Issue Tags</Label>
+            {allTags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {allTags.map(tag => {
+                  const active = selectedTagIds.includes(tag.id)
                   return (
                     <button
-                      key={sev}
+                      key={tag.id}
                       type="button"
-                      onClick={() => setSeverity(sev)}
-                      className="px-4 py-2 rounded-md text-sm font-medium transition-all"
-                      style={{
-                        background: active ? cfg.bg : 'transparent',
-                        border: `1px solid ${active ? cfg.border : T.border}`,
-                        color: active ? cfg.color : T.textSecondary,
-                        fontFamily: 'var(--font-grotesk)',
-                      }}
+                      onClick={() => toggleTag(tag.id)}
+                      className={`px-2.5 py-1 rounded text-xs border transition-all ${
+                        active
+                          ? 'bg-stone-800 text-white border-stone-800'
+                          : 'border-input text-muted-foreground hover:bg-accent/50'
+                      }`}
                     >
-                      <span className="mr-1.5" style={{ color: cfg.color, fontSize: 10 }}>{cfg.icon}</span>
-                      {cfg.label}
+                      {tag.tag}
+                      {active && <span className="ml-1 opacity-60">&times;</span>}
                     </button>
                   )
                 })}
               </div>
-            </div>
-
-            {/* ── Issue Tags ────────────────────────────────── */}
-            <div className="mb-5">
-              <Label>Issue Tags</Label>
-              {allTags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {allTags.map(tag => {
-                    const active = selectedTagIds.includes(tag.id)
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => toggleTag(tag.id)}
-                        className="px-2.5 py-1 rounded text-xs transition-all"
-                        style={{
-                          background: active ? T.amberGlow : 'transparent',
-                          border: `1px solid ${active ? T.amber : T.border}`,
-                          color: active ? T.amber : T.textSecondary,
-                          fontFamily: 'var(--font-mono)',
-                        }}
-                      >
-                        {tag.tag}
-                        {active && <span className="ml-1 opacity-60">×</span>}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-              {/* Pending new tags */}
-              {pendingNewTags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {pendingNewTags.map(tag => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs"
-                      style={{
-                        background: T.amberGlow,
-                        border: `1px dashed ${T.amber}`,
-                        color: T.amber,
-                        fontFamily: 'var(--font-mono)',
-                      }}
-                    >
-                      {tag}
-                      <button type="button" onClick={() => removeNewTag(tag)} className="hover:opacity-80">
-                        <X size={10} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newTagInput}
-                  onChange={e => setNewTagInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addNewTag() } }}
-                  placeholder="Type new tag + Enter..."
-                  className="rounded-md text-xs outline-none flex-1 max-w-xs"
-                  style={{
-                    background: T.surfaceRaised,
-                    border: `1px solid ${T.border}`,
-                    color: T.text,
-                    padding: '6px 10px',
-                    fontFamily: 'var(--font-mono)',
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={addNewTag}
-                  className="px-3 py-1.5 rounded-md text-xs transition-colors"
-                  style={{
-                    background: T.surfaceRaised,
-                    border: `1px solid ${T.border}`,
-                    color: T.textSecondary,
-                    fontFamily: 'var(--font-mono)',
-                  }}
-                >
-                  <Plus size={12} />
-                </button>
+            )}
+            {/* Pending new tags */}
+            {pendingNewTags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {pendingNewTags.map(tag => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs bg-stone-100 text-stone-700 border border-dashed border-stone-400"
+                  >
+                    {tag}
+                    <button type="button" onClick={() => removeNewTag(tag)} className="hover:opacity-80">
+                      <X size={10} />
+                    </button>
+                  </span>
+                ))}
               </div>
-            </div>
-          </div>
-
-          {/* ── Note textarea + submit ────────────────────────── */}
-          <div
-            className="rounded-lg p-5 sm:p-6 mb-8"
-            style={{ background: T.surface, border: `1px solid ${T.border}` }}
-          >
-            <Label>Note</Label>
-            <textarea
-              value={noteText}
-              onChange={e => setNoteText(e.target.value)}
-              rows={5}
-              placeholder="Describe what happened, what should have been done differently, and what the team should learn from this..."
-              className="w-full rounded-md text-sm outline-none resize-y transition-colors"
-              style={{
-                background: T.surfaceRaised,
-                border: `1px solid ${T.border}`,
-                color: T.text,
-                padding: '12px',
-                fontFamily: 'var(--font-grotesk)',
-                minHeight: 120,
-              }}
-              onFocus={e => (e.currentTarget.style.borderColor = T.borderFocus)}
-              onBlur={e => (e.currentTarget.style.borderColor = T.border)}
-            />
-
-            <div className="flex items-center justify-between mt-4 flex-wrap gap-3">
-              {/* Lesson checkbox */}
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={isLesson}
-                  onChange={e => setIsLesson(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div
-                  className="w-5 h-5 rounded flex items-center justify-center transition-all peer-checked:opacity-100"
-                  style={{
-                    background: isLesson ? T.amberGlow : T.surfaceRaised,
-                    border: `1px solid ${isLesson ? T.amber : T.border}`,
-                  }}
-                >
-                  {isLesson && <BookOpen size={12} style={{ color: T.amber }} />}
-                </div>
-                <span
-                  className="text-sm"
-                  style={{ color: isLesson ? T.amber : T.textSecondary, fontFamily: 'var(--font-grotesk)' }}
-                >
-                  Mark as lesson
-                </span>
-              </label>
-
-              {/* Submit */}
+            )}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newTagInput}
+                onChange={e => setNewTagInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addNewTag() } }}
+                placeholder="Type new tag + Enter..."
+                className="rounded-lg border border-input bg-background px-3 py-1.5 text-xs outline-none flex-1 max-w-xs focus:border-stone-400"
+              />
               <button
-                type="submit"
-                disabled={submitting || !coupleId || !noteText.trim()}
-                className="px-6 py-2.5 rounded-md text-sm font-semibold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                style={{
-                  background: T.amber,
-                  color: T.bg,
-                  fontFamily: 'var(--font-grotesk)',
-                }}
+                type="button"
+                onClick={addNewTag}
+                className="px-3 py-1.5 rounded-lg border border-input text-muted-foreground hover:bg-accent/50 transition-colors"
               >
-                {submitting ? 'Logging...' : 'Log Note'}
+                <Plus size={12} />
               </button>
             </div>
           </div>
-        </form>
+        </div>
 
-        {/* ══════════════════════════════════════════════════════ */}
-        {/* NOTES LIST                                            */}
-        {/* ══════════════════════════════════════════════════════ */}
+        {/* ── Note textarea + submit ────────────────────────── */}
+        <div className="rounded-xl border bg-card p-5 sm:p-6 mt-4">
+          <Label>Note</Label>
+          <textarea
+            value={noteText}
+            onChange={e => setNoteText(e.target.value)}
+            rows={5}
+            placeholder="Describe what happened, what should have been done differently, and what the team should learn from this..."
+            className="w-full rounded-lg border border-input bg-background px-3 py-3 text-sm outline-none resize-y transition-colors focus:border-stone-400 min-h-[120px]"
+          />
 
-        <div className="mb-4 flex items-center justify-between">
-          <h2
-            className="text-lg font-semibold"
-            style={{ fontFamily: 'var(--font-grotesk)' }}
-          >
-            Recent Notes
-            <span
-              className="ml-2 text-xs font-normal"
-              style={{ color: T.textSecondary, fontFamily: 'var(--font-mono)' }}
+          <div className="flex items-center justify-between mt-4 flex-wrap gap-3">
+            {/* Lesson checkbox */}
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isLesson}
+                onChange={e => setIsLesson(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                isLesson ? 'bg-stone-800 border-stone-800' : 'border-input bg-background'
+              }`}>
+                {isLesson && <BookOpen size={12} className="text-white" />}
+              </div>
+              <span className={`text-sm ${isLesson ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                Mark as lesson
+              </span>
+            </label>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={submitting || !coupleId || !noteText.trim()}
+              className="rounded-lg bg-stone-800 px-6 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
+              {submitting ? 'Logging...' : 'Log Note'}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {/* ══════════════════════════════════════════════════════ */}
+      {/* NOTES LIST                                            */}
+      {/* ══════════════════════════════════════════════════════ */}
+
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">
+            Recent Notes
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
               {notes.length}
             </span>
           </h2>
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors"
-            style={{
-              background: activeFilterCount > 0 ? T.amberGlow : T.surfaceRaised,
-              border: `1px solid ${activeFilterCount > 0 ? T.amber : T.border}`,
-              color: activeFilterCount > 0 ? T.amber : T.textSecondary,
-              fontFamily: 'var(--font-mono)',
-            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-colors ${
+              activeFilterCount > 0
+                ? 'bg-stone-800 text-white border-stone-800'
+                : 'border-input text-muted-foreground hover:bg-accent/50'
+            }`}
           >
             <SlidersHorizontal size={12} />
             Filters{activeFilterCount > 0 && ` (${activeFilterCount})`}
@@ -643,10 +493,7 @@ export default function TeamNotesPage() {
 
         {/* ── Filters bar ─────────────────────────────────────── */}
         {showFilters && (
-          <div
-            className="rounded-lg p-4 mb-4 flex flex-wrap gap-3 items-end"
-            style={{ background: T.surface, border: `1px solid ${T.border}` }}
-          >
+          <div className="rounded-xl border bg-card p-4 mb-4 flex flex-wrap gap-3 items-end">
             <FilterSelect
               label="Shooter"
               value={filterShooter}
@@ -672,32 +519,20 @@ export default function TeamNotesPage() {
               options={allTags.map(t => t.tag)}
             />
             <div>
-              <div
-                className="text-[10px] uppercase tracking-widest mb-1"
-                style={{ color: T.textSecondary, fontFamily: 'var(--font-mono)' }}
-              >
+              <div className="text-xs font-medium text-muted-foreground mb-1">
                 Search
               </div>
               <div className="relative">
                 <Search
                   size={12}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2"
-                  style={{ color: T.textMuted }}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
                 />
                 <input
                   type="text"
                   value={filterSearch}
                   onChange={e => setFilterSearch(e.target.value)}
                   placeholder="Search notes..."
-                  className="rounded-md text-xs outline-none pl-7"
-                  style={{
-                    background: T.surfaceRaised,
-                    border: `1px solid ${T.border}`,
-                    color: T.text,
-                    padding: '6px 10px',
-                    width: 180,
-                    fontFamily: 'var(--font-grotesk)',
-                  }}
+                  className="rounded-lg border border-input bg-background pl-7 pr-3 py-1.5 text-xs outline-none w-[180px] focus:border-stone-400"
                 />
               </div>
             </div>
@@ -708,8 +543,7 @@ export default function TeamNotesPage() {
                   setFilterShooter(''); setFilterPhase(''); setFilterSeverity('')
                   setFilterTag(''); setFilterSearch('')
                 }}
-                className="px-3 py-1.5 rounded-md text-xs"
-                style={{ color: T.textSecondary, fontFamily: 'var(--font-mono)' }}
+                className="px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Clear all
               </button>
@@ -719,21 +553,13 @@ export default function TeamNotesPage() {
 
         {/* ── Notes list ──────────────────────────────────────── */}
         {loading ? (
-          <div className="text-center py-12" style={{ color: T.textSecondary }}>
-            <div
-              className="text-sm"
-              style={{ fontFamily: 'var(--font-mono)' }}
-            >
-              loading notes...
-            </div>
+          <div className="text-center py-12 text-muted-foreground">
+            <div className="text-sm">Loading notes...</div>
           </div>
         ) : notes.length === 0 ? (
-          <div
-            className="text-center py-16 rounded-lg"
-            style={{ background: T.surface, border: `1px solid ${T.border}` }}
-          >
-            <AlertCircle size={32} className="mx-auto mb-3" style={{ color: T.textMuted }} />
-            <p className="text-sm" style={{ color: T.textSecondary, fontFamily: 'var(--font-grotesk)' }}>
+          <div className="text-center py-16 rounded-xl border bg-card">
+            <AlertCircle size={32} className="mx-auto mb-3 text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">
               {activeFilterCount > 0 ? 'No notes match your filters.' : 'No notes logged yet. Start by logging your first observation above.'}
             </p>
           </div>
@@ -745,19 +571,17 @@ export default function TeamNotesPage() {
               return (
                 <div
                   key={note.id}
-                  className="rounded-lg transition-colors"
-                  style={{ background: T.surface, border: `1px solid ${T.border}` }}
+                  className="rounded-xl border bg-card transition-colors"
                 >
                   {/* Row header */}
                   <div
-                    className="flex items-start gap-3 p-4 cursor-pointer"
+                    className="flex items-start gap-3 p-4 cursor-pointer hover:bg-accent/30 transition-colors rounded-xl"
                     onClick={() => setExpandedNote(expanded ? null : note.id)}
                   >
                     {/* Severity dot */}
-                    <div className="pt-0.5">
+                    <div className="pt-1">
                       <div
-                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                        style={{ background: sevCfg.color }}
+                        className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${sevCfg.dot}`}
                         title={sevCfg.label}
                       />
                     </div>
@@ -765,75 +589,49 @@ export default function TeamNotesPage() {
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span
-                          className="text-sm font-medium"
-                          style={{ fontFamily: 'var(--font-grotesk)', color: T.text }}
-                        >
+                        <span className="text-sm font-medium">
                           {note.couple_name || 'Unknown'}
                         </span>
                         {note.is_lesson && (
-                          <BookOpen size={13} style={{ color: T.amber }} />
+                          <BookOpen size={13} className="text-amber-600" />
                         )}
-                        <span
-                          className="text-[10px] ml-auto flex-shrink-0"
-                          style={{ color: T.textMuted, fontFamily: 'var(--font-mono)' }}
-                        >
+                        <span className="text-[10px] ml-auto flex-shrink-0 text-muted-foreground">
                           {formatDate(note.created_at?.split('T')[0])}
                         </span>
                       </div>
 
                       {/* Note preview */}
-                      <p
-                        className="text-sm leading-relaxed"
-                        style={{
-                          color: T.textSecondary,
-                          fontFamily: 'var(--font-grotesk)',
-                          ...(expanded ? {} : {
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap' as const,
-                          }),
-                        }}
-                      >
+                      <p className={`text-sm leading-relaxed text-muted-foreground ${expanded ? '' : 'truncate'}`}>
                         {note.note}
                       </p>
 
                       {/* Inline pills */}
                       <div className="flex flex-wrap gap-1 mt-2">
                         {note.shooters?.map(s => (
-                          <MicroPill key={s} label={s} color={T.textSecondary} />
+                          <MicroPill key={s} label={s} variant="default" />
                         ))}
                         {note.wedding_phase?.map(p => (
-                          <MicroPill key={p} label={p} color={T.amberDim} />
+                          <MicroPill key={p} label={p} variant="muted" />
                         ))}
                         {note.tags?.map(t => (
-                          <MicroPill key={t.id} label={t.tag} color={T.amber} filled />
+                          <MicroPill key={t.id} label={t.tag} variant="filled" />
                         ))}
                       </div>
                     </div>
 
                     {/* Expand indicator */}
-                    <div className="pt-0.5 flex-shrink-0" style={{ color: T.textMuted }}>
+                    <div className="pt-0.5 flex-shrink-0 text-muted-foreground">
                       {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </div>
                   </div>
 
                   {/* Expanded detail */}
                   {expanded && (
-                    <div
-                      className="px-4 pb-4 pt-0 flex justify-end"
-                      style={{ borderTop: `1px solid ${T.border}` }}
-                    >
+                    <div className="px-4 pb-4 pt-0 flex justify-end border-t">
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); handleDelete(note.id) }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs mt-3 transition-colors hover:opacity-80"
-                        style={{
-                          background: T.redDim,
-                          border: `1px solid #4d1a1f`,
-                          color: T.red,
-                          fontFamily: 'var(--font-mono)',
-                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs mt-3 transition-colors bg-red-100 text-red-700 border border-red-200 hover:bg-red-200"
                       >
                         <Trash2 size={11} /> Delete
                       </button>
@@ -855,10 +653,7 @@ export default function TeamNotesPage() {
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="text-[10px] uppercase tracking-widest mb-2 select-none"
-      style={{ color: T.textSecondary, fontFamily: 'var(--font-mono), monospace' }}
-    >
+    <div className="text-xs font-medium text-muted-foreground mb-2 select-none">
       {children}
     </div>
   )
@@ -874,31 +669,29 @@ function PillButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-md font-medium transition-all ${sm ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'}`}
-      style={{
-        background: active ? T.amberGlow : 'transparent',
-        border: `1px solid ${active ? T.amber : variant === 'ghost' ? T.textMuted : T.border}`,
-        color: active ? T.amber : T.textSecondary,
-        fontFamily: 'var(--font-grotesk), sans-serif',
-        ...(variant === 'ghost' && !active ? { borderStyle: 'dashed' } : {}),
-      }}
+      className={`rounded-lg font-medium transition-all border ${
+        sm ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
+      } ${
+        active
+          ? 'bg-stone-800 text-white border-stone-800'
+          : variant === 'ghost'
+            ? 'border-dashed border-muted-foreground/40 text-muted-foreground hover:bg-accent/50'
+            : 'border-input text-muted-foreground hover:bg-accent/50'
+      }`}
     >
       {label}
     </button>
   )
 }
 
-function MicroPill({ label, color, filled }: { label: string; color: string; filled?: boolean }) {
+function MicroPill({ label, variant }: { label: string; variant: 'default' | 'muted' | 'filled' }) {
+  const classes = {
+    default: 'border-input text-muted-foreground',
+    muted: 'border-stone-300 text-stone-500',
+    filled: 'bg-stone-100 border-stone-300 text-stone-700',
+  }
   return (
-    <span
-      className="inline-block px-1.5 py-0.5 rounded text-[10px]"
-      style={{
-        background: filled ? `${color}18` : 'transparent',
-        border: `1px solid ${color}40`,
-        color,
-        fontFamily: 'var(--font-mono), monospace',
-      }}
-    >
+    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] border ${classes[variant]}`}>
       {label}
     </span>
   )
@@ -911,28 +704,15 @@ function FilterSelect({
 }) {
   return (
     <div>
-      <div
-        className="text-[10px] uppercase tracking-widest mb-1"
-        style={{ color: T.textSecondary, fontFamily: 'var(--font-mono), monospace' }}
-      >
+      <div className="text-xs font-medium text-muted-foreground mb-1">
         {label}
       </div>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="rounded-md text-xs outline-none cursor-pointer"
-        style={{
-          background: T.surfaceRaised,
-          border: `1px solid ${value ? T.amber : T.border}`,
-          color: value ? T.amber : T.textSecondary,
-          padding: '6px 28px 6px 10px',
-          fontFamily: 'var(--font-grotesk), sans-serif',
-          WebkitAppearance: 'none',
-          appearance: 'none',
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2365657a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'right 8px center',
-        }}
+        className={`rounded-lg border bg-background px-3 py-1.5 pr-8 text-xs outline-none cursor-pointer ${
+          value ? 'border-stone-800 text-stone-800' : 'border-input text-muted-foreground'
+        }`}
       >
         <option value="">All</option>
         {options.map(opt => (
