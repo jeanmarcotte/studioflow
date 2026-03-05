@@ -113,8 +113,15 @@ export default function TeamNotesPage() {
       if (!groups[year]) groups[year] = []
       groups[year].push(c)
     }
+    const yearOrder = [2026, 2027, 2025]
     return Object.entries(groups)
-      .sort(([a], [b]) => Number(b) - Number(a))
+      .sort(([a], [b]) => {
+        const idxA = yearOrder.indexOf(Number(a))
+        const idxB = yearOrder.indexOf(Number(b))
+        const posA = idxA === -1 ? yearOrder.length : idxA
+        const posB = idxB === -1 ? yearOrder.length : idxB
+        return posA - posB
+      })
       .map(([year, couples]) => ({ year: Number(year), couples }))
   }, [coupleOptions])
 

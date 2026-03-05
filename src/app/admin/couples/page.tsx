@@ -25,7 +25,7 @@ interface Couple {
 type SortField = 'couple_name' | 'wedding_date' | 'balance_owing' | 'package_type' | 'photographer'
 type SortDir = 'asc' | 'desc'
 
-const YEARS = [2027, 2026, 2025, 2024]
+const YEARS = [2026, 2027, 2025, 2024]
 const STATUSES = [
   { value: 'all', label: 'All Statuses' },
   { value: 'booked', label: 'Booked' },
@@ -65,7 +65,7 @@ export default function CouplesPage() {
   const [couples, setCouples] = useState<Couple[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [yearFilter, setYearFilter] = useState<number | 'all'>('all')
+  const [yearFilter, setYearFilter] = useState<number | 'all'>(2026)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sortField, setSortField] = useState<SortField>('wedding_date')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
