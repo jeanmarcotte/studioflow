@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, ExternalLink, TrendingUp, TrendingDown, Hash, MapPin } from 'lucide-react'
+import { Search, ExternalLink, TrendingUp, TrendingDown, Hash, MapPin, Building } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 interface KeywordRow {
   keyword: string
   type: string | null
   city: string | null
+  venue: string | null
   position: number | null
   clicks: number
   impressions: number
@@ -48,7 +49,7 @@ export default function SigsSeoPage() {
     async function fetchData() {
       const { data: rows, error } = await supabase
         .from('seo_keyword_rankings')
-        .select('keyword, type, city, position, clicks, impressions, ctr, status, recorded_date')
+        .select('keyword, type, city, venue, position, clicks, impressions, ctr, status, recorded_date')
         .order('recorded_date', { ascending: false })
 
       if (!error && rows) {
@@ -90,6 +91,15 @@ export default function SigsSeoPage() {
 
     return { city, ranked: rankedInCity.length, bestPosition, page1Count, badge }
   })
+
+  const venueKeywords = latestData
+    .filter(r => r.type === 'venue' && r.status === 'ranked' && r.position !== null)
+    .sort((a, b) => (a.position ?? 999) - (b.position ?? 999))
+    .slice(0, 20)
+
+  const venuesWithRankings = new Set(
+    latestData.filter(r => r.type === 'venue' && r.status === 'ranked').map(r => r.venue)
+  ).size
 
   return (
     <div className="space-y-8">
@@ -181,17 +191,68 @@ export default function SigsSeoPage() {
           </table>
         </div>
 
-        <div className="px-5 py-3 border-t text-xs text-muted-foreground flex items-center justify-between">
-          <span>Recorded date: {latestDate}</span>
-          <a
-            href="https://sigsphoto.ca"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-          >
-            sigsphoto.ca <ExternalLink className="h-3 w-3" />
-          </a>
+      </div>
+
+      <div className="rounded-xl border bg-card p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="rounded-lg p-2 text-purple-600 bg-purple-50">
+              <Building className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{venuesWithRankings} <span className="text-sm font-normal text-muted-foreground">of 46</span></div>
+              <p className="text-xs text-muted-foreground">venues have ranked keywords</p>
+            </div>
+          </div>
         </div>
+      </div>
+
+      {venueKeywords.length > 0 && (
+        <div className="rounded-xl border bg-card">
+          <div className="p-5 border-b">
+            <h2 className="font-semibold flex items-center gap-2">
+              <Building className="h-4 w-4 text-purple-600" />
+              Top Ranked Venue Keywords
+            </h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left font-medium px-5 py-3">Keyword</th>
+                  <th className="text-left font-medium px-5 py-3">Venue</th>
+                  <th className="text-left font-medium px-5 py-3">Position</th>
+                  <th className="text-left font-medium px-5 py-3">Clicks</th>
+                  <th className="text-left font-medium px-5 py-3">Impressions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {venueKeywords.map(row => (
+                  <tr key={row.keyword} className="hover:bg-accent/50 transition-colors">
+                    <td className="px-5 py-3 font-medium">{row.keyword}</td>
+                    <td className="px-5 py-3">{row.venue}</td>
+                    <td className="px-5 py-3">#{row.position}</td>
+                    <td className="px-5 py-3">{row.clicks}</td>
+                    <td className="px-5 py-3">{row.impressions}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-xl border bg-card px-5 py-3 text-xs text-muted-foreground flex items-center justify-between">
+        <span>Recorded date: {latestDate}</span>
+        <a
+          href="https://sigsphoto.ca"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+        >
+          sigsphoto.ca <ExternalLink className="h-3 w-3" />
+        </a>
       </div>
     </div>
   )
