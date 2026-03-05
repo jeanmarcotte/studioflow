@@ -1,59 +1,156 @@
-import { Search, ExternalLink } from 'lucide-react'
+'use client'
 
-type RankStatus = 'good' | 'warning' | 'bad' | 'unknown'
+import { useEffect, useState } from 'react'
+import { Search, ExternalLink, TrendingUp, TrendingDown, Hash, MapPin } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
-interface CityRanking {
-  city: string
-  queryA: { rank: string; status: RankStatus }
-  queryB: { rank: string; status: RankStatus }
+interface KeywordRow {
+  keyword: string
+  type: string | null
+  city: string | null
+  position: number | null
+  clicks: number
+  impressions: number
+  ctr: string | null
+  status: string | null
+  recorded_date: string
 }
 
-function statusBadge(rank: string, status: RankStatus) {
-  const styles: Record<RankStatus, string> = {
-    good: 'text-green-700 bg-green-50 border-green-200',
-    warning: 'text-amber-700 bg-amber-50 border-amber-200',
-    bad: 'text-red-700 bg-red-50 border-red-200',
-    unknown: 'text-gray-500 bg-gray-50 border-gray-200',
+interface CityBreakdown {
+  city: string
+  ranked: number
+  bestPosition: number | null
+  page1Count: number
+  badge: 'green' | 'yellow' | 'red'
+}
+
+const CITIES = ['Toronto', 'Vaughan', 'Mississauga', 'Markham', 'Richmond Hill', 'Brampton', 'Scarborough', 'Hamilton']
+
+function statusBadge(badge: CityBreakdown['badge']) {
+  const config = {
+    green: { label: 'Page 1', style: 'text-green-700 bg-green-50 border-green-200' },
+    yellow: { label: 'Top 20', style: 'text-amber-700 bg-amber-50 border-amber-200' },
+    red: { label: 'Needs Work', style: 'text-red-700 bg-red-50 border-red-200' },
   }
-  const icons: Record<RankStatus, string> = {
-    good: '\u2705',
-    warning: '\u26a0\ufe0f',
-    bad: '\u274c',
-    unknown: '?',
-  }
+  const c = config[badge]
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${styles[status]}`}>
-      {rank === '?' ? '?' : `#${rank}`} {icons[status]}
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${c.style}`}>
+      {c.label}
     </span>
   )
 }
 
-const rankings: CityRanking[] = [
-  { city: 'Toronto', queryA: { rank: '53', status: 'bad' }, queryB: { rank: '?', status: 'unknown' } },
-  { city: 'Vaughan', queryA: { rank: '8-16', status: 'warning' }, queryB: { rank: '15.9', status: 'warning' } },
-  { city: 'Mississauga', queryA: { rank: '11-26', status: 'warning' }, queryB: { rank: '26.1', status: 'warning' } },
-  { city: 'Markham', queryA: { rank: '8', status: 'good' }, queryB: { rank: '?', status: 'unknown' } },
-  { city: 'Richmond Hill', queryA: { rank: '47', status: 'bad' }, queryB: { rank: '?', status: 'unknown' } },
-  { city: 'Brampton', queryA: { rank: '?', status: 'unknown' }, queryB: { rank: '?', status: 'unknown' } },
-  { city: 'Scarborough', queryA: { rank: '?', status: 'unknown' }, queryB: { rank: '?', status: 'unknown' } },
-  { city: 'Hamilton', queryA: { rank: '?', status: 'unknown' }, queryB: { rank: '?', status: 'unknown' } },
-]
-
 export default function SigsSeoPage() {
+  const [data, setData] = useState<KeywordRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchData() {
+      const { data: rows, error } = await supabase
+        .from('seo_keyword_rankings')
+        .select('keyword, type, city, position, clicks, impressions, ctr, status, recorded_date')
+        .order('recorded_date', { ascending: false })
+
+      if (!error && rows) {
+        setData(rows)
+      }
+      setLoading(false)
+    }
+    fetchData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      </div>
+    )
+  }
+
+  const latestDate = data[0]?.recorded_date ?? '—'
+  const latestData = data.filter(r => r.recorded_date === latestDate)
+
+  const totalKeywords = latestData.length
+  const rankedCount = latestData.filter(r => r.status === 'ranked').length
+  const notRankedCount = latestData.filter(r => r.status === 'not ranked').length
+  const citiesOnPage1 = new Set(
+    latestData.filter(r => r.position !== null && r.position <= 10).map(r => r.city)
+  ).size
+
+  const cityRows: CityBreakdown[] = CITIES.map(city => {
+    const cityData = latestData.filter(r => r.type === 'city' && r.city === city)
+    const rankedInCity = cityData.filter(r => r.status === 'ranked')
+    const positions = rankedInCity.map(r => r.position).filter((p): p is number => p !== null)
+    const bestPosition = positions.length > 0 ? Math.min(...positions) : null
+    const page1Count = positions.filter(p => p <= 10).length
+
+    let badge: CityBreakdown['badge'] = 'red'
+    if (page1Count > 0) badge = 'green'
+    else if (bestPosition !== null && bestPosition < 20) badge = 'yellow'
+
+    return { city, ranked: rankedInCity.length, bestPosition, page1Count, badge }
+  })
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold">SIGS SEO Rankings</h1>
         <p className="text-muted-foreground">
-          Goal: sigsphoto.ca #1 for &ldquo;wedding photographer&rdquo; in all 8 GTA cities
+          Live keyword tracking for sigsphoto.ca across the GTA
         </p>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="rounded-xl border bg-card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-muted-foreground">Total Keywords</span>
+            <div className="rounded-lg p-2 text-blue-600 bg-blue-50">
+              <Hash className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold">{totalKeywords}</div>
+          <p className="text-xs text-muted-foreground mt-1">tracked in database</p>
+        </div>
+
+        <div className="rounded-xl border bg-card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-muted-foreground">Ranked</span>
+            <div className="rounded-lg p-2 text-green-600 bg-green-50">
+              <TrendingUp className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold">{rankedCount}</div>
+          <p className="text-xs text-muted-foreground mt-1">keywords with position</p>
+        </div>
+
+        <div className="rounded-xl border bg-card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-muted-foreground">Not Ranked</span>
+            <div className="rounded-lg p-2 text-red-600 bg-red-50">
+              <TrendingDown className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold">{notRankedCount}</div>
+          <p className="text-xs text-muted-foreground mt-1">no position yet</p>
+        </div>
+
+        <div className="rounded-xl border bg-card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-muted-foreground">Cities on Page 1</span>
+            <div className="rounded-lg p-2 text-amber-600 bg-amber-50">
+              <MapPin className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold">{citiesOnPage1}</div>
+          <p className="text-xs text-muted-foreground mt-1">with a top-10 keyword</p>
+        </div>
       </div>
 
       <div className="rounded-xl border bg-card">
         <div className="p-5 border-b">
           <h2 className="font-semibold flex items-center gap-2">
             <Search className="h-4 w-4 text-blue-600" />
-            Google Search Rankings
+            City Breakdown
           </h2>
         </div>
 
@@ -62,16 +159,22 @@ export default function SigsSeoPage() {
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="text-left font-medium px-5 py-3">City</th>
-                <th className="text-left font-medium px-5 py-3">&ldquo;[City] wedding photographer&rdquo;</th>
-                <th className="text-left font-medium px-5 py-3">&ldquo;wedding photographer [City]&rdquo;</th>
+                <th className="text-left font-medium px-5 py-3">Keywords Ranked</th>
+                <th className="text-left font-medium px-5 py-3">Best Position</th>
+                <th className="text-left font-medium px-5 py-3">Page 1 Count</th>
+                <th className="text-left font-medium px-5 py-3">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {rankings.map((r) => (
-                <tr key={r.city} className="hover:bg-accent/50 transition-colors">
-                  <td className="px-5 py-3 font-medium">{r.city}</td>
-                  <td className="px-5 py-3">{statusBadge(r.queryA.rank, r.queryA.status)}</td>
-                  <td className="px-5 py-3">{statusBadge(r.queryB.rank, r.queryB.status)}</td>
+              {cityRows.map(row => (
+                <tr key={row.city} className="hover:bg-accent/50 transition-colors">
+                  <td className="px-5 py-3 font-medium">{row.city}</td>
+                  <td className="px-5 py-3">{row.ranked}</td>
+                  <td className="px-5 py-3">
+                    {row.bestPosition !== null ? `#${row.bestPosition}` : '—'}
+                  </td>
+                  <td className="px-5 py-3">{row.page1Count}</td>
+                  <td className="px-5 py-3">{statusBadge(row.badge)}</td>
                 </tr>
               ))}
             </tbody>
@@ -79,7 +182,7 @@ export default function SigsSeoPage() {
         </div>
 
         <div className="px-5 py-3 border-t text-xs text-muted-foreground flex items-center justify-between">
-          <span>Last updated: March 5, 2026</span>
+          <span>Recorded date: {latestDate}</span>
           <a
             href="https://sigsphoto.ca"
             target="_blank"
@@ -88,45 +191,6 @@ export default function SigsSeoPage() {
           >
             sigsphoto.ca <ExternalLink className="h-3 w-3" />
           </a>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-xl border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-muted-foreground">Top 10</span>
-            <div className="rounded-lg p-2 text-green-600 bg-green-50">
-              <Search className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold">
-            {rankings.filter(r => r.queryA.status === 'good' || r.queryB.status === 'good').length}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">cities with a top-10 ranking</p>
-        </div>
-        <div className="rounded-xl border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-muted-foreground">Needs Work</span>
-            <div className="rounded-lg p-2 text-amber-600 bg-amber-50">
-              <Search className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold">
-            {rankings.filter(r => r.queryA.status === 'warning' || r.queryB.status === 'warning').length}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">cities ranking 11-30</p>
-        </div>
-        <div className="rounded-xl border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-muted-foreground">Not Tracked</span>
-            <div className="rounded-lg p-2 text-gray-500 bg-gray-50">
-              <Search className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold">
-            {rankings.filter(r => r.queryA.status === 'unknown' && r.queryB.status === 'unknown').length}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">cities with no data yet</p>
         </div>
       </div>
     </div>
