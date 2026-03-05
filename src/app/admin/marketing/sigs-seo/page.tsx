@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Search, ExternalLink, TrendingUp, TrendingDown, Hash, MapPin, Building } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { supabase } from '@/lib/supabase'
 
 interface KeywordRow {
@@ -101,6 +102,21 @@ export default function SigsSeoPage() {
     latestData.filter(r => r.type === 'venue' && r.status === 'ranked').map(r => r.venue)
   ).size
 
+  // Build chart data grouped by recorded_date
+  const dateMap = new Map<string, { ranked: number; page1: number }>()
+  for (const row of data) {
+    const d = row.recorded_date
+    if (!dateMap.has(d)) dateMap.set(d, { ranked: 0, page1: 0 })
+    const entry = dateMap.get(d)!
+    if (row.status === 'ranked') {
+      entry.ranked++
+      if (row.position !== null && row.position <= 10) entry.page1++
+    }
+  }
+  const chartData = Array.from(dateMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, counts]) => ({ date, ...counts }))
+
   return (
     <div className="space-y-8">
       <div>
@@ -155,6 +171,30 @@ export default function SigsSeoPage() {
           <p className="text-xs text-muted-foreground mt-1">with a top-10 keyword</p>
         </div>
       </div>
+
+      {chartData.length > 1 && (
+        <div className="rounded-xl border bg-card">
+          <div className="p-5 border-b">
+            <h2 className="font-semibold flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-blue-600" />
+              Ranking Progress Over Time
+            </h2>
+          </div>
+          <div className="p-5">
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="ranked" name="Total Ranked" stroke="#2563eb" strokeWidth={2} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="page1" name="Page 1 (Top 10)" stroke="#16a34a" strokeWidth={2} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-xl border bg-card">
         <div className="p-5 border-b">
