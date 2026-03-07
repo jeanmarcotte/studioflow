@@ -221,27 +221,40 @@ export default function PhotoProductionPage() {
   // ── Stats ──────────────────────────────────────────────────────
 
   const stats = useMemo(() => {
-    const overdueCount = processedJobs.overdue.length
-    const mostUrgent = processedJobs.overdue[0]
-    const dueThisWeek = jobs.filter(j => {
-      if (!j.due_date || j.section === 'completed') return false
+    const totalJobs = jobs.length
+    const activeJobs = jobs.filter(j => j.section !== 'completed')
+
+    // Overdue: computed from ALL jobs (not filtered by search/assignee)
+    const overdueJobs = activeJobs.filter(j => isOverdue(j))
+      .sort((a, b) => (a.order_date || '9999').localeCompare(b.order_date || '9999'))
+    const overdueCount = overdueJobs.length
+    const mostUrgent = overdueJobs[0] || null
+
+    // Due this week: jobs with due_date within 7 days
+    const dueThisWeek = activeJobs.filter(j => {
+      if (!j.due_date) return false
       const daysLeft = differenceInDays(parseISO(j.due_date), new Date())
       return daysLeft >= 0 && daysLeft <= 7
     })
+
     const editedYTD = jobs.reduce((sum, j) => sum + (j.edited_so_far || 0), 0)
     const totalTaken = jobs.reduce((sum, j) => sum + (j.photos_taken || 0), 0)
+    const totalSelected = jobs.reduce((sum, j) => sum + (j.photos_selected || 0), 0)
     const totalDeleted = jobs.reduce((sum, j) => sum + (j.deleted || 0), 0)
-    const atLabCount = processedJobs.at_lab.length
-    const remaining = totalTaken - editedYTD - totalDeleted
-    const editPercent = totalTaken > 0 ? Math.round((editedYTD / (totalTaken - totalDeleted)) * 100) : 0
+    const atLabCount = activeJobs.filter(j => j.section === 'at_lab' || j.section === 'best_pending').length
+
+    // Use photos_taken if available, otherwise photos_selected for progress calc
+    const totalToEdit = totalTaken > 0 ? totalTaken - totalDeleted : totalSelected
+    const remaining = Math.max(0, totalToEdit - editedYTD)
+    const editPercent = totalToEdit > 0 ? Math.round((editedYTD / totalToEdit) * 100) : 0
     const deletePercent = totalTaken > 0 ? Math.round((totalDeleted / totalTaken) * 100) : 0
 
     return {
-      overdueCount, mostUrgent, dueThisWeek, editedYTD,
-      totalTaken, totalDeleted, atLabCount, remaining,
+      totalJobs, overdueCount, mostUrgent, dueThisWeek, editedYTD,
+      totalTaken, totalSelected, totalDeleted, atLabCount, remaining,
       editPercent: Math.min(editPercent, 100), deletePercent,
     }
-  }, [jobs, processedJobs])
+  }, [jobs])
 
   // ── Unique assignees ───────────────────────────────────────────
 
@@ -512,6 +525,19 @@ export default function PhotoProductionPage() {
 
         {/* Stats Sidebar */}
         <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
+          {/* Total Jobs */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Total Jobs
+            </div>
+            <div className="text-3xl font-bold">
+              {stats.totalJobs}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {stats.totalJobs - (jobs.filter(j => j.section === 'completed').length)} active
+            </div>
+          </div>
+
           {/* Overdue Jobs */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
