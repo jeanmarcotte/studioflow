@@ -3,10 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import {
-  Search, ChevronDown, ChevronRight, Camera, AlertTriangle,
-  Clock, Package, FlaskConical
-} from 'lucide-react'
+import { Search, ChevronDown, ChevronRight } from 'lucide-react'
 import { format, parseISO, differenceInDays } from 'date-fns'
 
 // ── Types ────────────────────────────────────────────────────────
@@ -21,9 +18,13 @@ interface PhotoJob {
   edited_so_far: number
   deleted: number
   order_date: string | null
+  ordered_date: string | null
   due_date: string | null
   assigned_to: string | null
   lab: string | null
+  lab_received_date: string | null
+  hold_reason: string | null
+  pickup_date: string | null
   status: string
   notes: string | null
   brand: string | null
@@ -58,14 +59,20 @@ const STATUS_OPTIONS = [
 
 const FAST_OVERDUE_TYPES = ['WED_PACKAGE', 'WED_PROOFS', 'ENG_PROOFS', 'ENG_COLLAGE']
 
-type SwimlaneKey = 'overdue' | 'editing' | 'due_asap' | 'at_lab' | 'waiting' | 'completed'
+// Sections that should NOT trigger overdue (they're past editing phase)
+const NON_OVERDUE_SECTIONS = ['at_lab', 'best_pending', 'best_canvas_batch', 'at_studio', 'on_hold', 'completed']
+
+type SwimlaneKey = 'overdue' | 'editing' | 'reediting' | 'on_hold' | 'ready_to_order' | 'best_canvas_batch' | 'at_lab' | 'at_studio' | 'completed'
 
 const SWIMLANES: { key: SwimlaneKey; label: string; icon: string; badgeClass: string }[] = [
   { key: 'overdue', label: 'OVERDUE', icon: '🔴', badgeClass: 'bg-red-100 text-red-700' },
   { key: 'editing', label: 'EDITING', icon: '📷', badgeClass: 'bg-blue-100 text-blue-700' },
-  { key: 'due_asap', label: 'DUE ASAP', icon: '⚡', badgeClass: 'bg-orange-100 text-orange-700' },
+  { key: 'reediting', label: 'REEDITING', icon: '🔄', badgeClass: 'bg-sky-100 text-sky-700' },
+  { key: 'on_hold', label: 'ON HOLD', icon: '⏸️', badgeClass: 'bg-slate-100 text-slate-700' },
+  { key: 'ready_to_order', label: 'READY TO ORDER', icon: '📦', badgeClass: 'bg-amber-100 text-amber-700' },
+  { key: 'best_canvas_batch', label: 'BEST CANVAS BATCH', icon: '🖼️', badgeClass: 'bg-orange-100 text-orange-700' },
   { key: 'at_lab', label: 'AT LAB', icon: '🏭', badgeClass: 'bg-purple-100 text-purple-700' },
-  { key: 'waiting', label: 'WAITING ON CLIENT', icon: '⏳', badgeClass: 'bg-yellow-100 text-yellow-700' },
+  { key: 'at_studio', label: 'AT STUDIO', icon: '🏠', badgeClass: 'bg-teal-100 text-teal-700' },
   { key: 'completed', label: 'COMPLETED', icon: '✅', badgeClass: 'bg-green-100 text-green-700' },
 ]
 
@@ -77,7 +84,7 @@ function getDaysWaiting(orderDate: string | null): number {
 }
 
 function isOverdue(job: PhotoJob): boolean {
-  if (!job.order_date || job.section === 'completed') return false
+  if (!job.order_date || NON_OVERDUE_SECTIONS.includes(job.section)) return false
   const days = getDaysWaiting(job.order_date)
   const threshold = FAST_OVERDUE_TYPES.includes(job.job_type) ? 14 : 30
   return days >= threshold
@@ -85,26 +92,6 @@ function isOverdue(job: PhotoJob): boolean {
 
 function getOverdueThreshold(jobType: string): number {
   return FAST_OVERDUE_TYPES.includes(jobType) ? 14 : 30
-}
-
-// ── Status Badge ─────────────────────────────────────────────────
-
-function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    not_started: 'bg-gray-100 text-gray-600',
-    in_progress: 'bg-blue-100 text-blue-700',
-    proofs_sent: 'bg-indigo-100 text-indigo-700',
-    at_lab: 'bg-purple-100 text-purple-700',
-    delivered: 'bg-teal-100 text-teal-700',
-    completed: 'bg-green-100 text-green-700',
-  }
-  const label = STATUS_OPTIONS.find(s => s.value === status)?.label || status
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${styles[status] || 'bg-gray-100 text-gray-600'}`}>
-      <span className="w-1.5 h-1.5 rounded-full bg-current" />
-      {label}
-    </span>
-  )
 }
 
 // ═════════════════════════════════════════════════════════════════
@@ -142,24 +129,17 @@ export default function PhotoProductionPage() {
   // ── Update status inline ───────────────────────────────────────
 
   const updateJobStatus = async (jobId: string, newStatus: string) => {
+    const updates: Record<string, any> = { status: newStatus }
+    // When marking completed, also set section
+    if (newStatus === 'completed') updates.section = 'completed'
+
     const { error } = await supabase
       .from('photo_jobs')
-      .update({ status: newStatus })
+      .update(updates)
       .eq('id', jobId)
 
     if (!error) {
-      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: newStatus } : j))
-    }
-  }
-
-  const updateJobSection = async (jobId: string, newSection: string) => {
-    const { error } = await supabase
-      .from('photo_jobs')
-      .update({ section: newSection })
-      .eq('id', jobId)
-
-    if (!error) {
-      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, section: newSection } : j))
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j))
     }
   }
 
@@ -186,9 +166,12 @@ export default function PhotoProductionPage() {
     const lanes: Record<SwimlaneKey, PhotoJob[]> = {
       overdue: [],
       editing: [],
-      due_asap: [],
+      reediting: [],
+      on_hold: [],
+      ready_to_order: [],
+      best_canvas_batch: [],
       at_lab: [],
-      waiting: [],
+      at_studio: [],
       completed: [],
     }
 
@@ -197,13 +180,20 @@ export default function PhotoProductionPage() {
         lanes.completed.push(job)
       } else if (isOverdue(job)) {
         lanes.overdue.push(job)
+      } else if (job.section === 'reediting') {
+        lanes.reediting.push(job)
+      } else if (job.section === 'on_hold') {
+        lanes.on_hold.push(job)
+      } else if (job.section === 'ready_to_order') {
+        lanes.ready_to_order.push(job)
+      } else if (job.section === 'best_canvas_batch') {
+        lanes.best_canvas_batch.push(job)
       } else if (job.section === 'at_lab' || job.section === 'best_pending') {
         lanes.at_lab.push(job)
-      } else if (job.section === 'waiting') {
-        lanes.waiting.push(job)
-      } else if (job.section === 'due_asap') {
-        lanes.due_asap.push(job)
+      } else if (job.section === 'at_studio') {
+        lanes.at_studio.push(job)
       } else {
+        // editing, due_asap, waiting, or any other section → editing lane
         lanes.editing.push(job)
       }
     }
@@ -224,13 +214,13 @@ export default function PhotoProductionPage() {
     const totalJobs = jobs.length
     const activeJobs = jobs.filter(j => j.section !== 'completed')
 
-    // Overdue: computed from ALL jobs (not filtered by search/assignee)
+    // Overdue: from ALL jobs (not filtered by search/assignee)
     const overdueJobs = activeJobs.filter(j => isOverdue(j))
       .sort((a, b) => (a.order_date || '9999').localeCompare(b.order_date || '9999'))
     const overdueCount = overdueJobs.length
     const mostUrgent = overdueJobs[0] || null
 
-    // Due this week: jobs with due_date within 7 days
+    // Due this week
     const dueThisWeek = activeJobs.filter(j => {
       if (!j.due_date) return false
       const daysLeft = differenceInDays(parseISO(j.due_date), new Date())
@@ -241,9 +231,11 @@ export default function PhotoProductionPage() {
     const totalTaken = jobs.reduce((sum, j) => sum + (j.photos_taken || 0), 0)
     const totalSelected = jobs.reduce((sum, j) => sum + (j.photos_selected || 0), 0)
     const totalDeleted = jobs.reduce((sum, j) => sum + (j.deleted || 0), 0)
-    const atLabCount = activeJobs.filter(j => j.section === 'at_lab' || j.section === 'best_pending').length
+    const atLabCount = activeJobs.filter(j =>
+      j.section === 'at_lab' || j.section === 'best_pending' || j.section === 'best_canvas_batch'
+    ).length
+    const atStudioCount = activeJobs.filter(j => j.section === 'at_studio').length
 
-    // Use photos_taken if available, otherwise photos_selected for progress calc
     const totalToEdit = totalTaken > 0 ? totalTaken - totalDeleted : totalSelected
     const remaining = Math.max(0, totalToEdit - editedYTD)
     const editPercent = totalToEdit > 0 ? Math.round((editedYTD / totalToEdit) * 100) : 0
@@ -251,8 +243,8 @@ export default function PhotoProductionPage() {
 
     return {
       totalJobs, overdueCount, mostUrgent, dueThisWeek, editedYTD,
-      totalTaken, totalSelected, totalDeleted, atLabCount, remaining,
-      editPercent: Math.min(editPercent, 100), deletePercent,
+      totalTaken, totalSelected, totalDeleted, atLabCount, atStudioCount,
+      remaining, editPercent: Math.min(editPercent, 100), deletePercent,
     }
   }, [jobs])
 
@@ -309,7 +301,7 @@ export default function PhotoProductionPage() {
       {/* Overdue Banner */}
       {stats.overdueCount > 0 && (
         <div
-          className="bg-destructive text-destructive-foreground px-6 py-3.5 flex items-center justify-between animate-pulse-subtle"
+          className="bg-destructive text-destructive-foreground px-6 py-3.5 flex items-center justify-between"
           style={{ animation: 'pulse-bg 2s ease-in-out infinite' }}
         >
           <div className="flex items-center gap-3">
@@ -416,7 +408,7 @@ export default function PhotoProductionPage() {
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Job Type</th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
-                            {lane.key === 'editing' ? 'Progress' : 'Photos'}
+                            {lane.key === 'editing' || lane.key === 'reediting' ? 'Progress' : 'Photos'}
                           </th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Order Date</th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Waiting</th>
@@ -428,7 +420,7 @@ export default function PhotoProductionPage() {
                         {laneJobs.map(job => {
                           const daysWaiting = getDaysWaiting(job.order_date)
                           const threshold = getOverdueThreshold(job.job_type)
-                          const isJobOverdue = daysWaiting >= threshold
+                          const isJobOverdue = daysWaiting >= threshold && !NON_OVERDUE_SECTIONS.includes(job.section)
                           const isWarning = !isJobOverdue && daysWaiting >= threshold - 7
                           const photoCount = job.photos_taken || job.photos_selected || 0
                           const totalToEdit = photoCount - (job.deleted || 0)
@@ -445,12 +437,26 @@ export default function PhotoProductionPage() {
                                 </button>
                               </td>
                               <td className="p-3">
-                                <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-foreground">
-                                  {JOB_TYPE_LABELS[job.job_type] || job.job_type}
-                                </span>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-foreground">
+                                    {JOB_TYPE_LABELS[job.job_type] || job.job_type}
+                                  </span>
+                                  {/* BEST CANVAS badge for best_canvas_batch lane */}
+                                  {lane.key === 'best_canvas_batch' && (
+                                    <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">
+                                      BEST CANVAS
+                                    </span>
+                                  )}
+                                  {/* Hold reason badge for on_hold lane */}
+                                  {lane.key === 'on_hold' && job.hold_reason && (
+                                    <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-200 text-slate-700">
+                                      {job.hold_reason}
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="p-3 hidden md:table-cell text-muted-foreground">
-                                {lane.key === 'editing' && totalToEdit > 0 ? (
+                                {(lane.key === 'editing' || lane.key === 'reediting') && totalToEdit > 0 ? (
                                   <span>{job.edited_so_far} / {totalToEdit} ({progressPct}%)</span>
                                 ) : (
                                   <span>{photoCount}</span>
@@ -534,7 +540,7 @@ export default function PhotoProductionPage() {
               {stats.totalJobs}
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {stats.totalJobs - (jobs.filter(j => j.section === 'completed').length)} active
+              {stats.totalJobs - jobs.filter(j => j.section === 'completed').length} active
             </div>
           </div>
 
@@ -576,9 +582,9 @@ export default function PhotoProductionPage() {
             <div className="text-3xl font-bold text-green-600">
               {stats.editedYTD.toLocaleString()}
             </div>
-            {stats.totalTaken > 0 && (
+            {(stats.totalTaken > 0 || stats.totalSelected > 0) && (
               <div className="text-xs text-muted-foreground mt-1">
-                {stats.editPercent}% of {(stats.totalTaken - stats.totalDeleted).toLocaleString()}
+                {stats.editPercent}% of {(stats.totalTaken > 0 ? stats.totalTaken - stats.totalDeleted : stats.totalSelected).toLocaleString()}
               </div>
             )}
           </div>
@@ -592,6 +598,17 @@ export default function PhotoProductionPage() {
               {stats.atLabCount}
             </div>
             <div className="text-xs text-muted-foreground mt-1">BEST / Custom / UAF</div>
+          </div>
+
+          {/* At Studio */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              At Studio
+            </div>
+            <div className="text-3xl font-bold">
+              {stats.atStudioCount}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Ready for pickup</div>
           </div>
 
           {/* Divider */}
