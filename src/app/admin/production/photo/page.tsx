@@ -107,6 +107,7 @@ export default function PhotoProductionPage() {
   const [showCompleted, setShowCompleted] = useState(false)
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['completed']))
   const [refreshKey, setRefreshKey] = useState(0)
+  const [editingDueDate, setEditingDueDate] = useState<string | null>(null)
   const overdueRef = useRef<HTMLDivElement>(null)
 
   // ── Fetch jobs ─────────────────────────────────────────────────
@@ -140,6 +141,21 @@ export default function PhotoProductionPage() {
 
     if (!error) {
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j))
+    }
+  }
+
+  // ── Update due_date inline ──────────────────────────────────────
+
+  const updateJobDueDate = async (jobId: string, newDate: string | null) => {
+    setEditingDueDate(null)
+    const dueDate = newDate || null
+    const { error } = await supabase
+      .from('photo_jobs')
+      .update({ due_date: dueDate })
+      .eq('id', jobId)
+
+    if (!error) {
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, due_date: dueDate } : j))
     }
   }
 
@@ -220,9 +236,9 @@ export default function PhotoProductionPage() {
     const overdueCount = overdueJobs.length
     const mostUrgent = overdueJobs[0] || null
 
-    // Due this week
+    // Due this week: due_date within 7 days AND not completed
     const dueThisWeek = activeJobs.filter(j => {
-      if (!j.due_date) return false
+      if (!j.due_date || j.status === 'completed') return false
       const daysLeft = differenceInDays(parseISO(j.due_date), new Date())
       return daysLeft >= 0 && daysLeft <= 7
     })
@@ -412,6 +428,7 @@ export default function PhotoProductionPage() {
                           </th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Order Date</th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Waiting</th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Due Date</th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Assigned</th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Status</th>
                         </tr>
@@ -477,6 +494,31 @@ export default function PhotoProductionPage() {
                                   </span>
                                 ) : (
                                   <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </td>
+                              <td className="p-3 hidden md:table-cell">
+                                {editingDueDate === job.id ? (
+                                  <input
+                                    type="date"
+                                    autoFocus
+                                    defaultValue={job.due_date || ''}
+                                    onBlur={e => updateJobDueDate(job.id, e.target.value)}
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter') updateJobDueDate(job.id, (e.target as HTMLInputElement).value)
+                                      if (e.key === 'Escape') setEditingDueDate(null)
+                                    }}
+                                    className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
+                                  />
+                                ) : (
+                                  <button
+                                    onClick={() => setEditingDueDate(job.id)}
+                                    className="text-left text-xs hover:underline"
+                                  >
+                                    {job.due_date
+                                      ? <span className="text-muted-foreground">{format(parseISO(job.due_date), 'MMM d')}</span>
+                                      : <span className="text-muted-foreground/50 italic">Set date</span>
+                                    }
+                                  </button>
                                 )}
                               </td>
                               <td className="p-3 hidden md:table-cell text-muted-foreground">
