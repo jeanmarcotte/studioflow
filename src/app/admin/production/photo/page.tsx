@@ -61,7 +61,12 @@ const STATUS_LABELS: Record<string, string> = {
   completed: 'Completed',
 }
 
-const LANE_STATUS_OPTIONS: Record<SwimlaneKey, string[]> = {
+const ALL_STATUSES = [
+  'not_started', 'in_progress', 'waiting_for_bride', 'ready_to_reedit',
+  'on_hold', 'waiting_for_batch', 'at_lab', 'at_studio', 'picked_up', 'completed',
+]
+
+const LANE_PRIMARY_STATUSES: Record<SwimlaneKey, string[]> = {
   overdue: ['not_started', 'in_progress'],
   editing: ['not_started', 'in_progress'],
   reediting: ['waiting_for_bride', 'ready_to_reedit'],
@@ -71,6 +76,17 @@ const LANE_STATUS_OPTIONS: Record<SwimlaneKey, string[]> = {
   at_lab: ['at_lab'],
   at_studio: ['at_studio', 'picked_up'],
   completed: ['completed'],
+}
+
+function getLaneStatusOptions(laneKey: SwimlaneKey): { value: string; label: string; divider?: boolean }[] {
+  const primary = LANE_PRIMARY_STATUSES[laneKey]
+  const rest = ALL_STATUSES.filter(s => !primary.includes(s))
+  const options: { value: string; label: string; divider?: boolean }[] = [
+    ...primary.map(v => ({ value: v, label: STATUS_LABELS[v] || v })),
+    { value: '_divider', label: '────────────', divider: true },
+    ...rest.map(v => ({ value: v, label: STATUS_LABELS[v] || v })),
+  ]
+  return options
 }
 
 const FAST_OVERDUE_TYPES = ['WED_PACKAGE', 'WED_PROOFS', 'ENG_PROOFS', 'ENG_COLLAGE']
@@ -563,9 +579,11 @@ export default function PhotoProductionPage() {
                                   onChange={e => updateJobStatus(job.id, e.target.value)}
                                   className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
                                 >
-                                  {LANE_STATUS_OPTIONS[lane.key].map(val => (
-                                    <option key={val} value={val}>{STATUS_LABELS[val] || val}</option>
-                                  ))}
+                                  {getLaneStatusOptions(lane.key).map(opt =>
+                                    opt.divider
+                                      ? <option key="_divider" disabled>{'────────────'}</option>
+                                      : <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                  )}
                                 </select>
                               </td>
                             </tr>
