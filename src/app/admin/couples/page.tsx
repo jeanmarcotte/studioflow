@@ -65,7 +65,7 @@ export default function CouplesPage() {
   const [couples, setCouples] = useState<Couple[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [yearFilter, setYearFilter] = useState<number | 'all'>(2026)
+  const [yearFilter, setYearFilter] = useState<number | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sortField, setSortField] = useState<SortField>('wedding_date')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
@@ -120,15 +120,27 @@ export default function CouplesPage() {
     }
 
     // Sort
+    const yearPriority = (date: string | null) => {
+      if (!date) return 99
+      const year = new Date(date).getFullYear()
+      if (year === 2026) return 1
+      if (year === 2027) return 2
+      if (year === 2028) return 3
+      if (year === 2025) return 4
+      return 5
+    }
+
     result.sort((a, b) => {
       let cmp = 0
       switch (sortField) {
         case 'couple_name':
           cmp = a.couple_name.localeCompare(b.couple_name)
           break
-        case 'wedding_date':
-          cmp = (a.wedding_date || '').localeCompare(b.wedding_date || '')
+        case 'wedding_date': {
+          const yp = yearPriority(a.wedding_date) - yearPriority(b.wedding_date)
+          cmp = yp !== 0 ? yp : (a.wedding_date || '').localeCompare(b.wedding_date || '')
           break
+        }
         case 'balance_owing':
           cmp = (Number(a.balance_owing) || 0) - (Number(b.balance_owing) || 0)
           break
