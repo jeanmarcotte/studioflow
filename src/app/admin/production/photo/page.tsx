@@ -48,14 +48,30 @@ const JOB_TYPE_LABELS: Record<string, string> = {
   UAF: 'UAF Item',
 }
 
-const STATUS_OPTIONS = [
-  { value: 'not_started', label: 'Not Started' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'proofs_sent', label: 'Proofs Sent' },
-  { value: 'at_lab', label: 'At Lab' },
-  { value: 'delivered', label: 'Delivered' },
-  { value: 'completed', label: 'Completed' },
-]
+const STATUS_LABELS: Record<string, string> = {
+  not_started: 'Not Started',
+  in_progress: 'In Progress',
+  waiting_for_bride: 'Waiting for Bride',
+  ready_to_reedit: 'Ready to Re-edit',
+  on_hold: 'On Hold',
+  waiting_for_batch: 'Waiting for Batch',
+  at_lab: 'At Lab',
+  at_studio: 'At Studio',
+  picked_up: 'Picked Up',
+  completed: 'Completed',
+}
+
+const LANE_STATUS_OPTIONS: Record<SwimlaneKey, string[]> = {
+  overdue: ['not_started', 'in_progress'],
+  editing: ['not_started', 'in_progress'],
+  reediting: ['waiting_for_bride', 'ready_to_reedit'],
+  on_hold: ['on_hold'],
+  ready_to_order: ['not_started'],
+  best_canvas_batch: ['waiting_for_batch'],
+  at_lab: ['at_lab'],
+  at_studio: ['at_studio', 'picked_up'],
+  completed: ['completed'],
+}
 
 const FAST_OVERDUE_TYPES = ['WED_PACKAGE', 'WED_PROOFS', 'ENG_PROOFS', 'ENG_COLLAGE']
 
@@ -108,6 +124,7 @@ export default function PhotoProductionPage() {
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['completed']))
   const [refreshKey, setRefreshKey] = useState(0)
   const [editingDueDate, setEditingDueDate] = useState<string | null>(null)
+  const [hidePickedUp, setHidePickedUp] = useState(false)
   const overdueRef = useRef<HTMLDivElement>(null)
 
   // ── Fetch jobs ─────────────────────────────────────────────────
@@ -389,7 +406,10 @@ export default function PhotoProductionPage() {
           {/* Swimlanes */}
           {SWIMLANES.map(lane => {
             if (lane.key === 'completed' && !showCompleted) return null
-            const laneJobs = processedJobs[lane.key]
+            const allLaneJobs = processedJobs[lane.key]
+            const laneJobs = lane.key === 'at_studio' && hidePickedUp
+              ? allLaneJobs.filter(j => j.status !== 'picked_up')
+              : allLaneJobs
             const isCollapsed = collapsedLanes.has(lane.key)
 
             return (
@@ -399,21 +419,34 @@ export default function PhotoProductionPage() {
                 ref={lane.key === 'overdue' ? overdueRef : undefined}
               >
                 {/* Swimlane header */}
-                <button
-                  onClick={() => toggleLane(lane.key)}
-                  className="flex items-center gap-3 py-3 w-full text-left hover:opacity-80"
-                >
-                  {isCollapsed
-                    ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    : <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  }
-                  <span className={`inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold ${lane.badgeClass}`}>
-                    {lane.icon} {lane.label}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {laneJobs.length} job{laneJobs.length !== 1 ? 's' : ''}
-                  </span>
-                </button>
+                <div className="flex items-center gap-3 py-3">
+                  <button
+                    onClick={() => toggleLane(lane.key)}
+                    className="flex items-center gap-3 text-left hover:opacity-80"
+                  >
+                    {isCollapsed
+                      ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    }
+                    <span className={`inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold ${lane.badgeClass}`}>
+                      {lane.icon} {lane.label}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {allLaneJobs.length} job{allLaneJobs.length !== 1 ? 's' : ''}
+                    </span>
+                  </button>
+                  {lane.key === 'at_studio' && (
+                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground ml-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={hidePickedUp}
+                        onChange={e => setHidePickedUp(e.target.checked)}
+                        className="rounded border-border"
+                      />
+                      Hide Picked Up
+                    </label>
+                  )}
+                </div>
 
                 {/* Job table */}
                 {!isCollapsed && laneJobs.length > 0 && (
@@ -530,8 +563,8 @@ export default function PhotoProductionPage() {
                                   onChange={e => updateJobStatus(job.id, e.target.value)}
                                   className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
                                 >
-                                  {STATUS_OPTIONS.map(s => (
-                                    <option key={s.value} value={s.value}>{s.label}</option>
+                                  {LANE_STATUS_OPTIONS[lane.key].map(val => (
+                                    <option key={val} value={val}>{STATUS_LABELS[val] || val}</option>
                                   ))}
                                 </select>
                               </td>
