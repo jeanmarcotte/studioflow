@@ -102,12 +102,12 @@ const SWIMLANES: { key: SwimlaneKey; label: string; icon: string; badgeClass: st
   { key: 'overdue', label: 'OVERDUE', icon: '🔴', badgeClass: 'bg-red-100 text-red-700' },
   { key: 'editing', label: 'EDITING', icon: '📷', badgeClass: 'bg-blue-100 text-blue-700' },
   { key: 'reediting', label: 'REEDITING', icon: '🔄', badgeClass: 'bg-sky-100 text-sky-700' },
-  { key: 'waiting_photo', label: 'WAITING FOR PHOTO ORDER', icon: '📸', badgeClass: 'bg-indigo-100 text-indigo-700' },
   { key: 'on_hold', label: 'ON HOLD', icon: '⏸️', badgeClass: 'bg-slate-100 text-slate-700' },
   { key: 'ready_to_order', label: 'READY TO ORDER', icon: '📦', badgeClass: 'bg-amber-100 text-amber-700' },
   { key: 'best_canvas_batch', label: 'BEST CANVAS HOLD', icon: '🖼️', badgeClass: 'bg-orange-100 text-orange-700' },
   { key: 'at_lab', label: 'AT LAB', icon: '🏭', badgeClass: 'bg-purple-100 text-purple-700' },
   { key: 'at_studio', label: 'AT STUDIO', icon: '🏠', badgeClass: 'bg-teal-100 text-teal-700' },
+  { key: 'waiting_photo', label: 'WAITING FOR PHOTO ORDER', icon: '📸', badgeClass: 'bg-indigo-100 text-indigo-700' },
   { key: 'completed', label: 'COMPLETED', icon: '✅', badgeClass: 'bg-green-100 text-green-700' },
 ]
 
