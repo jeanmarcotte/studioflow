@@ -120,7 +120,6 @@ export default function VideoProductionPage() {
   const [jobs, setJobs] = useState<VideoJob[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [assignedFilter, setAssignedFilter] = useState<string>('all')
   const [showCompleted, setShowCompleted] = useState(false)
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['completed']))
   const [refreshKey, setRefreshKey] = useState(0)
@@ -253,11 +252,6 @@ export default function VideoProductionPage() {
       )
     }
 
-    // Assigned filter
-    if (assignedFilter !== 'all') {
-      result = result.filter(j => j.assigned_to === assignedFilter)
-    }
-
     // Categorize into swimlanes
     const lanes: Record<SwimlaneKey, VideoJob[]> = {
       editing_full: [],
@@ -292,7 +286,7 @@ export default function VideoProductionPage() {
     }
 
     return lanes
-  }, [jobs, search, assignedFilter])
+  }, [jobs, search])
 
   // ── Stats ──────────────────────────────────────────────────────
 
@@ -301,6 +295,9 @@ export default function VideoProductionPage() {
     const activeJobs = jobs.filter(j => j.section !== 'completed')
     const completedCount = jobs.filter(j => j.section === 'completed').length
 
+    const recapsPending = jobs.filter(j => j.job_type === 'RECAP' && j.section !== 'completed').length
+
+    // Overdue (for banner)
     const overdueJobs = activeJobs.filter(j => isOverdue(j))
       .sort((a, b) => (a.order_date || '9999').localeCompare(b.order_date || '9999'))
     const overdueCount = overdueJobs.length
@@ -313,18 +310,18 @@ export default function VideoProductionPage() {
     const totalSegmentsDone = activeJobs.reduce((sum, j) => sum + countSegmentsDone(j), 0)
     const totalSegmentsPossible = activeJobs.length * 6
 
+    const remaining2025 = activeJobs.filter(j =>
+      j.wedding_date && j.wedding_date >= '2025-01-01' && j.wedding_date <= '2025-12-31'
+    ).length
+    const remaining2026 = activeJobs.filter(j =>
+      j.wedding_date && j.wedding_date >= '2026-01-01' && j.wedding_date <= '2026-12-31'
+    ).length
+
     return {
-      totalJobs, completedCount, overdueCount, mostUrgent, inProgressCount,
-      onHoldCount, editingCount, totalSegmentsDone, totalSegmentsPossible,
+      totalJobs, completedCount, recapsPending, overdueCount, mostUrgent,
+      inProgressCount, onHoldCount, editingCount,
+      totalSegmentsDone, totalSegmentsPossible, remaining2025, remaining2026,
     }
-  }, [jobs])
-
-  // ── Unique assignees ───────────────────────────────────────────
-
-  const assignees = useMemo(() => {
-    const set = new Set<string>()
-    jobs.forEach(j => { if (j.assigned_to) set.add(j.assigned_to) })
-    return Array.from(set).sort()
   }, [jobs])
 
   // ── Toggle lane collapse ───────────────────────────────────────
@@ -403,7 +400,7 @@ export default function VideoProductionPage() {
       <div className="flex">
         {/* Job List Panel */}
         <div className="flex-1 overflow-y-auto p-6 border-r border-border">
-          {/* Filters */}
+          {/* Search */}
           <div className="flex flex-wrap gap-3 mb-6">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -415,29 +412,6 @@ export default function VideoProductionPage() {
                 className="pl-9 !w-full"
               />
             </div>
-            <button
-              onClick={() => setAssignedFilter('all')}
-              className={`px-4 py-2 rounded-md text-sm font-medium border transition-colors ${
-                assignedFilter === 'all'
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background border-border hover:bg-muted'
-              }`}
-            >
-              All
-            </button>
-            {assignees.map(name => (
-              <button
-                key={name}
-                onClick={() => setAssignedFilter(name === assignedFilter ? 'all' : name)}
-                className={`px-4 py-2 rounded-md text-sm font-medium border transition-colors ${
-                  assignedFilter === name
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-background border-border hover:bg-muted'
-                }`}
-              >
-                {name}
-              </button>
-            ))}
           </div>
 
           {/* Swimlanes */}
@@ -630,19 +604,15 @@ export default function VideoProductionPage() {
             </div>
           </div>
 
-          {/* Overdue Videos */}
+          {/* Recaps Pending */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Overdue Videos
+              Recaps Pending
             </div>
-            <div className={`text-3xl font-bold ${stats.overdueCount > 0 ? 'text-destructive' : 'text-foreground'}`}>
-              {stats.overdueCount}
+            <div className={`text-3xl font-bold ${stats.recapsPending > 0 ? 'text-violet-600' : 'text-foreground'}`}>
+              {stats.recapsPending}
             </div>
-            {stats.mostUrgent && (
-              <div className="text-xs text-muted-foreground mt-1">
-                {stats.mostUrgent.couples?.couple_name} ({getDaysWaiting(stats.mostUrgent.order_date)} days)
-              </div>
-            )}
+            <div className="text-xs text-muted-foreground mt-1">Recap videos to edit</div>
           </div>
 
           {/* In Progress */}
@@ -695,6 +665,26 @@ export default function VideoProductionPage() {
             <div className="flex justify-between text-xs text-muted-foreground mt-2">
               <span>{stats.completedCount} of {stats.totalJobs}</span>
               <span>{stats.totalJobs > 0 ? Math.round((stats.completedCount / stats.totalJobs) * 100) : 0}%</span>
+            </div>
+          </div>
+
+          {/* 2025 Videos Remaining */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              2025 Videos Remaining
+            </div>
+            <div className="text-3xl font-bold">
+              {stats.remaining2025}
+            </div>
+          </div>
+
+          {/* 2026 Videos Remaining */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              2026 Videos Remaining
+            </div>
+            <div className="text-3xl font-bold">
+              {stats.remaining2026}
             </div>
           </div>
 
