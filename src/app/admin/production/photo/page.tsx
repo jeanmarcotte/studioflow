@@ -54,6 +54,7 @@ const STATUS_LABELS: Record<string, string> = {
   waiting_for_bride: 'Waiting for Bride',
   ready_to_reedit: 'Ready to Re-edit',
   on_hold: 'On Hold',
+  waiting_photo: 'Waiting for Photo',
   waiting_for_batch: 'Best Canvas Hold',
   at_lab: 'At Lab',
   at_studio: 'At Studio',
@@ -63,13 +64,14 @@ const STATUS_LABELS: Record<string, string> = {
 
 const ALL_STATUSES = [
   'not_started', 'in_progress', 'waiting_for_bride', 'ready_to_reedit',
-  'on_hold', 'waiting_for_batch', 'at_lab', 'at_studio', 'picked_up', 'completed',
+  'on_hold', 'waiting_photo', 'waiting_for_batch', 'at_lab', 'at_studio', 'picked_up', 'completed',
 ]
 
 const LANE_PRIMARY_STATUSES: Record<SwimlaneKey, string[]> = {
   overdue: ['not_started', 'in_progress'],
   editing: ['not_started', 'in_progress'],
   reediting: ['waiting_for_bride', 'ready_to_reedit'],
+  waiting_photo: ['waiting_photo', 'not_started'],
   on_hold: ['on_hold'],
   ready_to_order: ['not_started'],
   best_canvas_batch: ['waiting_for_batch'],
@@ -92,14 +94,15 @@ function getLaneStatusOptions(laneKey: SwimlaneKey): { value: string; label: str
 const FAST_OVERDUE_TYPES = ['WED_PACKAGE', 'WED_PROOFS', 'ENG_PROOFS', 'ENG_COLLAGE']
 
 // Sections that should NOT trigger overdue (they're past editing phase)
-const NON_OVERDUE_SECTIONS = ['at_lab', 'best_pending', 'best_canvas_batch', 'at_studio', 'on_hold', 'completed']
+const NON_OVERDUE_SECTIONS = ['at_lab', 'best_pending', 'best_canvas_batch', 'at_studio', 'on_hold', 'waiting_photo', 'completed']
 
-type SwimlaneKey = 'overdue' | 'editing' | 'reediting' | 'on_hold' | 'ready_to_order' | 'best_canvas_batch' | 'at_lab' | 'at_studio' | 'completed'
+type SwimlaneKey = 'overdue' | 'editing' | 'reediting' | 'waiting_photo' | 'on_hold' | 'ready_to_order' | 'best_canvas_batch' | 'at_lab' | 'at_studio' | 'completed'
 
 const SWIMLANES: { key: SwimlaneKey; label: string; icon: string; badgeClass: string }[] = [
   { key: 'overdue', label: 'OVERDUE', icon: '🔴', badgeClass: 'bg-red-100 text-red-700' },
   { key: 'editing', label: 'EDITING', icon: '📷', badgeClass: 'bg-blue-100 text-blue-700' },
   { key: 'reediting', label: 'REEDITING', icon: '🔄', badgeClass: 'bg-sky-100 text-sky-700' },
+  { key: 'waiting_photo', label: 'WAITING FOR PHOTO ORDER', icon: '📸', badgeClass: 'bg-indigo-100 text-indigo-700' },
   { key: 'on_hold', label: 'ON HOLD', icon: '⏸️', badgeClass: 'bg-slate-100 text-slate-700' },
   { key: 'ready_to_order', label: 'READY TO ORDER', icon: '📦', badgeClass: 'bg-amber-100 text-amber-700' },
   { key: 'best_canvas_batch', label: 'BEST CANVAS HOLD', icon: '🖼️', badgeClass: 'bg-orange-100 text-orange-700' },
@@ -216,6 +219,7 @@ export default function PhotoProductionPage() {
       overdue: [],
       editing: [],
       reediting: [],
+      waiting_photo: [],
       on_hold: [],
       ready_to_order: [],
       best_canvas_batch: [],
@@ -231,6 +235,8 @@ export default function PhotoProductionPage() {
         lanes.overdue.push(job)
       } else if (job.section === 'reediting') {
         lanes.reediting.push(job)
+      } else if (job.section === 'waiting_photo') {
+        lanes.waiting_photo.push(job)
       } else if (job.section === 'on_hold') {
         lanes.on_hold.push(job)
       } else if (job.section === 'ready_to_order') {
