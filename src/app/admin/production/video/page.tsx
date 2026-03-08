@@ -18,6 +18,10 @@ interface VideoJob {
   hours_raw: number | null
   ceremony_done: boolean
   reception_done: boolean
+  park_done: boolean
+  prereception_done: boolean
+  groom_done: boolean
+  bride_done: boolean
   assigned_to: string | null
   status: string
   notes: string | null
@@ -43,10 +47,11 @@ const STATUS_LABELS: Record<string, string> = {
 
 const ALL_STATUSES = ['not_started', 'in_progress', 'waiting_photo', 'complete']
 
-type SwimlaneKey = 'editing' | 'reediting' | 'on_hold' | 'completed'
+type SwimlaneKey = 'editing_full' | 'editing_recap' | 'reediting' | 'on_hold' | 'completed'
 
 const LANE_PRIMARY_STATUSES: Record<SwimlaneKey, string[]> = {
-  editing: ['not_started', 'in_progress'],
+  editing_full: ['not_started', 'in_progress'],
+  editing_recap: ['not_started', 'in_progress'],
   reediting: ['in_progress'],
   on_hold: ['waiting_photo', 'not_started'],
   completed: ['complete'],
@@ -64,10 +69,22 @@ function getLaneStatusOptions(laneKey: SwimlaneKey): { value: string; label: str
 }
 
 const SWIMLANES: { key: SwimlaneKey; label: string; icon: string; badgeClass: string }[] = [
-  { key: 'editing', label: 'EDITING', icon: '🎬', badgeClass: 'bg-blue-100 text-blue-700' },
+  { key: 'editing_full', label: 'EDITING FULL LENGTH VIDEO', icon: '🎬', badgeClass: 'bg-blue-100 text-blue-700' },
+  { key: 'editing_recap', label: 'EDITING RECAP', icon: '📋', badgeClass: 'bg-violet-100 text-violet-700' },
   { key: 'reediting', label: 'REEDITING', icon: '🔄', badgeClass: 'bg-sky-100 text-sky-700' },
   { key: 'on_hold', label: 'ON HOLD', icon: '⏸️', badgeClass: 'bg-slate-100 text-slate-700' },
   { key: 'completed', label: 'COMPLETED', icon: '✅', badgeClass: 'bg-green-100 text-green-700' },
+]
+
+type SegmentField = 'ceremony_done' | 'reception_done' | 'park_done' | 'prereception_done' | 'groom_done' | 'bride_done'
+
+const SEGMENTS: { field: SegmentField; label: string; shortLabel: string }[] = [
+  { field: 'ceremony_done', label: 'Ceremony', shortLabel: 'Cer' },
+  { field: 'reception_done', label: 'Reception', shortLabel: 'Rec' },
+  { field: 'park_done', label: 'Park', shortLabel: 'Park' },
+  { field: 'prereception_done', label: 'PreReception', shortLabel: 'Pre' },
+  { field: 'groom_done', label: 'Groom', shortLabel: 'Grm' },
+  { field: 'bride_done', label: 'Bride', shortLabel: 'Brd' },
 ]
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -80,6 +97,17 @@ function getDaysWaiting(orderDate: string | null): number {
 function isOverdue(job: VideoJob): boolean {
   if (!job.order_date || job.section === 'completed') return false
   return getDaysWaiting(job.order_date) >= 60
+}
+
+function countSegmentsDone(job: VideoJob): number {
+  let count = 0
+  if (job.ceremony_done) count++
+  if (job.reception_done) count++
+  if (job.park_done) count++
+  if (job.prereception_done) count++
+  if (job.groom_done) count++
+  if (job.bride_done) count++
+  return count
 }
 
 // ═════════════════════════════════════════════════════════════════
@@ -130,9 +158,9 @@ export default function VideoProductionPage() {
     }
   }
 
-  // ── Toggle ceremony/reception done ─────────────────────────────
+  // ── Toggle segment done ────────────────────────────────────────
 
-  const toggleField = async (jobId: string, field: 'ceremony_done' | 'reception_done', currentValue: boolean) => {
+  const toggleField = async (jobId: string, field: SegmentField, currentValue: boolean) => {
     const newValue = !currentValue
     const { error } = await supabase
       .from('video_jobs')
@@ -165,7 +193,8 @@ export default function VideoProductionPage() {
 
     // Categorize into swimlanes
     const lanes: Record<SwimlaneKey, VideoJob[]> = {
-      editing: [],
+      editing_full: [],
+      editing_recap: [],
       reediting: [],
       on_hold: [],
       completed: [],
@@ -178,8 +207,10 @@ export default function VideoProductionPage() {
         lanes.reediting.push(job)
       } else if (job.section === 'on_hold') {
         lanes.on_hold.push(job)
+      } else if (job.job_type === 'RECAP') {
+        lanes.editing_recap.push(job)
       } else {
-        lanes.editing.push(job)
+        lanes.editing_full.push(job)
       }
     }
 
@@ -198,6 +229,7 @@ export default function VideoProductionPage() {
   const stats = useMemo(() => {
     const totalJobs = jobs.length
     const activeJobs = jobs.filter(j => j.section !== 'completed')
+    const completedCount = jobs.filter(j => j.section === 'completed').length
 
     // Overdue: from ALL jobs
     const overdueJobs = activeJobs.filter(j => isOverdue(j))
@@ -209,13 +241,13 @@ export default function VideoProductionPage() {
     const onHoldCount = activeJobs.filter(j => j.section === 'on_hold').length
     const editingCount = activeJobs.filter(j => j.section === 'editing').length
 
-    // Ceremony/reception progress
-    const ceremonyDone = jobs.filter(j => j.ceremony_done).length
-    const receptionDone = jobs.filter(j => j.reception_done).length
+    // Segments done across active jobs
+    const totalSegmentsDone = activeJobs.reduce((sum, j) => sum + countSegmentsDone(j), 0)
+    const totalSegmentsPossible = activeJobs.length * 6
 
     return {
-      totalJobs, overdueCount, mostUrgent, inProgressCount,
-      onHoldCount, editingCount, ceremonyDone, receptionDone,
+      totalJobs, completedCount, overdueCount, mostUrgent, inProgressCount,
+      onHoldCount, editingCount, totalSegmentsDone, totalSegmentsPossible,
     }
   }, [jobs])
 
@@ -243,7 +275,7 @@ export default function VideoProductionPage() {
   const scrollToEditing = () => {
     setCollapsedLanes(prev => {
       const next = new Set(prev)
-      next.delete('editing')
+      next.delete('editing_full')
       return next
     })
     editingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -350,7 +382,7 @@ export default function VideoProductionPage() {
               <div
                 key={lane.key}
                 className="mb-6"
-                ref={lane.key === 'editing' ? editingRef : undefined}
+                ref={lane.key === 'editing_full' ? editingRef : undefined}
               >
                 {/* Swimlane header */}
                 <div className="flex items-center gap-3 py-3">
@@ -378,12 +410,13 @@ export default function VideoProductionPage() {
                       <thead>
                         <tr className="border-b bg-muted/50">
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Job Type</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Ceremony</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Reception</th>
+                          {SEGMENTS.map(seg => (
+                            <th key={seg.field} className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title={seg.label}>
+                              {seg.shortLabel}
+                            </th>
+                          ))}
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Wedding Date</th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Waiting</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Assigned</th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Status</th>
                         </tr>
                       </thead>
@@ -402,29 +435,17 @@ export default function VideoProductionPage() {
                                   {job.couples?.couple_name || 'Unknown'}
                                 </button>
                               </td>
-                              <td className="p-3">
-                                <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-foreground">
-                                  {JOB_TYPE_LABELS[job.job_type] || job.job_type}
-                                </span>
-                              </td>
-                              <td className="p-3 hidden md:table-cell">
-                                <button
-                                  onClick={() => toggleField(job.id, 'ceremony_done', job.ceremony_done)}
-                                  className={`text-sm cursor-pointer hover:opacity-70 ${job.ceremony_done ? '' : 'opacity-40'}`}
-                                  title={job.ceremony_done ? 'Ceremony done' : 'Mark ceremony done'}
-                                >
-                                  {job.ceremony_done ? '✅' : '⬜'}
-                                </button>
-                              </td>
-                              <td className="p-3 hidden md:table-cell">
-                                <button
-                                  onClick={() => toggleField(job.id, 'reception_done', job.reception_done)}
-                                  className={`text-sm cursor-pointer hover:opacity-70 ${job.reception_done ? '' : 'opacity-40'}`}
-                                  title={job.reception_done ? 'Reception done' : 'Mark reception done'}
-                                >
-                                  {job.reception_done ? '✅' : '⬜'}
-                                </button>
-                              </td>
+                              {SEGMENTS.map(seg => (
+                                <td key={seg.field} className="p-2 text-center hidden md:table-cell">
+                                  <button
+                                    onClick={() => toggleField(job.id, seg.field, job[seg.field])}
+                                    className={`text-sm cursor-pointer hover:opacity-70 ${job[seg.field] ? '' : 'opacity-40'}`}
+                                    title={job[seg.field] ? `${seg.label} done` : `Mark ${seg.label} done`}
+                                  >
+                                    {job[seg.field] ? '✅' : '⬜'}
+                                  </button>
+                                </td>
+                              ))}
                               <td className="p-3 hidden lg:table-cell text-muted-foreground">
                                 {job.wedding_date
                                   ? format(parseISO(job.wedding_date), 'MMM d, yyyy')
@@ -441,9 +462,6 @@ export default function VideoProductionPage() {
                                 ) : (
                                   <span className="text-xs text-muted-foreground">—</span>
                                 )}
-                              </td>
-                              <td className="p-3 hidden md:table-cell text-muted-foreground">
-                                {job.assigned_to || <span className="text-red-600 text-xs">Unassigned</span>}
                               </td>
                               <td className="p-3">
                                 <select
@@ -505,7 +523,7 @@ export default function VideoProductionPage() {
               {stats.totalJobs}
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {stats.totalJobs - jobs.filter(j => j.section === 'completed').length} active
+              {stats.totalJobs - stats.completedCount} active
             </div>
           </div>
 
@@ -560,37 +578,37 @@ export default function VideoProductionPage() {
           {/* Divider */}
           <div className="h-px bg-border my-6" />
 
-          {/* Ceremony Progress */}
+          {/* Videos Complete */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-foreground mb-3">
-              Ceremony Progress
+              Videos Complete
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-green-500 rounded-full transition-all"
-                style={{ width: `${stats.totalJobs > 0 ? Math.round((stats.ceremonyDone / stats.totalJobs) * 100) : 0}%` }}
+                style={{ width: `${stats.totalJobs > 0 ? Math.round((stats.completedCount / stats.totalJobs) * 100) : 0}%` }}
               />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground mt-2">
-              <span>{stats.ceremonyDone} done</span>
-              <span>{stats.totalJobs - stats.ceremonyDone} remaining</span>
+              <span>{stats.completedCount} of {stats.totalJobs}</span>
+              <span>{stats.totalJobs > 0 ? Math.round((stats.completedCount / stats.totalJobs) * 100) : 0}%</span>
             </div>
           </div>
 
-          {/* Reception Progress */}
+          {/* Segments Done */}
           <div className="rounded-xl border bg-card p-4">
             <div className="text-xs font-semibold text-foreground mb-3">
-              Reception Progress
+              Segments Done
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-blue-500 rounded-full transition-all"
-                style={{ width: `${stats.totalJobs > 0 ? Math.round((stats.receptionDone / stats.totalJobs) * 100) : 0}%` }}
+                style={{ width: `${stats.totalSegmentsPossible > 0 ? Math.round((stats.totalSegmentsDone / stats.totalSegmentsPossible) * 100) : 0}%` }}
               />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground mt-2">
-              <span>{stats.receptionDone} done</span>
-              <span>{stats.totalJobs - stats.receptionDone} remaining</span>
+              <span>{stats.totalSegmentsDone} of {stats.totalSegmentsPossible}</span>
+              <span>{stats.totalSegmentsPossible > 0 ? Math.round((stats.totalSegmentsDone / stats.totalSegmentsPossible) * 100) : 0}%</span>
             </div>
           </div>
         </aside>
