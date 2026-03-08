@@ -72,14 +72,14 @@ const SWIMLANES: { key: SwimlaneKey; label: string; icon: string; badgeClass: st
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-function getDaysWaiting(weddingDate: string | null): number {
-  if (!weddingDate) return 0
-  return differenceInDays(new Date(), parseISO(weddingDate))
+function getDaysWaiting(orderDate: string | null): number {
+  if (!orderDate) return 0
+  return differenceInDays(new Date(), parseISO(orderDate))
 }
 
 function isOverdue(job: VideoJob): boolean {
-  if (!job.wedding_date || job.section === 'completed') return false
-  return getDaysWaiting(job.wedding_date) >= 60
+  if (!job.order_date || job.section === 'completed') return false
+  return getDaysWaiting(job.order_date) >= 60
 }
 
 // ═════════════════════════════════════════════════════════════════
@@ -201,7 +201,7 @@ export default function VideoProductionPage() {
 
     // Overdue: from ALL jobs
     const overdueJobs = activeJobs.filter(j => isOverdue(j))
-      .sort((a, b) => (a.wedding_date || '9999').localeCompare(b.wedding_date || '9999'))
+      .sort((a, b) => (a.order_date || '9999').localeCompare(b.order_date || '9999'))
     const overdueCount = overdueJobs.length
     const mostUrgent = overdueJobs[0] || null
 
@@ -284,7 +284,7 @@ export default function VideoProductionPage() {
                   {' — '}
                   {stats.mostUrgent.couples?.couple_name}
                   {' waiting '}
-                  {getDaysWaiting(stats.mostUrgent.wedding_date)} days
+                  {getDaysWaiting(stats.mostUrgent.order_date)} days
                   {' (60-day limit)'}
                 </span>
               )}
@@ -389,7 +389,7 @@ export default function VideoProductionPage() {
                       </thead>
                       <tbody className="divide-y">
                         {laneJobs.map(job => {
-                          const daysWaiting = getDaysWaiting(job.wedding_date)
+                          const daysWaiting = getDaysWaiting(job.order_date)
                           const jobOverdue = isOverdue(job)
 
                           return (
@@ -432,7 +432,7 @@ export default function VideoProductionPage() {
                                 }
                               </td>
                               <td className="p-3">
-                                {job.wedding_date ? (
+                                {job.order_date ? (
                                   <span className={`text-xs font-semibold ${
                                     jobOverdue ? 'text-red-600' : daysWaiting >= 45 ? 'text-orange-600' : 'text-muted-foreground'
                                   }`}>
@@ -519,7 +519,7 @@ export default function VideoProductionPage() {
             </div>
             {stats.mostUrgent && (
               <div className="text-xs text-muted-foreground mt-1">
-                {stats.mostUrgent.couples?.couple_name} ({getDaysWaiting(stats.mostUrgent.wedding_date)} days)
+                {stats.mostUrgent.couples?.couple_name} ({getDaysWaiting(stats.mostUrgent.order_date)} days)
               </div>
             )}
           </div>
