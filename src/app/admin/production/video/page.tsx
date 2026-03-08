@@ -35,6 +35,14 @@ interface VideoJob {
   couples?: { couple_name: string; id: string }
 }
 
+interface PhotoWaitingJob {
+  id: string
+  couple_id: string
+  wedding_date: string | null
+  status: string
+  couples?: { couple_name: string; id: string }
+}
+
 // ── Constants ────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, string> = {
@@ -118,6 +126,7 @@ function countSegmentsDone(job: VideoJob): number {
 export default function VideoProductionPage() {
   const router = useRouter()
   const [jobs, setJobs] = useState<VideoJob[]>([])
+  const [photoWaitingJobs, setPhotoWaitingJobs] = useState<PhotoWaitingJob[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
@@ -130,14 +139,20 @@ export default function VideoProductionPage() {
 
   useEffect(() => {
     const fetchJobs = async () => {
-      const { data, error } = await supabase
-        .from('video_jobs')
-        .select('*, couples(id, couple_name)')
-        .order('sort_order', { ascending: true, nullsFirst: false })
+      const [videoRes, photoRes] = await Promise.all([
+        supabase
+          .from('video_jobs')
+          .select('*, couples(id, couple_name)')
+          .order('sort_order', { ascending: true, nullsFirst: false }),
+        supabase
+          .from('photo_jobs')
+          .select('id, couple_id, wedding_date, status, couples(id, couple_name)')
+          .eq('section', 'waiting_photo')
+          .order('wedding_date', { ascending: true }),
+      ])
 
-      if (!error && data) {
-        setJobs(data)
-      }
+      if (!videoRes.error && videoRes.data) setJobs(videoRes.data)
+      if (!photoRes.error && photoRes.data) setPhotoWaitingJobs(photoRes.data as unknown as PhotoWaitingJob[])
       setLoading(false)
     }
     fetchJobs()
@@ -252,12 +267,11 @@ export default function VideoProductionPage() {
       )
     }
 
-    // Categorize into swimlanes
-    const lanes: Record<SwimlaneKey, VideoJob[]> = {
+    // Categorize into swimlanes (waiting_photo comes from photo_jobs, not here)
+    const lanes: Record<Exclude<SwimlaneKey, 'waiting_photo'>, VideoJob[]> = {
       editing_full: [],
       editing_recap: [],
       reediting: [],
-      waiting_photo: [],
       completed: [],
     }
 
@@ -266,8 +280,6 @@ export default function VideoProductionPage() {
         lanes.completed.push(job)
       } else if (job.section === 'reediting') {
         lanes.reediting.push(job)
-      } else if (job.section === 'waiting_photo') {
-        lanes.waiting_photo.push(job)
       } else if (job.job_type === 'RECAP') {
         lanes.editing_recap.push(job)
       } else {
@@ -276,7 +288,7 @@ export default function VideoProductionPage() {
     }
 
     // Sort each lane by sort_order (fallback to wedding_date)
-    for (const key of Object.keys(lanes) as SwimlaneKey[]) {
+    for (const key of Object.keys(lanes) as Exclude<SwimlaneKey, 'waiting_photo'>[]) {
       lanes[key].sort((a, b) => {
         const aOrder = a.sort_order ?? 9999
         const bOrder = b.sort_order ?? 9999
@@ -304,7 +316,7 @@ export default function VideoProductionPage() {
     const mostUrgent = overdueJobs[0] || null
 
     const inProgressCount = activeJobs.filter(j => j.status === 'in_progress').length
-    const onHoldCount = activeJobs.filter(j => j.section === 'waiting_photo').length
+    const onHoldCount = photoWaitingJobs.length
     const editingCount = activeJobs.filter(j => j.section === 'editing').length
 
     const totalSegmentsDone = activeJobs.reduce((sum, j) => sum + countSegmentsDone(j), 0)
@@ -322,7 +334,7 @@ export default function VideoProductionPage() {
       inProgressCount, onHoldCount, editingCount,
       totalSegmentsDone, totalSegmentsPossible, remaining2025, remaining2026,
     }
-  }, [jobs])
+  }, [jobs, photoWaitingJobs])
 
   // ── Toggle lane collapse ───────────────────────────────────────
 
@@ -355,6 +367,7 @@ export default function VideoProductionPage() {
   }
 
   const isRecapLane = (key: SwimlaneKey) => key === 'editing_recap'
+  const isWaitingPhotoLane = (key: SwimlaneKey) => key === 'waiting_photo'
 
   return (
     <div className="space-y-0">
@@ -417,7 +430,8 @@ export default function VideoProductionPage() {
           {/* Swimlanes */}
           {SWIMLANES.map(lane => {
             if (lane.key === 'completed' && !showCompleted) return null
-            const laneJobs = processedJobs[lane.key]
+            const isWaiting = isWaitingPhotoLane(lane.key)
+            const laneJobCount = isWaiting ? photoWaitingJobs.length : (processedJobs[lane.key as Exclude<SwimlaneKey, 'waiting_photo'>] || []).length
             const isCollapsed = collapsedLanes.has(lane.key)
             const recap = isRecapLane(lane.key)
 
@@ -441,13 +455,55 @@ export default function VideoProductionPage() {
                       {lane.icon} {lane.label}
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      {laneJobs.length} job{laneJobs.length !== 1 ? 's' : ''}
+                      {laneJobCount} job{laneJobCount !== 1 ? 's' : ''}
                     </span>
                   </button>
                 </div>
 
-                {/* Job table */}
-                {!isCollapsed && laneJobs.length > 0 && (
+                {/* WAITING FOR PHOTO ORDER — read-only from photo_jobs */}
+                {isWaiting && !isCollapsed && photoWaitingJobs.length > 0 && (
+                  <div className="rounded-xl border bg-card overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Wedding Date</th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Photo Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {photoWaitingJobs.map(job => (
+                          <tr key={job.id} className="hover:bg-accent/50 transition-colors">
+                            <td className="p-3">
+                              <button
+                                onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
+                                className="font-medium text-blue-600 hover:underline text-left"
+                              >
+                                {job.couples?.couple_name || 'Unknown'}
+                              </button>
+                            </td>
+                            <td className="p-3 text-muted-foreground">
+                              {job.wedding_date
+                                ? format(parseISO(job.wedding_date), 'MMM d, yyyy')
+                                : <span className="text-amber-600 text-xs">No date</span>
+                              }
+                            </td>
+                            <td className="p-3">
+                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
+                                Waiting for Photo Order
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Regular video job table */}
+                {!isWaiting && !isCollapsed && (() => {
+                  const laneJobs = processedJobs[lane.key as Exclude<SwimlaneKey, 'waiting_photo'>] || []
+                  return laneJobs.length > 0 ? (
                   <div className="rounded-xl border bg-card overflow-hidden">
                     <table className="w-full text-sm">
                       <thead>
@@ -559,10 +615,11 @@ export default function VideoProductionPage() {
                       </tbody>
                     </table>
                   </div>
-                )}
+                  ) : null
+                })()}
 
                 {/* Empty lane */}
-                {!isCollapsed && laneJobs.length === 0 && (
+                {!isCollapsed && laneJobCount === 0 && (
                   <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-lg">
                     No jobs in this lane
                   </div>
