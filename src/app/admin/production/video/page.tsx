@@ -46,13 +46,13 @@ const STATUS_LABELS: Record<string, string> = {
 
 const ALL_STATUSES = ['not_started', 'in_progress', 'waiting_photo', 'complete']
 
-type SwimlaneKey = 'editing_full' | 'editing_recap' | 'reediting' | 'on_hold' | 'completed'
+type SwimlaneKey = 'editing_full' | 'editing_recap' | 'reediting' | 'waiting_photo' | 'completed'
 
 const LANE_PRIMARY_STATUSES: Record<SwimlaneKey, string[]> = {
   editing_full: ['not_started', 'in_progress'],
   editing_recap: ['not_started', 'in_progress'],
   reediting: ['in_progress'],
-  on_hold: ['waiting_photo', 'not_started'],
+  waiting_photo: ['waiting_photo', 'not_started'],
   completed: ['complete'],
 }
 
@@ -70,7 +70,7 @@ const SWIMLANES: { key: SwimlaneKey; label: string; icon: string; badgeClass: st
   { key: 'editing_full', label: 'EDITING FULL LENGTH VIDEO', icon: '🎬', badgeClass: 'bg-blue-100 text-blue-700' },
   { key: 'editing_recap', label: 'EDITING RECAP', icon: '📋', badgeClass: 'bg-violet-100 text-violet-700' },
   { key: 'reediting', label: 'REEDITING', icon: '🔄', badgeClass: 'bg-sky-100 text-sky-700' },
-  { key: 'on_hold', label: 'ON HOLD', icon: '⏸️', badgeClass: 'bg-slate-100 text-slate-700' },
+  { key: 'waiting_photo', label: 'WAITING FOR PHOTO ORDER', icon: '⏸️', badgeClass: 'bg-slate-100 text-slate-700' },
   { key: 'completed', label: 'COMPLETED', icon: '✅', badgeClass: 'bg-green-100 text-green-700' },
 ]
 
@@ -257,7 +257,7 @@ export default function VideoProductionPage() {
       editing_full: [],
       editing_recap: [],
       reediting: [],
-      on_hold: [],
+      waiting_photo: [],
       completed: [],
     }
 
@@ -266,8 +266,8 @@ export default function VideoProductionPage() {
         lanes.completed.push(job)
       } else if (job.section === 'reediting') {
         lanes.reediting.push(job)
-      } else if (job.section === 'on_hold') {
-        lanes.on_hold.push(job)
+      } else if (job.section === 'waiting_photo') {
+        lanes.waiting_photo.push(job)
       } else if (job.job_type === 'RECAP') {
         lanes.editing_recap.push(job)
       } else {
@@ -304,7 +304,7 @@ export default function VideoProductionPage() {
     const mostUrgent = overdueJobs[0] || null
 
     const inProgressCount = activeJobs.filter(j => j.status === 'in_progress').length
-    const onHoldCount = activeJobs.filter(j => j.section === 'on_hold').length
+    const onHoldCount = activeJobs.filter(j => j.section === 'waiting_photo').length
     const editingCount = activeJobs.filter(j => j.section === 'editing').length
 
     const totalSegmentsDone = activeJobs.reduce((sum, j) => sum + countSegmentsDone(j), 0)
@@ -626,10 +626,10 @@ export default function VideoProductionPage() {
             <div className="text-xs text-muted-foreground mt-1">Currently editing</div>
           </div>
 
-          {/* On Hold */}
+          {/* Waiting for Photo */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              On Hold
+              Waiting for Photo
             </div>
             <div className="text-3xl font-bold">
               {stats.onHoldCount}

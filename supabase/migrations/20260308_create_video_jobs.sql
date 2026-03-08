@@ -3,7 +3,7 @@ CREATE TABLE video_jobs (
   couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,
   job_type TEXT NOT NULL CHECK (job_type IN ('FULL', 'RECAP')),
   section TEXT NOT NULL DEFAULT 'editing' CHECK (section IN (
-    'editing', 'reediting', 'on_hold', 'completed'
+    'editing', 'reediting', 'waiting_photo', 'completed'
   )),
   wedding_date DATE,
   order_date DATE,
