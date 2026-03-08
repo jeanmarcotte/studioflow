@@ -78,12 +78,12 @@ type SegmentField = 'ceremony_done' | 'reception_done' | 'park_done' | 'prerecep
 type ToggleField = SegmentField | 'proxies_run' | 'video_form'
 
 const SEGMENTS: { field: SegmentField; label: string; shortLabel: string }[] = [
-  { field: 'ceremony_done', label: 'Ceremony', shortLabel: 'Cer' },
-  { field: 'reception_done', label: 'Reception', shortLabel: 'Rec' },
+  { field: 'ceremony_done', label: 'Ceremony', shortLabel: 'Ceremony' },
+  { field: 'reception_done', label: 'Reception', shortLabel: 'Reception' },
   { field: 'park_done', label: 'Park', shortLabel: 'Park' },
-  { field: 'prereception_done', label: 'PreReception', shortLabel: 'Pre' },
-  { field: 'groom_done', label: 'Groom', shortLabel: 'Grm' },
-  { field: 'bride_done', label: 'Bride', shortLabel: 'Brd' },
+  { field: 'prereception_done', label: 'Pre-Reception', shortLabel: 'Pre-Reception' },
+  { field: 'groom_done', label: 'Groom', shortLabel: 'Groom' },
+  { field: 'bride_done', label: 'Bride', shortLabel: 'Bride' },
 ]
 
 const ACTIVE_HD_OPTIONS = ['', 'NVME', 'T7', 'LACIE']
