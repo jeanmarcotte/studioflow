@@ -38,9 +38,8 @@ interface VideoJob {
 interface PhotoWaitingJob {
   id: string
   couple_id: string
-  wedding_date: string | null
   status: string
-  couples?: { couple_name: string; id: string }
+  couples?: { couple_name: string; id: string; wedding_date: string | null }
 }
 
 // ── Constants ────────────────────────────────────────────────────
@@ -146,9 +145,8 @@ export default function VideoProductionPage() {
           .order('sort_order', { ascending: true, nullsFirst: false }),
         supabase
           .from('photo_jobs')
-          .select('id, couple_id, wedding_date, status, couples(id, couple_name)')
-          .eq('section', 'waiting_photo')
-          .order('wedding_date', { ascending: true }),
+          .select('id, couple_id, status, couples(id, couple_name, wedding_date)')
+          .eq('section', 'waiting_photo'),
       ])
 
       if (!videoRes.error && videoRes.data) setJobs(videoRes.data)
@@ -483,8 +481,8 @@ export default function VideoProductionPage() {
                               </button>
                             </td>
                             <td className="p-3 text-muted-foreground">
-                              {job.wedding_date
-                                ? format(parseISO(job.wedding_date), 'MMM d, yyyy')
+                              {job.couples?.wedding_date
+                                ? format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')
                                 : <span className="text-amber-600 text-xs">No date</span>
                               }
                             </td>
