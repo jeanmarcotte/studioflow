@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, ChevronDown, ChevronRight } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight, GripVertical } from 'lucide-react'
 import { format, parseISO, differenceInDays } from 'date-fns'
 
 // ── Types ────────────────────────────────────────────────────────
@@ -23,6 +23,10 @@ interface VideoJob {
   groom_done: boolean
   bride_done: boolean
   assigned_to: string | null
+  active_hd: string | null
+  proxies_run: boolean
+  video_form: boolean
+  sort_order: number | null
   status: string
   notes: string | null
   full_video_id: string | null
@@ -32,11 +36,6 @@ interface VideoJob {
 }
 
 // ── Constants ────────────────────────────────────────────────────
-
-const JOB_TYPE_LABELS: Record<string, string> = {
-  FULL: 'Full Video',
-  RECAP: 'Recap',
-}
 
 const STATUS_LABELS: Record<string, string> = {
   not_started: 'Not Started',
@@ -60,12 +59,11 @@ const LANE_PRIMARY_STATUSES: Record<SwimlaneKey, string[]> = {
 function getLaneStatusOptions(laneKey: SwimlaneKey): { value: string; label: string; divider?: boolean }[] {
   const primary = LANE_PRIMARY_STATUSES[laneKey]
   const rest = ALL_STATUSES.filter(s => !primary.includes(s))
-  const options: { value: string; label: string; divider?: boolean }[] = [
+  return [
     ...primary.map(v => ({ value: v, label: STATUS_LABELS[v] || v })),
     { value: '_divider', label: '────────────', divider: true },
     ...rest.map(v => ({ value: v, label: STATUS_LABELS[v] || v })),
   ]
-  return options
 }
 
 const SWIMLANES: { key: SwimlaneKey; label: string; icon: string; badgeClass: string }[] = [
@@ -77,6 +75,7 @@ const SWIMLANES: { key: SwimlaneKey; label: string; icon: string; badgeClass: st
 ]
 
 type SegmentField = 'ceremony_done' | 'reception_done' | 'park_done' | 'prereception_done' | 'groom_done' | 'bride_done'
+type ToggleField = SegmentField | 'proxies_run' | 'video_form'
 
 const SEGMENTS: { field: SegmentField; label: string; shortLabel: string }[] = [
   { field: 'ceremony_done', label: 'Ceremony', shortLabel: 'Cer' },
@@ -86,6 +85,8 @@ const SEGMENTS: { field: SegmentField; label: string; shortLabel: string }[] = [
   { field: 'groom_done', label: 'Groom', shortLabel: 'Grm' },
   { field: 'bride_done', label: 'Bride', shortLabel: 'Brd' },
 ]
+
+const ACTIVE_HD_OPTIONS = ['', 'NVME', 'T7', 'LACIE']
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -123,6 +124,7 @@ export default function VideoProductionPage() {
   const [showCompleted, setShowCompleted] = useState(false)
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['completed']))
   const [refreshKey, setRefreshKey] = useState(0)
+  const [draggedJobId, setDraggedJobId] = useState<string | null>(null)
   const editingRef = useRef<HTMLDivElement>(null)
 
   // ── Fetch jobs ─────────────────────────────────────────────────
@@ -132,7 +134,7 @@ export default function VideoProductionPage() {
       const { data, error } = await supabase
         .from('video_jobs')
         .select('*, couples(id, couple_name)')
-        .order('wedding_date', { ascending: true })
+        .order('sort_order', { ascending: true, nullsFirst: false })
 
       if (!error && data) {
         setJobs(data)
@@ -158,9 +160,9 @@ export default function VideoProductionPage() {
     }
   }
 
-  // ── Toggle segment done ────────────────────────────────────────
+  // ── Toggle boolean field ───────────────────────────────────────
 
-  const toggleField = async (jobId: string, field: SegmentField, currentValue: boolean) => {
+  const toggleField = async (jobId: string, field: ToggleField, currentValue: boolean) => {
     const newValue = !currentValue
     const { error } = await supabase
       .from('video_jobs')
@@ -171,6 +173,71 @@ export default function VideoProductionPage() {
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, [field]: newValue } : j))
     }
   }
+
+  // ── Update active_hd inline ────────────────────────────────────
+
+  const updateActiveHd = async (jobId: string, value: string) => {
+    const active_hd = value || null
+    const { error } = await supabase
+      .from('video_jobs')
+      .update({ active_hd })
+      .eq('id', jobId)
+
+    if (!error) {
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, active_hd } : j))
+    }
+  }
+
+  // ── Drag-to-reorder ────────────────────────────────────────────
+
+  const handleDragStart = useCallback((jobId: string) => {
+    setDraggedJobId(jobId)
+  }, [])
+
+  const handleDrop = useCallback(async (targetJobId: string, laneKey: SwimlaneKey, laneJobs: VideoJob[]) => {
+    if (!draggedJobId || draggedJobId === targetJobId) {
+      setDraggedJobId(null)
+      return
+    }
+
+    const oldIndex = laneJobs.findIndex(j => j.id === draggedJobId)
+    const newIndex = laneJobs.findIndex(j => j.id === targetJobId)
+    if (oldIndex === -1 || newIndex === -1) {
+      setDraggedJobId(null)
+      return
+    }
+
+    // Reorder locally
+    const reordered = [...laneJobs]
+    const [moved] = reordered.splice(oldIndex, 1)
+    reordered.splice(newIndex, 0, moved)
+
+    // Assign new sort_order values
+    const updates: { id: string; sort_order: number }[] = reordered.map((j, i) => ({
+      id: j.id,
+      sort_order: i + 1,
+    }))
+
+    // Optimistic local update
+    setJobs(prev => {
+      const next = [...prev]
+      for (const u of updates) {
+        const idx = next.findIndex(j => j.id === u.id)
+        if (idx !== -1) next[idx] = { ...next[idx], sort_order: u.sort_order }
+      }
+      return next
+    })
+
+    // Persist to DB
+    for (const u of updates) {
+      await supabase
+        .from('video_jobs')
+        .update({ sort_order: u.sort_order })
+        .eq('id', u.id)
+    }
+
+    setDraggedJobId(null)
+  }, [draggedJobId])
 
   // ── Computed data ──────────────────────────────────────────────
 
@@ -214,11 +281,14 @@ export default function VideoProductionPage() {
       }
     }
 
-    // Sort each lane by wedding_date ASC (longest waiting first)
+    // Sort each lane by sort_order (fallback to wedding_date)
     for (const key of Object.keys(lanes) as SwimlaneKey[]) {
-      lanes[key].sort((a, b) =>
-        (a.wedding_date || '9999').localeCompare(b.wedding_date || '9999')
-      )
+      lanes[key].sort((a, b) => {
+        const aOrder = a.sort_order ?? 9999
+        const bOrder = b.sort_order ?? 9999
+        if (aOrder !== bOrder) return aOrder - bOrder
+        return (a.wedding_date || '9999').localeCompare(b.wedding_date || '9999')
+      })
     }
 
     return lanes
@@ -231,7 +301,6 @@ export default function VideoProductionPage() {
     const activeJobs = jobs.filter(j => j.section !== 'completed')
     const completedCount = jobs.filter(j => j.section === 'completed').length
 
-    // Overdue: from ALL jobs
     const overdueJobs = activeJobs.filter(j => isOverdue(j))
       .sort((a, b) => (a.order_date || '9999').localeCompare(b.order_date || '9999'))
     const overdueCount = overdueJobs.length
@@ -241,7 +310,6 @@ export default function VideoProductionPage() {
     const onHoldCount = activeJobs.filter(j => j.section === 'on_hold').length
     const editingCount = activeJobs.filter(j => j.section === 'editing').length
 
-    // Segments done across active jobs
     const totalSegmentsDone = activeJobs.reduce((sum, j) => sum + countSegmentsDone(j), 0)
     const totalSegmentsPossible = activeJobs.length * 6
 
@@ -270,8 +338,6 @@ export default function VideoProductionPage() {
     })
   }
 
-  // ── Scroll to overdue ──────────────────────────────────────────
-
   const scrollToEditing = () => {
     setCollapsedLanes(prev => {
       const next = new Set(prev)
@@ -290,6 +356,8 @@ export default function VideoProductionPage() {
       </div>
     )
   }
+
+  const isRecapLane = (key: SwimlaneKey) => key === 'editing_recap'
 
   return (
     <div className="space-y-0">
@@ -377,6 +445,7 @@ export default function VideoProductionPage() {
             if (lane.key === 'completed' && !showCompleted) return null
             const laneJobs = processedJobs[lane.key]
             const isCollapsed = collapsedLanes.has(lane.key)
+            const recap = isRecapLane(lane.key)
 
             return (
               <div
@@ -409,76 +478,110 @@ export default function VideoProductionPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b bg-muted/50">
+                          <th className="w-8 p-2"></th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
-                          {SEGMENTS.map(seg => (
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Wedding Date</th>
+                          {!recap && SEGMENTS.map(seg => (
                             <th key={seg.field} className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title={seg.label}>
                               {seg.shortLabel}
                             </th>
                           ))}
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Wedding Date</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Waiting</th>
+                          <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Active HD">HD</th>
+                          {!recap && (
+                            <>
+                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Proxies Run">Prox</th>
+                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Video Form">Form</th>
+                            </>
+                          )}
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {laneJobs.map(job => {
-                          const daysWaiting = getDaysWaiting(job.order_date)
-                          const jobOverdue = isOverdue(job)
-
-                          return (
-                            <tr key={job.id} className="hover:bg-accent/50 transition-colors">
-                              <td className="p-3">
+                        {laneJobs.map(job => (
+                          <tr
+                            key={job.id}
+                            className={`hover:bg-accent/50 transition-colors ${draggedJobId === job.id ? 'opacity-50' : ''}`}
+                            draggable
+                            onDragStart={() => handleDragStart(job.id)}
+                            onDragOver={e => e.preventDefault()}
+                            onDrop={() => handleDrop(job.id, lane.key, laneJobs)}
+                          >
+                            <td className="p-2 cursor-grab active:cursor-grabbing text-muted-foreground">
+                              <GripVertical className="h-4 w-4" />
+                            </td>
+                            <td className="p-3">
+                              <button
+                                onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
+                                className="font-medium text-blue-600 hover:underline text-left"
+                              >
+                                {job.couples?.couple_name || 'Unknown'}
+                              </button>
+                            </td>
+                            <td className="p-3 hidden lg:table-cell text-muted-foreground">
+                              {job.wedding_date
+                                ? format(parseISO(job.wedding_date), 'MMM d, yyyy')
+                                : <span className="text-amber-600 text-xs">No date</span>
+                              }
+                            </td>
+                            {!recap && SEGMENTS.map(seg => (
+                              <td key={seg.field} className="p-2 text-center hidden md:table-cell">
                                 <button
-                                  onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
-                                  className="font-medium text-blue-600 hover:underline text-left"
+                                  onClick={() => toggleField(job.id, seg.field, job[seg.field])}
+                                  className={`text-sm cursor-pointer hover:opacity-70 ${job[seg.field] ? '' : 'opacity-40'}`}
+                                  title={job[seg.field] ? `${seg.label} done` : `Mark ${seg.label} done`}
                                 >
-                                  {job.couples?.couple_name || 'Unknown'}
+                                  {job[seg.field] ? '✅' : '⬜'}
                                 </button>
                               </td>
-                              {SEGMENTS.map(seg => (
-                                <td key={seg.field} className="p-2 text-center hidden md:table-cell">
+                            ))}
+                            <td className="p-2 text-center hidden md:table-cell">
+                              <select
+                                value={job.active_hd || ''}
+                                onChange={e => updateActiveHd(job.id, e.target.value)}
+                                className="text-xs rounded-md border-border bg-background px-1 py-0.5 !w-auto"
+                              >
+                                {ACTIVE_HD_OPTIONS.map(opt => (
+                                  <option key={opt} value={opt}>{opt || '—'}</option>
+                                ))}
+                              </select>
+                            </td>
+                            {!recap && (
+                              <>
+                                <td className="p-2 text-center hidden md:table-cell">
                                   <button
-                                    onClick={() => toggleField(job.id, seg.field, job[seg.field])}
-                                    className={`text-sm cursor-pointer hover:opacity-70 ${job[seg.field] ? '' : 'opacity-40'}`}
-                                    title={job[seg.field] ? `${seg.label} done` : `Mark ${seg.label} done`}
+                                    onClick={() => toggleField(job.id, 'proxies_run', job.proxies_run)}
+                                    className={`text-sm cursor-pointer hover:opacity-70 ${job.proxies_run ? '' : 'opacity-40'}`}
+                                    title={job.proxies_run ? 'Proxies run' : 'Mark proxies run'}
                                   >
-                                    {job[seg.field] ? '✅' : '⬜'}
+                                    {job.proxies_run ? '✅' : '⬜'}
                                   </button>
                                 </td>
-                              ))}
-                              <td className="p-3 hidden lg:table-cell text-muted-foreground">
-                                {job.wedding_date
-                                  ? format(parseISO(job.wedding_date), 'MMM d, yyyy')
-                                  : <span className="text-amber-600 text-xs">No date</span>
-                                }
-                              </td>
-                              <td className="p-3">
-                                {job.order_date ? (
-                                  <span className={`text-xs font-semibold ${
-                                    jobOverdue ? 'text-red-600' : daysWaiting >= 45 ? 'text-orange-600' : 'text-muted-foreground'
-                                  }`}>
-                                    {daysWaiting} days
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
+                                <td className="p-2 text-center hidden md:table-cell">
+                                  <button
+                                    onClick={() => toggleField(job.id, 'video_form', job.video_form)}
+                                    className={`text-sm cursor-pointer hover:opacity-70 ${job.video_form ? '' : 'opacity-40'}`}
+                                    title={job.video_form ? 'Video form received' : 'Mark video form received'}
+                                  >
+                                    {job.video_form ? '✅' : '⬜'}
+                                  </button>
+                                </td>
+                              </>
+                            )}
+                            <td className="p-3">
+                              <select
+                                value={job.status}
+                                onChange={e => updateJobStatus(job.id, e.target.value)}
+                                className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
+                              >
+                                {getLaneStatusOptions(lane.key).map(opt =>
+                                  opt.divider
+                                    ? <option key="_divider" disabled>{'────────────'}</option>
+                                    : <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 )}
-                              </td>
-                              <td className="p-3">
-                                <select
-                                  value={job.status}
-                                  onChange={e => updateJobStatus(job.id, e.target.value)}
-                                  className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
-                                >
-                                  {getLaneStatusOptions(lane.key).map(opt =>
-                                    opt.divider
-                                      ? <option key="_divider" disabled>{'────────────'}</option>
-                                      : <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                  )}
-                                </select>
-                              </td>
-                            </tr>
-                          )
-                        })}
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
