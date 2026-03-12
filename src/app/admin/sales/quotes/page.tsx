@@ -51,6 +51,26 @@ const BRIDAL_SHOW_TO_SOURCE: Record<string, string> = {
   'Referrals': 'Referrals',
 }
 
+// Map BridalFlow show_id → bridalShow display name used in this page
+const BALLOT_SHOW_ID_TO_BRIDAL_SHOW: Record<string, string> = {
+  'modern-feb-2026': 'MBS Winter 2026',
+  'weddingring-oakville-mar-2026': 'OBS Winter 2026',
+  'cbs-jan-2026': 'CBS Winter 2026',
+  'hbs-jan-2026': 'HBS Winter 2026',
+}
+
+interface BallotRecord {
+  id: string
+  bride_first_name: string
+  bride_last_name: string
+  groom_first_name: string | null
+  groom_last_name: string | null
+  wedding_date: string | null
+  venue_name: string | null
+  show_id: string | null
+  created_at: string
+}
+
 interface LeadSourceConfig {
   name: string
   defaultShowCost: number
@@ -84,8 +104,8 @@ const REPORT_COLORS = {
 
 export default function CoupleQuotesPage() {
   const router = useRouter()
-  const [sortField, setSortField] = useState<SortField>('num')
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [sortField, setSortField] = useState<SortField>('date')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [showCosts, setShowCosts] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {}
     LEAD_SOURCES_CONFIG.forEach(s => { init[s.name] = s.defaultShowCost })
@@ -95,6 +115,49 @@ export default function CoupleQuotesPage() {
   const [statusesLoaded, setStatusesLoaded] = useState(false)
   const [coupleIdMap, setCoupleIdMap] = useState<Record<number, string>>({})
   const [convertingNum, setConvertingNum] = useState<number | null>(null)
+  const [ballotAppointments, setBallotAppointments] = useState<Appointment[]>([])
+
+  // Load BridalFlow ballot appointments
+  useEffect(() => {
+    const loadBallots = async () => {
+      try {
+        const res = await fetch('/api/ballots/appointments')
+        if (!res.ok) return
+        const ballots: BallotRecord[] = await res.json()
+        const startNum = STATIC_APPOINTMENTS.length + 1
+        const mapped: Appointment[] = ballots.map((b, i) => {
+          const bride = `${b.bride_first_name} ${b.bride_last_name}`.trim()
+          const groom = b.groom_first_name ? b.groom_first_name.trim() : ''
+          const couple = groom ? `${bride} & ${groom}` : bride
+          const created = new Date(b.created_at)
+          const dateStr = created.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          const dateSort = b.created_at.slice(0, 10)
+          const weddingDateSort = b.wedding_date || ''
+          let weddingDate = '—'
+          if (b.wedding_date) {
+            const wd = new Date(b.wedding_date + 'T12:00:00')
+            weddingDate = wd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          }
+          const bridalShow = b.show_id ? (BALLOT_SHOW_ID_TO_BRIDAL_SHOW[b.show_id] || b.show_id) : null
+          return {
+            num: startNum + i,
+            date: dateStr,
+            dateSort,
+            couple,
+            bridalShow,
+            weddingDate,
+            weddingDateSort,
+            quoted: null,
+            status: 'Pending' as const,
+          }
+        })
+        setBallotAppointments(mapped)
+      } catch (err) {
+        console.error('[loadBallots] Failed to load ballot appointments:', err)
+      }
+    }
+    loadBallots()
+  }, [])
 
   // Load persisted appointment statuses on mount
   useEffect(() => {
@@ -165,14 +228,15 @@ export default function CoupleQuotesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusesLoaded])
 
-  // Apply status overrides and resolved coupleIds on top of static data
+  // Apply status overrides and resolved coupleIds on top of static data, merge ballot appointments
   const effectiveAppointments = useMemo(() => {
-    return STATIC_APPOINTMENTS.map(appt => {
+    const staticMapped = STATIC_APPOINTMENTS.map(appt => {
       const status = statusOverrides[appt.num] || appt.status
       const coupleId = appt.coupleId || coupleIdMap[appt.num] || undefined
       return { ...appt, status, coupleId }
     })
-  }, [statusOverrides, coupleIdMap])
+    return [...staticMapped, ...ballotAppointments]
+  }, [statusOverrides, coupleIdMap, ballotAppointments])
 
   const stats = useMemo(() => {
     const total = effectiveAppointments.length
