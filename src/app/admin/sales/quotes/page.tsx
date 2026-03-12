@@ -1033,7 +1033,7 @@ export default function CoupleQuotesPage() {
 
       {/* Appointments Table */}
       <div>
-        <h2 className="text-lg font-semibold mb-3">Appointments</h2>
+        <h2 className="text-lg font-semibold mb-3">Completed Sales Meetings</h2>
         <div className="rounded-xl border bg-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
