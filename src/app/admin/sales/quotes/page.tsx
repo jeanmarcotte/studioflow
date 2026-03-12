@@ -2,11 +2,26 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText, Pencil, Download } from 'lucide-react'
+import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText, Pencil, Download, Eye } from 'lucide-react'
 import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus } from '@/lib/supabase'
 import jsPDF from 'jspdf'
 import { generateQuotePdf, QuotePdfData } from '@/lib/generateQuotePdf'
 
+interface SalesMeeting {
+  id: number
+  meeting_num: number
+  bride_name: string
+  groom_name: string | null
+  wedding_date: string | null
+  service_needs: string | null
+  lead_source: string | null
+  appt_date: string | null
+  quoted_amount: number | null
+  status: string | null
+  client_quote_id: string | null
+}
+
+// For PDF report compatibility
 interface Appointment {
   num: number
   date: string
@@ -18,59 +33,6 @@ interface Appointment {
   quoted: number | null
   status: 'Booked' | 'Failed' | 'Pending'
   coupleId?: string
-}
-
-const STATIC_APPOINTMENTS: Appointment[] = [
-  { num: 1, date: 'Jan 20, 2026', dateSort: '2026-01-20', couple: 'Victoria & Andrew', bridalShow: 'CBS Fall 2025', weddingDate: 'Sept 12, 2026', weddingDateSort: '2026-09-12', quoted: 3850, status: 'Booked' },
-  { num: 2, date: 'Jan 21, 2026', dateSort: '2026-01-21', couple: 'Candace & Felice', bridalShow: 'CBS Winter 2026', weddingDate: 'June 20, 2026', weddingDateSort: '2026-06-20', quoted: 3300, status: 'Booked' },
-  { num: 3, date: 'Jan 23, 2026', dateSort: '2026-01-23', couple: 'Sydney & Jason', bridalShow: 'CBS Winter 2026', weddingDate: 'Aug 2, 2026', weddingDateSort: '2026-08-02', quoted: 3955, status: 'Booked' },
-  { num: 4, date: 'Jan 24, 2026', dateSort: '2026-01-24', couple: 'Danielle & Jesse', bridalShow: 'CBS Winter 2026', weddingDate: 'Nov 6, 2026', weddingDateSort: '2026-11-06', quoted: 4000, status: 'Failed' },
-  { num: 5, date: 'Jan 26, 2026', dateSort: '2026-01-26', couple: 'Cheryl & Thomas', bridalShow: 'CBS Winter 2026', weddingDate: 'Jan 30, 2027', weddingDateSort: '2027-01-30', quoted: 3600, status: 'Failed' },
-  { num: 6, date: 'Jan 26, 2026', dateSort: '2026-01-26', couple: 'Rebecca & Andrew', bridalShow: 'CBS Winter 2026', weddingDate: 'Aug 14, 2027', weddingDateSort: '2027-08-14', quoted: 3955, status: 'Failed' },
-  { num: 7, date: 'Feb 3, 2026', dateSort: '2026-02-03', couple: 'Siba', bridalShow: 'CBS Winter 2026', weddingDate: 'Sept 11, 2026', weddingDateSort: '2026-09-11', quoted: 3955, status: 'Failed' },
-  { num: 8, date: 'Feb 4, 2026', dateSort: '2026-02-04', couple: 'Alyssa & Pasquale', bridalShow: 'CBS Winter 2026', weddingDate: 'May 22, 2027', weddingDateSort: '2027-05-22', quoted: 3955, status: 'Booked' },
-  { num: 9, date: 'Feb 5, 2026', dateSort: '2026-02-05', couple: 'Sydney & Liam', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 11, 2026', weddingDateSort: '2026-10-11', quoted: 3600, status: 'Booked' },
-  { num: 10, date: 'Feb 5, 2026', dateSort: '2026-02-05', couple: 'Anu & Arun', bridalShow: 'CBS Winter 2026', weddingDate: 'June 26-27, 2027', weddingDateSort: '2027-06-26', quoted: 5000, status: 'Failed' },
-  { num: 11, date: 'Feb 9, 2026', dateSort: '2026-02-09', couple: 'Emma & Noah', bridalShow: 'HBS Winter 2026', weddingDate: 'Apr 23, 2027', weddingDateSort: '2027-04-23', quoted: 3200, status: 'Failed' },
-  { num: 12, date: 'Feb 13, 2026', dateSort: '2026-02-13', couple: 'Christina & Eric', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 17, 2026', weddingDateSort: '2026-10-17', quoted: 3616, status: 'Booked' },
-  { num: 13, date: 'Feb 13, 2026', dateSort: '2026-02-13', couple: 'Janet/Karina & Max', bridalShow: 'HBS Winter 2026', weddingDate: 'Sept 3, 2026', weddingDateSort: '2026-09-03', quoted: 3600, status: 'Failed' },
-  { num: 14, date: 'Feb 18, 2026', dateSort: '2026-02-18', couple: 'Trina & Matt', bridalShow: 'HBS Winter 2026', weddingDate: 'Oct 24, 2026', weddingDateSort: '2026-10-24', quoted: 3616, status: 'Booked', coupleId: 'f4b8efeb-43e6-4b99-8402-04df57233736' },
-  { num: 15, date: 'Feb 24, 2026', dateSort: '2026-02-24', couple: 'Nicole Couto & Cory Fonseca', bridalShow: 'MBS Winter 2026', weddingDate: 'July 25, 2026', weddingDateSort: '2026-07-25', quoted: 3955, status: 'Pending', coupleId: '01cfdd68-359a-470b-b093-7eb101620833' },
-  { num: 16, date: 'Feb 21, 2026', dateSort: '2026-02-21', couple: 'Noureen Ali & Mohammed Hassan-Ali', bridalShow: 'MBS Winter 2026', weddingDate: 'Aug 9, 2026', weddingDateSort: '2026-08-09', quoted: 4915.50, status: 'Pending' },
-]
-
-// Map bridalShow abbreviations → lead source display names for stats grouping
-const BRIDAL_SHOW_TO_SOURCE: Record<string, string> = {
-  'CBS Fall 2025': 'CBS Jan 2026 (Canada\'s Bridal Show)',
-  'CBS Winter 2026': 'CBS Jan 2026 (Canada\'s Bridal Show)',
-  'HBS Winter 2026': 'HBS Jan 2026 (Hamilton Wedding Ring)',
-  'NBS Winter 2026': 'NBS Apr 2026 (Newmarket/Uxbridge Wedding Ring)',
-  'OBS Winter 2026': 'OBS Mar 2026 (Oakville Wedding Ring)',
-  'MBS Winter 2026': 'MBS Feb 2026 (Modern Wedding Show)',
-  'META/Instagram': 'META/Instagram',
-  'Referrals': 'Referrals',
-}
-
-// Map BridalFlow show_id → bridalShow display name used in this page
-const BALLOT_SHOW_ID_TO_BRIDAL_SHOW: Record<string, string> = {
-  'modern-feb-2026': 'MBS Winter 2026',
-  'weddingring-oakville-mar-2026': 'OBS Winter 2026',
-  'cbs-jan-2026': 'CBS Winter 2026',
-  'hbs-jan-2026': 'HBS Winter 2026',
-}
-
-interface BallotRecord {
-  id: string
-  bride_first_name: string
-  bride_last_name: string
-  groom_first_name: string | null
-  groom_last_name: string | null
-  wedding_date: string | null
-  venue_name: string | null
-  show_id: string | null
-  created_at: string
-  appointment_date: string | null
-  coupleId: string | null
 }
 
 interface LeadSourceConfig {
@@ -88,11 +50,31 @@ const LEAD_SOURCES_CONFIG: LeadSourceConfig[] = [
   { name: 'Referrals', defaultShowCost: 0 },
 ]
 
-type SortField = 'num' | 'date' | 'couple' | 'bridalShow' | 'weddingDate' | 'quoted' | 'status'
-type SortDir = 'asc' | 'desc'
+// Map lead_source values from sales_meetings to display names for lead source grouping
+const LEAD_SOURCE_TO_DISPLAY: Record<string, string> = {
+  'CBS Fall 2025': 'CBS Jan 2026 (Canada\'s Bridal Show)',
+  'CBS Winter 2026': 'CBS Jan 2026 (Canada\'s Bridal Show)',
+  'HBS Winter 2026': 'HBS Jan 2026 (Hamilton Wedding Ring)',
+  'NBS Winter 2026': 'NBS Apr 2026 (Newmarket/Uxbridge Wedding Ring)',
+  'OBS Winter 2026': 'OBS Mar 2026 (Oakville Wedding Ring)',
+  'MBS Winter 2026': 'MBS Feb 2026 (Modern Wedding Show)',
+  'MBS Feb 2026': 'MBS Feb 2026 (Modern Wedding Show)',
+  'Wedding Ring Mar 2026': 'OBS Mar 2026 (Oakville Wedding Ring)',
+  'META/Instagram': 'META/Instagram',
+  'Referrals': 'Referrals',
+}
 
 function fmtMoney(n: number): string {
   return '$' + n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function fmtDate(dateStr: string | null): string {
+  if (!dateStr) return '—'
+  try {
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  } catch {
+    return dateStr
+  }
 }
 
 const REPORT_COLORS = {
@@ -106,144 +88,68 @@ const REPORT_COLORS = {
 
 export default function CoupleQuotesPage() {
   const router = useRouter()
-  const [sortField, setSortField] = useState<SortField>('num')
-  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [meetings, setMeetings] = useState<SalesMeeting[]>([])
+  const [meetingsLoading, setMeetingsLoading] = useState(true)
   const [showCosts, setShowCosts] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {}
     LEAD_SOURCES_CONFIG.forEach(s => { init[s.name] = s.defaultShowCost })
     return init
   })
-  const [statusOverrides, setStatusOverrides] = useState<Record<number, Appointment['status']>>({})
-  const [statusesLoaded, setStatusesLoaded] = useState(false)
-  const [coupleIdMap, setCoupleIdMap] = useState<Record<number, string>>({})
-  const [convertingNum, setConvertingNum] = useState<number | null>(null)
-  const [ballotAppointments, setBallotAppointments] = useState<Appointment[]>([])
-  // Load BridalFlow ballot appointments
+
+  // Load sales meetings from database
   useEffect(() => {
-    const loadBallots = async () => {
+    const loadMeetings = async () => {
       try {
-        const res = await fetch('/api/ballots/appointments')
+        const res = await fetch('/api/admin/sales-meetings')
         if (!res.ok) return
-        const ballots: BallotRecord[] = await res.json()
-        // Sort by appointment date ascending so newest ballot gets the highest number
-        ballots.sort((a, b) => (a.appointment_date || a.created_at).localeCompare(b.appointment_date || b.created_at))
-        const startNum = STATIC_APPOINTMENTS.length + 1
-        const mapped: Appointment[] = ballots.map((b, i) => {
-          const bride = `${b.bride_first_name} ${b.bride_last_name}`.trim()
-          const groom = b.groom_first_name ? b.groom_first_name.trim() : ''
-          const couple = groom ? `${bride} & ${groom}` : bride
-          // Use appointment_date if set, otherwise fall back to created_at
-          const apptDate = b.appointment_date
-            ? new Date(b.appointment_date + 'T12:00:00')
-            : new Date(b.created_at)
-          const dateStr = apptDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-          const dateSort = b.appointment_date || b.created_at.slice(0, 10)
-          const weddingDateSort = b.wedding_date || ''
-          let weddingDate = '—'
-          if (b.wedding_date) {
-            const wd = new Date(b.wedding_date + 'T12:00:00')
-            weddingDate = wd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-          }
-          const bridalShow = b.show_id ? (BALLOT_SHOW_ID_TO_BRIDAL_SHOW[b.show_id] || b.show_id) : null
-          return {
-            num: startNum + i,
-            date: dateStr,
-            dateSort,
-            couple,
-            bridalShow,
-            weddingDate,
-            weddingDateSort,
-            quoted: null,
-            status: 'Pending' as const,
-            coupleId: b.coupleId || undefined,
-          }
-        })
-        setBallotAppointments(mapped)
+        const data: SalesMeeting[] = await res.json()
+        setMeetings(data)
       } catch (err) {
-        console.error('[loadBallots] Failed to load ballot appointments:', err)
-      }
-    }
-    loadBallots()
-  }, [])
-
-  // Load persisted appointment statuses on mount
-  useEffect(() => {
-    const loadStatuses = async () => {
-      try {
-        const res = await fetch('/api/appointment-status')
-        const { statuses } = await res.json()
-        if (statuses && Object.keys(statuses).length > 0) {
-          setStatusOverrides(statuses)
-        }
-      } catch (err) {
-        console.error('[loadStatuses] Failed to load persisted statuses:', err)
+        console.error('[loadMeetings] Failed:', err)
       } finally {
-        setStatusesLoaded(true)
+        setMeetingsLoading(false)
       }
     }
-    loadStatuses()
+    loadMeetings()
   }, [])
 
-  // Sync booked appointments to the couples DB (runs after statuses are loaded)
-  useEffect(() => {
-    if (!statusesLoaded) return
+  const handleStatusChange = async (meeting: SalesMeeting, newStatus: string) => {
+    if (newStatus === meeting.status) return
 
-    const syncAppointments = async () => {
-      const today = new Date().toISOString().split('T')[0]
+    // Optimistic update
+    setMeetings(prev => prev.map(m => m.id === meeting.id ? { ...m, status: newStatus } : m))
 
-      // Collect all appointments whose effective status is 'Booked'
-      const bookedToSync = STATIC_APPOINTMENTS
-        .filter(a => (statusOverrides[a.num] || a.status) === 'Booked')
-        .map(a => ({
-          coupleName: a.couple,
-          weddingDate: a.weddingDateSort,
-          contractTotal: a.quoted || undefined,
-          leadSource: a.bridalShow || undefined,
-          bookedDate: today,
-        }))
-
-      if (bookedToSync.length === 0) return
-
-      try {
-        const res = await fetch('/api/sync-couples', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ couples: bookedToSync }),
-        })
-        const { results } = await res.json()
-
-        const newIdMap: Record<number, string> = {}
-        if (results) {
-          for (const r of results) {
-            if (r.id) {
-              const appt = STATIC_APPOINTMENTS.find(a => a.couple === r.coupleName)
-              if (appt && !appt.coupleId) {
-                newIdMap[appt.num] = r.id
-              }
-            }
-          }
-        }
-        if (Object.keys(newIdMap).length > 0) {
-          setCoupleIdMap(prev => ({ ...prev, ...newIdMap }))
-        }
-      } catch (err) {
-        console.error('[syncAppointments] API call failed:', err)
-      }
+    try {
+      await fetch('/api/admin/sales-meetings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: meeting.id, status: newStatus }),
+      })
+    } catch (err) {
+      console.error('[handleStatusChange] Failed:', err)
+      // Revert on failure
+      setMeetings(prev => prev.map(m => m.id === meeting.id ? { ...m, status: meeting.status } : m))
     }
+  }
 
-    syncAppointments()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusesLoaded])
-
-  // Apply status overrides and resolved coupleIds on top of static data, merge ballot appointments
-  const effectiveAppointments = useMemo(() => {
-    const staticMapped = STATIC_APPOINTMENTS.map(appt => {
-      const status = statusOverrides[appt.num] || appt.status
-      const coupleId = appt.coupleId || coupleIdMap[appt.num] || undefined
-      return { ...appt, status, coupleId }
+  // Map meetings to Appointment shape for stats/report compatibility
+  const effectiveAppointments: Appointment[] = useMemo(() => {
+    return meetings.map(m => {
+      const couple = m.groom_name ? `${m.bride_name} & ${m.groom_name}` : m.bride_name
+      const status = (m.status === 'Booked' ? 'Booked' : m.status === 'Failed' ? 'Failed' : 'Pending') as Appointment['status']
+      return {
+        num: m.meeting_num,
+        date: fmtDate(m.appt_date),
+        dateSort: m.appt_date || '',
+        couple,
+        bridalShow: m.lead_source,
+        weddingDate: fmtDate(m.wedding_date),
+        weddingDateSort: m.wedding_date || '',
+        quoted: m.quoted_amount ? Number(m.quoted_amount) : null,
+        status,
+      }
     })
-    return [...staticMapped, ...ballotAppointments]
-  }, [statusOverrides, coupleIdMap, ballotAppointments])
+  }, [meetings])
 
   const stats = useMemo(() => {
     const total = effectiveAppointments.length
@@ -255,181 +161,19 @@ export default function CoupleQuotesPage() {
     return { total, booked, failed, pending, conversion }
   }, [effectiveAppointments])
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDir('asc')
-    }
-  }
-
-  const sorted = useMemo(() => {
-    const result = [...effectiveAppointments]
-    result.sort((a, b) => {
-      let cmp = 0
-      switch (sortField) {
-        case 'num': cmp = a.num - b.num; break
-        case 'date': cmp = a.dateSort.localeCompare(b.dateSort); break
-        case 'couple': cmp = a.couple.localeCompare(b.couple); break
-        case 'bridalShow': cmp = (a.bridalShow || '').localeCompare(b.bridalShow || ''); break
-        case 'weddingDate': cmp = a.weddingDateSort.localeCompare(b.weddingDateSort); break
-        case 'quoted': cmp = (a.quoted || 0) - (b.quoted || 0); break
-        case 'status': cmp = a.status.localeCompare(b.status); break
-      }
-      return sortDir === 'asc' ? cmp : -cmp
-    })
-    return result
-  }, [sortField, sortDir, effectiveAppointments])
-
-  const handleConvertToContract = async (appt: Appointment) => {
-    if (!window.confirm(`Convert "${appt.couple}" to a booked contract? This will generate a contract PDF.`)) return
-
-    setConvertingNum(appt.num)
-    try {
-      // Parse couple name into bride/groom parts
-      const parts = appt.couple.split(' & ')
-      const brideFirst = (parts[0] || '').trim()
-      const groomFirst = (parts[1] || '').trim()
-
-      // Find couple in database — use coupleId or resolved ID, else search by name
-      const resolvedId = appt.coupleId || coupleIdMap[appt.num]
-      let coupleRecord: Record<string, unknown> | undefined
-      if (resolvedId) {
-        const { data } = await supabase.from('couples').select('*').eq('id', resolvedId).single()
-        if (data) coupleRecord = data
-      }
-      if (!coupleRecord) {
-        const { data: coupleRows } = await supabase
-          .from('couples')
-          .select('*')
-          .or(`couple_name.ilike.%${brideFirst}%,bride_name.ilike.%${brideFirst}%`)
-          .limit(5)
-        coupleRecord = coupleRows?.find(c => {
-          const name = (c.couple_name || '').toLowerCase()
-          return name.includes(brideFirst.toLowerCase()) && (!groomFirst || name.includes(groomFirst.toLowerCase()))
-        })
-      }
-
-      let pdfData: QuotePdfData
-
-      if (coupleRecord) {
-        // Try to get quote data for richer contract
-        const { data: quoteData } = await getQuoteByCoupleId(coupleRecord.id as string)
-        const fd = quoteData?.form_data
-
-        if (fd) {
-          const fv = fd.formValues || {}
-          // Reconstruct timeline from saved form values
-          const timeline = buildTimelineFromFormValues(fv)
-          // Calculate prints total
-          const po = fd.printOrders || {}
-          const printsTotal = Object.values(po).reduce((sum: number, qty) => sum + (Number(qty) || 0), 0)
-
-          pdfData = {
-            ...fv,
-            pricing: fd.pricing,
-            installments: fd.installments,
-            printOrders: po,
-            freeParentAlbums: fd.parentAlbumsIncluded === 'free',
-            freePrints: fd.printsIncluded === 'free',
-            printsTotal,
-            timeline,
-            packageName: ({ exclusively_photo: 'Exclusively Photography', package_c: 'Photography & Video Package C', package_b: 'Photography & Video Package B', package_a: 'Photography & Video Package A' } as Record<string, string>)[fv.selectedPackage] || 'Photography Package',
-            packageHours: ({ exclusively_photo: 8, package_c: 8, package_b: 10, package_a: 12 } as Record<string, number>)[fv.selectedPackage] || 8,
-            packageFeatures: buildPackageFeatures(fd),
-            contractMode: true,
-          }
-        } else {
-          // Couple in DB but no quote — build minimal QuotePdfData
-          pdfData = buildMinimalQuoteData(appt, brideFirst, groomFirst, coupleRecord)
-        }
-
-        // Update DB status
-        const total = pdfData.pricing.total
-        const today = new Date().toISOString().split('T')[0]
-        await updateCoupleStatus(coupleRecord.id as string, 'booked', today, total)
-        if (quoteData?.id) {
-          await updateQuoteStatus(quoteData.id, 'accepted')
-        }
-      } else {
-        // No DB record — minimal contract from hardcoded data
-        pdfData = buildMinimalQuoteData(appt, brideFirst, groomFirst)
-      }
-
-      await generateQuotePdf(pdfData)
-      setStatusOverrides(prev => ({ ...prev, [appt.num]: 'Booked' }))
-
-      // Persist status change to database
-      fetch('/api/appointment-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appointmentNum: appt.num, status: 'Booked' }),
-      }).catch(err => console.error('[handleConvertToContract] Failed to persist status:', err))
-    } catch (err) {
-      console.error('Contract generation failed:', err)
-      const msg = err instanceof Error ? err.message : String(err)
-      alert(`Failed to generate contract:\n\n${msg}`)
-    } finally {
-      setConvertingNum(null)
-    }
-  }
-
-  const handleStatusChange = async (appt: Appointment, newStatus: Appointment['status']) => {
-    if (newStatus === appt.status) return
-    setStatusOverrides(prev => ({ ...prev, [appt.num]: newStatus }))
-
-    // Persist status change to database
-    try {
-      await fetch('/api/appointment-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appointmentNum: appt.num, status: newStatus }),
-      })
-    } catch (err) {
-      console.error('[handleStatusChange] Failed to persist status:', err)
-    }
-
-    if (newStatus === 'Booked') {
-      const today = new Date().toISOString().split('T')[0]
-      try {
-        const res = await fetch('/api/sync-couples', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            couples: [{
-              coupleName: appt.couple,
-              weddingDate: appt.weddingDateSort,
-              contractTotal: appt.quoted || undefined,
-              leadSource: appt.bridalShow || undefined,
-              bookedDate: today,
-            }],
-          }),
-        })
-        const { results } = await res.json()
-        if (results?.[0]?.id && !appt.coupleId) {
-          setCoupleIdMap(prev => ({ ...prev, [appt.num]: results[0].id }))
-        }
-      } catch (err) {
-        console.error('[handleStatusChange] sync failed:', err)
-      }
-    }
-  }
-
   const leadSourceRows = useMemo(() => {
-    // Dynamically compute counts from actual appointments
     const countsBySource: Record<string, { appointments: number; bookings: number; fail: number; pending: number }> = {}
     LEAD_SOURCES_CONFIG.forEach(s => { countsBySource[s.name] = { appointments: 0, bookings: 0, fail: 0, pending: 0 } })
 
-    effectiveAppointments.forEach(appt => {
-      const sourceName = appt.bridalShow ? (BRIDAL_SHOW_TO_SOURCE[appt.bridalShow] || appt.bridalShow) : null
+    meetings.forEach(m => {
+      const sourceName = m.lead_source ? (LEAD_SOURCE_TO_DISPLAY[m.lead_source] || m.lead_source) : null
       if (!sourceName) return
       if (!countsBySource[sourceName]) {
         countsBySource[sourceName] = { appointments: 0, bookings: 0, fail: 0, pending: 0 }
       }
       countsBySource[sourceName].appointments++
-      if (appt.status === 'Booked') countsBySource[sourceName].bookings++
-      else if (appt.status === 'Failed') countsBySource[sourceName].fail++
+      if (m.status === 'Booked') countsBySource[sourceName].bookings++
+      else if (m.status === 'Failed') countsBySource[sourceName].fail++
       else countsBySource[sourceName].pending++
     })
 
@@ -440,7 +184,7 @@ export default function CoupleQuotesPage() {
       const costPerSale = counts.bookings > 0 ? cost / counts.bookings : null
       return { ...s, ...counts, showCost: cost, costPerLead, costPerSale }
     })
-  }, [showCosts, effectiveAppointments])
+  }, [showCosts, meetings])
 
   const leadTotals = useMemo(() => {
     const t = leadSourceRows.reduce(
@@ -531,7 +275,7 @@ export default function CoupleQuotesPage() {
     // ── Summary Stats ──
     drawSectionBanner('SUMMARY STATISTICS')
     const statPairs: [string, string][] = [
-      ['Total Appointments', `${stats.total}`],
+      ['Total Meetings', `${stats.total}`],
       ['Booked', `${stats.booked}`],
       ['Pending', `${stats.pending}`],
       ['Failed', `${stats.failed}`],
@@ -739,21 +483,6 @@ export default function CoupleQuotesPage() {
     doc.save(`SIGS_Sales_Pipeline_Report_${stamp}.pdf`)
   }
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30" />
-    return sortDir === 'asc'
-      ? <ChevronUp className="h-3 w-3" />
-      : <ChevronDown className="h-3 w-3" />
-  }
-
-  const SortHeader = ({ field, label, className }: { field: SortField; label: string; className?: string }) => (
-    <th className={`p-3 font-medium ${className || ''}`}>
-      <button onClick={() => handleSort(field)} className="group flex items-center gap-1 hover:text-foreground">
-        {label} <SortIcon field={field} />
-      </button>
-    </th>
-  )
-
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -776,7 +505,7 @@ export default function CoupleQuotesPage() {
         <div className="rounded-xl border bg-card p-4">
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
             <Calendar className="h-4 w-4" />
-            Appointments
+            Meetings
           </div>
           <div className="text-2xl font-bold">{stats.total}</div>
         </div>
@@ -879,7 +608,7 @@ export default function CoupleQuotesPage() {
         </div>
       </div>
 
-      {/* Appointments Table */}
+      {/* Completed Sales Meetings */}
       <div>
         <h2 className="text-lg font-semibold mb-3">Completed Sales Meetings</h2>
         <div className="rounded-xl border bg-card overflow-hidden">
@@ -887,95 +616,83 @@ export default function CoupleQuotesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <SortHeader field="num" label="#" className="text-left w-10" />
-                  <SortHeader field="date" label="Date" className="text-left" />
-                  <SortHeader field="couple" label="Couple" className="text-left" />
-                  <SortHeader field="bridalShow" label="Bridal Show" className="text-left hidden md:table-cell" />
-                  <SortHeader field="weddingDate" label="Wedding Date" className="text-left hidden sm:table-cell" />
-                  <SortHeader field="quoted" label="Quoted $" className="text-right" />
-                  <SortHeader field="status" label="Status" className="text-left" />
-                  <th className="p-3 font-medium text-left">Actions</th>
+                  <th className="text-left p-3 font-medium w-10">#</th>
+                  <th className="text-left p-3 font-medium">Couple</th>
+                  <th className="text-left p-3 font-medium hidden sm:table-cell">Wedding Date</th>
+                  <th className="text-left p-3 font-medium hidden lg:table-cell">Needs</th>
+                  <th className="text-left p-3 font-medium hidden md:table-cell">Lead Source</th>
+                  <th className="text-left p-3 font-medium hidden lg:table-cell">Appt Date</th>
+                  <th className="text-center p-3 font-medium">Quoted $</th>
+                  <th className="text-center p-3 font-medium hidden sm:table-cell w-16">Days</th>
+                  <th className="text-left p-3 font-medium">Status</th>
+                  <th className="text-left p-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {sorted.map((appt) => {
-                  const rowBg = appt.status === 'Booked' ? 'bg-green-50' : appt.status === 'Pending' ? 'bg-teal-50' : ''
-                  return (
-                  <tr
-                    key={appt.num}
-                    className={`hover:bg-accent/50 transition-colors ${rowBg}`}
-                  >
-                    <td className="p-3 text-muted-foreground">{appt.num}</td>
-                    <td className="p-3 whitespace-nowrap">{appt.date}</td>
-                    <td className="p-3 font-medium">
-                      {appt.status === 'Pending' && appt.coupleId ? (
-                        <button
-                          onClick={() => router.push(`/client/new-quote?couple_id=${appt.coupleId}`)}
-                          className="text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          {appt.couple}
-                        </button>
-                      ) : appt.couple}
-                    </td>
-                    <td className="p-3 hidden md:table-cell text-muted-foreground">
-                      {appt.bridalShow || <span className="text-muted-foreground">—</span>}
-                    </td>
-                    <td className="p-3 hidden sm:table-cell whitespace-nowrap">{appt.weddingDate}</td>
-                    <td className="p-3 text-right">
-                      {appt.quoted
-                        ? <span className="font-medium">${appt.quoted.toLocaleString()}</span>
-                        : <span className="text-muted-foreground">—</span>
-                      }
-                    </td>
-                    <td className="p-3">
-                      <select
-                        value={appt.status}
-                        onChange={(e) => handleStatusChange(appt, e.target.value as Appointment['status'])}
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary ${
-                          appt.status === 'Booked' ? 'bg-green-100 text-green-700' :
-                          appt.status === 'Failed' ? 'bg-red-100 text-red-700' :
-                          'bg-amber-100 text-amber-700'
-                        }`}
-                      >
-                        <option value="Booked">Booked</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Failed">Failed</option>
-                      </select>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-1.5">
-                        {appt.status === 'Pending' && appt.coupleId && (
-                          <button
-                            onClick={() => router.push(`/client/new-quote?couple_id=${appt.coupleId}`)}
-                            className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
-                            title="Edit quote"
-                          >
-                            <Pencil className="h-3 w-3" />
-                            Edit
-                          </button>
-                        )}
-                        {appt.status === 'Pending' && (
-                          <button
-                            onClick={() => handleConvertToContract(appt)}
-                            disabled={convertingNum !== null}
-                            className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            {convertingNum === appt.num ? (
-                              <>
-                                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                                Converting...
-                              </>
-                            ) : (
-                              <>
-                                <FileText className="h-3 w-3" />
-                                Contract
-                              </>
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                {meetingsLoading ? (
+                  <tr>
+                    <td colSpan={10} className="p-8 text-center text-muted-foreground">Loading meetings...</td>
                   </tr>
+                ) : meetings.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="p-8 text-center text-muted-foreground">No meetings found</td>
+                  </tr>
+                ) : meetings.map(m => {
+                  const couple = m.groom_name ? `${m.bride_name} & ${m.groom_name}` : m.bride_name
+                  const needsLabel = m.service_needs === 'photo_only' ? 'Photo Only'
+                    : m.service_needs === 'photo_video' ? 'Photo & Video'
+                    : m.service_needs === 'video_only' ? 'Video Only'
+                    : m.service_needs || '—'
+                  const daysSince = m.appt_date
+                    ? Math.floor((new Date().setHours(0,0,0,0) - new Date(m.appt_date + 'T12:00:00').getTime()) / 86400000)
+                    : null
+                  const rowBg = m.status === 'Booked' ? 'bg-green-50' : m.status === 'Pending' ? 'bg-teal-50' : ''
+
+                  return (
+                    <tr key={m.id} className={`hover:bg-accent/50 transition-colors ${rowBg}`}>
+                      <td className="p-3 text-muted-foreground">{m.meeting_num}</td>
+                      <td className="p-3 font-medium">{couple}</td>
+                      <td className="p-3 hidden sm:table-cell whitespace-nowrap">{fmtDate(m.wedding_date)}</td>
+                      <td className="p-3 hidden lg:table-cell text-muted-foreground">{needsLabel}</td>
+                      <td className="p-3 hidden md:table-cell text-muted-foreground">{m.lead_source || '—'}</td>
+                      <td className="p-3 hidden lg:table-cell whitespace-nowrap">{fmtDate(m.appt_date)}</td>
+                      <td className="p-3 text-center">
+                        {m.quoted_amount && Number(m.quoted_amount) > 0
+                          ? <span className="font-medium">{fmtMoney(Number(m.quoted_amount))}</span>
+                          : <span className="text-muted-foreground">—</span>
+                        }
+                      </td>
+                      <td className="p-3 text-center hidden sm:table-cell">
+                        {daysSince !== null ? daysSince : '—'}
+                      </td>
+                      <td className="p-3">
+                        <select
+                          value={m.status || 'Pending'}
+                          onChange={(e) => handleStatusChange(m, e.target.value)}
+                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary ${
+                            m.status === 'Booked' ? 'bg-green-100 text-green-700' :
+                            m.status === 'Failed' ? 'bg-red-100 text-red-700' :
+                            'bg-amber-100 text-amber-700'
+                          }`}
+                        >
+                          <option value="Booked">Booked</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Failed">Failed</option>
+                        </select>
+                      </td>
+                      <td className="p-3">
+                        {m.client_quote_id && (
+                          <button
+                            onClick={() => router.push(`/client/new-quote?id=${m.client_quote_id}`)}
+                            className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+                            title="View Quote"
+                          >
+                            <Eye className="h-3 w-3" />
+                            View Quote
+                          </button>
+                        )}
+                      </td>
+                    </tr>
                   )
                 })}
               </tbody>
@@ -985,136 +702,4 @@ export default function CoupleQuotesPage() {
       </div>
     </div>
   )
-}
-
-// ============================================================
-// HELPER: Reconstruct timeline from saved formValues
-// ============================================================
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildTimelineFromFormValues(fv: any): Array<{ name: string; startTime: string; endTime: string; driveTime?: string }> {
-  const timeline: Array<{ name: string; startTime: string; endTime: string; driveTime?: string }> = []
-  const locations = [
-    { key: 'groom', name: 'Groom Getting Ready', start: 'groomStart', end: 'groomEnd', drive: 'driveGroomToBride' },
-    { key: 'bride', name: 'Bride Getting Ready', start: 'brideStart', end: 'brideEnd', drive: 'driveBrideToNext' },
-  ]
-  // If firstLook, park comes before ceremony
-  if (fv.firstLook) {
-    locations.push({ key: 'park', name: 'First Look + Park Photos', start: 'parkStart', end: 'parkEnd', drive: 'driveParkToNext' })
-  }
-  locations.push({ key: 'ceremony', name: 'Ceremony', start: 'ceremonyStart', end: 'ceremonyEnd', drive: 'driveCeremonyToNext' })
-  if (!fv.firstLook) {
-    locations.push({ key: 'park', name: 'Park / Outdoor Photos', start: 'parkStart', end: 'parkEnd', drive: 'driveParkToNext' })
-  }
-  locations.push({ key: 'reception', name: 'Reception', start: 'receptionStart', end: 'receptionEnd', drive: '' })
-
-  for (const loc of locations) {
-    const startTime = fv[loc.start] || ''
-    const endTime = fv[loc.end] || ''
-    if (startTime || endTime) {
-      timeline.push({ name: loc.name, startTime, endTime, driveTime: loc.drive ? fv[loc.drive] || undefined : undefined })
-    }
-  }
-  return timeline
-}
-
-// ============================================================
-// HELPER: Build minimal QuotePdfData from hardcoded appointment data
-// ============================================================
-
-function buildMinimalQuoteData(
-  appt: Appointment,
-  brideFirst: string,
-  groomFirst: string,
-  coupleRecord?: Record<string, unknown>
-): QuotePdfData {
-  const basePrice = appt.quoted || 3000
-  const hst = Math.round(basePrice * 0.13 * 100) / 100
-  const total = basePrice + hst
-  const deposit = Math.round(total * 0.25 * 100) / 100
-  const remainder = Math.round((total - deposit) * 100) / 100
-
-  return {
-    brideFirstName: brideFirst,
-    brideLastName: '',
-    groomFirstName: groomFirst,
-    groomLastName: '',
-    brideEmail: (coupleRecord?.bride_email as string) || '',
-    bridePhone: (coupleRecord?.bride_phone as string) || '',
-    groomEmail: (coupleRecord?.groom_email as string) || '',
-    groomPhone: (coupleRecord?.groom_phone as string) || '',
-    weddingDate: appt.weddingDateSort,
-    ceremonyVenue: (coupleRecord?.ceremony_venue as string) || '',
-    receptionVenue: (coupleRecord?.reception_venue as string) || '',
-    selectedPackage: 'exclusively_photo',
-    packageName: 'Exclusively Photography',
-    packageHours: 8,
-    packageFeatures: [
-      'Lead Photographer',
-      'Online Gallery',
-      'Edited Digital Files',
-      'Print Release',
-    ],
-    extraPhotographer: false,
-    extraHours: 0,
-    engagementLocation: 'mill_pond',
-    engagementLocationLabel: 'Mill Pond',
-    albumType: 'none',
-    albumSize: '10x8',
-    acrylicCover: false,
-    parentAlbumQty: 0,
-    firstLook: false,
-    pricing: {
-      basePrice,
-      extraPhotographerPrice: 0,
-      extraHoursPrice: 0,
-      albumPrice: 0,
-      acrylicCoverPrice: 0,
-      parentAlbumsPrice: 0,
-      locationFee: 0,
-      printsPrice: 0,
-      subtotal: basePrice,
-      discount: 0,
-      hst,
-      total,
-    },
-    freeParentAlbums: false,
-    freePrints: false,
-    printsTotal: 0,
-    printOrders: {},
-    timeline: [],
-    installments: [
-      { label: 'Deposit (due upon signing)', amount: deposit },
-      { label: 'Final payment (due 30 days before wedding)', amount: remainder },
-    ],
-    discountType: 'none',
-    contractMode: true,
-  }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildPackageFeatures(fd: any): string[] {
-  const features: string[] = []
-  const photo = fd.photoInclusions || {}
-  const video = fd.videoInclusions || {}
-  const web = fd.webInclusions || {}
-
-  if (photo.digitalImages) features.push('Edited Digital Images')
-  if (photo.usbDropbox) features.push('USB / Dropbox Delivery')
-  if (photo.engagementShoot) features.push('Engagement Photo Session')
-  if (photo.postProduction) features.push('Professional Post-Production')
-  if (photo.dronePhoto) features.push('Drone Photography')
-  if (photo.weddingPrints) features.push('Wedding Prints')
-  if (photo.thankYouCards) features.push('Thank You Cards')
-  if (video.hdVideo) features.push('HD Video')
-  if (video.highlightClips) features.push('Highlight Clips')
-  if (video.droneVideo) features.push('Drone Video')
-  if (video.slideshow) features.push('Slideshow')
-  if (video.endCredits) features.push('End Credits')
-  if (video.instagramVideo) features.push('Instagram Video')
-  if (web.weddingGallery) features.push('Online Wedding Gallery')
-  if (web.personalWebPage) features.push('Personal Web Page')
-  if (fd.parentAlbumsIncluded === 'free') features.push('Complimentary Parent Albums')
-  if (fd.printsIncluded === 'free') features.push('Complimentary Prints')
-
-  return features
 }
