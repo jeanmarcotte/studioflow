@@ -73,6 +73,22 @@ interface BallotRecord {
   coupleId: string | null
 }
 
+interface QuoteRecord {
+  id: string
+  couple_id: string
+  quote_type: string
+  status: string
+  total: number
+  created_at: string
+  quote_date: string | null
+  couple_name: string
+  bride_first_name: string | null
+  bride_last_name: string | null
+  wedding_date: string | null
+}
+
+type QuoteFilter = 'all' | 'scheduled' | 'pending' | 'sent' | 'accepted'
+
 interface LeadSourceConfig {
   name: string
   defaultShowCost: number
@@ -118,6 +134,49 @@ export default function CoupleQuotesPage() {
   const [coupleIdMap, setCoupleIdMap] = useState<Record<number, string>>({})
   const [convertingNum, setConvertingNum] = useState<number | null>(null)
   const [ballotAppointments, setBallotAppointments] = useState<Appointment[]>([])
+  const [dbQuotes, setDbQuotes] = useState<QuoteRecord[]>([])
+  const [quotesLoading, setQuotesLoading] = useState(true)
+  const [quoteFilter, setQuoteFilter] = useState<QuoteFilter>('all')
+
+  // Load quotes from database
+  useEffect(() => {
+    const loadQuotes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('quotes')
+          .select('id, couple_id, quote_type, status, total, created_at, quote_date, couples(couple_name, bride_first_name, bride_last_name, wedding_date)')
+          .order('created_at', { ascending: false })
+
+        if (error) {
+          console.error('[loadQuotes] Failed:', error)
+          return
+        }
+
+        const mapped: QuoteRecord[] = (data || []).map((q: Record<string, unknown>) => {
+          const c = q.couples as Record<string, unknown> | null
+          return {
+            id: q.id as string,
+            couple_id: q.couple_id as string,
+            quote_type: q.quote_type as string,
+            status: q.status as string,
+            total: Number(q.total) || 0,
+            created_at: q.created_at as string,
+            quote_date: q.quote_date as string | null,
+            couple_name: (c?.couple_name as string) || '',
+            bride_first_name: (c?.bride_first_name as string) || null,
+            bride_last_name: (c?.bride_last_name as string) || null,
+            wedding_date: (c?.wedding_date as string) || null,
+          }
+        })
+        setDbQuotes(mapped)
+      } catch (err) {
+        console.error('[loadQuotes] Error:', err)
+      } finally {
+        setQuotesLoading(false)
+      }
+    }
+    loadQuotes()
+  }, [])
 
   // Load BridalFlow ballot appointments
   useEffect(() => {
@@ -460,6 +519,11 @@ export default function CoupleQuotesPage() {
       costPerSale: t.bookings > 0 ? t.showCost / t.bookings : null,
     }
   }, [leadSourceRows])
+
+  const filteredQuotes = useMemo(() => {
+    if (quoteFilter === 'all') return dbQuotes
+    return dbQuotes.filter(q => q.status === quoteFilter)
+  }, [dbQuotes, quoteFilter])
 
   const generatePipelineReport = async () => {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
@@ -875,6 +939,93 @@ export default function CoupleQuotesPage() {
                   <td className="p-3 text-right">{leadTotals.costPerSale !== null ? fmtMoney(leadTotals.costPerSale) : '—'}</td>
                 </tr>
               </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Quotes from Database */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">Quotes</h2>
+          <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+            {(['all', 'scheduled', 'pending', 'sent', 'accepted'] as QuoteFilter[]).map(f => (
+              <button
+                key={f}
+                onClick={() => setQuoteFilter(f)}
+                className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                  quoteFilter === f
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-xl border bg-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left p-3 font-medium">Bride Name</th>
+                  <th className="text-left p-3 font-medium hidden sm:table-cell">Wedding Date</th>
+                  <th className="text-left p-3 font-medium">Service Type</th>
+                  <th className="text-left p-3 font-medium">Status</th>
+                  <th className="text-right p-3 font-medium">Quote Amount</th>
+                  <th className="text-left p-3 font-medium hidden md:table-cell">Created</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {quotesLoading ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-muted-foreground">Loading quotes...</td>
+                  </tr>
+                ) : filteredQuotes.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-muted-foreground">No quotes found</td>
+                  </tr>
+                ) : filteredQuotes.map(q => {
+                  const brideName = [q.bride_first_name, q.bride_last_name].filter(Boolean).join(' ') || q.couple_name
+                  const weddingDate = q.wedding_date
+                    ? new Date(q.wedding_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : '—'
+                  const serviceLabel = q.quote_type === 'photo_video' ? 'Photo & Video'
+                    : q.quote_type === 'photo_only' ? 'Photo Only'
+                    : q.quote_type === 'video_only' ? 'Video Only'
+                    : q.quote_type || '—'
+                  const statusColors: Record<string, string> = {
+                    scheduled: 'bg-blue-100 text-blue-700',
+                    pending: 'bg-amber-100 text-amber-700',
+                    sent: 'bg-purple-100 text-purple-700',
+                    accepted: 'bg-green-100 text-green-700',
+                    declined: 'bg-red-100 text-red-700',
+                    draft: 'bg-stone-100 text-stone-700',
+                  }
+                  const createdDate = new Date(q.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  return (
+                    <tr
+                      key={q.id}
+                      className="hover:bg-accent/50 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/client/new-quote?couple_id=${q.couple_id}`)}
+                    >
+                      <td className="p-3 font-medium text-blue-600 hover:text-blue-800">{brideName}</td>
+                      <td className="p-3 hidden sm:table-cell whitespace-nowrap">{weddingDate}</td>
+                      <td className="p-3">{serviceLabel}</td>
+                      <td className="p-3">
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[q.status] || 'bg-stone-100 text-stone-700'}`}>
+                          {q.status.charAt(0).toUpperCase() + q.status.slice(1)}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        {q.total > 0 ? <span className="font-medium">{fmtMoney(q.total)}</span> : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="p-3 hidden md:table-cell text-muted-foreground whitespace-nowrap">{createdDate}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
             </table>
           </div>
         </div>
