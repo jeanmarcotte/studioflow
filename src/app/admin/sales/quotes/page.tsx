@@ -69,6 +69,7 @@ interface BallotRecord {
   venue_name: string | null
   show_id: string | null
   created_at: string
+  appointment_date: string | null
   coupleId: string | null
 }
 
@@ -105,7 +106,7 @@ const REPORT_COLORS = {
 
 export default function CoupleQuotesPage() {
   const router = useRouter()
-  const [sortField, setSortField] = useState<SortField>('date')
+  const [sortField, setSortField] = useState<SortField>('num')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [showCosts, setShowCosts] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {}
@@ -125,14 +126,19 @@ export default function CoupleQuotesPage() {
         const res = await fetch('/api/ballots/appointments')
         if (!res.ok) return
         const ballots: BallotRecord[] = await res.json()
+        // Sort by appointment date ascending so newest ballot gets the highest number
+        ballots.sort((a, b) => (a.appointment_date || a.created_at).localeCompare(b.appointment_date || b.created_at))
         const startNum = STATIC_APPOINTMENTS.length + 1
         const mapped: Appointment[] = ballots.map((b, i) => {
           const bride = `${b.bride_first_name} ${b.bride_last_name}`.trim()
           const groom = b.groom_first_name ? b.groom_first_name.trim() : ''
           const couple = groom ? `${bride} & ${groom}` : bride
-          const created = new Date(b.created_at)
-          const dateStr = created.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-          const dateSort = b.created_at.slice(0, 10)
+          // Use appointment_date if set, otherwise fall back to created_at
+          const apptDate = b.appointment_date
+            ? new Date(b.appointment_date + 'T12:00:00')
+            : new Date(b.created_at)
+          const dateStr = apptDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          const dateSort = b.appointment_date || b.created_at.slice(0, 10)
           const weddingDateSort = b.wedding_date || ''
           let weddingDate = '—'
           if (b.wedding_date) {

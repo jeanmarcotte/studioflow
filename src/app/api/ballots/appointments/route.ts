@@ -12,7 +12,7 @@ export async function GET() {
   const supabase = getServiceClient()
   const { data, error } = await supabase
     .from('ballots')
-    .select('id,bride_first_name,bride_last_name,groom_first_name,groom_last_name,wedding_date,venue_name,show_id,created_at,service_needs,has_videographer')
+    .select('id,bride_first_name,bride_last_name,groom_first_name,groom_last_name,wedding_date,venue_name,show_id,created_at,appointment_date,service_needs,has_videographer')
     .eq('status', 'appointment')
     .order('created_at', { ascending: false })
 
