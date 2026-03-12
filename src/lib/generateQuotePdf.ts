@@ -74,6 +74,7 @@ export interface QuotePdfData {
   discount2Amount?: number
 
   contractMode?: boolean
+  leadSource?: string
 }
 
 // ============================================================
@@ -381,6 +382,11 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     y += 6
   }
 
+  if (data.leadSource) {
+    drawLabelValue(doc, 'We met you at', data.leadSource, margin, y)
+    y += 6
+  }
+
   y += 2
   drawHRule(doc, y, margin, rightEdge)
   y += 6
@@ -494,7 +500,7 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     doc.setFont('helvetica', 'italic')
     doc.setFontSize(7)
     doc.setTextColor(...COLORS.muted)
-    doc.text('(approximate, not confirmed)', margin + 3, y)
+    doc.text('(approximate, time not confirmed until 4 weeks before wedding)', margin + 3, y)
     y += 5
 
     doc.setFontSize(8)
@@ -621,6 +627,16 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
   doc.text(fmt(data.pricing.total, true), rightEdge, y, { align: 'right' })
   y += 10
 
+  // ── 7b. Validity Message ────────────────────────────────
+  checkPageBreak(15)
+  doc.setFont('helvetica', 'italic')
+  doc.setFontSize(7.5)
+  doc.setTextColor(...COLORS.muted)
+  const validityText = 'This quote is valid for 14 days from the date above. Please note that wedding dates are booked on a first-come, first-serve basis. We cannot hold dates for more than 48 hours without a signed contract and deposit.'
+  const splitValidity = doc.splitTextToSize(validityText, contentWidth - 10)
+  doc.text(splitValidity, margin + 5, y)
+  y += splitValidity.length * 3.5 + 4
+
   // ── 8. Installment Schedule ──────────────────────────────
   if (data.installments.length > 0) {
     checkPageBreak(20 + data.installments.length * 8)
@@ -684,8 +700,17 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
   doc.text(splitClosing, margin + 5, y)
   y += splitClosing.length * 4.5 + 10
 
-  // ── 10. Footer ───────────────────────────────────────────
+  // ── 10. Quote Date & Footer ─────────────────────────────
   checkPageBreak(30)
+
+  // Quote generated date
+  const quoteNow = new Date()
+  const quoteDate = quoteNow.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(7)
+  doc.setTextColor(...COLORS.muted)
+  doc.text(`Quote generated: ${quoteDate}`, pageWidth / 2, y, { align: 'center' })
+  y += 8
 
   if (logoBase64) {
     try {

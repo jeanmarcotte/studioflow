@@ -133,7 +133,7 @@ const PACKAGES = {
       'Up to 8 hours of coverage',
       '2 Professional Photographers',
       'Drone Photography',
-      'Engagement Photo session',
+      'Engagement Photo session (~50 digital photos w/ watermark)',
       'Professional retouching and colour correction',
       'Photo Sneak Peeks',
       'Engagement & Wedding personalized online photo gallery',
@@ -153,7 +153,7 @@ const PACKAGES = {
       '1 Professional Photographer',
       '1 Professional Videographer',
       'Drone Photography & Video Footage',
-      'Engagement Photo session',
+      'Engagement Photo session (~50 digital photos w/ watermark)',
       'Professional retouching and colour correction',
       'Photo Sneak Peeks',
       'Engagement & Wedding personalized online photo gallery',
@@ -180,7 +180,7 @@ const PACKAGES = {
       '2 Professional Photographers',
       '1 Professional Videographer',
       'Drone Photography & Video Footage',
-      'Engagement Photo session',
+      'Engagement Photo session (~50 digital photos w/ watermark)',
       'Engagement Shoot Slideshow Presentation',
       'Professional retouching and colour correction',
       'Photo Sneak Peeks',
@@ -208,7 +208,7 @@ const PACKAGES = {
       '2 Professional Photographers',
       '1 Professional Videographer',
       'Drone Photography & Video Footage',
-      'Engagement Photo session',
+      'Engagement Photo session (~50 digital photos w/ watermark)',
       'Engagement Shoot Slideshow Presentation',
       'Professional retouching and colour correction',
       'Photo Sneak Peeks',
@@ -2328,6 +2328,7 @@ function QuoteBuilderInner() {
                   discountType: watchedValues.discountType,
                   discountAmount: watchedValues.discountAmount,
                   discount2Amount: watchedValues.discount2Amount,
+                  leadSource: watchedValues.leadSource || '',
                 })
               }}
               className="flex-1 bg-stone-800 text-white hover:bg-stone-900 px-6 py-3 rounded font-medium flex items-center justify-center gap-2 transition-colors"
