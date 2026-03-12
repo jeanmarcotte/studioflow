@@ -69,6 +69,7 @@ interface BallotRecord {
   venue_name: string | null
   show_id: string | null
   created_at: string
+  coupleId: string | null
 }
 
 interface LeadSourceConfig {
@@ -149,6 +150,7 @@ export default function CoupleQuotesPage() {
             weddingDateSort,
             quoted: null,
             status: 'Pending' as const,
+            coupleId: b.coupleId || undefined,
           }
         })
         setBallotAppointments(mapped)
