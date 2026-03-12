@@ -10,7 +10,7 @@ import { studioflowClientConfig } from '@/config/sidebar'
 import { searchLeadByCouple, findOrCreateCouple, upsertQuote, getQuoteByCoupleId, getCoupleById } from '@/lib/supabase'
 import { generateQuotePdf } from '@/lib/generateQuotePdf'
 import { 
-  Calendar, Phone, MapPin, Users, DollarSign, FileText, Save, Send, 
+  Calendar, Phone, MapPin, Users, DollarSign, FileText,
   AlertCircle, Camera, Video, Check, Plus, Trash2, Clock, Heart,
   ChevronDown, ChevronUp, Music, Image, Globe, Sparkles, Car, ArrowRight
 } from 'lucide-react'
@@ -332,7 +332,6 @@ function QuoteBuilderInner() {
   const [editingVersion, setEditingVersion] = useState<number | null>(null)
   const [existingLead, setExistingLead] = useState<any>(null)
   const [showOtherLocations, setShowOtherLocations] = useState(false)
-  const [showEmailModal, setShowEmailModal] = useState(false)
   
   // Installments state
   const [installments, setInstallments] = useState(SPRING_INSTALLMENTS)
@@ -2218,10 +2217,6 @@ function QuoteBuilderInner() {
 
           {/* Action Buttons */}
           <div className="flex gap-4">
-            <button type="submit" disabled={isLoading} className="flex-1 bg-stone-800 text-white hover:bg-stone-900 px-6 py-3 rounded font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50">
-              <Save className="h-4 w-4" />
-              {isLoading ? 'Saving...' : 'Save Quote'}
-            </button>
             <button
               type="button"
               onClick={async () => {
@@ -2246,6 +2241,54 @@ function QuoteBuilderInner() {
                   })
                   .filter((t): t is NonNullable<typeof t> => t !== null)
 
+                // Determine service_needs from package
+                const serviceNeeds = watchedValues.selectedPackage === 'exclusively_photo' ? 'photo_only' : 'photo_video'
+
+                // Save quote to database
+                try {
+                  await fetch('/api/client/quotes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      bride_first_name: watchedValues.brideFirstName || '',
+                      bride_last_name: watchedValues.brideLastName || '',
+                      groom_first_name: watchedValues.groomFirstName || '',
+                      groom_last_name: watchedValues.groomLastName || '',
+                      email: watchedValues.brideEmail || watchedValues.groomEmail || '',
+                      phone: watchedValues.bridePhone || watchedValues.groomPhone || '',
+                      wedding_date: watchedValues.weddingDate || null,
+                      ceremony_venue: watchedValues.ceremonyVenue || '',
+                      reception_venue: watchedValues.receptionVenue || '',
+                      guest_count: watchedValues.guestCount || null,
+                      bridal_party_count: watchedValues.bridalPartyCount || null,
+                      flower_girl_count: watchedValues.flowerGirl || null,
+                      ring_bearer_count: watchedValues.ringBearer || null,
+                      first_look: watchedValues.firstLook,
+                      engagement_location: engLabel,
+                      service_needs: serviceNeeds,
+                      package_name: selectedPkg?.name || '',
+                      coverage_hours: selectedPkg?.hours || 0,
+                      extra_hours: watchedValues.extraHours || 0,
+                      package_price: pricing.basePrice,
+                      extra_hours_price: pricing.extraHoursPrice,
+                      parent_albums_count: watchedValues.parentAlbumQty || 0,
+                      parent_albums_price: pricing.parentAlbumsPrice,
+                      prints_included: printsIncluded || null,
+                      discount_type: watchedValues.discountType === 'none' ? null : watchedValues.discountType,
+                      discount_value: watchedValues.discountAmount || null,
+                      discount_amount: pricing.discount,
+                      subtotal: pricing.subtotal,
+                      hst_amount: pricing.hst,
+                      total: pricing.total,
+                      installments,
+                      timeline,
+                    }),
+                  })
+                } catch (err) {
+                  console.error('[Download PDF] Failed to save quote:', err)
+                }
+
+                // Generate and download PDF
                 await generateQuotePdf({
                   brideFirstName: watchedValues.brideFirstName || '',
                   brideLastName: watchedValues.brideLastName || '',
@@ -2287,18 +2330,10 @@ function QuoteBuilderInner() {
                   discount2Amount: watchedValues.discount2Amount,
                 })
               }}
-              className="flex-1 bg-stone-100 text-stone-800 hover:bg-stone-200 px-6 py-3 rounded font-medium flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 bg-stone-800 text-white hover:bg-stone-900 px-6 py-3 rounded font-medium flex items-center justify-center gap-2 transition-colors"
             >
               <FileText className="h-4 w-4" />
               Download PDF
-            </button>
-            <button 
-              type="button" 
-              onClick={() => setShowEmailModal(true)}
-              className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 px-6 py-3 rounded font-medium flex items-center justify-center gap-2 transition-colors"
-            >
-              <Send className="h-4 w-4" />
-              Email Template
             </button>
           </div>
           
@@ -2315,118 +2350,6 @@ function QuoteBuilderInner() {
           </div>
         </form>
         
-        {/* Email Template Modal */}
-        {showEmailModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-stone-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-stone-800">Email Template</h3>
-                  <button 
-                    onClick={() => setShowEmailModal(false)}
-                    className="p-1 text-stone-400 hover:text-stone-600"
-                  >
-                    <span className="text-2xl">&times;</span>
-                  </button>
-                </div>
-              </div>
-              
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-stone-500 uppercase tracking-wide mb-1">Subject</label>
-                  <input 
-                    type="text" 
-                    readOnly
-                    value="Thank You for Your Time – Wedding Photography Proposal"
-                    className="w-full px-3 py-2 border border-stone-300 rounded text-sm bg-stone-50"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-stone-500 uppercase tracking-wide mb-1">Email Body</label>
-                  <textarea 
-                    readOnly
-                    rows={18}
-                    value={`Dear ${watchedValues.brideFirstName || '[Bride]'} and ${watchedValues.groomFirstName || '[Groom]'},
-
-Thank you so much for spending time with me on Zoom today! It was a pleasure discussing your wedding plans and how SIGS Photography can capture your special day. I've attached the PDF with the quote we talked about, including details on how we can create beautiful memories together.
-
-If you have any questions or need further information, feel free to contact Marianna Kogan at 416-831-8942. We're both here to help make your wedding experience seamless and unforgettable.
-
-Looking forward to hearing from you!
-
-Warm regards,
-
-Jean Marcotte
-Principal Photographer
-SIGS Photography Ltd.
-Among the Finest Weddings in the World
-265 Rimrock Rd, Unit 2A, Toronto, ON M3J 3A6
-416-831-8942`}
-                    className="w-full px-3 py-2 border border-stone-300 rounded text-sm bg-stone-50 font-mono text-xs"
-                  />
-                </div>
-                
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const subject = encodeURIComponent("Thank You for Your Time – Wedding Photography Proposal")
-                      const body = encodeURIComponent(`Dear ${watchedValues.brideFirstName || '[Bride]'} and ${watchedValues.groomFirstName || '[Groom]'},
-
-Thank you so much for spending time with me on Zoom today! It was a pleasure discussing your wedding plans and how SIGS Photography can capture your special day. I've attached the PDF with the quote we talked about, including details on how we can create beautiful memories together.
-
-If you have any questions or need further information, feel free to contact Marianna Kogan at 416-831-8942. We're both here to help make your wedding experience seamless and unforgettable.
-
-Looking forward to hearing from you!
-
-Warm regards,
-
-Jean Marcotte
-Principal Photographer
-SIGS Photography Ltd.
-Among the Finest Weddings in the World
-265 Rimrock Rd, Unit 2A, Toronto, ON M3J 3A6
-416-831-8942`)
-                      const email = watchedValues.brideEmail || watchedValues.groomEmail || ''
-                      window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank')
-                    }}
-                    className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 px-4 py-2 rounded font-medium flex items-center justify-center gap-2"
-                  >
-                    <Send className="h-4 w-4" />
-                    Open in Mail App
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const text = `Dear ${watchedValues.brideFirstName || '[Bride]'} and ${watchedValues.groomFirstName || '[Groom]'},
-
-Thank you so much for spending time with me on Zoom today! It was a pleasure discussing your wedding plans and how SIGS Photography can capture your special day. I've attached the PDF with the quote we talked about, including details on how we can create beautiful memories together.
-
-If you have any questions or need further information, feel free to contact Marianna Kogan at 416-831-8942. We're both here to help make your wedding experience seamless and unforgettable.
-
-Looking forward to hearing from you!
-
-Warm regards,
-
-Jean Marcotte
-Principal Photographer
-SIGS Photography Ltd.
-Among the Finest Weddings in the World
-265 Rimrock Rd, Unit 2A, Toronto, ON M3J 3A6
-416-831-8942`
-                      navigator.clipboard.writeText(text)
-                      alert('Email body copied to clipboard!')
-                    }}
-                    className="flex-1 bg-stone-100 text-stone-800 hover:bg-stone-200 px-4 py-2 rounded font-medium"
-                  >
-                    Copy to Clipboard
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </Layout>
   )
