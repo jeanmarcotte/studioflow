@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, ChevronDown, ChevronRight } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight, Plus, Check, X } from 'lucide-react'
 import { format, parseISO, differenceInDays } from 'date-fns'
 
 // ── Types ────────────────────────────────────────────────────────
@@ -29,6 +29,16 @@ interface PhotoJob {
   notes: string | null
   brand: string | null
   couples?: { couple_name: string; id: string }
+}
+
+interface PickupItem {
+  id: string
+  couple_name: string
+  items: string
+  notes: string | null
+  created_at: string
+  picked_up: boolean
+  picked_up_at: string | null
 }
 
 // ── Constants ────────────────────────────────────────────────────
@@ -146,21 +156,34 @@ export default function PhotoProductionPage() {
   const [hidePickedUp, setHidePickedUp] = useState(false)
   const overdueRef = useRef<HTMLDivElement>(null)
 
+  // ── Pickup items state ────────────────────────────────────────
+  const [pickupItems, setPickupItems] = useState<PickupItem[]>([])
+  const [showAddItemForm, setShowAddItemForm] = useState(false)
+  const [newItemCouple, setNewItemCouple] = useState('')
+  const [newItemDesc, setNewItemDesc] = useState('')
+  const [newItemNotes, setNewItemNotes] = useState('')
+  const [showPickedUpItems, setShowPickedUpItems] = useState(false)
+
   // ── Fetch jobs ─────────────────────────────────────────────────
 
   useEffect(() => {
-    const fetchJobs = async () => {
-      const { data, error } = await supabase
-        .from('photo_jobs')
-        .select('*, couples(id, couple_name)')
-        .order('order_date', { ascending: true })
+    const fetchAll = async () => {
+      const [jobsRes, pickupRes] = await Promise.all([
+        supabase
+          .from('photo_jobs')
+          .select('*, couples(id, couple_name)')
+          .order('order_date', { ascending: true }),
+        supabase
+          .from('studio_pickup_items')
+          .select('*')
+          .order('created_at', { ascending: false }),
+      ])
 
-      if (!error && data) {
-        setJobs(data)
-      }
+      if (!jobsRes.error && jobsRes.data) setJobs(jobsRes.data)
+      if (!pickupRes.error && pickupRes.data) setPickupItems(pickupRes.data)
       setLoading(false)
     }
-    fetchJobs()
+    fetchAll()
   }, [refreshKey])
 
   // ── Update status inline ───────────────────────────────────────
@@ -194,6 +217,45 @@ export default function PhotoProductionPage() {
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, due_date: dueDate } : j))
     }
   }
+
+  // ── Pickup items CRUD ──────────────────────────────────────────
+
+  const addPickupItem = async () => {
+    if (!newItemCouple.trim() || !newItemDesc.trim()) return
+    const { data, error } = await supabase
+      .from('studio_pickup_items')
+      .insert({
+        couple_name: newItemCouple.trim(),
+        items: newItemDesc.trim(),
+        notes: newItemNotes.trim() || null,
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      setPickupItems(prev => [data, ...prev])
+      setNewItemCouple('')
+      setNewItemDesc('')
+      setNewItemNotes('')
+      setShowAddItemForm(false)
+    }
+  }
+
+  const markPickedUp = async (itemId: string) => {
+    const { error } = await supabase
+      .from('studio_pickup_items')
+      .update({ picked_up: true, picked_up_at: new Date().toISOString() })
+      .eq('id', itemId)
+
+    if (!error) {
+      setPickupItems(prev =>
+        prev.map(i => i.id === itemId ? { ...i, picked_up: true, picked_up_at: new Date().toISOString() } : i)
+      )
+    }
+  }
+
+  const activePickupItems = pickupItems.filter(i => !i.picked_up)
+  const pickedUpItems = pickupItems.filter(i => i.picked_up)
 
   // ── Computed data ──────────────────────────────────────────────
 
@@ -600,8 +662,147 @@ export default function PhotoProductionPage() {
                   </div>
                 )}
 
+                {/* Manual Pickup Items (at_studio lane only) */}
+                {lane.key === 'at_studio' && !isCollapsed && (
+                  <div className="mt-4">
+                    {/* Add Item button + form */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Manual Pickup Items
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {activePickupItems.length} item{activePickupItems.length !== 1 ? 's' : ''}
+                      </span>
+                      <button
+                        onClick={() => setShowAddItemForm(!showAddItemForm)}
+                        className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-border bg-background hover:bg-muted transition-colors"
+                      >
+                        {showAddItemForm ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                        {showAddItemForm ? 'Cancel' : 'Add Item'}
+                      </button>
+                    </div>
+
+                    {/* Add Item Form */}
+                    {showAddItemForm && (
+                      <div className="rounded-xl border bg-card p-4 mb-3 space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground block mb-1">Couple Name *</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Alicia & Emilio"
+                              value={newItemCouple}
+                              onChange={e => setNewItemCouple(e.target.value)}
+                              className="text-sm rounded-md border-border bg-background px-3 py-2 !w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground block mb-1">Items Description *</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Wedding portrait, 3 8x10"
+                              value={newItemDesc}
+                              onChange={e => setNewItemDesc(e.target.value)}
+                              className="text-sm rounded-md border-border bg-background px-3 py-2 !w-full"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground block mb-1">Notes (optional)</label>
+                          <input
+                            type="text"
+                            placeholder="Any additional notes..."
+                            value={newItemNotes}
+                            onChange={e => setNewItemNotes(e.target.value)}
+                            className="text-sm rounded-md border-border bg-background px-3 py-2 !w-full"
+                          />
+                        </div>
+                        <button
+                          onClick={addPickupItem}
+                          disabled={!newItemCouple.trim() || !newItemDesc.trim()}
+                          className="px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Save Item
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Active pickup items list */}
+                    {activePickupItems.length > 0 && (
+                      <div className="rounded-xl border bg-card overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-teal-50/50">
+                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
+                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Items</th>
+                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Notes</th>
+                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Added</th>
+                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground w-[120px]">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {activePickupItems.map(item => (
+                              <tr key={item.id} className="hover:bg-accent/50 transition-colors">
+                                <td className="p-3 font-medium">{item.couple_name}</td>
+                                <td className="p-3 text-muted-foreground">{item.items}</td>
+                                <td className="p-3 text-muted-foreground text-xs hidden md:table-cell">{item.notes || '—'}</td>
+                                <td className="p-3 text-muted-foreground text-xs hidden md:table-cell">
+                                  {format(parseISO(item.created_at), 'MMM d')}
+                                </td>
+                                <td className="p-3">
+                                  <button
+                                    onClick={() => markPickedUp(item.id)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                                  >
+                                    <Check className="h-3 w-3" />
+                                    Picked Up
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Picked up items (toggle) */}
+                    {pickedUpItems.length > 0 && (
+                      <div className="mt-3">
+                        <button
+                          onClick={() => setShowPickedUpItems(!showPickedUpItems)}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPickedUpItems ? 'Hide' : 'Show'} Picked Up ({pickedUpItems.length})
+                        </button>
+                        {showPickedUpItems && (
+                          <div className="rounded-xl border bg-card overflow-hidden mt-2 opacity-60">
+                            <table className="w-full text-sm">
+                              <tbody className="divide-y">
+                                {pickedUpItems.map(item => (
+                                  <tr key={item.id}>
+                                    <td className="p-3 font-medium line-through">{item.couple_name}</td>
+                                    <td className="p-3 text-muted-foreground line-through">{item.items}</td>
+                                    <td className="p-3 text-muted-foreground text-xs hidden md:table-cell">
+                                      Picked up {item.picked_up_at ? format(parseISO(item.picked_up_at), 'MMM d') : ''}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Empty lane */}
-                {!isCollapsed && laneJobs.length === 0 && (
+                {!isCollapsed && laneJobs.length === 0 && lane.key !== 'at_studio' && (
+                  <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-lg">
+                    No jobs in this lane
+                  </div>
+                )}
+                {!isCollapsed && laneJobs.length === 0 && lane.key === 'at_studio' && activePickupItems.length === 0 && (
                   <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-lg">
                     No jobs in this lane
                   </div>
