@@ -253,6 +253,17 @@ export const upsertQuote = async (coupleId: string, quotePayload: {
   return { data, error, isUpdate: false, version: 1 }
 }
 
+// Get a couple record by ID
+export const getCoupleById = async (coupleId: string) => {
+  const { data, error } = await supabase
+    .from('couples')
+    .select('*')
+    .eq('id', coupleId)
+    .single()
+
+  return { data, error }
+}
+
 // Get the latest quote for a couple (with full form_data for restoration)
 export const getQuoteByCoupleId = async (coupleId: string) => {
   const { data, error } = await supabase

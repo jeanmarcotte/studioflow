@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Layout } from '@/components/layout/layout'
 import { studioflowClientConfig } from '@/config/sidebar'
-import { searchLeadByCouple, findOrCreateCouple, upsertQuote, getQuoteByCoupleId } from '@/lib/supabase'
+import { searchLeadByCouple, findOrCreateCouple, upsertQuote, getQuoteByCoupleId, getCoupleById } from '@/lib/supabase'
 import { generateQuotePdf } from '@/lib/generateQuotePdf'
 import { 
   Calendar, Phone, MapPin, Users, DollarSign, FileText, Save, Send, 
@@ -449,7 +449,33 @@ function QuoteBuilderInner() {
       try {
         const { data: quote, error } = await getQuoteByCoupleId(editCoupleId)
         if (error || !quote?.form_data) {
-          console.error('Error loading quote:', error)
+          // No saved quote — pre-fill from couple record and ballot data
+          const { data: couple } = await getCoupleById(editCoupleId)
+          if (couple) {
+            setValue('brideFirstName', couple.bride_first_name || '')
+            setValue('brideLastName', couple.bride_last_name || '')
+            setValue('groomFirstName', couple.groom_first_name || '')
+            setValue('groomLastName', couple.groom_last_name || '')
+            setValue('weddingDate', couple.wedding_date || '')
+            if (couple.bride_phone) setValue('bridePhone', couple.bride_phone)
+            if (couple.bride_email) setValue('brideEmail', couple.bride_email)
+            if (couple.ceremony_venue) setValue('ceremonyVenue', couple.ceremony_venue)
+
+            // Also pull phone/email/venue from ballot if available
+            if (couple.bride_first_name) {
+              const { data: leads } = await searchLeadByCouple(
+                couple.bride_first_name,
+                couple.groom_first_name || ''
+              )
+              if (leads && leads.length > 0) {
+                const lead = leads[0]
+                setExistingLead(lead)
+                if (lead.cell_phone) setValue('bridePhone', formatPhone(lead.cell_phone))
+                if (lead.email) setValue('brideEmail', lead.email)
+                if (lead.venue_name) setValue('ceremonyVenue', lead.venue_name)
+              }
+            }
+          }
           setLoadingQuote(false)
           return
         }
