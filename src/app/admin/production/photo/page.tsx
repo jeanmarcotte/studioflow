@@ -157,6 +157,11 @@ export default function PhotoProductionPage() {
   const [hidePickedUp, setHidePickedUp] = useState(false)
   const overdueRef = useRef<HTMLDivElement>(null)
 
+  // ── Editing lane search & sort ──────────────────────────────────
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortColumn, setSortColumn] = useState<string>('status')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+
   // ── Pickup items state ────────────────────────────────────────
   const [pickupItems, setPickupItems] = useState<PickupItem[]>([])
   const [showAddItemForm, setShowAddItemForm] = useState(false)
@@ -414,6 +419,85 @@ export default function PhotoProductionPage() {
     overdueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  // ── Editing lane sort handler ───────────────────────────────────
+
+  const handleEditingSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
+
+  const getFilteredSortedEditingJobs = (editingJobs: PhotoJob[]): PhotoJob[] => {
+    let filtered = editingJobs
+
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase()
+      filtered = filtered.filter(j =>
+        j.couples?.couple_name?.toLowerCase().includes(q) ||
+        (JOB_TYPE_LABELS[j.job_type] || j.job_type)?.toLowerCase().includes(q) ||
+        (STATUS_LABELS[j.status] || j.status)?.toLowerCase().includes(q) ||
+        j.assigned_to?.toLowerCase().includes(q) ||
+        j.notes?.toLowerCase().includes(q)
+      )
+    }
+
+    return [...filtered].sort((a, b) => {
+      const dir = sortDirection === 'asc' ? 1 : -1
+
+      switch (sortColumn) {
+        case 'status': {
+          const statusOrder = (s: string) => {
+            if (s === 'in_progress') return 0
+            if (s === 'not_started') return 1
+            return 2
+          }
+          const aO = statusOrder(a.status)
+          const bO = statusOrder(b.status)
+          if (aO !== bO) return (aO - bO) * dir
+          return (STATUS_LABELS[a.status] || a.status).localeCompare(STATUS_LABELS[b.status] || b.status) * dir
+        }
+        case 'couple_name':
+          return (a.couples?.couple_name || '').localeCompare(b.couples?.couple_name || '') * dir
+        case 'job_type':
+          return (JOB_TYPE_LABELS[a.job_type] || a.job_type).localeCompare(JOB_TYPE_LABELS[b.job_type] || b.job_type) * dir
+        case 'progress': {
+          const aTotal = (a.photos_taken || a.photos_selected || 0) - (a.deleted || 0)
+          const bTotal = (b.photos_taken || b.photos_selected || 0) - (b.deleted || 0)
+          const aPct = aTotal > 0 ? a.edited_so_far / aTotal : 0
+          const bPct = bTotal > 0 ? b.edited_so_far / bTotal : 0
+          return (aPct - bPct) * dir
+        }
+        case 'order_date':
+          return (a.order_date || '9999').localeCompare(b.order_date || '9999') * dir
+        case 'waiting':
+          return (getDaysWaiting(a.order_date) - getDaysWaiting(b.order_date)) * dir
+        case 'due_date':
+          return (a.due_date || '9999').localeCompare(b.due_date || '9999') * dir
+        case 'assigned_to':
+          return (a.assigned_to || 'zzz').localeCompare(b.assigned_to || 'zzz') * dir
+        case 'backed_up':
+          return ((a.backed_up ? 0 : 1) - (b.backed_up ? 0 : 1)) * dir
+        default:
+          return 0
+      }
+    })
+  }
+
+  const renderSortHeader = (column: string, label: string) => (
+    <button
+      onClick={() => handleEditingSort(column)}
+      className="flex items-center gap-1 hover:text-foreground transition-colors text-left"
+    >
+      {label}
+      {sortColumn === column && (
+        <span className="text-foreground">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+      )}
+    </button>
+  )
+
   // ── Loading ────────────────────────────────────────────────────
 
   if (loading) {
@@ -510,9 +594,12 @@ export default function PhotoProductionPage() {
           {SWIMLANES.map(lane => {
             if (lane.key === 'completed' && !showCompleted) return null
             const allLaneJobs = processedJobs[lane.key]
-            const laneJobs = lane.key === 'at_studio' && hidePickedUp
+            let laneJobs = lane.key === 'at_studio' && hidePickedUp
               ? allLaneJobs.filter(j => j.status !== 'picked_up')
               : allLaneJobs
+            if (lane.key === 'editing') {
+              laneJobs = getFilteredSortedEditingJobs(laneJobs)
+            }
             const isCollapsed = collapsedLanes.has(lane.key)
 
             return (
@@ -551,25 +638,63 @@ export default function PhotoProductionPage() {
                   )}
                 </div>
 
+                {/* Editing lane search bar */}
+                {lane.key === 'editing' && !isCollapsed && (
+                  <div className="relative mb-3 max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Search couples..."
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      className="pl-9 pr-8 text-sm !w-full"
+                    />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Job table */}
                 {!isCollapsed && laneJobs.length > 0 && (
                   <div className="rounded-xl border bg-card overflow-hidden">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b bg-muted/50">
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Job Type</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
-                            {lane.key === 'editing' || lane.key === 'reediting' ? 'Progress' : 'Photos'}
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                            {lane.key === 'editing' ? renderSortHeader('couple_name', 'Couple') : 'Couple'}
                           </th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Order Date</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Waiting</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Due Date</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Assigned</th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                            {lane.key === 'editing' ? renderSortHeader('job_type', 'Job Type') : 'Job Type'}
+                          </th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
+                            {lane.key === 'editing' ? renderSortHeader('progress', 'Progress') : (lane.key === 'reediting' ? 'Progress' : 'Photos')}
+                          </th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">
+                            {lane.key === 'editing' ? renderSortHeader('order_date', 'Order Date') : 'Order Date'}
+                          </th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                            {lane.key === 'editing' ? renderSortHeader('waiting', 'Waiting') : 'Waiting'}
+                          </th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
+                            {lane.key === 'editing' ? renderSortHeader('due_date', 'Due Date') : 'Due Date'}
+                          </th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
+                            {lane.key === 'editing' ? renderSortHeader('assigned_to', 'Assigned') : 'Assigned'}
+                          </th>
                           {lane.key === 'editing' && (
-                            <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Backed Up</th>
+                            <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
+                              {renderSortHeader('backed_up', 'Backed Up')}
+                            </th>
                           )}
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Status</th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                            {lane.key === 'editing' ? renderSortHeader('status', 'Status') : 'Status'}
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -836,7 +961,7 @@ export default function PhotoProductionPage() {
                 {/* Empty lane */}
                 {!isCollapsed && laneJobs.length === 0 && lane.key !== 'at_studio' && (
                   <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-lg">
-                    No jobs in this lane
+                    {lane.key === 'editing' && searchTerm ? 'No matching jobs found' : 'No jobs in this lane'}
                   </div>
                 )}
                 {!isCollapsed && laneJobs.length === 0 && lane.key === 'at_studio' && activePickupItems.length === 0 && (
