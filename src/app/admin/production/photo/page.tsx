@@ -28,6 +28,7 @@ interface PhotoJob {
   status: string
   notes: string | null
   brand: string | null
+  backed_up: boolean
   couples?: { couple_name: string; id: string }
 }
 
@@ -216,6 +217,24 @@ export default function PhotoProductionPage() {
     if (!error) {
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, due_date: dueDate } : j))
     }
+  }
+
+  // ── Toggle backed_up ───────────────────────────────────────────
+
+  const [togglingBackedUp, setTogglingBackedUp] = useState<Set<string>>(new Set())
+
+  const toggleBackedUp = async (jobId: string, current: boolean) => {
+    setTogglingBackedUp(prev => new Set(prev).add(jobId))
+    const newVal = !current
+    const { error } = await supabase
+      .from('photo_jobs')
+      .update({ backed_up: newVal })
+      .eq('id', jobId)
+
+    if (!error) {
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, backed_up: newVal } : j))
+    }
+    setTogglingBackedUp(prev => { const s = new Set(prev); s.delete(jobId); return s })
   }
 
   // ── Pickup items CRUD ──────────────────────────────────────────
@@ -547,6 +566,9 @@ export default function PhotoProductionPage() {
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Waiting</th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Due Date</th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Assigned</th>
+                          {lane.key === 'editing' && (
+                            <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Backed Up</th>
+                          )}
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Status</th>
                         </tr>
                       </thead>
@@ -641,6 +663,21 @@ export default function PhotoProductionPage() {
                               <td className="p-3 hidden md:table-cell text-muted-foreground">
                                 {job.assigned_to || <span className="text-red-600 text-xs">Unassigned</span>}
                               </td>
+                              {lane.key === 'editing' && (
+                                <td className="p-3 hidden md:table-cell">
+                                  <button
+                                    onClick={() => toggleBackedUp(job.id, job.backed_up)}
+                                    disabled={togglingBackedUp.has(job.id)}
+                                    className={`text-xs font-medium px-2 py-1 rounded-md transition-colors ${
+                                      job.backed_up
+                                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                    } disabled:opacity-50`}
+                                  >
+                                    {job.backed_up ? '✓ Yes' : '○ No'}
+                                  </button>
+                                </td>
+                              )}
                               <td className="p-3">
                                 <select
                                   value={job.status}
