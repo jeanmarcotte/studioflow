@@ -772,16 +772,16 @@ export default function VideoProductionPage() {
 
         {/* Stats Sidebar */}
         <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
-          {/* Total Jobs */}
+          {/* Active Jobs */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Total Jobs
+              Active Jobs
             </div>
             <div className="text-3xl font-bold">
-              {stats.totalJobs}
+              {stats.totalJobs - stats.completedCount}
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {stats.totalJobs - stats.completedCount} active
+              {stats.completedCount} non-active
             </div>
           </div>
 
