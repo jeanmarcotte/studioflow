@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, ChevronDown, ChevronRight, GripVertical } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight, GripVertical, X } from 'lucide-react'
 import { format, parseISO, differenceInDays } from 'date-fns'
 
 // ── Types ────────────────────────────────────────────────────────
@@ -29,6 +29,7 @@ interface VideoJob {
   sort_order: number | null
   status: string
   notes: string | null
+  due_date: string | null
   full_video_id: string | null
   created_at: string
   updated_at: string
@@ -134,6 +135,11 @@ export default function VideoProductionPage() {
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null)
   const editingRef = useRef<HTMLDivElement>(null)
 
+  // ── Sort & due date editing state ─────────────────────────────
+  const [sortColumn, setSortColumn] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [editingDueDate, setEditingDueDate] = useState<string | null>(null)
+
   // ── Fetch jobs ─────────────────────────────────────────────────
 
   useEffect(() => {
@@ -200,6 +206,21 @@ export default function VideoProductionPage() {
     }
   }
 
+  // ── Update due_date inline ──────────────────────────────────────
+
+  const updateDueDate = async (jobId: string, newDate: string | null) => {
+    setEditingDueDate(null)
+    const dueDate = newDate || null
+    const { error } = await supabase
+      .from('video_jobs')
+      .update({ due_date: dueDate })
+      .eq('id', jobId)
+
+    if (!error) {
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, due_date: dueDate } : j))
+    }
+  }
+
   // ── Drag-to-reorder ────────────────────────────────────────────
 
   const handleDragStart = useCallback((jobId: string) => {
@@ -261,6 +282,8 @@ export default function VideoProductionPage() {
       const q = search.toLowerCase()
       result = result.filter(j =>
         j.couples?.couple_name?.toLowerCase().includes(q) ||
+        (STATUS_LABELS[j.status] || j.status)?.toLowerCase().includes(q) ||
+        j.assigned_to?.toLowerCase().includes(q) ||
         j.notes?.toLowerCase().includes(q)
       )
     }
@@ -285,18 +308,50 @@ export default function VideoProductionPage() {
       }
     }
 
-    // Sort each lane by sort_order (fallback to wedding_date)
+    // Sort each lane
     for (const key of Object.keys(lanes) as Exclude<SwimlaneKey, 'waiting_photo'>[]) {
-      lanes[key].sort((a, b) => {
-        const aOrder = a.sort_order ?? 9999
-        const bOrder = b.sort_order ?? 9999
-        if (aOrder !== bOrder) return aOrder - bOrder
-        return (a.wedding_date || '9999').localeCompare(b.wedding_date || '9999')
-      })
+      if (sortColumn) {
+        const dir = sortDirection === 'asc' ? 1 : -1
+        lanes[key].sort((a, b) => {
+          switch (sortColumn) {
+            case 'couple_name':
+              return (a.couples?.couple_name || '').localeCompare(b.couples?.couple_name || '') * dir
+            case 'wedding_date':
+              return (a.wedding_date || '9999').localeCompare(b.wedding_date || '9999') * dir
+            case 'ceremony_done':
+            case 'reception_done':
+            case 'park_done':
+            case 'prereception_done':
+            case 'groom_done':
+            case 'bride_done':
+            case 'proxies_run':
+            case 'video_form': {
+              const field = sortColumn as keyof VideoJob
+              return ((a[field] ? 0 : 1) - (b[field] ? 0 : 1)) * dir
+            }
+            case 'active_hd':
+              return (a.active_hd || '').localeCompare(b.active_hd || '') * dir
+            case 'status':
+              return (STATUS_LABELS[a.status] || a.status).localeCompare(STATUS_LABELS[b.status] || b.status) * dir
+            case 'due_date':
+              return (a.due_date || '9999').localeCompare(b.due_date || '9999') * dir
+            default:
+              return 0
+          }
+        })
+      } else {
+        // Default: sort by manual sort_order (fallback to wedding_date)
+        lanes[key].sort((a, b) => {
+          const aOrder = a.sort_order ?? 9999
+          const bOrder = b.sort_order ?? 9999
+          if (aOrder !== bOrder) return aOrder - bOrder
+          return (a.wedding_date || '9999').localeCompare(b.wedding_date || '9999')
+        })
+      }
     }
 
     return lanes
-  }, [jobs, search])
+  }, [jobs, search, sortColumn, sortDirection])
 
   // ── Stats ──────────────────────────────────────────────────────
 
@@ -353,6 +408,29 @@ export default function VideoProductionPage() {
     })
     editingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
+
+  // ── Sort handler ──────────────────────────────────────────────
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
+
+  const renderSortHeader = (column: string, label: string) => (
+    <button
+      onClick={() => handleSort(column)}
+      className="flex items-center gap-1 hover:text-foreground transition-colors text-left"
+    >
+      {label}
+      {sortColumn === column && (
+        <span className="text-foreground">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+      )}
+    </button>
+  )
 
   // ── Loading ────────────────────────────────────────────────────
 
@@ -420,8 +498,16 @@ export default function VideoProductionPage() {
                 placeholder="Search couples..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9 !w-full"
+                className="pl-9 pr-8 !w-full"
               />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -507,21 +593,36 @@ export default function VideoProductionPage() {
                       <thead>
                         <tr className="border-b bg-muted/50">
                           <th className="w-8 p-2"></th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Wedding Date</th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                            {renderSortHeader('couple_name', 'Couple')}
+                          </th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">
+                            {renderSortHeader('wedding_date', 'Wedding Date')}
+                          </th>
                           {!recap && SEGMENTS.map(seg => (
                             <th key={seg.field} className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title={seg.label}>
-                              {seg.shortLabel}
+                              {renderSortHeader(seg.field, seg.shortLabel)}
                             </th>
                           ))}
-                          <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Active HD">HD</th>
+                          <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Active HD">
+                            {renderSortHeader('active_hd', 'HD')}
+                          </th>
                           {!recap && (
                             <>
-                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Proxies Run">Prox</th>
-                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Video Form">Form</th>
+                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Proxies Run">
+                                {renderSortHeader('proxies_run', 'Prox')}
+                              </th>
+                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Video Form">
+                                {renderSortHeader('video_form', 'Form')}
+                              </th>
                             </>
                           )}
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Status</th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                            {renderSortHeader('status', 'Status')}
+                          </th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
+                            {renderSortHeader('due_date', 'Due Date')}
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -607,6 +708,31 @@ export default function VideoProductionPage() {
                                     : <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 )}
                               </select>
+                            </td>
+                            <td className="p-3 hidden md:table-cell">
+                              {editingDueDate === job.id ? (
+                                <input
+                                  type="date"
+                                  autoFocus
+                                  defaultValue={job.due_date || ''}
+                                  onBlur={e => updateDueDate(job.id, e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') updateDueDate(job.id, (e.target as HTMLInputElement).value)
+                                    if (e.key === 'Escape') setEditingDueDate(null)
+                                  }}
+                                  className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
+                                />
+                              ) : (
+                                <button
+                                  onClick={() => setEditingDueDate(job.id)}
+                                  className="text-left text-xs hover:underline"
+                                >
+                                  {job.due_date
+                                    ? <span className="text-muted-foreground">{format(parseISO(job.due_date), 'MMM d')}</span>
+                                    : <span className="text-muted-foreground/50 italic">Set date</span>
+                                  }
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
