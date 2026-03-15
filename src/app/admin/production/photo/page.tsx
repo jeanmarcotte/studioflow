@@ -1,403 +1,196 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, ChevronDown, ChevronRight, Plus, Check, X } from 'lucide-react'
-import { format, parseISO, differenceInDays } from 'date-fns'
+import { Search, Plus, ChevronDown, ChevronRight } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────────────────────
 
-interface PhotoJob {
+interface EditingJob {
   id: string
   couple_id: string
   job_type: string
-  section: string
-  photos_taken: number
-  photos_selected: number
-  edited_so_far: number
-  deleted: number
-  order_date: string | null
-  ordered_date: string | null
-  due_date: string | null
-  assigned_to: string | null
-  lab: string | null
-  lab_received_date: string | null
-  hold_reason: string | null
-  pickup_date: string | null
+  category: string
+  description: string | null
+  quantity: number
+  vendor: string | null
   status: string
-  notes: string | null
-  brand: string | null
-  backed_up: boolean
-  couples?: { couple_name: string; id: string }
-}
-
-interface PickupItem {
-  id: string
-  couple_name: string
-  items: string
+  due_date: string | null
   notes: string | null
   created_at: string
-  picked_up: boolean
-  picked_up_at: string | null
+  updated_at: string
+  couples?: { couple_name: string; wedding_date: string | null } | null
 }
 
 // ── Constants ────────────────────────────────────────────────────
 
 const JOB_TYPE_LABELS: Record<string, string> = {
-  WED_PACKAGE: 'Wedding Package',
-  WED_PROOFS: 'Wedding Proofs',
-  WED_ALBUM: 'Wedding Album',
-  ENG_PROOFS: 'Engagement Proofs',
-  ENG_COLLAGE: 'Engagement Collage',
-  PARENT_BOOK: 'Parent Book',
-  PORTRAITS: 'Portraits',
-  USB: 'USB / Digital',
-  PRINTS: 'Prints',
-  BEST_PRINT: 'BEST Lab Print',
-  CUSTOM_ITEM: 'Custom Item',
-  UAF: 'UAF Item',
+  parent_album: 'Parent Album',
+  bg_album: 'B&G Album',
+  bg_portrait_canvas: 'B&G Portrait (Canvas)',
+  bg_portrait_print: 'B&G Portrait (Print)',
+  parent_portrait_canvas: 'Parent Portrait (Canvas)',
+  parent_portrait_print: 'Parent Portrait (Print)',
+  tyc: 'Thank You Cards',
+  hires_wedding: 'Hi-Res Wedding',
+  eng_proofs: 'Engagement Proofs',
+  eng_collage: 'Engagement Collage',
+  eng_album: 'Engagement Album',
+  eng_prints: 'Engagement Prints',
+  hires_engagement: 'Hi-Res Engagement',
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  not_started: 'Not Started',
-  in_progress: 'In Progress',
-  waiting_for_bride: 'Waiting for Bride',
-  ready_to_reedit: 'Ready to Re-edit',
-  on_hold: 'On Hold',
-  waiting_photo: 'Waiting for Photo',
-  waiting_for_batch: 'Best Canvas Hold',
-  at_lab: 'At Lab',
-  at_studio: 'At Studio',
-  picked_up: 'Picked Up',
-  completed: 'Completed',
+const VENDOR_LABELS: Record<string, string> = {
+  cci: 'CCI',
+  uaf: 'UAF',
+  best_canvas: 'Best Canvas',
+  in_house: 'In-house',
 }
 
-const ALL_STATUSES = [
-  'not_started', 'in_progress', 'waiting_for_bride', 'ready_to_reedit',
-  'on_hold', 'waiting_photo', 'waiting_for_batch', 'at_lab', 'at_studio', 'picked_up', 'completed',
-]
-
-const LANE_PRIMARY_STATUSES: Record<SwimlaneKey, string[]> = {
-  overdue: ['not_started', 'in_progress'],
-  editing: ['not_started', 'in_progress'],
-  reediting: ['waiting_for_bride', 'ready_to_reedit'],
-  waiting_photo: ['waiting_photo', 'not_started'],
-  on_hold: ['on_hold'],
-  ready_to_order: ['not_started'],
-  best_canvas_batch: ['waiting_for_batch'],
-  at_lab: ['at_lab'],
-  at_studio: ['at_studio', 'picked_up'],
-  completed: ['completed'],
+const VENDOR_COLORS: Record<string, string> = {
+  cci: 'bg-blue-100 text-blue-700',
+  uaf: 'bg-purple-100 text-purple-700',
+  best_canvas: 'bg-amber-100 text-amber-700',
+  in_house: 'bg-green-100 text-green-700',
 }
 
-function getLaneStatusOptions(laneKey: SwimlaneKey): { value: string; label: string; divider?: boolean }[] {
-  const primary = LANE_PRIMARY_STATUSES[laneKey]
-  const rest = ALL_STATUSES.filter(s => !primary.includes(s))
-  const options: { value: string; label: string; divider?: boolean }[] = [
-    ...primary.map(v => ({ value: v, label: STATUS_LABELS[v] || v })),
-    { value: '_divider', label: '────────────', divider: true },
-    ...rest.map(v => ({ value: v, label: STATUS_LABELS[v] || v })),
-  ]
-  return options
-}
+const LANES = [
+  { key: 'not_started', label: 'Not Started', badge: 'bg-gray-100 text-gray-700' },
+  { key: 'in_progress', label: 'In Progress', badge: 'bg-blue-100 text-blue-700' },
+  { key: 'waiting_approval', label: 'Waiting Approval', badge: 'bg-amber-100 text-amber-700' },
+  { key: 'ready_to_reedit', label: 'Ready to Re-edit', badge: 'bg-orange-100 text-orange-700' },
+  { key: 'reediting', label: 'Re-editing', badge: 'bg-rose-100 text-rose-700' },
+  { key: 'at_lab', label: 'At Lab', badge: 'bg-indigo-100 text-indigo-700' },
+  { key: 'on_hold', label: 'On Hold', badge: 'bg-stone-100 text-stone-700' },
+  { key: 'completed', label: 'Completed', badge: 'bg-green-100 text-green-700' },
+] as const
 
-const FAST_OVERDUE_TYPES = ['WED_PACKAGE', 'WED_PROOFS', 'ENG_PROOFS', 'ENG_COLLAGE']
+const STATUS_OPTIONS = LANES.map(l => ({ value: l.key, label: l.label }))
 
-// Sections that should NOT trigger overdue (they're past editing phase)
-const NON_OVERDUE_SECTIONS = ['at_lab', 'best_pending', 'best_canvas_batch', 'at_studio', 'on_hold', 'waiting_photo', 'completed']
+type SortField = 'couple' | 'job_type' | 'vendor' | 'created_at'
+type SortDir = 'asc' | 'desc'
 
-type SwimlaneKey = 'overdue' | 'editing' | 'reediting' | 'waiting_photo' | 'on_hold' | 'ready_to_order' | 'best_canvas_batch' | 'at_lab' | 'at_studio' | 'completed'
-
-const SWIMLANES: { key: SwimlaneKey; label: string; icon: string; badgeClass: string }[] = [
-  { key: 'overdue', label: 'OVERDUE', icon: '🔴', badgeClass: 'bg-red-100 text-red-700' },
-  { key: 'editing', label: 'EDITING', icon: '📷', badgeClass: 'bg-blue-100 text-blue-700' },
-  { key: 'reediting', label: 'REEDITING', icon: '🔄', badgeClass: 'bg-sky-100 text-sky-700' },
-  { key: 'on_hold', label: 'ON HOLD', icon: '⏸️', badgeClass: 'bg-slate-100 text-slate-700' },
-  { key: 'ready_to_order', label: 'READY TO ORDER', icon: '📦', badgeClass: 'bg-amber-100 text-amber-700' },
-  { key: 'best_canvas_batch', label: 'BEST CANVAS HOLD', icon: '🖼️', badgeClass: 'bg-orange-100 text-orange-700' },
-  { key: 'at_lab', label: 'AT LAB', icon: '🏭', badgeClass: 'bg-purple-100 text-purple-700' },
-  { key: 'at_studio', label: 'AT STUDIO', icon: '🏠', badgeClass: 'bg-teal-100 text-teal-700' },
-  { key: 'waiting_photo', label: 'WAITING FOR PHOTO ORDER', icon: '📸', badgeClass: 'bg-indigo-100 text-indigo-700' },
-  { key: 'completed', label: 'COMPLETED', icon: '✅', badgeClass: 'bg-green-100 text-green-700' },
-]
-
-// ── Helpers ──────────────────────────────────────────────────────
-
-function getDaysWaiting(orderDate: string | null): number {
-  if (!orderDate) return 0
-  return differenceInDays(new Date(), parseISO(orderDate))
-}
-
-function isOverdue(job: PhotoJob): boolean {
-  if (!job.order_date || NON_OVERDUE_SECTIONS.includes(job.section)) return false
-  const days = getDaysWaiting(job.order_date)
-  const threshold = FAST_OVERDUE_TYPES.includes(job.job_type) ? 14 : 30
-  return days >= threshold
-}
-
-function getOverdueThreshold(jobType: string): number {
-  return FAST_OVERDUE_TYPES.includes(jobType) ? 14 : 30
-}
-
-// ═════════════════════════════════════════════════════════════════
-// PAGE COMPONENT
-// ═════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+// PAGE
+// ══════════════════════════════════════════════════════════════════
 
 export default function PhotoProductionPage() {
   const router = useRouter()
-  const [jobs, setJobs] = useState<PhotoJob[]>([])
+  const [jobs, setJobs] = useState<EditingJob[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [assignedFilter, setAssignedFilter] = useState<string>('all')
-  const [showCompleted, setShowCompleted] = useState(false)
-  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['completed']))
-  const [refreshKey, setRefreshKey] = useState(0)
-  const [editingDueDate, setEditingDueDate] = useState<string | null>(null)
-  const [hidePickedUp, setHidePickedUp] = useState(false)
-  const overdueRef = useRef<HTMLDivElement>(null)
 
-  // ── Editing lane search & sort ──────────────────────────────────
+  // Filters
   const [searchTerm, setSearchTerm] = useState('')
-  const [sortColumn, setSortColumn] = useState<string>('status')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [filterCategory, setFilterCategory] = useState<'all' | 'wedding' | 'engagement'>('all')
+  const [filterVendor, setFilterVendor] = useState('')
 
-  // ── Pickup items state ────────────────────────────────────────
-  const [pickupItems, setPickupItems] = useState<PickupItem[]>([])
-  const [showAddItemForm, setShowAddItemForm] = useState(false)
-  const [newItemCouple, setNewItemCouple] = useState('')
-  const [newItemDesc, setNewItemDesc] = useState('')
-  const [newItemNotes, setNewItemNotes] = useState('')
-  const [showPickedUpItems, setShowPickedUpItems] = useState(false)
+  // Sort
+  const [sortField, setSortField] = useState<SortField>('couple')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
 
-  // ── Fetch jobs ─────────────────────────────────────────────────
+  // Collapsed lanes
+  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['completed']))
+
+  // Show completed
+  const [showCompleted, setShowCompleted] = useState(false)
+
+  // ── Fetch ─────────────────────────────────────────────────────
 
   useEffect(() => {
-    const fetchAll = async () => {
-      const [jobsRes, pickupRes] = await Promise.all([
-        supabase
-          .from('photo_jobs')
-          .select('*, couples(id, couple_name)')
-          .order('order_date', { ascending: true }),
-        supabase
-          .from('studio_pickup_items')
-          .select('*')
-          .order('created_at', { ascending: false }),
-      ])
+    const fetchJobs = async () => {
+      const { data, error } = await supabase
+        .from('editing_jobs')
+        .select('*, couples(couple_name, wedding_date)')
+        .order('created_at', { ascending: false })
 
-      if (!jobsRes.error && jobsRes.data) setJobs(jobsRes.data)
-      if (!pickupRes.error && pickupRes.data) setPickupItems(pickupRes.data)
+      if (!error && data) {
+        setJobs(data as unknown as EditingJob[])
+      }
       setLoading(false)
     }
-    fetchAll()
-  }, [refreshKey])
+    fetchJobs()
+  }, [])
 
-  // ── Update status inline ───────────────────────────────────────
+  // ── Status update ─────────────────────────────────────────────
 
-  const updateJobStatus = async (jobId: string, newStatus: string) => {
-    const updates: Record<string, any> = { status: newStatus }
-    // When marking completed, also set section
-    if (newStatus === 'completed') updates.section = 'completed'
-
+  const updateStatus = async (jobId: string, newStatus: string) => {
     const { error } = await supabase
-      .from('photo_jobs')
-      .update(updates)
+      .from('editing_jobs')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
       .eq('id', jobId)
 
     if (!error) {
-      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j))
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: newStatus } : j))
     }
   }
 
-  // ── Update due_date inline ──────────────────────────────────────
+  // ── Filtered & sorted jobs ────────────────────────────────────
 
-  const updateJobDueDate = async (jobId: string, newDate: string | null) => {
-    setEditingDueDate(null)
-    const dueDate = newDate || null
-    const { error } = await supabase
-      .from('photo_jobs')
-      .update({ due_date: dueDate })
-      .eq('id', jobId)
+  const filteredJobs = useMemo(() => {
+    let result = jobs
 
-    if (!error) {
-      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, due_date: dueDate } : j))
-    }
-  }
-
-  // ── Toggle backed_up ───────────────────────────────────────────
-
-  const [togglingBackedUp, setTogglingBackedUp] = useState<Set<string>>(new Set())
-
-  const toggleBackedUp = async (jobId: string, current: boolean) => {
-    setTogglingBackedUp(prev => new Set(prev).add(jobId))
-    const newVal = !current
-    const { error } = await supabase
-      .from('photo_jobs')
-      .update({ backed_up: newVal })
-      .eq('id', jobId)
-
-    if (!error) {
-      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, backed_up: newVal } : j))
-    }
-    setTogglingBackedUp(prev => { const s = new Set(prev); s.delete(jobId); return s })
-  }
-
-  // ── Pickup items CRUD ──────────────────────────────────────────
-
-  const addPickupItem = async () => {
-    if (!newItemCouple.trim() || !newItemDesc.trim()) return
-    const { data, error } = await supabase
-      .from('studio_pickup_items')
-      .insert({
-        couple_name: newItemCouple.trim(),
-        items: newItemDesc.trim(),
-        notes: newItemNotes.trim() || null,
-      })
-      .select()
-      .single()
-
-    if (!error && data) {
-      setPickupItems(prev => [data, ...prev])
-      setNewItemCouple('')
-      setNewItemDesc('')
-      setNewItemNotes('')
-      setShowAddItemForm(false)
-    }
-  }
-
-  const markPickedUp = async (itemId: string) => {
-    const { error } = await supabase
-      .from('studio_pickup_items')
-      .update({ picked_up: true, picked_up_at: new Date().toISOString() })
-      .eq('id', itemId)
-
-    if (!error) {
-      setPickupItems(prev =>
-        prev.map(i => i.id === itemId ? { ...i, picked_up: true, picked_up_at: new Date().toISOString() } : i)
-      )
-    }
-  }
-
-  const activePickupItems = pickupItems.filter(i => !i.picked_up)
-  const pickedUpItems = pickupItems.filter(i => i.picked_up)
-
-  // ── Computed data ──────────────────────────────────────────────
-
-  const processedJobs = useMemo(() => {
-    let result = [...jobs]
-
-    // Search filter
-    if (search.trim()) {
-      const q = search.toLowerCase()
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
       result = result.filter(j =>
-        j.couples?.couple_name?.toLowerCase().includes(q) ||
-        j.notes?.toLowerCase().includes(q)
+        (j.couples?.couple_name || '').toLowerCase().includes(term) ||
+        (JOB_TYPE_LABELS[j.job_type] || j.job_type).toLowerCase().includes(term) ||
+        (j.description || '').toLowerCase().includes(term)
       )
     }
 
-    // Assigned filter
-    if (assignedFilter !== 'all') {
-      result = result.filter(j => j.assigned_to === assignedFilter)
+    if (filterCategory !== 'all') {
+      result = result.filter(j => j.category === filterCategory)
     }
 
-    // Categorize into swimlanes
-    const lanes: Record<SwimlaneKey, PhotoJob[]> = {
-      overdue: [],
-      editing: [],
-      reediting: [],
-      waiting_photo: [],
-      on_hold: [],
-      ready_to_order: [],
-      best_canvas_batch: [],
-      at_lab: [],
-      at_studio: [],
-      completed: [],
+    if (filterVendor) {
+      result = result.filter(j => j.vendor === filterVendor)
     }
 
-    for (const job of result) {
-      if (job.section === 'completed') {
-        lanes.completed.push(job)
-      } else if (isOverdue(job)) {
-        lanes.overdue.push(job)
-      } else if (job.section === 'reediting') {
-        lanes.reediting.push(job)
-      } else if (job.section === 'waiting_photo') {
-        lanes.waiting_photo.push(job)
-      } else if (job.section === 'on_hold') {
-        lanes.on_hold.push(job)
-      } else if (job.section === 'ready_to_order') {
-        lanes.ready_to_order.push(job)
-      } else if (job.section === 'best_canvas_batch') {
-        lanes.best_canvas_batch.push(job)
-      } else if (job.section === 'at_lab' || job.section === 'best_pending') {
-        lanes.at_lab.push(job)
-      } else if (job.section === 'at_studio') {
-        lanes.at_studio.push(job)
-      } else {
-        // editing, due_asap, waiting, or any other section → editing lane
-        lanes.editing.push(job)
+    // Sort
+    result = [...result].sort((a, b) => {
+      let cmp = 0
+      switch (sortField) {
+        case 'couple':
+          cmp = (a.couples?.couple_name || '').localeCompare(b.couples?.couple_name || '')
+          break
+        case 'job_type':
+          cmp = (JOB_TYPE_LABELS[a.job_type] || a.job_type).localeCompare(JOB_TYPE_LABELS[b.job_type] || b.job_type)
+          break
+        case 'vendor':
+          cmp = (a.vendor || '').localeCompare(b.vendor || '')
+          break
+        case 'created_at':
+          cmp = (a.created_at || '').localeCompare(b.created_at || '')
+          break
       }
-    }
-
-    // Sort each lane by order_date ASC (longest waiting first)
-    for (const key of Object.keys(lanes) as SwimlaneKey[]) {
-      lanes[key].sort((a, b) =>
-        (a.order_date || '9999').localeCompare(b.order_date || '9999')
-      )
-    }
-
-    return lanes
-  }, [jobs, search, assignedFilter])
-
-  // ── Stats ──────────────────────────────────────────────────────
-
-  const stats = useMemo(() => {
-    const totalJobs = jobs.length
-    const activeJobs = jobs.filter(j => j.section !== 'completed')
-
-    // Overdue: from ALL jobs (not filtered by search/assignee)
-    const overdueJobs = activeJobs.filter(j => isOverdue(j))
-      .sort((a, b) => (a.order_date || '9999').localeCompare(b.order_date || '9999'))
-    const overdueCount = overdueJobs.length
-    const mostUrgent = overdueJobs[0] || null
-
-    // Due this week: due_date within 7 days AND not completed
-    const dueThisWeek = activeJobs.filter(j => {
-      if (!j.due_date || j.status === 'completed') return false
-      const daysLeft = differenceInDays(parseISO(j.due_date), new Date())
-      return daysLeft >= 0 && daysLeft <= 7
+      return sortDir === 'asc' ? cmp : -cmp
     })
 
-    const editedYTD = jobs.reduce((sum, j) => sum + (j.edited_so_far || 0), 0)
-    const totalTaken = jobs.reduce((sum, j) => sum + (j.photos_taken || 0), 0)
-    const totalSelected = jobs.reduce((sum, j) => sum + (j.photos_selected || 0), 0)
-    const totalDeleted = jobs.reduce((sum, j) => sum + (j.deleted || 0), 0)
-    const atLabCount = activeJobs.filter(j =>
-      j.section === 'at_lab' || j.section === 'best_pending' || j.section === 'best_canvas_batch'
-    ).length
-    const atStudioCount = activeJobs.filter(j => j.section === 'at_studio').length
+    return result
+  }, [jobs, searchTerm, filterCategory, filterVendor, sortField, sortDir])
 
-    const totalToEdit = totalTaken > 0 ? totalTaken - totalDeleted : totalSelected
-    const remaining = Math.max(0, totalToEdit - editedYTD)
-    const editPercent = totalToEdit > 0 ? Math.round((editedYTD / totalToEdit) * 100) : 0
-    const deletePercent = totalTaken > 0 ? Math.round((totalDeleted / totalTaken) * 100) : 0
+  // ── Lane data ─────────────────────────────────────────────────
 
-    return {
-      totalJobs, overdueCount, mostUrgent, dueThisWeek, editedYTD,
-      totalTaken, totalSelected, totalDeleted, atLabCount, atStudioCount,
-      remaining, editPercent: Math.min(editPercent, 100), deletePercent,
+  const laneData = useMemo(() => {
+    return LANES.map(lane => ({
+      ...lane,
+      jobs: filteredJobs.filter(j => j.status === lane.key),
+    }))
+  }, [filteredJobs])
+
+  const activeCount = jobs.filter(j => j.status !== 'completed' && j.status !== 'not_started').length
+
+  // ── Sort handler ──────────────────────────────────────────────
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDir('asc')
     }
-  }, [jobs])
-
-  // ── Unique assignees ───────────────────────────────────────────
-
-  const assignees = useMemo(() => {
-    const set = new Set<string>()
-    jobs.forEach(j => { if (j.assigned_to) set.add(j.assigned_to) })
-    return Array.from(set).sort()
-  }, [jobs])
-
-  // ── Toggle lane collapse ───────────────────────────────────────
+  }
 
   const toggleLane = (key: string) => {
     setCollapsedLanes(prev => {
@@ -408,717 +201,217 @@ export default function PhotoProductionPage() {
     })
   }
 
-  // ── Scroll to overdue ──────────────────────────────────────────
-
-  const scrollToOverdue = () => {
-    setCollapsedLanes(prev => {
-      const next = new Set(prev)
-      next.delete('overdue')
-      return next
-    })
-    overdueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
-  // ── Editing lane sort handler ───────────────────────────────────
-
-  const handleEditingSort = (column: string) => {
-    if (sortColumn === column) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortColumn(column)
-      setSortDirection('asc')
-    }
-  }
-
-  const getFilteredSortedEditingJobs = (editingJobs: PhotoJob[]): PhotoJob[] => {
-    let filtered = editingJobs
-
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase()
-      filtered = filtered.filter(j =>
-        j.couples?.couple_name?.toLowerCase().includes(q) ||
-        (JOB_TYPE_LABELS[j.job_type] || j.job_type)?.toLowerCase().includes(q) ||
-        (STATUS_LABELS[j.status] || j.status)?.toLowerCase().includes(q) ||
-        j.assigned_to?.toLowerCase().includes(q) ||
-        j.notes?.toLowerCase().includes(q)
-      )
-    }
-
-    return [...filtered].sort((a, b) => {
-      const dir = sortDirection === 'asc' ? 1 : -1
-
-      switch (sortColumn) {
-        case 'status': {
-          const statusOrder = (s: string) => {
-            if (s === 'in_progress') return 0
-            if (s === 'not_started') return 1
-            return 2
-          }
-          const aO = statusOrder(a.status)
-          const bO = statusOrder(b.status)
-          if (aO !== bO) return (aO - bO) * dir
-          return (STATUS_LABELS[a.status] || a.status).localeCompare(STATUS_LABELS[b.status] || b.status) * dir
-        }
-        case 'couple_name':
-          return (a.couples?.couple_name || '').localeCompare(b.couples?.couple_name || '') * dir
-        case 'job_type':
-          return (JOB_TYPE_LABELS[a.job_type] || a.job_type).localeCompare(JOB_TYPE_LABELS[b.job_type] || b.job_type) * dir
-        case 'progress': {
-          const aTotal = (a.photos_taken || a.photos_selected || 0) - (a.deleted || 0)
-          const bTotal = (b.photos_taken || b.photos_selected || 0) - (b.deleted || 0)
-          const aPct = aTotal > 0 ? a.edited_so_far / aTotal : 0
-          const bPct = bTotal > 0 ? b.edited_so_far / bTotal : 0
-          return (aPct - bPct) * dir
-        }
-        case 'order_date':
-          return (a.order_date || '9999').localeCompare(b.order_date || '9999') * dir
-        case 'waiting':
-          return (getDaysWaiting(a.order_date) - getDaysWaiting(b.order_date)) * dir
-        case 'due_date':
-          return (a.due_date || '9999').localeCompare(b.due_date || '9999') * dir
-        case 'assigned_to':
-          return (a.assigned_to || 'zzz').localeCompare(b.assigned_to || 'zzz') * dir
-        case 'backed_up':
-          return ((a.backed_up ? 0 : 1) - (b.backed_up ? 0 : 1)) * dir
-        default:
-          return 0
-      }
-    })
-  }
-
-  const renderSortHeader = (column: string, label: string) => (
+  const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <button
-      onClick={() => handleEditingSort(column)}
-      className="flex items-center gap-1 hover:text-foreground transition-colors text-left"
+      onClick={() => handleSort(field)}
+      className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
     >
-      {label}
-      {sortColumn === column && (
-        <span className="text-foreground">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+      {children}
+      {sortField === field && (
+        <span className="text-[10px]">{sortDir === 'asc' ? '↑' : '↓'}</span>
       )}
     </button>
   )
 
-  // ── Loading ────────────────────────────────────────────────────
+  // ── Loading ───────────────────────────────────────────────────
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
 
+  // ── Render ────────────────────────────────────────────────────
+
   return (
-    <div className="space-y-0">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="px-6 pt-6 pb-4">
-        <h1 className="text-2xl font-bold">Photo Production</h1>
-        <p className="text-muted-foreground">
-          {jobs.filter(j => j.section !== 'completed').length} active jobs
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Photo Production</h1>
+          <p className="text-sm text-muted-foreground">{activeCount} active jobs</p>
+        </div>
+        <button
+          onClick={() => router.push('/admin/production/editing/new')}
+          className="flex items-center gap-2 rounded-lg bg-stone-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Add Job
+        </button>
       </div>
 
-      {/* Overdue Banner */}
-      {stats.overdueCount > 0 && (
-        <div
-          className="bg-destructive text-destructive-foreground px-6 py-3.5 flex items-center justify-between"
-          style={{ animation: 'pulse-bg 2s ease-in-out infinite' }}
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-lg">🔴</span>
-            <span>
-              <strong>{stats.overdueCount} JOB{stats.overdueCount > 1 ? 'S' : ''} OVERDUE</strong>
-              {stats.mostUrgent && (
-                <span>
-                  {' — '}
-                  {stats.mostUrgent.couples?.couple_name} {JOB_TYPE_LABELS[stats.mostUrgent.job_type] || stats.mostUrgent.job_type}
-                  {' waiting '}
-                  {getDaysWaiting(stats.mostUrgent.order_date)} days
-                  {' ('}
-                  {getOverdueThreshold(stats.mostUrgent.job_type)}-day limit)
-                </span>
-              )}
-            </span>
-          </div>
-          <button
-            onClick={scrollToOverdue}
-            className="px-4 py-1.5 rounded-md text-sm font-medium bg-white/20 hover:bg-white/30 transition-colors"
-          >
-            View Overdue →
-          </button>
-        </div>
-      )}
+      {/* Status badges row */}
+      <div className="flex flex-wrap gap-2">
+        {laneData.filter(l => l.key !== 'completed').map(lane => (
+          <span key={lane.key} className={`text-xs rounded-full px-2.5 py-1 font-medium ${lane.badge}`}>
+            {lane.label}: {lane.jobs.length}
+          </span>
+        ))}
+      </div>
 
-      {/* Content area: jobs panel + stats sidebar */}
-      <div className="flex">
-        {/* Job List Panel */}
-        <div className="flex-1 overflow-y-auto p-6 border-r border-border">
-          {/* Filters */}
-          <div className="flex flex-wrap gap-3 mb-6">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search couples..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-9 !w-full"
-              />
-            </div>
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search couples, job types..."
+            className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-stone-400"
+          />
+        </div>
+
+        {/* Category filter */}
+        <div className="flex rounded-lg border border-input overflow-hidden">
+          {(['all', 'wedding', 'engagement'] as const).map(cat => (
             <button
-              onClick={() => setAssignedFilter('all')}
-              className={`px-4 py-2 rounded-md text-sm font-medium border transition-colors ${
-                assignedFilter === 'all'
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background border-border hover:bg-muted'
+              key={cat}
+              onClick={() => setFilterCategory(cat)}
+              className={`px-3 py-2 text-xs font-medium transition-colors ${
+                filterCategory === cat
+                  ? 'bg-stone-800 text-white'
+                  : 'bg-background hover:bg-accent/50'
               }`}
             >
-              All
+              {cat === 'all' ? 'All' : cat === 'wedding' ? 'Wedding' : 'Engagement'}
             </button>
-            {assignees.map(name => (
-              <button
-                key={name}
-                onClick={() => setAssignedFilter(name === assignedFilter ? 'all' : name)}
-                className={`px-4 py-2 rounded-md text-sm font-medium border transition-colors ${
-                  assignedFilter === name
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-background border-border hover:bg-muted'
-                }`}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-
-          {/* Swimlanes */}
-          {SWIMLANES.map(lane => {
-            if (lane.key === 'completed' && !showCompleted) return null
-            const allLaneJobs = processedJobs[lane.key]
-            let laneJobs = lane.key === 'at_studio' && hidePickedUp
-              ? allLaneJobs.filter(j => j.status !== 'picked_up')
-              : allLaneJobs
-            if (lane.key === 'editing') {
-              laneJobs = getFilteredSortedEditingJobs(laneJobs)
-            }
-            const isCollapsed = collapsedLanes.has(lane.key)
-
-            return (
-              <div
-                key={lane.key}
-                className="mb-6"
-                ref={lane.key === 'overdue' ? overdueRef : undefined}
-              >
-                {/* Swimlane header */}
-                <div className="flex items-center gap-3 py-3">
-                  <button
-                    onClick={() => toggleLane(lane.key)}
-                    className="flex items-center gap-3 text-left hover:opacity-80"
-                  >
-                    {isCollapsed
-                      ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      : <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    }
-                    <span className={`inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold ${lane.badgeClass}`}>
-                      {lane.icon} {lane.label}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {allLaneJobs.length} job{allLaneJobs.length !== 1 ? 's' : ''}
-                    </span>
-                  </button>
-                  {lane.key === 'at_studio' && (
-                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground ml-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={hidePickedUp}
-                        onChange={e => setHidePickedUp(e.target.checked)}
-                        className="rounded border-border"
-                      />
-                      Hide Picked Up
-                    </label>
-                  )}
-                </div>
-
-                {/* Editing lane search bar */}
-                {lane.key === 'editing' && !isCollapsed && (
-                  <div className="relative mb-3 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <input
-                      type="text"
-                      placeholder="Search couples..."
-                      value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                      className="pl-9 pr-8 text-sm !w-full"
-                    />
-                    {searchTerm && (
-                      <button
-                        onClick={() => setSearchTerm('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Job table */}
-                {!isCollapsed && laneJobs.length > 0 && (
-                  <div className="rounded-xl border bg-card overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b bg-muted/50">
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                            {lane.key === 'editing' ? renderSortHeader('couple_name', 'Couple') : 'Couple'}
-                          </th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                            {lane.key === 'editing' ? renderSortHeader('job_type', 'Job Type') : 'Job Type'}
-                          </th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
-                            {lane.key === 'editing' ? renderSortHeader('progress', 'Progress') : (lane.key === 'reediting' ? 'Progress' : 'Photos')}
-                          </th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">
-                            {lane.key === 'editing' ? renderSortHeader('order_date', 'Order Date') : 'Order Date'}
-                          </th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                            {lane.key === 'editing' ? renderSortHeader('waiting', 'Waiting') : 'Waiting'}
-                          </th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
-                            {lane.key === 'editing' ? renderSortHeader('due_date', 'Due Date') : 'Due Date'}
-                          </th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
-                            {lane.key === 'editing' ? renderSortHeader('assigned_to', 'Assigned') : 'Assigned'}
-                          </th>
-                          {lane.key === 'editing' && (
-                            <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
-                              {renderSortHeader('backed_up', 'Backed Up')}
-                            </th>
-                          )}
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                            {lane.key === 'editing' ? renderSortHeader('status', 'Status') : 'Status'}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {laneJobs.map(job => {
-                          const daysWaiting = getDaysWaiting(job.order_date)
-                          const threshold = getOverdueThreshold(job.job_type)
-                          const isJobOverdue = daysWaiting >= threshold && !NON_OVERDUE_SECTIONS.includes(job.section)
-                          const isWarning = !isJobOverdue && daysWaiting >= threshold - 7
-                          const photoCount = job.photos_taken || job.photos_selected || 0
-                          const totalToEdit = photoCount - (job.deleted || 0)
-                          const progressPct = totalToEdit > 0 ? Math.round((job.edited_so_far / totalToEdit) * 100) : 0
-
-                          return (
-                            <tr key={job.id} className="hover:bg-accent/50 transition-colors">
-                              <td className="p-3">
-                                <button
-                                  onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
-                                  className="font-medium text-blue-600 hover:underline text-left"
-                                >
-                                  {job.couples?.couple_name || 'Unknown'}
-                                </button>
-                              </td>
-                              <td className="p-3">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-foreground">
-                                    {JOB_TYPE_LABELS[job.job_type] || job.job_type}
-                                  </span>
-                                  {/* BEST CANVAS badge for best_canvas_batch lane */}
-                                  {lane.key === 'best_canvas_batch' && (
-                                    <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">
-                                      BEST CANVAS
-                                    </span>
-                                  )}
-                                  {/* Hold reason badge for on_hold lane */}
-                                  {lane.key === 'on_hold' && job.hold_reason && (
-                                    <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-200 text-slate-700">
-                                      {job.hold_reason}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="p-3 hidden md:table-cell text-muted-foreground">
-                                {(lane.key === 'editing' || lane.key === 'reediting') && totalToEdit > 0 ? (
-                                  <span>{job.edited_so_far} / {totalToEdit} ({progressPct}%)</span>
-                                ) : (
-                                  <span>{photoCount}</span>
-                                )}
-                              </td>
-                              <td className="p-3 hidden lg:table-cell text-muted-foreground">
-                                {job.order_date
-                                  ? format(parseISO(job.order_date), 'MMM d')
-                                  : <span className="text-amber-600 text-xs">No date</span>
-                                }
-                              </td>
-                              <td className="p-3">
-                                {job.order_date ? (
-                                  <span className={`text-xs font-semibold ${
-                                    isJobOverdue ? 'text-red-600' : isWarning ? 'text-orange-600' : 'text-muted-foreground'
-                                  }`}>
-                                    {daysWaiting} days
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
-                              </td>
-                              <td className="p-3 hidden md:table-cell">
-                                {editingDueDate === job.id ? (
-                                  <input
-                                    type="date"
-                                    autoFocus
-                                    defaultValue={job.due_date || ''}
-                                    onBlur={e => updateJobDueDate(job.id, e.target.value)}
-                                    onKeyDown={e => {
-                                      if (e.key === 'Enter') updateJobDueDate(job.id, (e.target as HTMLInputElement).value)
-                                      if (e.key === 'Escape') setEditingDueDate(null)
-                                    }}
-                                    className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
-                                  />
-                                ) : (
-                                  <button
-                                    onClick={() => setEditingDueDate(job.id)}
-                                    className="text-left text-xs hover:underline"
-                                  >
-                                    {job.due_date
-                                      ? <span className="text-muted-foreground">{format(parseISO(job.due_date), 'MMM d')}</span>
-                                      : <span className="text-muted-foreground/50 italic">Set date</span>
-                                    }
-                                  </button>
-                                )}
-                              </td>
-                              <td className="p-3 hidden md:table-cell text-muted-foreground">
-                                {job.assigned_to || <span className="text-red-600 text-xs">Unassigned</span>}
-                              </td>
-                              {lane.key === 'editing' && (
-                                <td className="p-3 hidden md:table-cell">
-                                  <button
-                                    onClick={() => toggleBackedUp(job.id, job.backed_up)}
-                                    disabled={togglingBackedUp.has(job.id)}
-                                    className={`text-xs font-medium px-2 py-1 rounded-md transition-colors ${
-                                      job.backed_up
-                                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                                    } disabled:opacity-50`}
-                                  >
-                                    {job.backed_up ? '✓ Yes' : '○ No'}
-                                  </button>
-                                </td>
-                              )}
-                              <td className="p-3">
-                                <select
-                                  value={job.status}
-                                  onChange={e => updateJobStatus(job.id, e.target.value)}
-                                  className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
-                                >
-                                  {getLaneStatusOptions(lane.key).map(opt =>
-                                    opt.divider
-                                      ? <option key="_divider" disabled>{'────────────'}</option>
-                                      : <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                  )}
-                                </select>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {/* Manual Pickup Items (at_studio lane only) */}
-                {lane.key === 'at_studio' && !isCollapsed && (
-                  <div className="mt-4">
-                    {/* Add Item button + form */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Manual Pickup Items
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {activePickupItems.length} item{activePickupItems.length !== 1 ? 's' : ''}
-                      </span>
-                      <button
-                        onClick={() => setShowAddItemForm(!showAddItemForm)}
-                        className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-border bg-background hover:bg-muted transition-colors"
-                      >
-                        {showAddItemForm ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-                        {showAddItemForm ? 'Cancel' : 'Add Item'}
-                      </button>
-                    </div>
-
-                    {/* Add Item Form */}
-                    {showAddItemForm && (
-                      <div className="rounded-xl border bg-card p-4 mb-3 space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-xs font-medium text-muted-foreground block mb-1">Couple Name *</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. Alicia & Emilio"
-                              value={newItemCouple}
-                              onChange={e => setNewItemCouple(e.target.value)}
-                              className="text-sm rounded-md border-border bg-background px-3 py-2 !w-full"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium text-muted-foreground block mb-1">Items Description *</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. Wedding portrait, 3 8x10"
-                              value={newItemDesc}
-                              onChange={e => setNewItemDesc(e.target.value)}
-                              className="text-sm rounded-md border-border bg-background px-3 py-2 !w-full"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-muted-foreground block mb-1">Notes (optional)</label>
-                          <input
-                            type="text"
-                            placeholder="Any additional notes..."
-                            value={newItemNotes}
-                            onChange={e => setNewItemNotes(e.target.value)}
-                            className="text-sm rounded-md border-border bg-background px-3 py-2 !w-full"
-                          />
-                        </div>
-                        <button
-                          onClick={addPickupItem}
-                          disabled={!newItemCouple.trim() || !newItemDesc.trim()}
-                          className="px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          Save Item
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Active pickup items list */}
-                    {activePickupItems.length > 0 && (
-                      <div className="rounded-xl border bg-card overflow-hidden">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b bg-teal-50/50">
-                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
-                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Items</th>
-                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Notes</th>
-                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Added</th>
-                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground w-[120px]">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y">
-                            {activePickupItems.map(item => (
-                              <tr key={item.id} className="hover:bg-accent/50 transition-colors">
-                                <td className="p-3 font-medium">{item.couple_name}</td>
-                                <td className="p-3 text-muted-foreground">{item.items}</td>
-                                <td className="p-3 text-muted-foreground text-xs hidden md:table-cell">{item.notes || '—'}</td>
-                                <td className="p-3 text-muted-foreground text-xs hidden md:table-cell">
-                                  {format(parseISO(item.created_at), 'MMM d')}
-                                </td>
-                                <td className="p-3">
-                                  <button
-                                    onClick={() => markPickedUp(item.id)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
-                                  >
-                                    <Check className="h-3 w-3" />
-                                    Picked Up
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
-                    {/* Picked up items (toggle) */}
-                    {pickedUpItems.length > 0 && (
-                      <div className="mt-3">
-                        <button
-                          onClick={() => setShowPickedUpItems(!showPickedUpItems)}
-                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {showPickedUpItems ? 'Hide' : 'Show'} Picked Up ({pickedUpItems.length})
-                        </button>
-                        {showPickedUpItems && (
-                          <div className="rounded-xl border bg-card overflow-hidden mt-2 opacity-60">
-                            <table className="w-full text-sm">
-                              <tbody className="divide-y">
-                                {pickedUpItems.map(item => (
-                                  <tr key={item.id}>
-                                    <td className="p-3 font-medium line-through">{item.couple_name}</td>
-                                    <td className="p-3 text-muted-foreground line-through">{item.items}</td>
-                                    <td className="p-3 text-muted-foreground text-xs hidden md:table-cell">
-                                      Picked up {item.picked_up_at ? format(parseISO(item.picked_up_at), 'MMM d') : ''}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Empty lane */}
-                {!isCollapsed && laneJobs.length === 0 && lane.key !== 'at_studio' && (
-                  <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-lg">
-                    {lane.key === 'editing' && searchTerm ? 'No matching jobs found' : 'No jobs in this lane'}
-                  </div>
-                )}
-                {!isCollapsed && laneJobs.length === 0 && lane.key === 'at_studio' && activePickupItems.length === 0 && (
-                  <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-lg">
-                    No jobs in this lane
-                  </div>
-                )}
-              </div>
-            )
-          })}
-
-          {/* Show/Hide Completed toggle */}
-          <button
-            onClick={() => {
-              setShowCompleted(!showCompleted)
-              if (!showCompleted) {
-                setCollapsedLanes(prev => {
-                  const next = new Set(prev)
-                  next.delete('completed')
-                  return next
-                })
-              }
-            }}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {showCompleted ? 'Hide' : 'Show'} Completed ({processedJobs.completed.length})
-          </button>
+          ))}
         </div>
 
-        {/* Stats Sidebar */}
-        <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
-          {/* Total Jobs */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Total Jobs
-            </div>
-            <div className="text-3xl font-bold">
-              {stats.totalJobs}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {stats.totalJobs - jobs.filter(j => j.section === 'completed').length} active
-            </div>
-          </div>
-
-          {/* Overdue Jobs */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Overdue Jobs
-            </div>
-            <div className={`text-3xl font-bold ${stats.overdueCount > 0 ? 'text-destructive' : 'text-foreground'}`}>
-              {stats.overdueCount}
-            </div>
-            {stats.mostUrgent && (
-              <div className="text-xs text-muted-foreground mt-1">
-                {stats.mostUrgent.couples?.couple_name} ({getDaysWaiting(stats.mostUrgent.order_date)} days)
-              </div>
-            )}
-          </div>
-
-          {/* Due This Week */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Due This Week
-            </div>
-            <div className="text-3xl font-bold">
-              {stats.dueThisWeek.length}
-            </div>
-            {stats.dueThisWeek.length > 0 && (
-              <div className="text-xs text-muted-foreground mt-1">
-                {stats.dueThisWeek.slice(0, 2).map(j => j.couples?.couple_name).join(', ')}
-              </div>
-            )}
-          </div>
-
-          {/* Edited YTD */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Total Edited YTD
-            </div>
-            <div className="text-3xl font-bold text-green-600">
-              {stats.editedYTD.toLocaleString()}
-            </div>
-            {(stats.totalTaken > 0 || stats.totalSelected > 0) && (
-              <div className="text-xs text-muted-foreground mt-1">
-                {stats.editPercent}% of {(stats.totalTaken > 0 ? stats.totalTaken - stats.totalDeleted : stats.totalSelected).toLocaleString()}
-              </div>
-            )}
-          </div>
-
-          {/* At Lab */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              At Lab
-            </div>
-            <div className="text-3xl font-bold">
-              {stats.atLabCount}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">BEST / Custom / UAF</div>
-          </div>
-
-          {/* At Studio */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              At Studio
-            </div>
-            <div className="text-3xl font-bold">
-              {stats.atStudioCount}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Ready for pickup</div>
-          </div>
-
-          {/* Divider */}
-          <div className="h-px bg-border my-6" />
-
-          {/* Edit Progress Mini Chart */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-foreground mb-3">
-              Edit Progress (YTD)
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-green-500 rounded-full transition-all"
-                style={{ width: `${stats.editPercent}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground mt-2">
-              <span>{stats.editedYTD.toLocaleString()} edited</span>
-              <span>{stats.remaining.toLocaleString()} remaining</span>
-            </div>
-          </div>
-
-          {/* Deletion Rate Mini Chart */}
-          <div className="rounded-xl border bg-card p-4">
-            <div className="text-xs font-semibold text-foreground mb-3">
-              Deletion Rate
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-orange-500 rounded-full transition-all"
-                style={{ width: `${stats.deletePercent}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground mt-2">
-              <span>{stats.deletePercent}% avg</span>
-              <span>{stats.totalDeleted.toLocaleString()} deleted</span>
-            </div>
-          </div>
-        </aside>
+        {/* Vendor filter */}
+        <select
+          value={filterVendor}
+          onChange={(e) => setFilterVendor(e.target.value)}
+          className="rounded-lg border border-input bg-background px-3 py-2 text-xs outline-none transition-colors focus:border-stone-400"
+        >
+          <option value="">All Vendors</option>
+          {Object.entries(VENDOR_LABELS).map(([val, label]) => (
+            <option key={val} value={val}>{label}</option>
+          ))}
+        </select>
       </div>
 
-      {/* Pulse animation */}
-      <style jsx global>{`
-        @keyframes pulse-bg {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.92; }
-        }
-      `}</style>
+      {/* Lanes */}
+      <div className="space-y-4">
+        {laneData.map(lane => {
+          if (lane.key === 'completed' && !showCompleted) return null
+          if (lane.jobs.length === 0 && lane.key !== 'in_progress') return null
+
+          const isCollapsed = collapsedLanes.has(lane.key)
+
+          return (
+            <div key={lane.key} className="rounded-xl border bg-card">
+              {/* Lane header */}
+              <button
+                onClick={() => toggleLane(lane.key)}
+                className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  {isCollapsed
+                    ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  }
+                  <span className="font-semibold text-sm">{lane.label}</span>
+                  <span className={`text-xs rounded-full px-2 py-0.5 font-medium ${lane.badge}`}>
+                    {lane.jobs.length}
+                  </span>
+                </div>
+              </button>
+
+              {/* Lane body */}
+              {!isCollapsed && lane.jobs.length > 0 && (
+                <div className="border-t">
+                  {/* Column headers */}
+                  <div className="grid grid-cols-[1fr_140px_140px_120px_140px] gap-2 px-4 py-2 border-b bg-muted/30">
+                    <SortHeader field="couple">Couple</SortHeader>
+                    <SortHeader field="job_type">Job Type</SortHeader>
+                    <span className="text-xs font-medium text-muted-foreground">Description</span>
+                    <SortHeader field="vendor">Vendor</SortHeader>
+                    <span className="text-xs font-medium text-muted-foreground">Status</span>
+                  </div>
+
+                  {/* Jobs */}
+                  {lane.jobs.map(job => (
+                    <div
+                      key={job.id}
+                      className="grid grid-cols-[1fr_140px_140px_120px_140px] gap-2 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors items-center"
+                    >
+                      {/* Couple */}
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">
+                          {job.couples?.couple_name || 'Unknown'}
+                        </div>
+                      </div>
+
+                      {/* Job Type */}
+                      <div className="text-sm text-muted-foreground truncate">
+                        {JOB_TYPE_LABELS[job.job_type] || job.job_type}
+                      </div>
+
+                      {/* Description */}
+                      <div className="text-sm text-muted-foreground truncate">
+                        {job.description || '—'}
+                      </div>
+
+                      {/* Vendor */}
+                      <div>
+                        {job.vendor ? (
+                          <span className={`text-[11px] rounded-full px-2 py-0.5 font-medium ${VENDOR_COLORS[job.vendor] || 'bg-gray-100 text-gray-700'}`}>
+                            {VENDOR_LABELS[job.vendor] || job.vendor}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
+
+                      {/* Status dropdown */}
+                      <select
+                        value={job.status}
+                        onChange={(e) => updateStatus(job.id, e.target.value)}
+                        className="text-xs rounded-lg border border-input bg-background px-2 py-1.5 outline-none transition-colors focus:border-stone-400 cursor-pointer"
+                      >
+                        {STATUS_OPTIONS.map(s => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Empty lane */}
+              {!isCollapsed && lane.jobs.length === 0 && (
+                <div className="border-t px-4 py-6 text-center text-sm text-muted-foreground">
+                  No jobs
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Show/hide completed */}
+      <div className="text-center">
+        <button
+          onClick={() => {
+            setShowCompleted(!showCompleted)
+            if (!showCompleted) {
+              setCollapsedLanes(prev => {
+                const next = new Set(prev)
+                next.delete('completed')
+                return next
+              })
+            }
+          }}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {showCompleted ? 'Hide Completed' : `Show Completed (${laneData.find(l => l.key === 'completed')?.jobs.length || 0})`}
+        </button>
+      </div>
     </div>
   )
 }
