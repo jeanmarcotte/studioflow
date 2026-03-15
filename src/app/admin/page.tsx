@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Calendar, Camera, Clock, X } from 'lucide-react'
 import { format, differenceInDays, parseISO } from 'date-fns'
+import * as d3 from 'd3'
 
 interface Couple {
   id: string
@@ -22,6 +23,96 @@ interface Couple {
   contract_total: number | null
   total_paid: number | null
   balance_owing: number | null
+}
+
+interface YearRingData {
+  year: number
+  total: number
+  completed: number
+}
+
+function RadialRings({ data }: { data: YearRingData[] }) {
+  const svgRef = useRef<SVGSVGElement>(null)
+
+  useEffect(() => {
+    if (!svgRef.current) return
+
+    const size = 300
+    const center = size / 2
+
+    const svg = d3.select(svgRef.current)
+    svg.selectAll('*').remove()
+    svg.attr('viewBox', `0 0 ${size} ${size}`)
+
+    const g = svg.append('g').attr('transform', `translate(${center},${center})`)
+
+    const ringWidth = 22
+    const gap = 8
+    const rings = [
+      { ...data[0], radius: center - 20 },                          // 2025 outer
+      { ...data[1], radius: center - 20 - ringWidth - gap },        // 2026 middle
+      { ...data[2], radius: center - 20 - (ringWidth + gap) * 2 },  // 2027 inner
+    ]
+
+    const colors = ['#14b8a6', '#0ea5e9', '#8b5cf6']
+
+    rings.forEach((ring, i) => {
+      const pct = ring.total > 0 ? ring.completed / ring.total : 0
+
+      // Background track
+      g.append('circle')
+        .attr('r', ring.radius)
+        .attr('fill', 'none')
+        .attr('stroke', '#e5e7eb')
+        .attr('stroke-width', ringWidth)
+
+      // Completed arc
+      if (pct > 0) {
+        const arc = d3.arc<unknown>()
+          .innerRadius(ring.radius - ringWidth / 2)
+          .outerRadius(ring.radius + ringWidth / 2)
+          .startAngle(0)
+          .endAngle(pct * 2 * Math.PI)
+          .cornerRadius(ringWidth / 2)
+
+        g.append('path')
+          .attr('d', arc(null as unknown as d3.DefaultArcObject))
+          .attr('fill', colors[i])
+      }
+
+      // Year label
+      g.append('text')
+        .attr('x', 0)
+        .attr('y', -ring.radius)
+        .attr('dy', '0.35em')
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '10px')
+        .attr('font-weight', '600')
+        .attr('fill', colors[i])
+        .text(ring.year)
+    })
+
+    // Center text
+    const totalAll = data.reduce((s, d) => s + d.total, 0)
+    const completedAll = data.reduce((s, d) => s + d.completed, 0)
+
+    g.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '-0.3em')
+      .attr('font-size', '28px')
+      .attr('font-weight', '700')
+      .attr('fill', 'currentColor')
+      .text(completedAll)
+
+    g.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '1.2em')
+      .attr('font-size', '11px')
+      .attr('fill', '#6b7280')
+      .text(`of ${totalAll} completed`)
+  }, [data])
+
+  return <svg ref={svgRef} className="w-full max-w-[300px] mx-auto" />
 }
 
 export default function AdminDashboardPage() {
@@ -72,10 +163,39 @@ export default function AdminDashboardPage() {
       sub = 'Booking now'
     }
 
-    return { year, count: yearCouples.length, sub }
+    return { year, count: yearCouples.length, completedCount, sub }
   })
 
+  // D3 ring data
+  const ringData: YearRingData[] = yearCards.map(c => ({
+    year: c.year,
+    total: c.count,
+    completed: c.completedCount,
+  }))
+
   const thisYearCouples = couples.filter(c => c.wedding_year === currentYear)
+
+  // Month data with per-wedding completion segments
+  const monthsData = Array.from({ length: 12 }, (_, i) => {
+    const monthCouples = thisYearCouples
+      .filter(c => {
+        if (!c.wedding_date) return false
+        return parseISO(c.wedding_date).getMonth() === i
+      })
+      .sort((a, b) => (a.wedding_date || '').localeCompare(b.wedding_date || ''))
+
+    const segments = monthCouples.map(c => ({
+      id: c.id,
+      completed: c.wedding_date ? parseISO(c.wedding_date) < today : false,
+    }))
+
+    return {
+      month: format(new Date(currentYear, i, 1), 'MMM'),
+      count: monthCouples.length,
+      segments,
+    }
+  })
+  const maxMonthCount = Math.max(...monthsData.map(m => m.count), 1)
 
   // Upcoming weddings (all future booked)
   const upcoming = couples
@@ -103,6 +223,11 @@ export default function AdminDashboardPage() {
         .sort((a, b) => (a.wedding_date || '').localeCompare(b.wedding_date || ''))
     : []
 
+  // Footer: next upcoming wedding
+  const nextWedding = upcoming[0] || null
+  const nextWeddingDate = nextWedding?.wedding_date ? parseISO(nextWedding.wedding_date) : null
+  const daysUntilNext = nextWeddingDate ? differenceInDays(nextWeddingDate, today) : null
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -126,8 +251,8 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      {/* Two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Three-column layout: Upcoming | D3 Rings | Season Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Upcoming Weddings */}
         <div className="rounded-xl border bg-card">
           <div className="p-5 border-b">
@@ -158,7 +283,31 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Season Overview */}
+        {/* D3 Radial Rings */}
+        <div className="rounded-xl border bg-card">
+          <div className="p-5 border-b">
+            <h2 className="font-semibold flex items-center gap-2">
+              Season Progress
+            </h2>
+          </div>
+          <div className="p-5 flex items-center justify-center">
+            <RadialRings data={ringData} />
+          </div>
+          <div className="px-5 pb-4 flex justify-center gap-4">
+            {[
+              { year: 2025, color: 'bg-teal-500' },
+              { year: 2026, color: 'bg-sky-500' },
+              { year: 2027, color: 'bg-violet-500' },
+            ].map(l => (
+              <div key={l.year} className="flex items-center gap-1.5">
+                <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
+                <span className="text-xs text-muted-foreground">{l.year}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Season Overview — Segmented month bars */}
         <div className="rounded-xl border bg-card">
           <div className="p-5 border-b">
             <h2 className="font-semibold flex items-center gap-2">
@@ -166,37 +315,41 @@ export default function AdminDashboardPage() {
               {currentYear} Season Overview
             </h2>
           </div>
-          <div className="p-5 space-y-4">
-            {(() => {
-              const months = Array.from({ length: 12 }, (_, i) => {
-                const monthCouples = thisYearCouples.filter(c => {
-                  if (!c.wedding_date) return false
-                  return parseISO(c.wedding_date).getMonth() === i
-                })
-                return { month: format(new Date(currentYear, i, 1), 'MMM'), count: monthCouples.length }
-              })
-              const maxCount = Math.max(...months.map(m => m.count), 1)
-
-              return (
-                <div className="space-y-2">
-                  {months.map((m) => (
-                    <div key={m.month} className="flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground w-8">{m.month}</span>
-                      <div className="flex-1 h-5 bg-muted rounded-full overflow-hidden">
-                        {m.count > 0 && (
-                          <div
-                            className="h-full bg-primary rounded-full flex items-center justify-end pr-2 transition-all"
-                            style={{ width: `${Math.max((m.count / maxCount) * 100, 12)}%` }}
-                          >
-                            <span className="text-[10px] font-bold text-primary-foreground">{m.count}</span>
-                          </div>
-                        )}
-                      </div>
+          <div className="p-5 space-y-2">
+            {monthsData.map((m) => (
+              <div key={m.month} className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground w-8">{m.month}</span>
+                <div className="flex-1 h-5 bg-muted rounded-full overflow-hidden">
+                  {m.count > 0 && (
+                    <div
+                      className="h-full flex rounded-full overflow-hidden"
+                      style={{ width: `${Math.max((m.count / maxMonthCount) * 100, 12)}%` }}
+                    >
+                      {m.segments.map((seg, idx) => (
+                        <div
+                          key={seg.id}
+                          className={`h-full ${seg.completed ? 'bg-muted-foreground/30' : 'bg-primary'} ${idx < m.segments.length - 1 ? 'border-r border-background' : ''}`}
+                          style={{ flex: 1 }}
+                        />
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )
-            })()}
+                {m.count > 0 && (
+                  <span className="text-[10px] text-muted-foreground w-4 text-right">{m.count}</span>
+                )}
+              </div>
+            ))}
+            <div className="flex items-center gap-3 pt-2">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                <span className="text-[10px] text-muted-foreground">Upcoming</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
+                <span className="text-[10px] text-muted-foreground">Completed</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -228,9 +381,22 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* All Couples Count */}
-      <div className="text-center text-sm text-muted-foreground pb-4">
-        {couples.length} total couples in database
+      {/* Footer — Next wedding countdown */}
+      <div className="text-center text-sm text-muted-foreground pb-4 space-y-0.5">
+        {nextWedding && nextWeddingDate ? (
+          <>
+            <div>Next: {nextWedding.couple_name} — {format(nextWeddingDate, 'MMM d')}</div>
+            <div className="text-xs">
+              {daysUntilNext === 0
+                ? 'Wedding is TODAY'
+                : daysUntilNext === 1
+                ? '1 day until next wedding'
+                : `${daysUntilNext} days until next wedding`}
+            </div>
+          </>
+        ) : (
+          <div>No upcoming weddings scheduled</div>
+        )}
       </div>
 
       {/* Year Modal */}
