@@ -38,6 +38,7 @@ const VENDORS = [
 
 const STATUSES = [
   { value: 'not_started', label: 'Not Started' },
+  { value: 'ready_to_order', label: 'Ready to Order' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'waiting_approval', label: 'Waiting Approval' },
   { value: 'ready_to_reedit', label: 'Ready to Re-edit' },
@@ -115,7 +116,7 @@ export default function AddEditingJobPage() {
       if (!groups[year]) groups[year] = []
       groups[year].push(c)
     }
-    const yearOrder = [2026, 2027, 2025]
+    const yearOrder = [2025, 2026, 2027]
     return Object.entries(groups)
       .sort(([a], [b]) => {
         const idxA = yearOrder.indexOf(Number(a))
