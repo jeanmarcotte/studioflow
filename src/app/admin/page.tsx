@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Calendar, Camera, Clock, X } from 'lucide-react'
-import { format, differenceInDays, parseISO } from 'date-fns'
+import { Calendar, Camera, Clock, X, Video, ClipboardList, Heart, DollarSign, BookOpen, CalendarDays } from 'lucide-react'
+import { format, differenceInDays, parseISO, addDays } from 'date-fns'
 import * as d3 from 'd3'
 
 interface Couple {
@@ -23,6 +23,32 @@ interface Couple {
   contract_total: number | null
   total_paid: number | null
   balance_owing: number | null
+  form_submitted: boolean | null
+  album_status: string | null
+}
+
+interface PhotoJobRow {
+  id: string
+  couple_id: string
+  status: string
+  couples?: { couple_name: string } | null
+}
+
+interface VideoJobRow {
+  id: string
+  couple_id: string
+  status: string
+  couples?: { couple_name: string } | null
+}
+
+interface InstallmentRow {
+  id: string
+  contract_id: string
+  installment_number: number
+  due_description: string
+  amount: number
+  due_date: string | null
+  paid: boolean | null
 }
 
 interface YearRingData {
@@ -49,9 +75,9 @@ function RadialRings({ data }: { data: YearRingData[] }) {
     const ringWidth = 22
     const gap = 8
     const rings = [
-      { ...data[0], radius: center - 20 },                          // 2025 outer
-      { ...data[1], radius: center - 20 - ringWidth - gap },        // 2026 middle
-      { ...data[2], radius: center - 20 - (ringWidth + gap) * 2 },  // 2027 inner
+      { ...data[0], radius: center - 20 },
+      { ...data[1], radius: center - 20 - ringWidth - gap },
+      { ...data[2], radius: center - 20 - (ringWidth + gap) * 2 },
     ]
 
     const colors = ['#14b8a6', '#0ea5e9', '#8b5cf6']
@@ -59,14 +85,12 @@ function RadialRings({ data }: { data: YearRingData[] }) {
     rings.forEach((ring, i) => {
       const pct = ring.total > 0 ? ring.completed / ring.total : 0
 
-      // Background track
       g.append('circle')
         .attr('r', ring.radius)
         .attr('fill', 'none')
         .attr('stroke', '#e5e7eb')
         .attr('stroke-width', ringWidth)
 
-      // Completed arc
       if (pct > 0) {
         const arc = d3.arc<unknown>()
           .innerRadius(ring.radius - ringWidth / 2)
@@ -80,7 +104,6 @@ function RadialRings({ data }: { data: YearRingData[] }) {
           .attr('fill', colors[i])
       }
 
-      // Year label
       g.append('text')
         .attr('x', 0)
         .attr('y', -ring.radius)
@@ -92,7 +115,6 @@ function RadialRings({ data }: { data: YearRingData[] }) {
         .text(ring.year)
     })
 
-    // Center text
     const totalAll = data.reduce((s, d) => s + d.total, 0)
     const completedAll = data.reduce((s, d) => s + d.completed, 0)
 
@@ -115,24 +137,59 @@ function RadialRings({ data }: { data: YearRingData[] }) {
   return <svg ref={svgRef} className="w-full max-w-[300px] mx-auto" />
 }
 
+// Dashboard box component
+interface DashboardBox {
+  key: string
+  title: string
+  icon: React.ElementType
+  count: number
+  color: string
+  iconColor: string
+  details: { label: string; sub?: string }[]
+}
+
+function DashboardBoxCard({ box, onClick }: { box: DashboardBox; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-xl border bg-card p-4 text-left hover:border-primary hover:shadow-md transition-all cursor-pointer"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className={`rounded-lg p-2 ${box.color}`}>
+          <box.icon className={`h-4 w-4 ${box.iconColor}`} />
+        </div>
+        <span className="text-2xl font-bold">{box.count}</span>
+      </div>
+      <div className="text-sm font-medium">{box.title}</div>
+    </button>
+  )
+}
+
 export default function AdminDashboardPage() {
   const [couples, setCouples] = useState<Couple[]>([])
+  const [photoJobs, setPhotoJobs] = useState<PhotoJobRow[]>([])
+  const [videoJobs, setVideoJobs] = useState<VideoJobRow[]>([])
+  const [installments, setInstallments] = useState<InstallmentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [modalYear, setModalYear] = useState<number | null>(null)
+  const [expandedBox, setExpandedBox] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchCouples = async () => {
-      const { data, error } = await supabase
-        .from('couples')
-        .select('*')
-        .order('wedding_date', { ascending: true })
+    const fetchAll = async () => {
+      const [couplesRes, photoRes, videoRes, installRes] = await Promise.all([
+        supabase.from('couples').select('*').order('wedding_date', { ascending: true }),
+        supabase.from('photo_jobs').select('id, couple_id, status, couples(couple_name)'),
+        supabase.from('video_jobs').select('id, couple_id, status, couples(couple_name)'),
+        supabase.from('contract_installments').select('*'),
+      ])
 
-      if (!error && data) {
-        setCouples(data)
-      }
+      if (couplesRes.data) setCouples(couplesRes.data)
+      if (photoRes.data) setPhotoJobs(photoRes.data as unknown as PhotoJobRow[])
+      if (videoRes.data) setVideoJobs(videoRes.data as unknown as VideoJobRow[])
+      if (installRes.data) setInstallments(installRes.data as unknown as InstallmentRow[])
       setLoading(false)
     }
-    fetchCouples()
+    fetchAll()
   }, [])
 
   if (loading) {
@@ -144,10 +201,17 @@ export default function AdminDashboardPage() {
   }
 
   const today = new Date()
+  const todayStr = format(today, 'yyyy-MM-dd')
   const currentYear = today.getFullYear()
+  const in30days = format(addDays(today, 30), 'yyyy-MM-dd')
+  const in60days = format(addDays(today, 60), 'yyyy-MM-dd')
+  const in7days = format(addDays(today, 7), 'yyyy-MM-dd')
 
-  // Year card data
-  const yearCards = [2025, 2026, 2027].map(year => {
+  // Year card data — order: 2026, 2027, 2025
+  const yearCardOrder = [2026, 2027, 2025]
+  const yearCardsMap = new Map<number, { year: number; count: number; completedCount: number; sub: string }>()
+
+  for (const year of [2025, 2026, 2027]) {
     const yearCouples = couples.filter(c => c.wedding_year === year && c.status === 'booked')
     const completedCount = yearCouples.filter(c => {
       if (!c.wedding_date) return false
@@ -163,15 +227,16 @@ export default function AdminDashboardPage() {
       sub = 'Booking now'
     }
 
-    return { year, count: yearCouples.length, completedCount, sub }
-  })
+    yearCardsMap.set(year, { year, count: yearCouples.length, completedCount, sub })
+  }
 
-  // D3 ring data
-  const ringData: YearRingData[] = yearCards.map(c => ({
-    year: c.year,
-    total: c.count,
-    completed: c.completedCount,
-  }))
+  const yearCards = yearCardOrder.map(y => yearCardsMap.get(y)!)
+
+  // D3 ring data (keep original order for rings: 2025 outer, 2026 middle, 2027 inner)
+  const ringData: YearRingData[] = [2025, 2026, 2027].map(y => {
+    const c = yearCardsMap.get(y)!
+    return { year: c.year, total: c.count, completed: c.completedCount }
+  })
 
   const thisYearCouples = couples.filter(c => c.wedding_year === currentYear)
 
@@ -201,12 +266,11 @@ export default function AdminDashboardPage() {
   const upcoming = couples
     .filter(c => {
       if (!c.wedding_date || c.status !== 'booked') return false
-      const wDate = parseISO(c.wedding_date)
-      return differenceInDays(wDate, today) >= 0
+      return differenceInDays(parseISO(c.wedding_date), today) >= 0
     })
     .sort((a, b) => a.wedding_date!.localeCompare(b.wedding_date!))
 
-  // Recent weddings (past 30 days, not yet completed status)
+  // Recent weddings (past 30 days, still "booked")
   const recentlyPast = couples
     .filter(c => {
       if (!c.wedding_date) return false
@@ -223,10 +287,133 @@ export default function AdminDashboardPage() {
         .sort((a, b) => (a.wedding_date || '').localeCompare(b.wedding_date || ''))
     : []
 
-  // Footer: next upcoming wedding
+  // Footer data
   const nextWedding = upcoming[0] || null
   const nextWeddingDate = nextWedding?.wedding_date ? parseISO(nextWedding.wedding_date) : null
   const daysUntilNext = nextWeddingDate ? differenceInDays(nextWeddingDate, today) : null
+  const remainingThisYear = upcoming.filter(c => c.wedding_year === currentYear).length
+
+  // === 7 DASHBOARD BOXES ===
+
+  // BOX 1: Outstanding Photo Orders
+  const outstandingPhotos = photoJobs.filter(j => j.status === 'waiting_photo')
+
+  // BOX 2: Video In Production
+  const videosInProd = videoJobs.filter(j => j.status === 'in_progress' || j.status === 'not_started')
+
+  // BOX 3: Missing Wedding Forms
+  const missingForms = couples.filter(c => {
+    if (!c.wedding_date || c.status !== 'booked') return false
+    return c.form_submitted === false && c.wedding_date >= todayStr && c.wedding_date <= in60days
+  })
+
+  // BOX 4: Upcoming Engagements
+  const upcomingEngagements = couples.filter(c => {
+    if (!c.engagement_date) return false
+    return c.engagement_date >= todayStr
+  }).sort((a, b) => a.engagement_date!.localeCompare(b.engagement_date!))
+
+  // BOX 5: Deposits Due (next 30 days, unpaid)
+  const depositsDue = installments.filter(i => {
+    if (!i.due_date) return false
+    return i.due_date <= in30days && i.due_date >= todayStr && !i.paid
+  })
+
+  // BOX 6: Albums In Progress
+  const albumsInProgress = couples.filter(c => c.album_status === 'in_progress')
+
+  // BOX 7: This Week's Shoots
+  const thisWeekShoots = couples.filter(c => {
+    if (!c.wedding_date || c.status !== 'booked') return false
+    return c.wedding_date >= todayStr && c.wedding_date <= in7days
+  }).sort((a, b) => a.wedding_date!.localeCompare(b.wedding_date!))
+
+  const dashboardBoxes: DashboardBox[] = [
+    {
+      key: 'photo_orders',
+      title: 'Outstanding Photo Orders',
+      icon: Camera,
+      count: outstandingPhotos.length,
+      color: 'bg-amber-50',
+      iconColor: 'text-amber-600',
+      details: outstandingPhotos.map(j => ({
+        label: j.couples?.couple_name || 'Unknown',
+      })),
+    },
+    {
+      key: 'video_prod',
+      title: 'Video In Production',
+      icon: Video,
+      count: videosInProd.length,
+      color: 'bg-purple-50',
+      iconColor: 'text-purple-600',
+      details: videosInProd.map(j => ({
+        label: j.couples?.couple_name || 'Unknown',
+        sub: j.status === 'in_progress' ? 'In progress' : 'Not started',
+      })),
+    },
+    {
+      key: 'missing_forms',
+      title: 'Missing Wedding Forms',
+      icon: ClipboardList,
+      count: missingForms.length,
+      color: 'bg-red-50',
+      iconColor: 'text-red-600',
+      details: missingForms.map(c => ({
+        label: c.couple_name,
+        sub: c.wedding_date ? format(parseISO(c.wedding_date), 'MMM d') : 'TBD',
+      })),
+    },
+    {
+      key: 'engagements',
+      title: 'Upcoming Engagements',
+      icon: Heart,
+      count: upcomingEngagements.length,
+      color: 'bg-pink-50',
+      iconColor: 'text-pink-600',
+      details: upcomingEngagements.map(c => ({
+        label: c.couple_name,
+        sub: c.engagement_date ? format(parseISO(c.engagement_date), 'MMM d') : '',
+      })),
+    },
+    {
+      key: 'deposits',
+      title: 'Deposits Due',
+      icon: DollarSign,
+      count: depositsDue.length,
+      color: 'bg-green-50',
+      iconColor: 'text-green-600',
+      details: depositsDue.map(i => ({
+        label: i.due_description || `Installment #${i.installment_number}`,
+        sub: i.due_date ? `$${i.amount} — ${format(parseISO(i.due_date), 'MMM d')}` : `$${i.amount}`,
+      })),
+    },
+    {
+      key: 'albums',
+      title: 'Albums In Progress',
+      icon: BookOpen,
+      count: albumsInProgress.length,
+      color: 'bg-indigo-50',
+      iconColor: 'text-indigo-600',
+      details: albumsInProgress.map(c => ({
+        label: c.couple_name,
+      })),
+    },
+    {
+      key: 'this_week',
+      title: "This Week's Shoots",
+      icon: CalendarDays,
+      count: thisWeekShoots.length,
+      color: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+      details: thisWeekShoots.map(c => ({
+        label: c.couple_name,
+        sub: c.wedding_date ? format(parseISO(c.wedding_date), 'EEE, MMM d') : '',
+      })),
+    },
+  ]
+
+  const expandedBoxData = expandedBox ? dashboardBoxes.find(b => b.key === expandedBox) : null
 
   return (
     <div className="space-y-8">
@@ -236,7 +423,7 @@ export default function AdminDashboardPage() {
         <p className="text-muted-foreground">SIGS Photography — {format(today, 'EEEE, MMMM d, yyyy')}</p>
       </div>
 
-      {/* Year Cards */}
+      {/* Year Cards — 2026, 2027, 2025 */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {yearCards.map((card) => (
           <button
@@ -248,6 +435,13 @@ export default function AdminDashboardPage() {
             <div className="text-2xl font-bold">{card.count} Weddings</div>
             <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>
           </button>
+        ))}
+      </div>
+
+      {/* Dashboard Boxes — 2 rows of 4 */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {dashboardBoxes.map((box) => (
+          <DashboardBoxCard key={box.key} box={box} onClick={() => setExpandedBox(box.key)} />
         ))}
       </div>
 
@@ -307,7 +501,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Season Overview — Segmented month bars */}
+        {/* Season Overview — Segmented month bars (teal fill) */}
         <div className="rounded-xl border bg-card">
           <div className="p-5 border-b">
             <h2 className="font-semibold flex items-center gap-2">
@@ -328,7 +522,7 @@ export default function AdminDashboardPage() {
                       {m.segments.map((seg, idx) => (
                         <div
                           key={seg.id}
-                          className={`h-full ${seg.completed ? 'bg-muted-foreground/30' : 'bg-primary'} ${idx < m.segments.length - 1 ? 'border-r border-background' : ''}`}
+                          className={`h-full ${seg.completed ? 'bg-muted-foreground/30' : 'bg-teal-500'} ${idx < m.segments.length - 1 ? 'border-r border-background' : ''}`}
                           style={{ flex: 1 }}
                         />
                       ))}
@@ -342,7 +536,7 @@ export default function AdminDashboardPage() {
             ))}
             <div className="flex items-center gap-3 pt-2">
               <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                <div className="w-2.5 h-2.5 rounded-full bg-teal-500" />
                 <span className="text-[10px] text-muted-foreground">Upcoming</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -381,21 +575,14 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* Footer — Next wedding countdown */}
-      <div className="text-center text-sm text-muted-foreground pb-4 space-y-0.5">
+      {/* Footer */}
+      <div className="text-center text-sm text-muted-foreground pb-4">
         {nextWedding && nextWeddingDate ? (
-          <>
-            <div>Next: {nextWedding.couple_name} — {format(nextWeddingDate, 'MMM d')}</div>
-            <div className="text-xs">
-              {daysUntilNext === 0
-                ? 'Wedding is TODAY'
-                : daysUntilNext === 1
-                ? '1 day until next wedding'
-                : `${daysUntilNext} days until next wedding`}
-            </div>
-          </>
+          <span>
+            {remainingThisYear} weddings remaining in {currentYear} | Next: {nextWedding.couple_name} — {format(nextWeddingDate, 'MMM d')} ({daysUntilNext === 0 ? 'TODAY' : daysUntilNext === 1 ? '1 day' : `${daysUntilNext} days`})
+          </span>
         ) : (
-          <div>No upcoming weddings scheduled</div>
+          <span>No upcoming weddings scheduled</span>
         )}
       </div>
 
@@ -430,6 +617,37 @@ export default function AdminDashboardPage() {
                     </div>
                   )
                 })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dashboard Box Detail Modal */}
+      {expandedBoxData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setExpandedBox(null)}>
+          <div className="bg-card rounded-xl border shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className={`rounded-lg p-2 ${expandedBoxData.color}`}>
+                  <expandedBoxData.icon className={`h-4 w-4 ${expandedBoxData.iconColor}`} />
+                </div>
+                <h2 className="font-semibold">{expandedBoxData.title}</h2>
+              </div>
+              <button onClick={() => setExpandedBox(null)} className="rounded-lg p-1 hover:bg-accent transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="divide-y overflow-y-auto">
+              {expandedBoxData.details.length === 0 ? (
+                <div className="p-5 text-sm text-muted-foreground">None right now.</div>
+              ) : (
+                expandedBoxData.details.map((d, i) => (
+                  <div key={i} className="p-4 flex items-center justify-between">
+                    <div className="font-medium text-sm">{d.label}</div>
+                    {d.sub && <span className="text-xs text-muted-foreground flex-shrink-0 ml-4">{d.sub}</span>}
+                  </div>
+                ))
               )}
             </div>
           </div>
