@@ -41,6 +41,16 @@ interface VideoJobRow {
   couples?: { couple_name: string } | null
 }
 
+interface EditingJobRow {
+  id: string
+  couple_id: string
+  job_type: string
+  description: string | null
+  vendor: string | null
+  status: string
+  couples?: { couple_name: string } | null
+}
+
 interface InstallmentRow {
   id: string
   contract_id: string
@@ -170,23 +180,26 @@ export default function AdminDashboardPage() {
   const [photoJobs, setPhotoJobs] = useState<PhotoJobRow[]>([])
   const [videoJobs, setVideoJobs] = useState<VideoJobRow[]>([])
   const [installments, setInstallments] = useState<InstallmentRow[]>([])
+  const [editingJobs, setEditingJobs] = useState<EditingJobRow[]>([])
   const [loading, setLoading] = useState(true)
   const [modalYear, setModalYear] = useState<number | null>(null)
   const [expandedBox, setExpandedBox] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [couplesRes, photoRes, videoRes, installRes] = await Promise.all([
+      const [couplesRes, photoRes, videoRes, installRes, editingRes] = await Promise.all([
         supabase.from('couples').select('*').order('wedding_date', { ascending: true }),
         supabase.from('photo_jobs').select('id, couple_id, status, couples(couple_name)'),
         supabase.from('video_jobs').select('id, couple_id, status, couples(couple_name)'),
         supabase.from('contract_installments').select('*'),
+        supabase.from('editing_jobs').select('id, couple_id, job_type, description, vendor, status, couples(couple_name)'),
       ])
 
       if (couplesRes.data) setCouples(couplesRes.data)
       if (photoRes.data) setPhotoJobs(photoRes.data as unknown as PhotoJobRow[])
       if (videoRes.data) setVideoJobs(videoRes.data as unknown as VideoJobRow[])
       if (installRes.data) setInstallments(installRes.data as unknown as InstallmentRow[])
+      if (editingRes.data) setEditingJobs(editingRes.data as unknown as EditingJobRow[])
       setLoading(false)
     }
     fetchAll()
@@ -312,8 +325,19 @@ export default function AdminDashboardPage() {
     return i.due_date <= in30days && i.due_date >= todayStr && !i.paid
   })
 
-  // BOX 5: Albums In Progress
-  const albumsInProgress = couples.filter(c => c.album_status === 'in_progress')
+  // BOX 5: Albums In Progress (from editing_jobs)
+  const ALBUM_TYPES = ['parent_album', 'bg_album', 'eng_album']
+  const ALBUM_TYPE_LABELS: Record<string, string> = {
+    parent_album: 'Parent Album', bg_album: 'B&G Album', eng_album: 'Engagement Album',
+  }
+  const ALBUM_STATUS_LABELS: Record<string, string> = {
+    in_progress: 'In Progress', waiting_approval: 'Waiting Approval',
+    ready_to_reedit: 'Ready to Re-edit', reediting: 'Re-editing',
+    at_lab: 'At Lab', on_hold: 'On Hold', ready_to_order: 'Ready to Order',
+  }
+  const albumsInProgress = editingJobs.filter(j =>
+    ALBUM_TYPES.includes(j.job_type) && j.status !== 'completed' && j.status !== 'not_started'
+  )
 
   const dashboardBoxes: DashboardBox[] = [
     {
@@ -370,8 +394,9 @@ export default function AdminDashboardPage() {
       count: albumsInProgress.length,
       color: 'bg-indigo-50',
       iconColor: 'text-indigo-600',
-      details: albumsInProgress.map(c => ({
-        label: c.couple_name,
+      details: albumsInProgress.map(j => ({
+        label: `${j.couples?.couple_name || 'Unknown'} — ${ALBUM_TYPE_LABELS[j.job_type] || j.job_type}${j.description ? ` (${j.description})` : ''}`,
+        sub: `${j.vendor ? j.vendor.toUpperCase() : '—'} · ${ALBUM_STATUS_LABELS[j.status] || j.status}`,
       })),
     },
   ]
