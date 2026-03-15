@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Search, Plus, ChevronDown, ChevronRight } from 'lucide-react'
+import { differenceInDays, parseISO, format } from 'date-fns'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -17,6 +18,7 @@ interface EditingJob {
   vendor: string | null
   status: string
   due_date: string | null
+  at_lab_date: string | null
   notes: string | null
   created_at: string
   updated_at: string
@@ -116,13 +118,23 @@ export default function PhotoProductionPage() {
   // ── Status update ─────────────────────────────────────────────
 
   const updateStatus = async (jobId: string, newStatus: string) => {
+    const updates: Record<string, string> = {
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    }
+
+    // Auto-set at_lab_date when moving to at_lab
+    if (newStatus === 'at_lab') {
+      updates.at_lab_date = new Date().toISOString().split('T')[0]
+    }
+
     const { error } = await supabase
       .from('editing_jobs')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .update(updates)
       .eq('id', jobId)
 
     if (!error) {
-      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: newStatus } : j))
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j))
     }
   }
 
@@ -346,6 +358,11 @@ export default function PhotoProductionPage() {
                         <div className="text-sm font-medium truncate">
                           {job.couples?.couple_name || 'Unknown'}
                         </div>
+                        {job.status === 'at_lab' && job.at_lab_date && (
+                          <div className="text-[11px] text-indigo-600">
+                            At lab {differenceInDays(new Date(), parseISO(job.at_lab_date))} days — since {format(parseISO(job.at_lab_date), 'MMM d')}
+                          </div>
+                        )}
                       </div>
 
                       {/* Job Type */}
