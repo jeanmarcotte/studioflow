@@ -76,7 +76,7 @@ export default function AddEditingJobPage() {
   const [category, setCategory] = useState<Category>('wedding')
   const [jobType, setJobType] = useState('')
   const [vendor, setVendor] = useState('')
-  const [quantity, setQuantity] = useState(1)
+  const [quantity, setQuantity] = useState<number | string>(1)
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState('not_started')
   const [notes, setNotes] = useState('')
@@ -177,7 +177,7 @@ export default function AddEditingJobPage() {
         category,
         job_type: jobType,
         vendor: vendor || null,
-        quantity,
+        quantity: Number(quantity) || 1,
         description: description.trim() || null,
         status,
         notes: notes.trim() || null,
@@ -351,7 +351,7 @@ export default function AddEditingJobPage() {
               min={1}
               max={99}
               value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value) || 1)}
+              onChange={(e) => setQuantity(e.target.value === '' ? '' : Math.max(1, Number(e.target.value)))}
               className="w-24 rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400"
             />
           </div>
