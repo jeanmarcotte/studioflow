@@ -14,6 +14,7 @@ import {
   StickyNote,
   Globe,
   Search,
+  Scissors,
 } from 'lucide-react'
 
 export interface SidebarItem {
@@ -62,6 +63,7 @@ export const studioflowAdminConfig: SidebarConfig = {
           children: [
             { title: 'Photo Editing', href: '/admin/production/photo', icon: Camera },
             { title: 'Video Editing', href: '/admin/production/video', icon: Video },
+            { title: 'Add Editing Job', href: '/admin/production/editing/new', icon: Scissors },
             { title: 'Team Notes', href: '/admin/production/team-notes', icon: StickyNote },
           ],
         },
