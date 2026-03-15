@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Users, Calendar, Camera, DollarSign, Clock, Heart } from 'lucide-react'
+import { Calendar, Camera, Clock, X } from 'lucide-react'
 import { format, differenceInDays, parseISO } from 'date-fns'
 
 interface Couple {
@@ -27,6 +27,7 @@ interface Couple {
 export default function AdminDashboardPage() {
   const [couples, setCouples] = useState<Couple[]>([])
   const [loading, setLoading] = useState(true)
+  const [modalYear, setModalYear] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchCouples = async () => {
@@ -54,11 +55,27 @@ export default function AdminDashboardPage() {
   const today = new Date()
   const currentYear = today.getFullYear()
 
-  // Stats
+  // Year card data
+  const yearCards = [2025, 2026, 2027].map(year => {
+    const yearCouples = couples.filter(c => c.wedding_year === year && c.status === 'booked')
+    const completedCount = yearCouples.filter(c => {
+      if (!c.wedding_date) return false
+      return parseISO(c.wedding_date) < today
+    }).length
+
+    let sub: string
+    if (year < currentYear) {
+      sub = 'Season Complete \u2713'
+    } else if (year === currentYear) {
+      sub = `${completedCount} of ${yearCouples.length} completed`
+    } else {
+      sub = 'Booking now'
+    }
+
+    return { year, count: yearCouples.length, sub }
+  })
+
   const thisYearCouples = couples.filter(c => c.wedding_year === currentYear)
-  const bookedThisYear = thisYearCouples.filter(c => c.status === 'booked')
-  const completedThisYear = thisYearCouples.filter(c => c.status === 'completed')
-  const nextYearCouples = couples.filter(c => c.wedding_year === currentYear + 1)
 
   // Upcoming weddings (all future booked)
   const upcoming = couples
@@ -68,11 +85,6 @@ export default function AdminDashboardPage() {
       return differenceInDays(wDate, today) >= 0
     })
     .sort((a, b) => a.wedding_date!.localeCompare(b.wedding_date!))
-
-  // Revenue
-  const totalContracted = thisYearCouples.reduce((sum, c) => sum + (Number(c.contract_total) || 0), 0)
-  const totalPaid = thisYearCouples.reduce((sum, c) => sum + (Number(c.total_paid) || 0), 0)
-  const totalOwing = thisYearCouples.reduce((sum, c) => sum + (Number(c.balance_owing) || 0), 0)
 
   // Recent weddings (past 30 days, not yet completed status)
   const recentlyPast = couples
@@ -84,36 +96,12 @@ export default function AdminDashboardPage() {
     })
     .sort((a, b) => b.wedding_date!.localeCompare(a.wedding_date!))
 
-  const statCards = [
-    {
-      label: `${currentYear} Weddings`,
-      value: thisYearCouples.length,
-      sub: `${bookedThisYear.length} booked, ${completedThisYear.length} done`,
-      icon: Calendar,
-      color: 'text-blue-600 bg-blue-50',
-    },
-    {
-      label: `${currentYear + 1} Booked`,
-      value: nextYearCouples.length,
-      sub: 'weddings ahead',
-      icon: Heart,
-      color: 'text-pink-600 bg-pink-50',
-    },
-    {
-      label: 'Upcoming (90 days)',
-      value: upcoming.length,
-      sub: upcoming[0] ? `Next: ${upcoming[0].couple_name}` : 'None scheduled',
-      icon: Clock,
-      color: 'text-amber-600 bg-amber-50',
-    },
-    {
-      label: `${currentYear} Revenue`,
-      value: totalContracted > 0 ? `$${(totalContracted / 1000).toFixed(0)}k` : '$0',
-      sub: totalOwing > 0 ? `$${totalOwing.toLocaleString()} outstanding` : 'All collected',
-      icon: DollarSign,
-      color: 'text-green-600 bg-green-50',
-    },
-  ]
+  // Modal data
+  const modalCouples = modalYear
+    ? couples
+        .filter(c => c.wedding_year === modalYear && c.status === 'booked')
+        .sort((a, b) => (a.wedding_date || '').localeCompare(b.wedding_date || ''))
+    : []
 
   return (
     <div className="space-y-8">
@@ -123,19 +111,18 @@ export default function AdminDashboardPage() {
         <p className="text-muted-foreground">SIGS Photography — {format(today, 'EEEE, MMMM d, yyyy')}</p>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat) => (
-          <div key={stat.label} className="rounded-xl border bg-card p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-muted-foreground">{stat.label}</span>
-              <div className={`rounded-lg p-2 ${stat.color}`}>
-                <stat.icon className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="text-2xl font-bold">{stat.value}</div>
-            <p className="text-xs text-muted-foreground mt-1">{stat.sub}</p>
-          </div>
+      {/* Year Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {yearCards.map((card) => (
+          <button
+            key={card.year}
+            onClick={() => setModalYear(card.year)}
+            className="rounded-xl border bg-card p-5 text-left hover:border-primary hover:shadow-md transition-all cursor-pointer"
+          >
+            <div className="text-sm font-medium text-muted-foreground mb-1">{card.year}</div>
+            <div className="text-2xl font-bold">{card.count} Weddings</div>
+            <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>
+          </button>
         ))}
       </div>
 
@@ -245,6 +232,43 @@ export default function AdminDashboardPage() {
       <div className="text-center text-sm text-muted-foreground pb-4">
         {couples.length} total couples in database
       </div>
+
+      {/* Year Modal */}
+      {modalYear && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setModalYear(null)}>
+          <div className="bg-card rounded-xl border shadow-xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b flex items-center justify-between flex-shrink-0">
+              <h2 className="font-semibold text-lg">{modalYear} Weddings</h2>
+              <button onClick={() => setModalYear(null)} className="rounded-lg p-1 hover:bg-accent transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="divide-y overflow-y-auto">
+              {modalCouples.length === 0 ? (
+                <div className="p-5 text-sm text-muted-foreground">No booked weddings for {modalYear}.</div>
+              ) : (
+                modalCouples.map((couple) => {
+                  const wDate = couple.wedding_date ? parseISO(couple.wedding_date) : null
+                  const isPast = wDate ? wDate <= today : false
+                  return (
+                    <div key={couple.id} className="p-4 flex items-center justify-between">
+                      <div className="font-medium text-sm truncate">{couple.couple_name}</div>
+                      <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                        <span className="text-sm text-muted-foreground">
+                          {wDate ? format(wDate, 'MMM d') : 'TBD'}
+                        </span>
+                        <span className={`text-xs rounded-full px-2 py-0.5 ${isPast ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {isPast ? 'Completed' : 'Upcoming'}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
