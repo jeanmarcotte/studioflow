@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Calendar, Camera, Clock, X, Video, ClipboardList, Heart, DollarSign, BookOpen, CalendarDays } from 'lucide-react'
+import { Calendar, Camera, Clock, X, Video, ClipboardList, DollarSign, BookOpen } from 'lucide-react'
 import { format, differenceInDays, parseISO, addDays } from 'date-fns'
 import * as d3 from 'd3'
 
@@ -205,7 +205,6 @@ export default function AdminDashboardPage() {
   const currentYear = today.getFullYear()
   const in30days = format(addDays(today, 30), 'yyyy-MM-dd')
   const in60days = format(addDays(today, 60), 'yyyy-MM-dd')
-  const in7days = format(addDays(today, 7), 'yyyy-MM-dd')
 
   // Year card data — order: 2026, 2027, 2025
   const yearCardOrder = [2026, 2027, 2025]
@@ -307,26 +306,14 @@ export default function AdminDashboardPage() {
     return c.form_submitted === false && c.wedding_date >= todayStr && c.wedding_date <= in60days
   })
 
-  // BOX 4: Upcoming Engagements
-  const upcomingEngagements = couples.filter(c => {
-    if (!c.engagement_date) return false
-    return c.engagement_date >= todayStr
-  }).sort((a, b) => a.engagement_date!.localeCompare(b.engagement_date!))
-
-  // BOX 5: Deposits Due (next 30 days, unpaid)
+  // BOX 4: Deposits Due (next 30 days, unpaid)
   const depositsDue = installments.filter(i => {
     if (!i.due_date) return false
     return i.due_date <= in30days && i.due_date >= todayStr && !i.paid
   })
 
-  // BOX 6: Albums In Progress
+  // BOX 5: Albums In Progress
   const albumsInProgress = couples.filter(c => c.album_status === 'in_progress')
-
-  // BOX 7: This Week's Shoots
-  const thisWeekShoots = couples.filter(c => {
-    if (!c.wedding_date || c.status !== 'booked') return false
-    return c.wedding_date >= todayStr && c.wedding_date <= in7days
-  }).sort((a, b) => a.wedding_date!.localeCompare(b.wedding_date!))
 
   const dashboardBoxes: DashboardBox[] = [
     {
@@ -365,18 +352,6 @@ export default function AdminDashboardPage() {
       })),
     },
     {
-      key: 'engagements',
-      title: 'Upcoming Engagements',
-      icon: Heart,
-      count: upcomingEngagements.length,
-      color: 'bg-pink-50',
-      iconColor: 'text-pink-600',
-      details: upcomingEngagements.map(c => ({
-        label: c.couple_name,
-        sub: c.engagement_date ? format(parseISO(c.engagement_date), 'MMM d') : '',
-      })),
-    },
-    {
       key: 'deposits',
       title: 'Deposits Due',
       icon: DollarSign,
@@ -397,18 +372,6 @@ export default function AdminDashboardPage() {
       iconColor: 'text-indigo-600',
       details: albumsInProgress.map(c => ({
         label: c.couple_name,
-      })),
-    },
-    {
-      key: 'this_week',
-      title: "This Week's Shoots",
-      icon: CalendarDays,
-      count: thisWeekShoots.length,
-      color: 'bg-blue-50',
-      iconColor: 'text-blue-600',
-      details: thisWeekShoots.map(c => ({
-        label: c.couple_name,
-        sub: c.wedding_date ? format(parseISO(c.wedding_date), 'EEE, MMM d') : '',
       })),
     },
   ]
@@ -438,8 +401,8 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      {/* Dashboard Boxes — 2 rows of 4 */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {/* Dashboard Boxes */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {dashboardBoxes.map((box) => (
           <DashboardBoxCard key={box.key} box={box} onClick={() => setExpandedBox(box.key)} />
         ))}
