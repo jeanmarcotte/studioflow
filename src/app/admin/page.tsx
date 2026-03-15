@@ -60,13 +60,12 @@ export default function AdminDashboardPage() {
   const completedThisYear = thisYearCouples.filter(c => c.status === 'completed')
   const nextYearCouples = couples.filter(c => c.wedding_year === currentYear + 1)
 
-  // Upcoming weddings (next 90 days)
+  // Upcoming weddings (all future booked)
   const upcoming = couples
     .filter(c => {
-      if (!c.wedding_date || c.status === 'completed') return false
+      if (!c.wedding_date || c.status !== 'booked') return false
       const wDate = parseISO(c.wedding_date)
-      const daysUntil = differenceInDays(wDate, today)
-      return daysUntil >= 0 && daysUntil <= 90
+      return differenceInDays(wDate, today) >= 0
     })
     .sort((a, b) => a.wedding_date!.localeCompare(b.wedding_date!))
 
@@ -150,27 +149,20 @@ export default function AdminDashboardPage() {
               Upcoming Weddings
             </h2>
           </div>
-          <div className="divide-y">
+          <div className="divide-y overflow-y-auto" style={{ maxHeight: '400px' }}>
             {upcoming.length === 0 ? (
-              <div className="p-5 text-sm text-muted-foreground">No weddings in the next 90 days.</div>
+              <div className="p-5 text-sm text-muted-foreground">No upcoming weddings.</div>
             ) : (
-              upcoming.slice(0, 8).map((couple) => {
+              upcoming.map((couple) => {
                 const wDate = parseISO(couple.wedding_date!)
                 const daysUntil = differenceInDays(wDate, today)
                 return (
                   <div key={couple.id} className="p-4 flex items-center justify-between hover:bg-accent/50 transition-colors">
-                    <div className="min-w-0">
-                      <div className="font-medium text-sm truncate">{couple.couple_name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {couple.ceremony_venue || 'Venue TBD'}
-                        {couple.photographer && ` — ${couple.photographer}`}
-                      </div>
+                    <div className="font-medium text-sm truncate">
+                      {couple.couple_name} — {format(wDate, 'MMM d')}
                     </div>
-                    <div className="text-right flex-shrink-0 ml-4">
-                      <div className="text-sm font-medium">{format(wDate, 'MMM d')}</div>
-                      <div className={`text-xs ${daysUntil <= 7 ? 'text-red-600 font-semibold' : daysUntil <= 30 ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                        {daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? 'Tomorrow' : `${daysUntil} days`}
-                      </div>
+                    <div className={`text-xs flex-shrink-0 ml-4 ${daysUntil <= 7 ? 'text-red-600 font-semibold' : daysUntil <= 30 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                      {daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? 'Tomorrow' : `${daysUntil} days`}
                     </div>
                   </div>
                 )
