@@ -130,6 +130,7 @@ export default function VideoProductionPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
+  const [showCompletedRecaps, setShowCompletedRecaps] = useState(false)
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['completed']))
   const [refreshKey, setRefreshKey] = useState(0)
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null)
@@ -299,9 +300,12 @@ export default function VideoProductionPage() {
     for (const job of result) {
       if (job.section === 'completed') {
         lanes.completed.push(job)
-        // Also show in editing_full when showCompleted is on
+        // Also show in editing_full/editing_recap when toggled on
         if (showCompleted && job.job_type !== 'RECAP') {
           lanes.editing_full.push(job)
+        }
+        if (showCompletedRecaps && job.job_type === 'RECAP') {
+          lanes.editing_recap.push(job)
         }
       } else if (job.section === 'reediting') {
         lanes.reediting.push(job)
@@ -355,7 +359,7 @@ export default function VideoProductionPage() {
     }
 
     return lanes
-  }, [jobs, search, sortColumn, sortDirection, showCompleted])
+  }, [jobs, search, sortColumn, sortDirection, showCompleted, showCompletedRecaps])
 
   // ── Stats ──────────────────────────────────────────────────────
 
@@ -551,7 +555,15 @@ export default function VideoProductionPage() {
                       onClick={() => setShowCompleted(!showCompleted)}
                       className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {showCompleted ? 'Hide' : 'Show'} Completed ({processedJobs.completed.length})
+                      {showCompleted ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type !== 'RECAP').length})
+                    </button>
+                  )}
+                  {lane.key === 'editing_recap' && (
+                    <button
+                      onClick={() => setShowCompletedRecaps(!showCompletedRecaps)}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showCompletedRecaps ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type === 'RECAP').length})
                     </button>
                   )}
                 </div>
