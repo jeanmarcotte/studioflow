@@ -112,6 +112,7 @@ export default function PhotoOrderPage() {
   const parentAlbumsImages = contract?.parent_albums_images || 30
   const hasMainAlbum = (contract?.bride_groom_album_qty ?? 0) > 0 || (extras?.album_qty ?? 0) > 0
   const mainAlbumImages = contract?.bride_groom_album_images || 70
+  const hasAnyAlbum = parentAlbumsQty > 0 || hasMainAlbum
   const isCustom = designPref === 'custom'
 
   function countPhotos(text: string): number {
@@ -206,7 +207,8 @@ export default function PhotoOrderPage() {
   // ─── Step 3: Submit ──────────────────────────────────────────────────────
 
   async function handleSubmit() {
-    if (!couple || !designPref) {
+    if (!couple) return
+    if (hasAnyAlbum && !designPref) {
       setError('Please select an album design preference.')
       return
     }
@@ -568,56 +570,61 @@ export default function PhotoOrderPage() {
             {/* Package Summary */}
             <PackageSummary />
 
-            {/* Album Design Preference */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>📷</span> Album Design Preference
-              </h2>
-              <div className="space-y-3">
-                <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors">
-                  <input
-                    type="radio"
-                    name="designPref"
-                    checked={designPref === 'omakase'}
-                    onChange={() => setDesignPref('omakase')}
-                    className="mt-0.5 w-4 h-4 accent-teal-600"
-                  />
-                  <div>
-                    <span className="text-sm font-medium">Omakase</span>
-                    <p className="text-xs text-muted-foreground">Jean selects photos, you review the design</p>
+            {/* Album sections — only if couple has any albums */}
+            {hasAnyAlbum && (
+              <>
+                {/* Album Design Preference */}
+                <div className="bg-card rounded-xl border p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <span>📷</span> Album Design Preference
+                  </h2>
+                  <div className="space-y-3">
+                    <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors">
+                      <input
+                        type="radio"
+                        name="designPref"
+                        checked={designPref === 'omakase'}
+                        onChange={() => setDesignPref('omakase')}
+                        className="mt-0.5 w-4 h-4 accent-teal-600"
+                      />
+                      <div>
+                        <span className="text-sm font-medium">Omakase</span>
+                        <p className="text-xs text-muted-foreground">Jean selects photos, you review the design</p>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors">
+                      <input
+                        type="radio"
+                        name="designPref"
+                        checked={designPref === 'custom'}
+                        onChange={() => setDesignPref('custom')}
+                        className="mt-0.5 w-4 h-4 accent-teal-600"
+                      />
+                      <div>
+                        <span className="text-sm font-medium">Custom</span>
+                        <p className="text-xs text-muted-foreground">You select photos, Jean designs the album</p>
+                      </div>
+                    </label>
                   </div>
-                </label>
-                <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors">
-                  <input
-                    type="radio"
-                    name="designPref"
-                    checked={designPref === 'custom'}
-                    onChange={() => setDesignPref('custom')}
-                    className="mt-0.5 w-4 h-4 accent-teal-600"
-                  />
-                  <div>
-                    <span className="text-sm font-medium">Custom</span>
-                    <p className="text-xs text-muted-foreground">You select photos, Jean designs the album</p>
-                  </div>
-                </label>
-              </div>
-            </div>
+                </div>
 
-            {/* Cover Photo */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
-                <span>📷</span> Cover Photo
-              </h2>
-              <p className="text-xs text-muted-foreground mb-3">
-                Select a horizontal photo for YOUR wedding album cover (will also be first image in parent albums)
-              </p>
-              <input
-                type="text"
-                value={coverPhotoFilename}
-                onChange={(e) => setCoverPhotoFilename(e.target.value)}
-                placeholder="e.g. DSC_1234.jpg"
-              />
-            </div>
+                {/* Cover Photo */}
+                <div className="bg-card rounded-xl border p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
+                    <span>📷</span> Cover Photo
+                  </h2>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Select a horizontal photo for YOUR wedding album cover (will also be first image in parent albums)
+                  </p>
+                  <input
+                    type="text"
+                    value={coverPhotoFilename}
+                    onChange={(e) => setCoverPhotoFilename(e.target.value)}
+                    placeholder="e.g. DSC_1234.jpg"
+                  />
+                </div>
+              </>
+            )}
 
             {/* Parent Album Selections — only if custom */}
             {parentAlbumsQty > 0 && (
@@ -782,7 +789,7 @@ export default function PhotoOrderPage() {
             {/* Submit */}
             <button
               onClick={handleSubmit}
-              disabled={loading || !designPref || hasLimitError}
+              disabled={loading || (hasAnyAlbum && !designPref) || hasLimitError}
               className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 text-lg"
             >
               {loading ? (
