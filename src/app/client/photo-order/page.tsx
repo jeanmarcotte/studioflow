@@ -50,6 +50,7 @@ interface PrintRow {
   size: string
   qty: number
   filename: string
+  notes: string
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -113,6 +114,18 @@ export default function PhotoOrderPage() {
   const mainAlbumImages = contract?.bride_groom_album_images ?? 0
   const isCustom = designPref === 'custom'
 
+  function countPhotos(text: string): number {
+    return text.split(/[\n,]+/).filter(s => s.trim()).length
+  }
+
+  const parent1Count = countPhotos(parentAlbum1Photos)
+  const parent2Count = countPhotos(parentAlbum2Photos)
+  const mainCount = countPhotos(mainAlbumPhotos)
+  const parent1Over = parentAlbumsImages > 0 && parent1Count > parentAlbumsImages
+  const parent2Over = parentAlbumsImages > 0 && parent2Count > parentAlbumsImages
+  const mainOver = mainAlbumImages > 0 && mainCount > mainAlbumImages
+  const hasLimitError = parent1Over || parent2Over || mainOver
+
   const weddingDateStr = month && day && year
     ? `${year}-${month}-${day}`
     : ''
@@ -170,7 +183,7 @@ export default function PhotoOrderPage() {
         for (const ps of PRINT_SIZES) {
           const qty = c[ps.key] as number | null
           if (qty && qty > 0) {
-            rows.push({ size: ps.label, qty, filename: '' })
+            rows.push({ size: ps.label, qty, filename: '', notes: '' })
           }
         }
         setPrintRows(rows)
@@ -191,6 +204,10 @@ export default function PhotoOrderPage() {
       setError('Please select an album design preference.')
       return
     }
+    if (hasLimitError) {
+      setError('Please reduce your photo selections to within the allowed limits.')
+      return
+    }
     setError(null)
     setLoading(true)
     try {
@@ -207,7 +224,7 @@ export default function PhotoOrderPage() {
           parent_album_2_notes: parentAlbum2Notes || null,
           main_album_photos: mainAlbumPhotos || null,
           main_album_notes: mainAlbumNotes || null,
-          portrait_prints: printRows.length > 0 ? printRows.filter(r => r.filename) : null,
+          portrait_prints: printRows.length > 0 ? printRows.filter(r => r.filename).map(r => ({ size: r.size, qty: r.qty, filename: r.filename, notes: r.notes || null })) : null,
           special_instructions: specialInstructions || null,
           no_special_requests: noSpecialRequests,
           submitted_by_email: email,
@@ -588,8 +605,8 @@ export default function PhotoOrderPage() {
                 </h2>
                 <div className="mb-4">
                   <div className="flex items-center justify-end mb-1">
-                    <span className="text-xs text-muted-foreground">
-                      {parentAlbum1Photos.split(/[\n,]+/).filter(s => s.trim()).length} of {parentAlbumsImages}
+                    <span className={`text-xs ${parent1Over ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                      {parent1Count} of {parentAlbumsImages}{parent1Over ? ' — too many!' : ''}
                     </span>
                   </div>
                   <textarea
@@ -614,8 +631,8 @@ export default function PhotoOrderPage() {
                       <span>📷</span> Parent Album 2 — Select {parentAlbumsImages} images
                     </h2>
                     <div className="flex items-center justify-end mb-1">
-                      <span className="text-xs text-muted-foreground">
-                        {parentAlbum2Photos.split(/[\n,]+/).filter(s => s.trim()).length} of {parentAlbumsImages}
+                      <span className={`text-xs ${parent2Over ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                        {parent2Count} of {parentAlbumsImages}{parent2Over ? ' — too many!' : ''}
                       </span>
                     </div>
                     <textarea
@@ -643,8 +660,8 @@ export default function PhotoOrderPage() {
                   <span>📷</span> Your Wedding Album — Select {mainAlbumImages} photos
                 </h2>
                 <div className="flex items-center justify-end mb-1">
-                  <span className="text-xs text-muted-foreground">
-                    {mainAlbumPhotos.split(/[\n,]+/).filter(s => s.trim()).length} of {mainAlbumImages}
+                  <span className={`text-xs ${mainOver ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                    {mainCount} of {mainAlbumImages}{mainOver ? ' — too many!' : ''}
                   </span>
                 </div>
                 <textarea
@@ -671,8 +688,8 @@ export default function PhotoOrderPage() {
                 </h2>
                 <div className="space-y-3">
                   {printRows.map((row, i) => (
-                    <div key={row.size}>
-                      <label className="text-sm font-medium text-foreground mb-1 block">
+                    <div key={row.size} className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground block">
                         {row.size} <span className="text-muted-foreground font-normal">({row.qty} print{row.qty > 1 ? 's' : ''})</span>
                       </label>
                       <input
@@ -684,6 +701,17 @@ export default function PhotoOrderPage() {
                           setPrintRows(updated)
                         }}
                         placeholder="Photo filename (e.g. DSC_5678.jpg)"
+                      />
+                      <input
+                        type="text"
+                        value={row.notes}
+                        onChange={(e) => {
+                          const updated = [...printRows]
+                          updated[i] = { ...row, notes: e.target.value }
+                          setPrintRows(updated)
+                        }}
+                        placeholder="Notes (optional — e.g. crop instructions, orientation)"
+                        className="text-xs"
                       />
                     </div>
                   ))}
@@ -719,7 +747,7 @@ export default function PhotoOrderPage() {
             {/* Submit */}
             <button
               onClick={handleSubmit}
-              disabled={loading || !designPref}
+              disabled={loading || !designPref || hasLimitError}
               className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 text-lg"
             >
               {loading ? (
