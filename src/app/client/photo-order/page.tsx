@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { format } from 'date-fns'
+import { format, differenceInDays } from 'date-fns'
 import { Camera, CheckCircle, ChevronDown, ChevronRight, Loader2, Mail, Search } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -102,10 +102,6 @@ export default function PhotoOrderPage() {
   const [mainAlbumNotes, setMainAlbumNotes] = useState('')
   const [mainAlbumNotesOpen, setMainAlbumNotesOpen] = useState(false)
   const [printRows, setPrintRows] = useState<PrintRow[]>([])
-  const [collagePhotos, setCollagePhotos] = useState('')
-  const [weddingFramePhoto, setWeddingFramePhoto] = useState('')
-  const [engPortraitPhoto, setEngPortraitPhoto] = useState('')
-  const [albumCoverText, setAlbumCoverText] = useState('')
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [noSpecialRequests, setNoSpecialRequests] = useState(false)
 
@@ -115,9 +111,6 @@ export default function PhotoOrderPage() {
   const parentAlbumsImages = contract?.parent_albums_images ?? 0
   const hasMainAlbum = (contract?.bride_groom_album_qty ?? 0) > 0 || (extras?.album_qty ?? 0) > 0
   const mainAlbumImages = contract?.bride_groom_album_images ?? 0
-  const hasCollage = !!extras?.collage_size
-  const hasWeddingFrame = !!extras?.wedding_frame_size
-  const hasEngPortrait = !!extras?.eng_portrait_size
   const isCustom = designPref === 'custom'
 
   const weddingDateStr = month && day && year
@@ -183,10 +176,6 @@ export default function PhotoOrderPage() {
         setPrintRows(rows)
       }
 
-      // Prefill album cover text
-      const d = new Date(couple.wedding_date + 'T12:00:00')
-      const formatted = format(d, 'MMMM d, yyyy')
-      setAlbumCoverText(`${couple.bride_first_name} & ${couple.groom_first_name} \u2022 ${formatted}`)
       setStep(3)
     } catch {
       setError('Network error. Please try again.')
@@ -219,10 +208,6 @@ export default function PhotoOrderPage() {
           main_album_photos: mainAlbumPhotos || null,
           main_album_notes: mainAlbumNotes || null,
           portrait_prints: printRows.length > 0 ? printRows.filter(r => r.filename) : null,
-          collage_photos: collagePhotos || null,
-          wedding_frame_photo: weddingFramePhoto || null,
-          eng_portrait_photo: engPortraitPhoto || null,
-          album_cover_text: albumCoverText || null,
           special_instructions: specialInstructions || null,
           no_special_requests: noSpecialRequests,
           submitted_by_email: email,
@@ -312,17 +297,6 @@ export default function PhotoOrderPage() {
     // Prints
     if (printRows.length > 0) {
       items.push(`Portrait Prints: ${printRows.map(r => `${r.qty} \u00d7 ${r.size}`).join(', ')}`)
-    }
-
-    // Extras
-    if (hasCollage) {
-      items.push(`Collage: ${extras!.collage_size} ${extras!.collage_type || ''}`.trim())
-    }
-    if (hasWeddingFrame) {
-      items.push(`Wedding Frame: ${extras!.wedding_frame_size}`)
-    }
-    if (hasEngPortrait) {
-      items.push(`Engagement Portrait: ${extras!.eng_portrait_size}`)
     }
 
     // Delivery
@@ -541,6 +515,14 @@ export default function PhotoOrderPage() {
                 {formatWeddingDate(couple.wedding_date)}
                 {couple.reception_venue ? ` \u2022 ${couple.reception_venue}` : ''}
               </p>
+              <p className="text-sm text-teal-600 mt-1">
+                💍 Married {differenceInDays(new Date(), new Date(couple.wedding_date + 'T12:00:00'))} days ago!
+              </p>
+            </div>
+
+            {/* File name helper */}
+            <div className="bg-teal-50 border border-teal-200 rounded-lg px-4 py-3 text-sm text-teal-800">
+              Enter file names exactly as they appear in your Dropbox folder, e.g. <span className="font-mono font-medium">Adrianna_James_WEDPROOFS-69</span>
             </div>
 
             {/* Package Summary */}
@@ -587,7 +569,7 @@ export default function PhotoOrderPage() {
                 <span>📷</span> Cover Photo
               </h2>
               <p className="text-xs text-muted-foreground mb-3">
-                Select a horizontal photo for the album cover (first image in parent albums)
+                Select a horizontal photo for YOUR wedding album cover (will also be first image in parent albums)
               </p>
               <input
                 type="text"
@@ -600,14 +582,12 @@ export default function PhotoOrderPage() {
             {/* Parent Album Selections — only if custom */}
             {isCustom && parentAlbumsQty > 0 && (
               <div className="bg-card rounded-xl border p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <span>📷</span> Parent Album Selections
-                </h2>
-
                 {/* Album 1 */}
+                <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <span>📷</span> Parent Album 1 — Select {parentAlbumsImages} images
+                </h2>
                 <div className="mb-4">
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-sm font-medium text-foreground">Parent Album 1</label>
+                  <div className="flex items-center justify-end mb-1">
                     <span className="text-xs text-muted-foreground">
                       {parentAlbum1Photos.split(/[\n,]+/).filter(s => s.trim()).length} of {parentAlbumsImages}
                     </span>
@@ -630,8 +610,10 @@ export default function PhotoOrderPage() {
                 {/* Album 2 */}
                 {parentAlbumsQty >= 2 && (
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-sm font-medium text-foreground">Parent Album 2</label>
+                    <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                      <span>📷</span> Parent Album 2 — Select {parentAlbumsImages} images
+                    </h2>
+                    <div className="flex items-center justify-end mb-1">
                       <span className="text-xs text-muted-foreground">
                         {parentAlbum2Photos.split(/[\n,]+/).filter(s => s.trim()).length} of {parentAlbumsImages}
                       </span>
@@ -657,14 +639,14 @@ export default function PhotoOrderPage() {
             {/* Main Album — only if has main album AND custom */}
             {isCustom && hasMainAlbum && (
               <div className="bg-card rounded-xl border p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
-                  <span>📷</span> Main Album
+                <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <span>📷</span> Your Wedding Album — Select {mainAlbumImages} photos
                 </h2>
-                {mainAlbumImages > 0 && (
-                  <p className="text-xs text-muted-foreground mb-3">
-                    {mainAlbumPhotos.split(/[\n,]+/).filter(s => s.trim()).length} of {mainAlbumImages} selected
-                  </p>
-                )}
+                <div className="flex items-center justify-end mb-1">
+                  <span className="text-xs text-muted-foreground">
+                    {mainAlbumPhotos.split(/[\n,]+/).filter(s => s.trim()).length} of {mainAlbumImages}
+                  </span>
+                </div>
                 <textarea
                   value={mainAlbumPhotos}
                   onChange={(e) => setMainAlbumPhotos(e.target.value)}
@@ -708,70 +690,6 @@ export default function PhotoOrderPage() {
                 </div>
               </div>
             )}
-
-            {/* Collage */}
-            {hasCollage && (
-              <div className="bg-card rounded-xl border p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
-                  <span>🖼️</span> Collage
-                </h2>
-                <p className="text-xs text-muted-foreground mb-3">
-                  {extras!.collage_size} {extras!.collage_type || ''}
-                </p>
-                <textarea
-                  value={collagePhotos}
-                  onChange={(e) => setCollagePhotos(e.target.value)}
-                  placeholder="Enter filenames for collage photos..."
-                  rows={3}
-                  className="w-full"
-                />
-              </div>
-            )}
-
-            {/* Wedding Frame */}
-            {hasWeddingFrame && (
-              <div className="bg-card rounded-xl border p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
-                  <span>🖼️</span> Wedding Frame
-                </h2>
-                <p className="text-xs text-muted-foreground mb-3">{extras!.wedding_frame_size}</p>
-                <input
-                  type="text"
-                  value={weddingFramePhoto}
-                  onChange={(e) => setWeddingFramePhoto(e.target.value)}
-                  placeholder="Photo filename (e.g. DSC_9012.jpg)"
-                />
-              </div>
-            )}
-
-            {/* Engagement Portrait */}
-            {hasEngPortrait && (
-              <div className="bg-card rounded-xl border p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
-                  <span>🖼️</span> Engagement Portrait
-                </h2>
-                <p className="text-xs text-muted-foreground mb-3">{extras!.eng_portrait_size}</p>
-                <input
-                  type="text"
-                  value={engPortraitPhoto}
-                  onChange={(e) => setEngPortraitPhoto(e.target.value)}
-                  placeholder="Photo filename (e.g. ENG_0456.jpg)"
-                />
-              </div>
-            )}
-
-            {/* Album Cover Text */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
-                <span>📖</span> Album Cover Text
-              </h2>
-              <input
-                type="text"
-                value={albumCoverText}
-                onChange={(e) => setAlbumCoverText(e.target.value)}
-                placeholder="e.g. Sarah & Mike • April 11, 2025"
-              />
-            </div>
 
             {/* Special Instructions */}
             <div className="bg-card rounded-xl border p-6 shadow-sm">
