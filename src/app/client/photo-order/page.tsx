@@ -748,9 +748,8 @@ export default function PhotoOrderPage() {
                         type="text"
                         value={row.filename}
                         onChange={(e) => {
-                          const updated = [...printRows]
-                          updated[i] = { ...row, filename: e.target.value }
-                          setPrintRows(updated)
+                          const val = e.target.value
+                          setPrintRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: val } : r))
                         }}
                         placeholder="Photo filename (e.g. DSC_5678.jpg)"
                       />
@@ -758,9 +757,8 @@ export default function PhotoOrderPage() {
                         type="text"
                         value={row.notes}
                         onChange={(e) => {
-                          const updated = [...printRows]
-                          updated[i] = { ...row, notes: e.target.value }
-                          setPrintRows(updated)
+                          const val = e.target.value
+                          setPrintRows(prev => prev.map((r, idx) => idx === i ? { ...r, notes: val } : r))
                         }}
                         placeholder="Notes (optional — e.g. crop instructions, orientation)"
                         className="text-xs"
