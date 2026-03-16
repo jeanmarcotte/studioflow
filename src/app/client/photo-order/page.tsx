@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { Camera, CheckCircle, ChevronDown, ChevronRight, Loader2, Mail, Phone, Search } from 'lucide-react'
+import { Camera, CheckCircle, ChevronDown, ChevronRight, Loader2, Mail, Search } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -53,17 +53,6 @@ interface PrintRow {
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
-
-const YEARS = [2024, 2025, 2026, 2027]
-
-function daysInMonth(month: number, year: number): number {
-  return new Date(year, month, 0).getDate()
-}
 
 function formatWeddingDate(dateStr: string): string {
   const date = new Date(dateStr + 'T12:00:00')
@@ -131,9 +120,8 @@ export default function PhotoOrderPage() {
   const hasEngPortrait = !!extras?.eng_portrait_size
   const isCustom = designPref === 'custom'
 
-  const maxDays = month && year ? daysInMonth(parseInt(month), parseInt(year)) : 31
   const weddingDateStr = month && day && year
-    ? `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+    ? `${year}-${month}-${day}`
     : ''
 
   // ─── Step 1: Lookup ──────────────────────────────────────────────────────
@@ -442,17 +430,26 @@ export default function PhotoOrderPage() {
                     onChange={(e) => { setMonth(e.target.value); setDay('') }}
                   >
                     <option value="">Month</option>
-                    {MONTHS.map((m, i) => (
-                      <option key={m} value={String(i + 1)}>{m}</option>
-                    ))}
+                    <option value="01">January</option>
+                    <option value="02">February</option>
+                    <option value="03">March</option>
+                    <option value="04">April</option>
+                    <option value="05">May</option>
+                    <option value="06">June</option>
+                    <option value="07">July</option>
+                    <option value="08">August</option>
+                    <option value="09">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
                   </select>
                   <select
                     value={day}
                     onChange={(e) => setDay(e.target.value)}
                   >
                     <option value="">Day</option>
-                    {Array.from({ length: maxDays }, (_, i) => i + 1).map((d) => (
-                      <option key={d} value={String(d)}>{d}</option>
+                    {[...Array(31)].map((_, i) => (
+                      <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}</option>
                     ))}
                   </select>
                   <select
@@ -460,16 +457,17 @@ export default function PhotoOrderPage() {
                     onChange={(e) => { setYear(e.target.value); setDay('') }}
                   >
                     <option value="">Year</option>
-                    {YEARS.map((y) => (
-                      <option key={y} value={String(y)}>{y}</option>
-                    ))}
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026">2026</option>
+                    <option value="2027">2027</option>
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  First Name (bride or groom)
+                  First Name (Bride or Groom)
                 </label>
                 <input
                   type="text"
