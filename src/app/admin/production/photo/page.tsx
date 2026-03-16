@@ -341,7 +341,7 @@ export default function PhotoProductionPage() {
               {!isCollapsed && lane.jobs.length > 0 && (
                 <div className="border-t">
                   {/* Column headers */}
-                  <div className="grid grid-cols-[1fr_140px_140px_120px_140px] gap-2 px-4 py-2 border-b bg-muted/30">
+                  <div className="grid grid-cols-[1.2fr_160px_1fr_110px_150px] gap-4 px-4 py-2 border-b bg-muted/30">
                     <SortHeader field="couple">Couple</SortHeader>
                     <SortHeader field="job_type">Job Type</SortHeader>
                     <span className="text-xs font-medium text-muted-foreground">Description</span>
@@ -353,7 +353,7 @@ export default function PhotoProductionPage() {
                   {lane.jobs.map(job => (
                     <div
                       key={job.id}
-                      className="grid grid-cols-[1fr_140px_140px_120px_140px] gap-2 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors items-center"
+                      className="grid grid-cols-[1.2fr_160px_1fr_110px_150px] gap-4 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors items-center"
                     >
                       {/* Couple */}
                       <div className="min-w-0">
