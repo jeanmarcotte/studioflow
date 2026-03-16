@@ -299,6 +299,10 @@ export default function VideoProductionPage() {
     for (const job of result) {
       if (job.section === 'completed') {
         lanes.completed.push(job)
+        // Also show in editing_full when showCompleted is on
+        if (showCompleted && job.job_type !== 'RECAP') {
+          lanes.editing_full.push(job)
+        }
       } else if (job.section === 'reediting') {
         lanes.reediting.push(job)
       } else if (job.job_type === 'RECAP') {
@@ -351,7 +355,7 @@ export default function VideoProductionPage() {
     }
 
     return lanes
-  }, [jobs, search, sortColumn, sortDirection])
+  }, [jobs, search, sortColumn, sortDirection, showCompleted])
 
   // ── Stats ──────────────────────────────────────────────────────
 
@@ -526,7 +530,7 @@ export default function VideoProductionPage() {
                 ref={lane.key === 'editing_full' ? editingRef : undefined}
               >
                 {/* Swimlane header */}
-                <div className="flex items-center gap-3 py-3">
+                <div className="flex items-center justify-between py-3">
                   <button
                     onClick={() => toggleLane(lane.key)}
                     className="flex items-center gap-3 text-left hover:opacity-80"
@@ -542,6 +546,14 @@ export default function VideoProductionPage() {
                       {laneJobCount} job{laneJobCount !== 1 ? 's' : ''}
                     </span>
                   </button>
+                  {lane.key === 'editing_full' && (
+                    <button
+                      onClick={() => setShowCompleted(!showCompleted)}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showCompleted ? 'Hide' : 'Show'} Completed ({processedJobs.completed.length})
+                    </button>
+                  )}
                 </div>
 
                 {/* WAITING FOR PHOTO ORDER — read-only from photo_jobs */}
@@ -629,7 +641,7 @@ export default function VideoProductionPage() {
                         {laneJobs.map(job => (
                           <tr
                             key={job.id}
-                            className={`hover:bg-accent/50 transition-colors ${draggedJobId === job.id ? 'opacity-50' : ''}`}
+                            className={`hover:bg-accent/50 transition-colors ${draggedJobId === job.id ? 'opacity-50' : ''} ${job.section === 'completed' ? 'opacity-50' : ''}`}
                             draggable
                             onDragStart={() => handleDragStart(job.id)}
                             onDragOver={e => e.preventDefault()}
@@ -752,22 +764,7 @@ export default function VideoProductionPage() {
             )
           })}
 
-          {/* Show/Hide Completed toggle */}
-          <button
-            onClick={() => {
-              setShowCompleted(!showCompleted)
-              if (!showCompleted) {
-                setCollapsedLanes(prev => {
-                  const next = new Set(prev)
-                  next.delete('completed')
-                  return next
-                })
-              }
-            }}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {showCompleted ? 'Hide' : 'Show'} Completed ({processedJobs.completed.length})
-          </button>
+          {/* Bottom spacer */}
         </div>
 
         {/* Stats Sidebar */}
