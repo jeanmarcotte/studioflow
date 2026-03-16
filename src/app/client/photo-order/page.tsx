@@ -508,6 +508,11 @@ export default function PhotoOrderPage() {
                 />
               </div>
 
+              <p className="text-sm text-muted-foreground">
+                Can&apos;t log in? The email must match your contract.{' '}
+                <a href="sms:4168318942" className="text-teal-600 underline">Text Marianna at 416-831-8942</a> if you have trouble.
+              </p>
+
               <button
                 onClick={handleLookup}
                 disabled={loading || !weddingDateStr || !firstName || !email}

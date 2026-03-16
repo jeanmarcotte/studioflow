@@ -17,6 +17,7 @@ export async function POST(request: Request) {
       .from('video_orders')
       .insert({
         couple_id: body.couple_id,
+        let_jean_choose_music: body.let_jean_choose_music || false,
         songs: body.songs || null,
         song_placements: body.song_placements || null,
         must_have_moments: body.must_have_moments || null,

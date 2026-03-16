@@ -16,7 +16,7 @@ interface Couple {
   email: string
 }
 
-type SongPlacement = 'ceremony' | 'reception' | 'highlights' | 'no_preference'
+type SongPlacement = 'groom' | 'bride' | 'first_look' | 'park' | 'pre_ceremony' | 'after_ceremony' | 'pre_reception' | 'other' | 'no_preference'
 type RecapStyle = 'short' | 'longer'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -27,10 +27,15 @@ function formatWeddingDate(dateStr: string): string {
 }
 
 const PLACEMENT_OPTIONS: { value: SongPlacement; label: string }[] = [
+  { value: 'groom', label: 'Groom' },
+  { value: 'bride', label: 'Bride' },
+  { value: 'first_look', label: 'First Look' },
+  { value: 'park', label: 'Park' },
+  { value: 'pre_ceremony', label: 'Pre-Ceremony' },
+  { value: 'after_ceremony', label: 'After Ceremony' },
+  { value: 'pre_reception', label: 'Pre-Reception' },
+  { value: 'other', label: 'Other' },
   { value: 'no_preference', label: 'No preference' },
-  { value: 'ceremony', label: 'Ceremony' },
-  { value: 'reception', label: 'Reception' },
-  { value: 'highlights', label: 'Highlights' },
 ]
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -51,6 +56,7 @@ export default function VideoOrderPage() {
   const [couple, setCouple] = useState<Couple | null>(null)
 
   // Step 3 form
+  const [letJeanChoose, setLetJeanChoose] = useState(false)
   const [songs, setSongs] = useState<string[]>(Array(7).fill(''))
   const [songPlacements, setSongPlacements] = useState<SongPlacement[]>(Array(7).fill('no_preference'))
   const [mustHaveMoments, setMustHaveMoments] = useState('')
@@ -110,7 +116,7 @@ export default function VideoOrderPage() {
     setError(null)
     setLoading(true)
     try {
-      const filledSongs = songs.map((s, i) => ({
+      const filledSongs = letJeanChoose ? [] : songs.map((s, i) => ({
         song: s || null,
         placement: songPlacements[i],
       })).filter(s => s.song)
@@ -120,6 +126,7 @@ export default function VideoOrderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           couple_id: couple.id,
+          let_jean_choose_music: letJeanChoose,
           songs: filledSongs.length > 0 ? filledSongs : null,
           song_placements: filledSongs.length > 0 ? filledSongs.map(s => s.placement) : null,
           must_have_moments: mustHaveMoments || null,
@@ -297,6 +304,11 @@ export default function VideoOrderPage() {
                 />
               </div>
 
+              <p className="text-xs text-muted-foreground">
+                Can&apos;t log in? The email must match your contract. Text Marianna at{' '}
+                <a href="sms:4168318942" className="underline">416-831-8942</a> if you have trouble.
+              </p>
+
               <button
                 onClick={handleLookup}
                 disabled={loading || !weddingDateStr || !firstName || !email}
@@ -373,43 +385,60 @@ export default function VideoOrderPage() {
             <div className="bg-card rounded-xl border p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-foreground mb-1">List up to 7 songs</h2>
               <p className="text-xs text-muted-foreground mb-4">YouTube links preferred. We may not use all songs.</p>
-              <div className="space-y-3">
-                {songs.map((song, i) => (
-                  <div key={i}>
-                    <label className="text-sm font-medium text-foreground mb-1 block">
-                      Song {i + 1}
-                    </label>
-                    <input
-                      type="text"
-                      value={song}
-                      onChange={(e) => {
-                        const updated = [...songs]
-                        updated[i] = e.target.value
-                        setSongs(updated)
-                      }}
-                      placeholder="Song name or YouTube link"
-                    />
-                    {song && (
-                      <div className="mt-1.5">
-                        <label className="text-xs text-muted-foreground mb-1 block">Where to use this song?</label>
-                        <select
-                          value={songPlacements[i]}
-                          onChange={(e) => {
-                            const updated = [...songPlacements]
-                            updated[i] = e.target.value as SongPlacement
-                            setSongPlacements(updated)
-                          }}
-                          className="text-sm"
-                        >
-                          {PLACEMENT_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+
+              <label className="flex items-center gap-3 cursor-pointer mb-4">
+                <input
+                  type="checkbox"
+                  checked={letJeanChoose}
+                  onChange={(e) => setLetJeanChoose(e.target.checked)}
+                  className="w-4 h-4 accent-teal-600 rounded"
+                />
+                <span className="text-sm font-medium text-foreground">Let Jean choose the music for me</span>
+              </label>
+
+              {letJeanChoose ? (
+                <p className="text-sm text-teal-700 bg-teal-50 border border-teal-200 rounded-lg px-4 py-3">
+                  Great! Jean will select music that fits your wedding style.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {songs.map((song, i) => (
+                    <div key={i}>
+                      <label className="text-sm font-medium text-foreground mb-1 block">
+                        Song {i + 1}
+                      </label>
+                      <input
+                        type="text"
+                        value={song}
+                        onChange={(e) => {
+                          const updated = [...songs]
+                          updated[i] = e.target.value
+                          setSongs(updated)
+                        }}
+                        placeholder="Song name or YouTube link"
+                      />
+                      {song && (
+                        <div className="mt-1.5">
+                          <label className="text-xs text-muted-foreground mb-1 block">Where to use this song?</label>
+                          <select
+                            value={songPlacements[i]}
+                            onChange={(e) => {
+                              const updated = [...songPlacements]
+                              updated[i] = e.target.value as SongPlacement
+                              setSongPlacements(updated)
+                            }}
+                            className="text-sm"
+                          >
+                            {PLACEMENT_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Must-Have Moments */}
