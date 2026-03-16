@@ -580,7 +580,7 @@ export default function PhotoOrderPage() {
             </div>
 
             {/* Parent Album Selections — only if custom */}
-            {isCustom && parentAlbumsQty > 0 && (
+            {parentAlbumsQty > 0 && (
               <div className="bg-card rounded-xl border p-6 shadow-sm">
                 {/* Album 1 */}
                 <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
