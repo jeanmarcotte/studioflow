@@ -171,7 +171,7 @@ export default function AddEditingJobPage() {
     setError('')
 
     const { error: insertError } = await supabase
-      .from('editing_jobs')
+      .from('production_jobs')
       .insert({
         couple_id: coupleId,
         category,

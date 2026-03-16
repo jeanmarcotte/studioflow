@@ -189,10 +189,10 @@ export default function AdminDashboardPage() {
     const fetchAll = async () => {
       const [couplesRes, photoRes, videoRes, installRes, editingRes] = await Promise.all([
         supabase.from('couples').select('*').order('wedding_date', { ascending: true }),
-        supabase.from('photo_jobs').select('id, couple_id, status, couples(couple_name)'),
+        supabase.from('editing_queue').select('id, couple_id, status, couples(couple_name)'),
         supabase.from('video_jobs').select('id, couple_id, status, couples(couple_name)'),
         supabase.from('contract_installments').select('*'),
-        supabase.from('editing_jobs').select('id, couple_id, job_type, description, vendor, status, couples(couple_name)'),
+        supabase.from('production_jobs').select('id, couple_id, job_type, description, vendor, status, couples(couple_name)'),
       ])
 
       if (couplesRes.data) setCouples(couplesRes.data)
@@ -325,7 +325,7 @@ export default function AdminDashboardPage() {
     return i.due_date <= in30days && i.due_date >= todayStr && !i.paid
   })
 
-  // BOX 5: Albums In Progress (from editing_jobs)
+  // BOX 5: Albums In Progress (from production_jobs)
   const ALBUM_TYPES = ['parent_album', 'bg_album', 'eng_album']
   const ALBUM_TYPE_LABELS: Record<string, string> = {
     parent_album: 'Parent Album', bg_album: 'B&G Album', eng_album: 'Engagement Album',

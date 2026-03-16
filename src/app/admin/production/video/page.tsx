@@ -151,7 +151,7 @@ export default function VideoProductionPage() {
           .select('*, couples(id, couple_name)')
           .order('sort_order', { ascending: true, nullsFirst: false }),
         supabase
-          .from('photo_jobs')
+          .from('editing_queue')
           .select('id, couple_id, status, couples(id, couple_name, wedding_date)')
           .eq('section', 'waiting_photo'),
       ])
@@ -289,7 +289,7 @@ export default function VideoProductionPage() {
       )
     }
 
-    // Categorize into swimlanes (waiting_photo comes from photo_jobs, not here)
+    // Categorize into swimlanes (waiting_photo comes from editing_queue, not here)
     const lanes: Record<Exclude<SwimlaneKey, 'waiting_photo'>, VideoJob[]> = {
       editing_full: [],
       editing_recap: [],
@@ -568,7 +568,7 @@ export default function VideoProductionPage() {
                   )}
                 </div>
 
-                {/* WAITING FOR PHOTO ORDER — read-only from photo_jobs */}
+                {/* WAITING FOR PHOTO ORDER — read-only from editing_queue */}
                 {isWaiting && !isCollapsed && photoWaitingJobs.length > 0 && (
                   <div className="rounded-xl border bg-card overflow-hidden">
                     <table className="w-full text-sm">

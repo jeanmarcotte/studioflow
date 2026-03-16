@@ -115,11 +115,11 @@ export default function PhotoProductionPage() {
     const fetchJobs = async () => {
       const [editingRes, photoRes] = await Promise.all([
         supabase
-          .from('editing_jobs')
+          .from('production_jobs')
           .select('*, couples(couple_name, wedding_date)')
           .order('created_at', { ascending: false }),
         supabase
-          .from('photo_jobs')
+          .from('editing_queue')
           .select('id, couple_id, status, section, couples(id, couple_name, wedding_date)')
           .eq('section', 'waiting_photo'),
       ])
@@ -139,7 +139,7 @@ export default function PhotoProductionPage() {
 
   const initiatePhotoJob = async (jobId: string) => {
     const { error } = await supabase
-      .from('photo_jobs')
+      .from('editing_queue')
       .update({ section: 'editing', status: 'not_started' })
       .eq('id', jobId)
 
@@ -162,7 +162,7 @@ export default function PhotoProductionPage() {
     }
 
     const { error } = await supabase
-      .from('editing_jobs')
+      .from('production_jobs')
       .update(updates)
       .eq('id', jobId)
 
@@ -371,7 +371,7 @@ export default function PhotoProductionPage() {
                 </div>
               </button>
 
-              {/* Waiting for Photo Order — from photo_jobs */}
+              {/* Waiting for Photo Order — from editing_queue */}
               {isWaitingPhoto && !isCollapsed && photoWaitingJobs.length > 0 && (
                 <div className="border-t">
                   <div className="grid grid-cols-[1.2fr_160px_1fr_150px] gap-4 px-4 py-2 border-b bg-muted/30">
