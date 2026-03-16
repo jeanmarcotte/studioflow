@@ -8,6 +8,33 @@ function getServiceClient() {
   )
 }
 
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const coupleId = searchParams.get('id')
+
+    if (!coupleId) {
+      return NextResponse.json({ error: 'id is required' }, { status: 400 })
+    }
+
+    const supabase = getServiceClient()
+    const { data, error } = await supabase
+      .from('couples')
+      .select('id, couple_name, bride_first_name, groom_first_name, wedding_date, reception_venue, email')
+      .eq('id', coupleId)
+      .single()
+
+    if (error || !data) {
+      return NextResponse.json({ error: 'Couple not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ couple: data })
+  } catch (err) {
+    console.error('[GET /api/client/lookup-couple] Error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format, differenceInDays } from 'date-fns'
 import { CheckCircle, ChevronRight, Loader2, Mail, Search, Video } from 'lucide-react'
 
@@ -62,6 +62,34 @@ export default function VideoOrderPage() {
   const [mustHaveMoments, setMustHaveMoments] = useState('')
   const [recapStyle, setRecapStyle] = useState<RecapStyle | ''>('')
   const [includeVows, setIncludeVows] = useState<boolean | null>(null)
+
+  // ─── Check for couple_id URL param (skip login) ─────────────────────────
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const coupleId = params.get('couple_id')
+    if (coupleId) {
+      fetchCoupleById(coupleId)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function fetchCoupleById(id: string) {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/client/lookup-couple?id=${id}`)
+      const json = await res.json()
+      if (res.ok && json.couple) {
+        setCouple(json.couple)
+        setEmail(json.couple.email)
+        setStep(3)
+      }
+    } catch {
+      // Fall through to normal login flow
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // ─── Derived ─────────────────────────────────────────────────────────────
 

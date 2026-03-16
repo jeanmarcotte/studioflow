@@ -107,6 +107,7 @@ export default function PhotoOrderPage() {
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [noSpecialRequests, setNoSpecialRequests] = useState(false)
   const [videoPromptDismissed, setVideoPromptDismissed] = useState(false)
+  const [submitAttempted, setSubmitAttempted] = useState(false)
 
   // ─── Derived ─────────────────────────────────────────────────────────────
 
@@ -126,15 +127,28 @@ export default function PhotoOrderPage() {
   const parent1Count = countPhotos(parentAlbum1Photos)
   const parent2Count = countPhotos(parentAlbum2Photos)
   const mainCount = countPhotos(mainAlbumPhotos)
-  const parent1Over = parentAlbumsQty > 0 && parent1Count > parentAlbumsImages
-  const parent2Over = parentAlbumsQty >= 2 && parent2Count > parentAlbumsImages
-  const mainOver = hasMainAlbum && isCustom && mainCount > mainAlbumImages
-  const hasLimitError = parent1Over || parent2Over || mainOver
 
-  const limitErrors: string[] = []
-  if (parent1Over) limitErrors.push(`Parent Album 1 has ${parent1Count} photos (max ${parentAlbumsImages})`)
-  if (parent2Over) limitErrors.push(`Parent Album 2 has ${parent2Count} photos (max ${parentAlbumsImages})`)
-  if (mainOver) limitErrors.push(`Main album has ${mainCount} photos (max ${mainAlbumImages})`)
+  // Validation
+  const validationErrors: string[] = []
+  if (hasAnyAlbum && !designPref) validationErrors.push('Album design preference')
+  if (hasAnyAlbum && !coverPhotoFilename.trim()) validationErrors.push('Cover photo')
+  if (isCustom && parentAlbumsQty > 0 && parent1Count !== parentAlbumsImages) {
+    validationErrors.push(`Parent Album 1 (need ${parentAlbumsImages} photos, you have ${parent1Count})`)
+  }
+  if (isCustom && parentAlbumsQty >= 2 && parent2Count !== parentAlbumsImages) {
+    validationErrors.push(`Parent Album 2 (need ${parentAlbumsImages} photos, you have ${parent2Count})`)
+  }
+  if (isCustom && hasMainAlbum && mainCount !== mainAlbumImages) {
+    validationErrors.push(`Main Album (need ${mainAlbumImages} photos, you have ${mainCount})`)
+  }
+  const hasValidationErrors = validationErrors.length > 0
+
+  // Per-section error flags (for red borders)
+  const designPrefError = submitAttempted && hasAnyAlbum && !designPref
+  const coverPhotoError = submitAttempted && hasAnyAlbum && !coverPhotoFilename.trim()
+  const parent1Error = submitAttempted && isCustom && parentAlbumsQty > 0 && parent1Count !== parentAlbumsImages
+  const parent2Error = submitAttempted && isCustom && parentAlbumsQty >= 2 && parent2Count !== parentAlbumsImages
+  const mainAlbumError = submitAttempted && isCustom && hasMainAlbum && mainCount !== mainAlbumImages
 
   const weddingDateStr = month && day && year
     ? `${year}-${month}-${day}`
@@ -211,12 +225,9 @@ export default function PhotoOrderPage() {
 
   async function handleSubmit() {
     if (!couple) return
-    if (hasAnyAlbum && !designPref) {
-      setError('Please select an album design preference.')
-      return
-    }
-    if (hasLimitError) {
-      setError('Please reduce your photo selections to within the allowed limits.')
+    setSubmitAttempted(true)
+    if (hasValidationErrors) {
+      setError('Please complete required fields before submitting.')
       return
     }
     setError(null)
@@ -572,7 +583,7 @@ export default function PhotoOrderPage() {
 
             {/* File name helper */}
             <div className="bg-teal-50 border border-teal-200 rounded-lg px-4 py-3 text-sm text-teal-800">
-              Enter file names exactly as they appear in your Dropbox folder, e.g. <span className="font-mono font-medium">Adrianna_James_WEDPROOFS-69</span>
+              Enter file names exactly as they appear in your Dropbox folder, e.g. <span className="font-mono font-medium">{couple.bride_first_name}_{couple.groom_first_name}_WEDPROOFS-69</span>
             </div>
 
             {/* Package Summary */}
@@ -582,7 +593,7 @@ export default function PhotoOrderPage() {
             {hasAnyAlbum && (
               <>
                 {/* Album Design Preference */}
-                <div className="bg-card rounded-xl border p-6 shadow-sm">
+                <div className={`bg-card rounded-xl border p-6 shadow-sm ${designPrefError ? 'border-red-400' : ''}`}>
                   <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                     <span>📷</span> Album Design Preference
                   </h2>
@@ -617,7 +628,7 @@ export default function PhotoOrderPage() {
                 </div>
 
                 {/* Cover Photo */}
-                <div className="bg-card rounded-xl border p-6 shadow-sm">
+                <div className={`bg-card rounded-xl border p-6 shadow-sm ${coverPhotoError ? 'border-red-400' : ''}`}>
                   <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
                     <span>📷</span> Cover Photo
                   </h2>
@@ -636,15 +647,16 @@ export default function PhotoOrderPage() {
 
             {/* Parent Album Selections — only if custom */}
             {parentAlbumsQty > 0 && (
-              <div className="bg-card rounded-xl border p-6 shadow-sm">
+              <div className={`bg-card rounded-xl border p-6 shadow-sm ${parent1Error || parent2Error ? 'border-red-400' : ''}`}>
                 {/* Album 1 */}
-                <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
                   <span>📷</span> Parent Album 1 — Select {parentAlbumsImages} images
                 </h2>
+                <p className="text-xs text-muted-foreground mb-3">Enter filenames, one per line or comma-separated</p>
                 <div className="mb-4">
                   <div className="flex items-center justify-end mb-1">
-                    <span className={`text-xs ${parent1Over ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
-                      {parent1Count} of {parentAlbumsImages}{parent1Over ? ' — too many!' : ''}
+                    <span className={`text-xs ${parent1Count > 0 && parent1Count !== parentAlbumsImages ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                      {parent1Count} of {parentAlbumsImages}{parent1Count > parentAlbumsImages ? ' — too many!' : ''}
                     </span>
                   </div>
                   <textarea
@@ -665,12 +677,13 @@ export default function PhotoOrderPage() {
                 {/* Album 2 */}
                 {parentAlbumsQty >= 2 && (
                   <div>
-                    <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
                       <span>📷</span> Parent Album 2 — Select {parentAlbumsImages} images
                     </h2>
+                    <p className="text-xs text-muted-foreground mb-3">Enter filenames, one per line or comma-separated</p>
                     <div className="flex items-center justify-end mb-1">
-                      <span className={`text-xs ${parent2Over ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
-                        {parent2Count} of {parentAlbumsImages}{parent2Over ? ' — too many!' : ''}
+                      <span className={`text-xs ${parent2Count > 0 && parent2Count !== parentAlbumsImages ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                        {parent2Count} of {parentAlbumsImages}{parent2Count > parentAlbumsImages ? ' — too many!' : ''}
                       </span>
                     </div>
                     <textarea
@@ -693,13 +706,14 @@ export default function PhotoOrderPage() {
 
             {/* Main Album — only if has main album AND custom */}
             {isCustom && hasMainAlbum && (
-              <div className="bg-card rounded-xl border p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+              <div className={`bg-card rounded-xl border p-6 shadow-sm ${mainAlbumError ? 'border-red-400' : ''}`}>
+                <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
                   <span>📷</span> Your Wedding Album — Select {mainAlbumImages} photos
                 </h2>
+                <p className="text-xs text-muted-foreground mb-3">Enter filenames, one per line or comma-separated</p>
                 <div className="flex items-center justify-end mb-1">
-                  <span className={`text-xs ${mainOver ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
-                    {mainCount} of {mainAlbumImages}{mainOver ? ' — too many!' : ''}
+                  <span className={`text-xs ${mainCount > 0 && mainCount !== mainAlbumImages ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                    {mainCount} of {mainAlbumImages}{mainCount > mainAlbumImages ? ' — too many!' : ''}
                   </span>
                 </div>
                 <textarea
@@ -782,13 +796,13 @@ export default function PhotoOrderPage() {
               </label>
             </div>
 
-            {/* Limit errors */}
-            {hasLimitError && (
+            {/* Validation errors */}
+            {submitAttempted && hasValidationErrors && (
               <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
-                <p className="font-medium mb-1">Please fix the following:</p>
+                <p className="font-medium mb-1">Please complete required fields before submitting:</p>
                 <ul className="list-disc list-inside space-y-0.5">
-                  {limitErrors.map((msg) => (
-                    <li key={msg}>{msg}</li>
+                  {validationErrors.map((msg) => (
+                    <li key={msg}>Missing: {msg}</li>
                   ))}
                 </ul>
               </div>
@@ -797,7 +811,7 @@ export default function PhotoOrderPage() {
             {/* Submit */}
             <button
               onClick={handleSubmit}
-              disabled={loading || (hasAnyAlbum && !designPref) || hasLimitError}
+              disabled={loading}
               className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 text-lg"
             >
               {loading ? (
@@ -828,7 +842,7 @@ export default function PhotoOrderPage() {
                 </p>
                 <div className="flex gap-2 justify-center">
                   <a
-                    href="/client/video-order"
+                    href={`/client/video-order?couple_id=${couple?.id}`}
                     className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
                   >
                     Yes, take me there
