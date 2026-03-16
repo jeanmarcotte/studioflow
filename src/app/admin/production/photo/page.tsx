@@ -41,6 +41,7 @@ const JOB_TYPE_LABELS: Record<string, string> = {
   eng_album: 'Engagement Album',
   eng_prints: 'Engagement Prints',
   hires_engagement: 'Hi-Res Engagement',
+  eng_slideshow: 'Engagement Slideshow',
 }
 
 const VENDOR_LABELS: Record<string, string> = {
@@ -58,6 +59,7 @@ const VENDOR_COLORS: Record<string, string> = {
 }
 
 const LANES = [
+  { key: 'waiting_photo', label: 'Waiting for Photo Order', badge: 'bg-yellow-100 text-yellow-700' },
   { key: 'in_progress', label: 'In Progress', badge: 'bg-blue-100 text-blue-700' },
   { key: 'reediting', label: 'Re-editing', badge: 'bg-rose-100 text-rose-700' },
   { key: 'at_lab', label: 'At Lab', badge: 'bg-indigo-100 text-indigo-700' },
