@@ -60,6 +60,7 @@ const VENDOR_COLORS: Record<string, string> = {
 
 const LANES = [
   { key: 'waiting_photo', label: 'Waiting for Photo Order', badge: 'bg-yellow-100 text-yellow-700' },
+  { key: 'not_started', label: 'Not Started', badge: 'bg-gray-100 text-gray-700' },
   { key: 'in_progress', label: 'In Progress', badge: 'bg-blue-100 text-blue-700' },
   { key: 'reediting', label: 'Re-editing', badge: 'bg-rose-100 text-rose-700' },
   { key: 'at_lab', label: 'At Lab', badge: 'bg-indigo-100 text-indigo-700' },
@@ -67,7 +68,6 @@ const LANES = [
   { key: 'on_hold', label: 'On Hold', badge: 'bg-stone-100 text-stone-700' },
   { key: 'waiting_approval', label: 'Waiting Approval', badge: 'bg-amber-100 text-amber-700' },
   { key: 'ready_to_reedit', label: 'Ready to Re-edit', badge: 'bg-orange-100 text-orange-700' },
-  { key: 'not_started', label: 'Not Started', badge: 'bg-gray-100 text-gray-700' },
   { key: 'completed', label: 'Completed', badge: 'bg-green-100 text-green-700' },
 ] as const
 
