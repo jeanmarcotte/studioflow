@@ -342,10 +342,13 @@ export default function PhotoOrderPage() {
           <p className="text-sm text-muted-foreground">No package details found.</p>
         )}
         {!hasMainAlbum && (
-          <div className="mt-4 bg-teal-50 border border-teal-200 rounded-lg p-3 flex items-start gap-2">
-            <span className="text-base">💡</span>
+          <div className="mt-4 bg-teal-50 border border-teal-200 rounded-lg p-3">
+            <div className="text-base mb-1">💡</div>
+            <p className="text-sm text-teal-800 mb-2">
+              Your current package does not include a wedding album.
+            </p>
             <p className="text-sm text-teal-800">
-              Interested in a main album? Call Marianna at{' '}
+              Interested in a Bride and Groom 28x11 professionally designed album? Or 10x8 Linen Parent albums. Call Marianna at{' '}
               <a href="tel:4168318942" className="font-medium underline">416-831-8942</a>
             </p>
           </div>
