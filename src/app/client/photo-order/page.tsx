@@ -109,22 +109,28 @@ export default function PhotoOrderPage() {
   // ─── Derived ─────────────────────────────────────────────────────────────
 
   const parentAlbumsQty = contract?.parent_albums_qty ?? 0
-  const parentAlbumsImages = contract?.parent_albums_images ?? 0
+  const parentAlbumsImages = contract?.parent_albums_images || 30
   const hasMainAlbum = (contract?.bride_groom_album_qty ?? 0) > 0 || (extras?.album_qty ?? 0) > 0
-  const mainAlbumImages = contract?.bride_groom_album_images ?? 0
+  const mainAlbumImages = contract?.bride_groom_album_images || 70
   const isCustom = designPref === 'custom'
 
   function countPhotos(text: string): number {
+    if (!text.trim()) return 0
     return text.split(/[\n,]+/).filter(s => s.trim()).length
   }
 
   const parent1Count = countPhotos(parentAlbum1Photos)
   const parent2Count = countPhotos(parentAlbum2Photos)
   const mainCount = countPhotos(mainAlbumPhotos)
-  const parent1Over = parentAlbumsImages > 0 && parent1Count > parentAlbumsImages
-  const parent2Over = parentAlbumsImages > 0 && parent2Count > parentAlbumsImages
-  const mainOver = mainAlbumImages > 0 && mainCount > mainAlbumImages
+  const parent1Over = parentAlbumsQty > 0 && parent1Count > parentAlbumsImages
+  const parent2Over = parentAlbumsQty >= 2 && parent2Count > parentAlbumsImages
+  const mainOver = hasMainAlbum && isCustom && mainCount > mainAlbumImages
   const hasLimitError = parent1Over || parent2Over || mainOver
+
+  const limitErrors: string[] = []
+  if (parent1Over) limitErrors.push(`Parent Album 1 has ${parent1Count} photos (max ${parentAlbumsImages})`)
+  if (parent2Over) limitErrors.push(`Parent Album 2 has ${parent2Count} photos (max ${parentAlbumsImages})`)
+  if (mainOver) limitErrors.push(`Main album has ${mainCount} photos (max ${mainAlbumImages})`)
 
   const weddingDateStr = month && day && year
     ? `${year}-${month}-${day}`
@@ -757,6 +763,18 @@ export default function PhotoOrderPage() {
                 </span>
               </label>
             </div>
+
+            {/* Limit errors */}
+            {hasLimitError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+                <p className="font-medium mb-1">Please fix the following:</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  {limitErrors.map((msg) => (
+                    <li key={msg}>{msg}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Submit */}
             <button
