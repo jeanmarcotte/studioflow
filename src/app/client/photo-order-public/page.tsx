@@ -5,14 +5,19 @@ import { Camera, CheckCircle, ChevronRight, Loader2, Mail, Plus, Trash2 } from '
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface PrintRow {
+interface PortraitRow {
   size: string
-  qty: number
   filename: string
   notes: string
 }
 
-const PRINT_SIZES = ['4x6', '5x7', '8x10', '11x14', '16x20', '20x24', '24x30', 'Other']
+interface AdditionalPhotoRow {
+  size: string
+  filename: string
+  notes: string
+}
+
+const PORTRAIT_SIZES = ['11x14', '16x20', '20x24', '24x30']
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -36,10 +41,30 @@ export default function PhotoOrderPublicPage() {
   const [mainAlbumPhotos, setMainAlbumPhotos] = useState('')
   const [numParentAlbums, setNumParentAlbums] = useState(0)
   const [parentAlbumPhotos, setParentAlbumPhotos] = useState<string[]>(['', '', '', ''])
-  const [printRows, setPrintRows] = useState<PrintRow[]>([])
-  const [wantTYC, setWantTYC] = useState<boolean | null>(null)
+  // Parent Portraits
+  const [hasParentPortraits, setHasParentPortraits] = useState<boolean | null>(null)
+  const [numParentPortraits, setNumParentPortraits] = useState(1)
+  const [parentPortraitCanvas, setParentPortraitCanvas] = useState<boolean | null>(null)
+  const [parentPortraitRows, setParentPortraitRows] = useState<PortraitRow[]>([
+    { size: '16x20', filename: '', notes: '' },
+    { size: '16x20', filename: '', notes: '' },
+    { size: '16x20', filename: '', notes: '' },
+    { size: '16x20', filename: '', notes: '' },
+  ])
+  // B&G Portrait
+  const [hasBGPortrait, setHasBGPortrait] = useState<boolean | null>(null)
+  const [bgPortraitSize, setBGPortraitSize] = useState('16x20')
+  const [bgPortraitFilename, setBGPortraitFilename] = useState('')
+  const [bgPortraitNotes, setBGPortraitNotes] = useState('')
+  // Thank You Cards
+  const [hasTYC, setHasTYC] = useState<boolean | null>(null)
   const [tycQty, setTycQty] = useState<number>(0)
-  const [canvasNotes, setCanvasNotes] = useState('')
+  const [tycNotes, setTycNotes] = useState('')
+  // Additional Photos
+  const [hasAdditionalPhotos, setHasAdditionalPhotos] = useState<boolean | null>(null)
+  const [wantToOrderPhotos, setWantToOrderPhotos] = useState<boolean | null>(null)
+  const [additionalPhotoRows, setAdditionalPhotoRows] = useState<AdditionalPhotoRow[]>([])
+  // Special Instructions
   const [specialInstructions, setSpecialInstructions] = useState('')
 
   // ─── Derived ─────────────────────────────────────────────────────────────
@@ -54,12 +79,12 @@ export default function PhotoOrderPublicPage() {
     setStep(2)
   }
 
-  function addPrintRow() {
-    setPrintRows(prev => [...prev, { size: '8x10', qty: 1, filename: '', notes: '' }])
+  function addAdditionalPhotoRow() {
+    setAdditionalPhotoRows(prev => [...prev, { size: '8x10', filename: '', notes: '' }])
   }
 
-  function removePrintRow(index: number) {
-    setPrintRows(prev => prev.filter((_, i) => i !== index))
+  function removeAdditionalPhotoRow(index: number) {
+    setAdditionalPhotoRows(prev => prev.filter((_, i) => i !== index))
   }
 
   function updateParentPhotos(index: number, value: string) {
@@ -91,10 +116,27 @@ export default function PhotoOrderPublicPage() {
           parent_album_2_photos: numParentAlbums >= 2 ? parentAlbumPhotos[1] || null : null,
           parent_album_3_photos: numParentAlbums >= 3 ? parentAlbumPhotos[2] || null : null,
           parent_album_4_photos: numParentAlbums >= 4 ? parentAlbumPhotos[3] || null : null,
-          portrait_prints: printRows.length > 0 ? printRows.filter(r => r.filename).map(r => ({ size: r.size, qty: r.qty, filename: r.filename, notes: r.notes || null })) : null,
-          thank_you_cards: wantTYC,
-          thank_you_cards_qty: wantTYC ? tycQty || null : null,
-          canvas_upgrade_notes: canvasNotes || null,
+          portrait_prints: (() => {
+            const prints: { size: string; qty: number; filename: string; notes: string | null; type: string }[] = []
+            if (hasParentPortraits && numParentPortraits > 0) {
+              for (let i = 0; i < numParentPortraits; i++) {
+                const r = parentPortraitRows[i]
+                if (r.filename) prints.push({ size: r.size, qty: 1, filename: r.filename, notes: [r.notes, parentPortraitCanvas ? 'Canvas upgrade' : null].filter(Boolean).join('. ') || null, type: 'parent_portrait' })
+              }
+            }
+            if (hasBGPortrait && bgPortraitFilename) {
+              prints.push({ size: bgPortraitSize, qty: 1, filename: bgPortraitFilename, notes: bgPortraitNotes || null, type: 'bg_portrait' })
+            }
+            if (additionalPhotoRows.length > 0) {
+              for (const r of additionalPhotoRows) {
+                if (r.filename) prints.push({ size: r.size, qty: 1, filename: r.filename, notes: r.notes || null, type: 'additional' })
+              }
+            }
+            return prints.length > 0 ? prints : null
+          })(),
+          thank_you_cards: hasTYC,
+          thank_you_cards_qty: hasTYC ? tycQty || null : null,
+          canvas_upgrade_notes: parentPortraitCanvas ? 'Canvas upgrade requested for parent portraits' : null,
           special_instructions: specialInstructions || null,
         }),
       })
@@ -354,58 +396,107 @@ export default function PhotoOrderPublicPage() {
               )}
             </div>
 
-            {/* ── Portrait Prints ───────────────────────────────────────── */}
+            {/* ── Parent Portraits ──────────────────────────────────────── */}
             <div className="rounded-xl border p-6 shadow-sm" style={{ backgroundColor: '#fff' }}>
-              <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
-                <span>🖼️</span> Portrait Prints
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span>🖼️</span> Parent Portraits
               </h2>
-              <p className="text-xs text-[#888] mb-4">
-                Add prints you&apos;d like to order. Marianna will confirm sizes, canvas upgrades, and costs before placing the order.
-              </p>
+              <p className="text-sm font-medium mb-2">Do you have parent portraits in your package?</p>
+              <div className="space-y-2 mb-4">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                  <input type="radio" name="hasParentPortraits" checked={hasParentPortraits === true} onChange={() => setHasParentPortraits(true)} className="w-4 h-4 accent-[#4a7c9b]" />
+                  <span className="text-sm font-medium">Yes</span>
+                </label>
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                  <input type="radio" name="hasParentPortraits" checked={hasParentPortraits === false} onChange={() => setHasParentPortraits(false)} className="w-4 h-4 accent-[#4a7c9b]" />
+                  <span className="text-sm font-medium">No</span>
+                </label>
+              </div>
 
-              {printRows.length > 0 && (
-                <div className="space-y-4 mb-4">
-                  {printRows.map((row, i) => (
+              {hasParentPortraits && (
+                <div className="space-y-4 border-t pt-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">How many parent portraits?</label>
+                    <select value={numParentPortraits} onChange={(e) => setNumParentPortraits(parseInt(e.target.value))}>
+                      <option value={1}>1</option>
+                      <option value={2}>2</option>
+                      <option value={3}>3</option>
+                      <option value={4}>4</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium mb-2">Do you want to upgrade to canvas? (+$200 each)</p>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                        <input type="radio" name="canvasUpgrade" checked={parentPortraitCanvas === true} onChange={() => setParentPortraitCanvas(true)} className="w-4 h-4 accent-[#4a7c9b]" />
+                        <span className="text-sm font-medium">Yes</span>
+                      </label>
+                      <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                        <input type="radio" name="canvasUpgrade" checked={parentPortraitCanvas === false} onChange={() => setParentPortraitCanvas(false)} className="w-4 h-4 accent-[#4a7c9b]" />
+                        <span className="text-sm font-medium">No</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {[...Array(numParentPortraits)].map((_, i) => (
                     <div key={i} className="border rounded-lg p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Print {i + 1}</span>
-                        <button type="button" onClick={() => removePrintRow(i)} className="text-red-500 hover:text-red-700 transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-xs text-[#888] mb-1">Size</label>
-                          <select value={row.size} onChange={(e) => setPrintRows(prev => prev.map((r, idx) => idx === i ? { ...r, size: e.target.value } : r))} className="text-sm">
-                            {PRINT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-[#888] mb-1">Quantity</label>
-                          <input type="number" min={1} value={row.qty} onChange={(e) => setPrintRows(prev => prev.map((r, idx) => idx === i ? { ...r, qty: parseInt(e.target.value) || 1 } : r))} className="text-sm" />
-                        </div>
+                      <span className="text-sm font-medium">Parent Portrait {i + 1}</span>
+                      <div>
+                        <label className="block text-xs text-[#888] mb-1">Size</label>
+                        <select value={parentPortraitRows[i].size} onChange={(e) => setParentPortraitRows(prev => prev.map((r, idx) => idx === i ? { ...r, size: e.target.value } : r))} className="text-sm">
+                          {PORTRAIT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
                       </div>
                       <div>
                         <label className="block text-xs text-[#888] mb-1">Filename</label>
-                        <input type="text" value={row.filename} onChange={(e) => setPrintRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: e.target.value } : r))} placeholder="e.g. DSC_5678.jpg" className="text-sm" />
+                        <input type="text" value={parentPortraitRows[i].filename} onChange={(e) => setParentPortraitRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: e.target.value } : r))} placeholder="e.g. DSC_5678.jpg" className="text-sm" />
                       </div>
                       <div>
                         <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
-                        <input type="text" value={row.notes} onChange={(e) => setPrintRows(prev => prev.map((r, idx) => idx === i ? { ...r, notes: e.target.value } : r))} placeholder="Canvas upgrade, crop instructions..." className="text-sm" />
+                        <input type="text" value={parentPortraitRows[i].notes} onChange={(e) => setParentPortraitRows(prev => prev.map((r, idx) => idx === i ? { ...r, notes: e.target.value } : r))} placeholder="Special instructions..." className="text-sm" />
                       </div>
                     </div>
                   ))}
                 </div>
               )}
+            </div>
 
-              <button
-                type="button"
-                onClick={addPrintRow}
-                className="flex items-center gap-2 text-sm font-medium text-[#4a7c9b] hover:text-[#3d6a85] transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Add a Print
-              </button>
+            {/* ── Bride & Groom Portrait ────────────────────────────────── */}
+            <div className="rounded-xl border p-6 shadow-sm" style={{ backgroundColor: '#fff' }}>
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span>🖼️</span> Bride &amp; Groom Portrait
+              </h2>
+              <p className="text-sm font-medium mb-2">Do you have a Bride &amp; Groom portrait in your package?</p>
+              <div className="space-y-2 mb-4">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                  <input type="radio" name="hasBGPortrait" checked={hasBGPortrait === true} onChange={() => setHasBGPortrait(true)} className="w-4 h-4 accent-[#4a7c9b]" />
+                  <span className="text-sm font-medium">Yes</span>
+                </label>
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                  <input type="radio" name="hasBGPortrait" checked={hasBGPortrait === false} onChange={() => setHasBGPortrait(false)} className="w-4 h-4 accent-[#4a7c9b]" />
+                  <span className="text-sm font-medium">No</span>
+                </label>
+              </div>
+
+              {hasBGPortrait && (
+                <div className="space-y-2 border-t pt-4">
+                  <div>
+                    <label className="block text-xs text-[#888] mb-1">Size</label>
+                    <select value={bgPortraitSize} onChange={(e) => setBGPortraitSize(e.target.value)} className="text-sm">
+                      {PORTRAIT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#888] mb-1">Filename</label>
+                    <input type="text" value={bgPortraitFilename} onChange={(e) => setBGPortraitFilename(e.target.value)} placeholder="e.g. DSC_1234.jpg" className="text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
+                    <input type="text" value={bgPortraitNotes} onChange={(e) => setBGPortraitNotes(e.target.value)} placeholder="Special instructions..." className="text-sm" />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ── Thank You Cards ───────────────────────────────────────── */}
@@ -413,39 +504,128 @@ export default function PhotoOrderPublicPage() {
               <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <span>💌</span> Thank You Cards
               </h2>
+              <p className="text-sm font-medium mb-2">Do you have Thank You cards in your package?</p>
               <div className="space-y-2 mb-4">
                 <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
-                  <input type="radio" name="tyc" checked={wantTYC === true} onChange={() => setWantTYC(true)} className="w-4 h-4 accent-[#4a7c9b]" />
+                  <input type="radio" name="hasTYC" checked={hasTYC === true} onChange={() => setHasTYC(true)} className="w-4 h-4 accent-[#4a7c9b]" />
                   <span className="text-sm font-medium">Yes</span>
                 </label>
                 <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
-                  <input type="radio" name="tyc" checked={wantTYC === false} onChange={() => setWantTYC(false)} className="w-4 h-4 accent-[#4a7c9b]" />
+                  <input type="radio" name="hasTYC" checked={hasTYC === false} onChange={() => setHasTYC(false)} className="w-4 h-4 accent-[#4a7c9b]" />
                   <span className="text-sm font-medium">No</span>
                 </label>
               </div>
-              {wantTYC && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Quantity</label>
-                  <input type="number" min={1} value={tycQty || ''} onChange={(e) => setTycQty(parseInt(e.target.value) || 0)} placeholder="e.g. 50" />
+              {hasTYC && (
+                <div className="space-y-2 border-t pt-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Quantity</label>
+                    <input type="number" min={1} value={tycQty || ''} onChange={(e) => setTycQty(parseInt(e.target.value) || 0)} placeholder="e.g. 50" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Notes (optional)</label>
+                    <input type="text" value={tycNotes} onChange={(e) => setTycNotes(e.target.value)} placeholder="Any preferences for the cards..." className="text-sm" />
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* ── Canvas/Upgrade Notes ──────────────────────────────────── */}
+            {/* ── Additional Photos ─────────────────────────────────────── */}
             <div className="rounded-xl border p-6 shadow-sm" style={{ backgroundColor: '#fff' }}>
-              <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
-                <span>🎨</span> Canvas / Upgrade Options
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span>📸</span> Additional Photos
               </h2>
-              <p className="text-xs text-[#888] mb-3">
-                Want to upgrade a parent portrait or wedding portrait to canvas? Note it in the print notes above, or mention it here:
-              </p>
-              <textarea
-                value={canvasNotes}
-                onChange={(e) => setCanvasNotes(e.target.value)}
-                placeholder="Canvas upgrade requests or other notes..."
-                rows={3}
-                className="w-full"
-              />
+              <p className="text-sm font-medium mb-2">Do you have any additional photos in your package?</p>
+              <div className="space-y-2 mb-4">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                  <input type="radio" name="hasAdditional" checked={hasAdditionalPhotos === true} onChange={() => { setHasAdditionalPhotos(true); if (additionalPhotoRows.length === 0) addAdditionalPhotoRow() }} className="w-4 h-4 accent-[#4a7c9b]" />
+                  <span className="text-sm font-medium">Yes</span>
+                </label>
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                  <input type="radio" name="hasAdditional" checked={hasAdditionalPhotos === false} onChange={() => setHasAdditionalPhotos(false)} className="w-4 h-4 accent-[#4a7c9b]" />
+                  <span className="text-sm font-medium">No</span>
+                </label>
+              </div>
+
+              {hasAdditionalPhotos === true && (
+                <div className="space-y-4 border-t pt-4">
+                  {additionalPhotoRows.map((row, i) => (
+                    <div key={i} className="border rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Photo {i + 1}</span>
+                        <button type="button" onClick={() => removeAdditionalPhotoRow(i)} className="text-red-500 hover:text-red-700 transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-[#888] mb-1">Size</label>
+                        <select value={row.size} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, size: e.target.value } : r))} className="text-sm">
+                          {PORTRAIT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-[#888] mb-1">Filename</label>
+                        <input type="text" value={row.filename} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: e.target.value } : r))} placeholder="e.g. DSC_5678.jpg" className="text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
+                        <input type="text" value={row.notes} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, notes: e.target.value } : r))} placeholder="Special instructions..." className="text-sm" />
+                      </div>
+                    </div>
+                  ))}
+                  <button type="button" onClick={addAdditionalPhotoRow} className="flex items-center gap-2 text-sm font-medium text-[#4a7c9b] hover:text-[#3d6a85] transition-colors">
+                    <Plus className="w-4 h-4" />
+                    Add Another Photo
+                  </button>
+                </div>
+              )}
+
+              {hasAdditionalPhotos === false && (
+                <div className="border-t pt-4">
+                  <p className="text-sm text-[#888] mb-2">Would you like to order some? Marianna will confirm pricing.</p>
+                  <div className="space-y-2 mb-4">
+                    <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                      <input type="radio" name="wantToOrder" checked={wantToOrderPhotos === true} onChange={() => { setWantToOrderPhotos(true); if (additionalPhotoRows.length === 0) addAdditionalPhotoRow() }} className="w-4 h-4 accent-[#4a7c9b]" />
+                      <span className="text-sm font-medium">Yes</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                      <input type="radio" name="wantToOrder" checked={wantToOrderPhotos === false} onChange={() => setWantToOrderPhotos(false)} className="w-4 h-4 accent-[#4a7c9b]" />
+                      <span className="text-sm font-medium">No</span>
+                    </label>
+                  </div>
+                  {wantToOrderPhotos && (
+                    <div className="space-y-4">
+                      {additionalPhotoRows.map((row, i) => (
+                        <div key={i} className="border rounded-lg p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">Photo {i + 1}</span>
+                            <button type="button" onClick={() => removeAdditionalPhotoRow(i)} className="text-red-500 hover:text-red-700 transition-colors">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-[#888] mb-1">Size</label>
+                            <select value={row.size} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, size: e.target.value } : r))} className="text-sm">
+                              {PORTRAIT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-[#888] mb-1">Filename</label>
+                            <input type="text" value={row.filename} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: e.target.value } : r))} placeholder="e.g. DSC_5678.jpg" className="text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
+                            <input type="text" value={row.notes} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, notes: e.target.value } : r))} placeholder="Special instructions..." className="text-sm" />
+                          </div>
+                        </div>
+                      ))}
+                      <button type="button" onClick={addAdditionalPhotoRow} className="flex items-center gap-2 text-sm font-medium text-[#4a7c9b] hover:text-[#3d6a85] transition-colors">
+                        <Plus className="w-4 h-4" />
+                        Add Another Photo
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* ── Special Instructions ──────────────────────────────────── */}
