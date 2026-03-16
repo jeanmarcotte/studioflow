@@ -27,7 +27,7 @@ export async function GET(request: Request) {
         parent_albums_qty, parent_albums_size, parent_albums_images, parent_albums_cover,
         prints_30x40, prints_24x30, prints_20x24, prints_16x20, prints_16x16,
         prints_11x14, prints_8x10, prints_5x7, prints_postcard_thankyou,
-        usb_dropbox_delivery
+        usb_dropbox_delivery, num_videographers
       `)
       .eq('couple_id', coupleId)
       .limit(1)

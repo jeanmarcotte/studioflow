@@ -35,6 +35,7 @@ interface Contract {
   prints_5x7: number | null
   prints_postcard_thankyou: number | null
   usb_dropbox_delivery: boolean | null
+  num_videographers: number | null
 }
 
 interface Extras {
@@ -105,6 +106,7 @@ export default function PhotoOrderPage() {
   const [printRows, setPrintRows] = useState<PrintRow[]>([])
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [noSpecialRequests, setNoSpecialRequests] = useState(false)
+  const [videoPromptDismissed, setVideoPromptDismissed] = useState(false)
 
   // ─── Derived ─────────────────────────────────────────────────────────────
 
@@ -113,6 +115,7 @@ export default function PhotoOrderPage() {
   const hasMainAlbum = (contract?.bride_groom_album_qty ?? 0) > 0 || (extras?.album_qty ?? 0) > 0
   const mainAlbumImages = contract?.bride_groom_album_images || 70
   const hasAnyAlbum = parentAlbumsQty > 0 || hasMainAlbum
+  const hasVideo = (contract?.num_videographers ?? 0) > 0
   const isCustom = designPref === 'custom'
 
   function countPhotos(text: string): number {
@@ -813,6 +816,28 @@ export default function PhotoOrderPage() {
               Thank you for submitting your photo order. We&apos;ll review everything
               and get started on your beautiful photos.
             </p>
+            {hasVideo && !videoPromptDismissed && (
+              <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-6 max-w-sm mx-auto">
+                <p className="text-sm text-teal-800 mb-3">
+                  Your photo order has been submitted! Would you like to fill out the video order form too?
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <a
+                    href="/client/video-order"
+                    className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                  >
+                    Yes, take me there
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setVideoPromptDismissed(true)}
+                    className="bg-muted hover:bg-muted/80 text-foreground text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                  >
+                    No thanks
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="bg-muted/50 rounded-lg p-4 text-left max-w-sm mx-auto">
               <h3 className="text-sm font-semibold text-foreground mb-2">What happens next?</h3>
               <ul className="space-y-1.5 text-sm text-muted-foreground">
