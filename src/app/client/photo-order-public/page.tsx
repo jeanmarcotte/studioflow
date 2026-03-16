@@ -18,6 +18,15 @@ interface AdditionalPhotoRow {
 }
 
 const PORTRAIT_SIZES = ['11x14', '16x20', '20x24', '24x30']
+const ADDITIONAL_SIZES = ['5x7', '8x10', '11x14', '16x20', '20x24', '24x30']
+const ADDITIONAL_SIZES_PRICED = [
+  { value: '5x7', label: '5x7 — $15' },
+  { value: '8x10', label: '8x10 — $30' },
+  { value: '11x14', label: '11x14 — $100' },
+  { value: '16x20', label: '16x20 — $195' },
+  { value: '20x24', label: '20x24 — $249' },
+  { value: '24x30', label: '24x30 — $295' },
+]
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -53,11 +62,13 @@ export default function PhotoOrderPublicPage() {
   ])
   // B&G Portrait
   const [hasBGPortrait, setHasBGPortrait] = useState<boolean | null>(null)
-  const [bgPortraitSize, setBGPortraitSize] = useState('16x20')
+  const [bgPortraitSize, setBGPortraitSize] = useState('24x30')
   const [bgPortraitFilename, setBGPortraitFilename] = useState('')
   const [bgPortraitNotes, setBGPortraitNotes] = useState('')
+  const [bgPortraitCanvas, setBGPortraitCanvas] = useState<boolean | null>(null)
+  const [bgPortraitPurchased, setBGPortraitPurchased] = useState(false)
   // Thank You Cards
-  const [hasTYC, setHasTYC] = useState<boolean | null>(null)
+  const [hasTYC, setHasTYC] = useState<'yes' | 'no' | 'add' | ''>('')
   const [tycQty, setTycQty] = useState<number>(0)
   const [tycNotes, setTycNotes] = useState('')
   // Additional Photos
@@ -124,8 +135,8 @@ export default function PhotoOrderPublicPage() {
                 if (r.filename) prints.push({ size: r.size, qty: 1, filename: r.filename, notes: [r.notes, parentPortraitCanvas ? 'Canvas upgrade' : null].filter(Boolean).join('. ') || null, type: 'parent_portrait' })
               }
             }
-            if (hasBGPortrait && bgPortraitFilename) {
-              prints.push({ size: bgPortraitSize, qty: 1, filename: bgPortraitFilename, notes: bgPortraitNotes || null, type: 'bg_portrait' })
+            if (hasBGPortrait && !bgPortraitPurchased && bgPortraitFilename) {
+              prints.push({ size: bgPortraitSize, qty: 1, filename: bgPortraitFilename, notes: [bgPortraitNotes, bgPortraitCanvas ? 'Canvas upgrade' : null].filter(Boolean).join('. ') || null, type: 'bg_portrait' })
             }
             if (additionalPhotoRows.length > 0) {
               for (const r of additionalPhotoRows) {
@@ -134,9 +145,9 @@ export default function PhotoOrderPublicPage() {
             }
             return prints.length > 0 ? prints : null
           })(),
-          thank_you_cards: hasTYC,
-          thank_you_cards_qty: hasTYC ? tycQty || null : null,
-          canvas_upgrade_notes: parentPortraitCanvas ? 'Canvas upgrade requested for parent portraits' : null,
+          thank_you_cards: hasTYC === 'yes' || hasTYC === 'add',
+          thank_you_cards_qty: (hasTYC === 'yes' || hasTYC === 'add') ? tycQty || null : null,
+          canvas_upgrade_notes: [parentPortraitCanvas ? 'Canvas upgrade for parent portraits' : null, bgPortraitCanvas ? 'Canvas upgrade for B&G portrait' : null, bgPortraitPurchased ? 'B&G portrait already purchased at frame & album appointment' : null].filter(Boolean).join('. ') || null,
           special_instructions: specialInstructions || null,
         }),
       })
@@ -426,7 +437,7 @@ export default function PhotoOrderPublicPage() {
                   </div>
 
                   <div>
-                    <p className="text-sm font-medium mb-2">Do you want to upgrade to canvas? (+$200 each)</p>
+                    <p className="text-sm font-medium mb-2">Do you want to upgrade to canvas? (+$100 each)</p>
                     <div className="space-y-2">
                       <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
                         <input type="radio" name="canvasUpgrade" checked={parentPortraitCanvas === true} onChange={() => setParentPortraitCanvas(true)} className="w-4 h-4 accent-[#4a7c9b]" />
@@ -480,21 +491,43 @@ export default function PhotoOrderPublicPage() {
               </div>
 
               {hasBGPortrait && (
-                <div className="space-y-2 border-t pt-4">
-                  <div>
-                    <label className="block text-xs text-[#888] mb-1">Size</label>
-                    <select value={bgPortraitSize} onChange={(e) => setBGPortraitSize(e.target.value)} className="text-sm">
-                      {PORTRAIT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-[#888] mb-1">Filename</label>
-                    <input type="text" value={bgPortraitFilename} onChange={(e) => setBGPortraitFilename(e.target.value)} placeholder="e.g. Amanda_KyleWEDPROOFS_-732" className="text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
-                    <input type="text" value={bgPortraitNotes} onChange={(e) => setBGPortraitNotes(e.target.value)} placeholder="Special instructions..." className="text-sm" />
-                  </div>
+                <div className="space-y-4 border-t pt-4">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={bgPortraitPurchased} onChange={(e) => setBGPortraitPurchased(e.target.checked)} className="w-4 h-4 accent-[#4a7c9b] rounded" />
+                    <span className="text-sm font-medium">Already purchased with frame &amp; album appointment</span>
+                  </label>
+
+                  {!bgPortraitPurchased && (
+                    <>
+                      <div>
+                        <p className="text-sm font-medium mb-2">Do you want to upgrade to canvas? (+$100 each)</p>
+                        <div className="space-y-2">
+                          <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                            <input type="radio" name="bgCanvasUpgrade" checked={bgPortraitCanvas === true} onChange={() => setBGPortraitCanvas(true)} className="w-4 h-4 accent-[#4a7c9b]" />
+                            <span className="text-sm font-medium">Yes</span>
+                          </label>
+                          <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                            <input type="radio" name="bgCanvasUpgrade" checked={bgPortraitCanvas === false} onChange={() => setBGPortraitCanvas(false)} className="w-4 h-4 accent-[#4a7c9b]" />
+                            <span className="text-sm font-medium">No</span>
+                          </label>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-[#888] mb-1">Size</label>
+                        <select value={bgPortraitSize} onChange={(e) => setBGPortraitSize(e.target.value)} className="text-sm">
+                          {PORTRAIT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-[#888] mb-1">Filename</label>
+                        <input type="text" value={bgPortraitFilename} onChange={(e) => setBGPortraitFilename(e.target.value)} placeholder="e.g. Amanda_KyleWEDPROOFS_-732" className="text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
+                        <input type="text" value={bgPortraitNotes} onChange={(e) => setBGPortraitNotes(e.target.value)} placeholder="Special instructions..." className="text-sm" />
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -507,15 +540,24 @@ export default function PhotoOrderPublicPage() {
               <p className="text-sm font-medium mb-2">Do you have Thank You cards in your package?</p>
               <div className="space-y-2 mb-4">
                 <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
-                  <input type="radio" name="hasTYC" checked={hasTYC === true} onChange={() => setHasTYC(true)} className="w-4 h-4 accent-[#4a7c9b]" />
+                  <input type="radio" name="hasTYC" checked={hasTYC === 'yes'} onChange={() => setHasTYC('yes')} className="w-4 h-4 accent-[#4a7c9b]" />
                   <span className="text-sm font-medium">Yes</span>
                 </label>
                 <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
-                  <input type="radio" name="hasTYC" checked={hasTYC === false} onChange={() => setHasTYC(false)} className="w-4 h-4 accent-[#4a7c9b]" />
+                  <input type="radio" name="hasTYC" checked={hasTYC === 'no'} onChange={() => setHasTYC('no')} className="w-4 h-4 accent-[#4a7c9b]" />
                   <span className="text-sm font-medium">No</span>
                 </label>
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                  <input type="radio" name="hasTYC" checked={hasTYC === 'add'} onChange={() => setHasTYC('add')} className="w-4 h-4 accent-[#4a7c9b]" />
+                  <span className="text-sm font-medium">No, but I&apos;d like to add some</span>
+                </label>
               </div>
-              {hasTYC && (
+              {hasTYC === 'add' && (
+                <div className="bg-[#eef3f7] border border-[#c5d5e0] rounded-lg px-4 py-3 text-sm mb-4">
+                  Thank You cards are $5 each and include envelope.
+                </div>
+              )}
+              {(hasTYC === 'yes' || hasTYC === 'add') && (
                 <div className="space-y-2 border-t pt-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">Quantity</label>
@@ -559,7 +601,7 @@ export default function PhotoOrderPublicPage() {
                       <div>
                         <label className="block text-xs text-[#888] mb-1">Size</label>
                         <select value={row.size} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, size: e.target.value } : r))} className="text-sm">
-                          {PORTRAIT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                          {ADDITIONAL_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
                       <div>
@@ -605,7 +647,7 @@ export default function PhotoOrderPublicPage() {
                           <div>
                             <label className="block text-xs text-[#888] mb-1">Size</label>
                             <select value={row.size} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, size: e.target.value } : r))} className="text-sm">
-                              {PORTRAIT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                              {ADDITIONAL_SIZES_PRICED.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                             </select>
                           </div>
                           <div>
