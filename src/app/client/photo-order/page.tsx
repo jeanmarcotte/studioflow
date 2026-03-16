@@ -418,7 +418,14 @@ export default function PhotoOrderPage() {
                 <div className="grid grid-cols-3 gap-2">
                   <select
                     value={month}
-                    onChange={(e) => { setMonth(e.target.value); setDay('') }}
+                    onChange={(e) => {
+                      const newMonth = e.target.value
+                      setMonth(newMonth)
+                      if (day && newMonth && year) {
+                        const max = new Date(parseInt(year), parseInt(newMonth), 0).getDate()
+                        if (parseInt(day) > max) setDay('')
+                      }
+                    }}
                   >
                     <option value="">Month</option>
                     <option value="01">January</option>
@@ -445,7 +452,14 @@ export default function PhotoOrderPage() {
                   </select>
                   <select
                     value={year}
-                    onChange={(e) => { setYear(e.target.value); setDay('') }}
+                    onChange={(e) => {
+                      const newYear = e.target.value
+                      setYear(newYear)
+                      if (day && month && newYear) {
+                        const max = new Date(parseInt(newYear), parseInt(month), 0).getDate()
+                        if (parseInt(day) > max) setDay('')
+                      }
+                    }}
                   >
                     <option value="">Year</option>
                     <option value="2024">2024</option>
