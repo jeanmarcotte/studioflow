@@ -7,7 +7,7 @@ import { X } from 'lucide-react'
 
 // ── Constants ──────────────────────────────────────────────────────
 
-type Category = 'wedding' | 'engagement'
+type Category = 'wedding' | 'engagement' | 'video'
 
 const JOB_TYPES: Record<Category, { value: string; label: string }[]> = {
   wedding: [
@@ -26,6 +26,11 @@ const JOB_TYPES: Record<Category, { value: string; label: string }[]> = {
     { value: 'eng_album', label: 'Engagement Album' },
     { value: 'eng_prints', label: 'Extra Engagement Prints' },
     { value: 'hires_engagement', label: 'Hi-Res Engagement Export' },
+  ],
+  video: [
+    { value: 'FULL', label: 'Full Length Video' },
+    { value: 'RECAP', label: 'Recap Video' },
+    { value: 'ENG_SLIDESHOW', label: 'Engagement Slideshow' },
   ],
 }
 
@@ -170,18 +175,36 @@ export default function AddEditingJobPage() {
     setSubmitting(true)
     setError('')
 
-    const { error: insertError } = await supabase
-      .from('production_jobs')
-      .insert({
-        couple_id: coupleId,
-        category,
-        job_type: jobType,
-        vendor: vendor || null,
-        quantity: Number(quantity) || 1,
-        description: description.trim() || null,
-        status,
-        notes: notes.trim() || null,
-      })
+    let insertError: { message: string } | null = null
+
+    if (category === 'video') {
+      // Video jobs go into video_jobs table
+      const { error } = await supabase
+        .from('video_jobs')
+        .insert({
+          couple_id: coupleId,
+          job_type: jobType,
+          status: status === 'not_started' ? 'not_started' : status,
+          notes: notes.trim() || null,
+          section: 'editing',
+        })
+      insertError = error
+    } else {
+      // Engagement & Wedding jobs go into production_jobs table
+      const { error } = await supabase
+        .from('production_jobs')
+        .insert({
+          couple_id: coupleId,
+          category,
+          job_type: jobType,
+          vendor: vendor || null,
+          quantity: Number(quantity) || 1,
+          description: description.trim() || null,
+          status,
+          notes: notes.trim() || null,
+        })
+      insertError = error
+    }
 
     if (insertError) {
       setError(insertError.message)
@@ -215,7 +238,7 @@ export default function AddEditingJobPage() {
               Add Another
             </button>
             <button
-              onClick={() => router.push('/admin/production/photo')}
+              onClick={() => router.push(category === 'video' ? '/admin/production/video' : '/admin/production/photo')}
               className="rounded-lg bg-stone-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 transition-colors"
             >
               Go to Production
@@ -296,7 +319,7 @@ export default function AddEditingJobPage() {
           <div>
             <Label>Category *</Label>
             <div className="flex gap-2">
-              {(['wedding', 'engagement'] as const).map(cat => (
+              {(['wedding', 'engagement', 'video'] as const).map(cat => (
                 <button
                   key={cat}
                   type="button"
@@ -307,7 +330,7 @@ export default function AddEditingJobPage() {
                       : 'border-input hover:bg-accent/50'
                   }`}
                 >
-                  {cat === 'wedding' ? 'Wedding' : 'Engagement'}
+                  {cat === 'wedding' ? 'Wedding' : cat === 'engagement' ? 'Engagement' : 'Video'}
                 </button>
               ))}
             </div>
@@ -328,45 +351,51 @@ export default function AddEditingJobPage() {
             </select>
           </div>
 
-          {/* ── Vendor ──────────────────────────────────────── */}
-          <div>
-            <Label>Vendor</Label>
-            <select
-              value={vendor}
-              onChange={(e) => setVendor(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400"
-            >
-              <option value="">None</option>
-              {VENDORS.map(v => (
-                <option key={v.value} value={v.value}>{v.label}</option>
-              ))}
-            </select>
-          </div>
+          {/* ── Vendor (hidden for video) ────────────────── */}
+          {category !== 'video' && (
+            <div>
+              <Label>Vendor</Label>
+              <select
+                value={vendor}
+                onChange={(e) => setVendor(e.target.value)}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400"
+              >
+                <option value="">None</option>
+                {VENDORS.map(v => (
+                  <option key={v.value} value={v.value}>{v.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          {/* ── Quantity ────────────────────────────────────── */}
-          <div>
-            <Label>Quantity</Label>
-            <input
-              type="number"
-              min={1}
-              max={99}
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value === '' ? '' : Math.max(1, Number(e.target.value)))}
-              className="w-24 rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400"
-            />
-          </div>
+          {/* ── Quantity (hidden for video) ──────────────── */}
+          {category !== 'video' && (
+            <div>
+              <Label>Quantity</Label>
+              <input
+                type="number"
+                min={1}
+                max={99}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value === '' ? '' : Math.max(1, Number(e.target.value)))}
+                className="w-24 rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400"
+              />
+            </div>
+          )}
 
-          {/* ── Description ─────────────────────────────────── */}
-          <div>
-            <Label>Description</Label>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g., Parent Album - Mom's side"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400"
-            />
-          </div>
+          {/* ── Description (hidden for video) ──────────── */}
+          {category !== 'video' && (
+            <div>
+              <Label>Description</Label>
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g., Parent Album - Mom's side"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400"
+              />
+            </div>
+          )}
 
           {/* ── Status ──────────────────────────────────────── */}
           <div>

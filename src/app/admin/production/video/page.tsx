@@ -54,11 +54,12 @@ const STATUS_LABELS: Record<string, string> = {
 
 const ALL_STATUSES = ['not_started', 'in_progress', 'waiting_photo', 'complete']
 
-type SwimlaneKey = 'editing_full' | 'editing_recap' | 'reediting' | 'waiting_photo' | 'completed'
+type SwimlaneKey = 'editing_full' | 'editing_recap' | 'editing_eng_slideshow' | 'reediting' | 'waiting_photo' | 'completed'
 
 const LANE_PRIMARY_STATUSES: Record<SwimlaneKey, string[]> = {
   editing_full: ['not_started', 'in_progress'],
   editing_recap: ['not_started', 'in_progress'],
+  editing_eng_slideshow: ['not_started', 'in_progress'],
   reediting: ['in_progress'],
   waiting_photo: ['waiting_photo', 'not_started'],
   completed: ['complete'],
@@ -77,6 +78,7 @@ function getLaneStatusOptions(laneKey: SwimlaneKey): { value: string; label: str
 const SWIMLANES: { key: SwimlaneKey; label: string; icon: string; badgeClass: string }[] = [
   { key: 'editing_full', label: 'EDITING FULL LENGTH VIDEO', icon: '🎬', badgeClass: 'bg-blue-100 text-blue-700' },
   { key: 'editing_recap', label: 'EDITING RECAP', icon: '📋', badgeClass: 'bg-violet-100 text-violet-700' },
+  { key: 'editing_eng_slideshow', label: 'ENGAGEMENT SLIDESHOW', icon: '💍', badgeClass: 'bg-pink-100 text-pink-700' },
   { key: 'reediting', label: 'REEDITING', icon: '🔄', badgeClass: 'bg-sky-100 text-sky-700' },
   { key: 'waiting_photo', label: 'WAITING FOR PHOTO ORDER', icon: '⏸️', badgeClass: 'bg-slate-100 text-slate-700' },
   { key: 'completed', label: 'COMPLETED', icon: '✅', badgeClass: 'bg-green-100 text-green-700' },
@@ -131,6 +133,7 @@ export default function VideoProductionPage() {
   const [search, setSearch] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
   const [showCompletedRecaps, setShowCompletedRecaps] = useState(false)
+  const [showCompletedSlideshows, setShowCompletedSlideshows] = useState(false)
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['completed']))
   const [refreshKey, setRefreshKey] = useState(0)
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null)
@@ -293,6 +296,7 @@ export default function VideoProductionPage() {
     const lanes: Record<Exclude<SwimlaneKey, 'waiting_photo'>, VideoJob[]> = {
       editing_full: [],
       editing_recap: [],
+      editing_eng_slideshow: [],
       reediting: [],
       completed: [],
     }
@@ -300,17 +304,22 @@ export default function VideoProductionPage() {
     for (const job of result) {
       if (job.section === 'completed') {
         lanes.completed.push(job)
-        // Also show in editing_full/editing_recap when toggled on
-        if (showCompleted && job.job_type !== 'RECAP') {
+        // Also show in respective lanes when toggled on
+        if (showCompleted && job.job_type !== 'RECAP' && job.job_type !== 'ENG_SLIDESHOW') {
           lanes.editing_full.push(job)
         }
         if (showCompletedRecaps && job.job_type === 'RECAP') {
           lanes.editing_recap.push(job)
         }
+        if (showCompletedSlideshows && job.job_type === 'ENG_SLIDESHOW') {
+          lanes.editing_eng_slideshow.push(job)
+        }
       } else if (job.section === 'reediting') {
         lanes.reediting.push(job)
       } else if (job.job_type === 'RECAP') {
         lanes.editing_recap.push(job)
+      } else if (job.job_type === 'ENG_SLIDESHOW') {
+        lanes.editing_eng_slideshow.push(job)
       } else {
         lanes.editing_full.push(job)
       }
@@ -359,7 +368,7 @@ export default function VideoProductionPage() {
     }
 
     return lanes
-  }, [jobs, search, sortColumn, sortDirection, showCompleted, showCompletedRecaps])
+  }, [jobs, search, sortColumn, sortDirection, showCompleted, showCompletedRecaps, showCompletedSlideshows])
 
   // ── Stats ──────────────────────────────────────────────────────
 
@@ -369,6 +378,7 @@ export default function VideoProductionPage() {
     const completedCount = jobs.filter(j => j.section === 'completed').length
 
     const recapsPending = jobs.filter(j => j.job_type === 'RECAP' && j.section !== 'completed').length
+    const slideshowsPending = jobs.filter(j => j.job_type === 'ENG_SLIDESHOW' && j.section !== 'completed').length
 
     // Overdue (for banner)
     const overdueJobs = activeJobs.filter(j => isOverdue(j))
@@ -391,7 +401,7 @@ export default function VideoProductionPage() {
     ).length
 
     return {
-      totalJobs, completedCount, recapsPending, overdueCount, mostUrgent,
+      totalJobs, completedCount, recapsPending, slideshowsPending, overdueCount, mostUrgent,
       inProgressCount, onHoldCount, editingCount,
       totalSegmentsDone, totalSegmentsPossible, remaining2025, remaining2026,
     }
@@ -451,6 +461,7 @@ export default function VideoProductionPage() {
   }
 
   const isRecapLane = (key: SwimlaneKey) => key === 'editing_recap'
+  const isSlideshowLane = (key: SwimlaneKey) => key === 'editing_eng_slideshow'
   const isWaitingPhotoLane = (key: SwimlaneKey) => key === 'waiting_photo'
 
   return (
@@ -526,6 +537,8 @@ export default function VideoProductionPage() {
             const laneJobCount = isWaiting ? photoWaitingJobs.length : (processedJobs[lane.key as Exclude<SwimlaneKey, 'waiting_photo'>] || []).length
             const isCollapsed = collapsedLanes.has(lane.key)
             const recap = isRecapLane(lane.key)
+            const slideshow = isSlideshowLane(lane.key)
+            const hideSegments = recap || slideshow
 
             return (
               <div
@@ -555,7 +568,7 @@ export default function VideoProductionPage() {
                       onClick={() => setShowCompleted(!showCompleted)}
                       className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {showCompleted ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type !== 'RECAP').length})
+                      {showCompleted ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type !== 'RECAP' && j.job_type !== 'ENG_SLIDESHOW').length})
                     </button>
                   )}
                   {lane.key === 'editing_recap' && (
@@ -564,6 +577,14 @@ export default function VideoProductionPage() {
                       className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {showCompletedRecaps ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type === 'RECAP').length})
+                    </button>
+                  )}
+                  {lane.key === 'editing_eng_slideshow' && (
+                    <button
+                      onClick={() => setShowCompletedSlideshows(!showCompletedSlideshows)}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showCompletedSlideshows ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type === 'ENG_SLIDESHOW').length})
                     </button>
                   )}
                 </div>
@@ -623,7 +644,7 @@ export default function VideoProductionPage() {
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">
                             {renderSortHeader('wedding_date', 'Wedding Date')}
                           </th>
-                          {!recap && SEGMENTS.map(seg => (
+                          {!hideSegments && SEGMENTS.map(seg => (
                             <th key={seg.field} className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title={seg.label}>
                               {renderSortHeader(seg.field, seg.shortLabel)}
                             </th>
@@ -631,7 +652,7 @@ export default function VideoProductionPage() {
                           <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Active HD">
                             {renderSortHeader('active_hd', 'HD')}
                           </th>
-                          {!recap && (
+                          {!hideSegments && (
                             <>
                               <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Proxies Run">
                                 {renderSortHeader('proxies_run', 'Prox')}
@@ -676,7 +697,7 @@ export default function VideoProductionPage() {
                                 : <span className="text-amber-600 text-xs">No date</span>
                               }
                             </td>
-                            {!recap && SEGMENTS.map(seg => (
+                            {!hideSegments && SEGMENTS.map(seg => (
                               <td key={seg.field} className="p-2 text-center hidden md:table-cell">
                                 <button
                                   onClick={() => toggleField(job.id, seg.field, job[seg.field])}
@@ -698,7 +719,7 @@ export default function VideoProductionPage() {
                                 ))}
                               </select>
                             </td>
-                            {!recap && (
+                            {!hideSegments && (
                               <>
                                 <td className="p-2 text-center hidden md:table-cell">
                                   <button
@@ -804,6 +825,19 @@ export default function VideoProductionPage() {
             </div>
             <div className="text-xs text-muted-foreground mt-1">Recap videos to edit</div>
           </div>
+
+          {/* Slideshows Pending */}
+          {stats.slideshowsPending > 0 && (
+            <div className="rounded-xl border bg-card p-4 mb-4">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Slideshows Pending
+              </div>
+              <div className="text-3xl font-bold text-pink-600">
+                {stats.slideshowsPending}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Engagement slideshows to edit</div>
+            </div>
+          )}
 
           {/* In Progress */}
           <div className="rounded-xl border bg-card p-4 mb-4">

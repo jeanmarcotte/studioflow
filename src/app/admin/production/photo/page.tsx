@@ -49,7 +49,6 @@ const JOB_TYPE_LABELS: Record<string, string> = {
   eng_album: 'Engagement Album',
   eng_prints: 'Engagement Prints',
   hires_engagement: 'Hi-Res Engagement',
-  eng_slideshow: 'Engagement Slideshow',
 }
 
 const VENDOR_LABELS: Record<string, string> = {
