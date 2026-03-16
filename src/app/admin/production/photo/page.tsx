@@ -314,7 +314,7 @@ export default function PhotoProductionPage() {
       <div className="space-y-4">
         {laneData.map(lane => {
           if (lane.key === 'completed' && !showCompleted) return null
-          if (lane.jobs.length === 0 && lane.key !== 'in_progress' && lane.key !== 'on_hold') return null
+          if (lane.jobs.length === 0 && lane.key !== 'waiting_photo' && lane.key !== 'in_progress' && lane.key !== 'on_hold') return null
 
           const isCollapsed = collapsedLanes.has(lane.key)
 
