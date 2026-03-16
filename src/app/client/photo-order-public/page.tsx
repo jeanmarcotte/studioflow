@@ -297,8 +297,8 @@ export default function PhotoOrderPublicPage() {
           <div className="space-y-6">
             {/* Instructions */}
             <div className="bg-[#eef3f7] border border-[#c5d5e0] rounded-lg px-4 py-3 text-sm">
-              Please confirm what&apos;s included in your agreement before filling out this form. Contact Marianna at{' '}
-              <a href="tel:4168318942" className="font-medium underline text-[#4a7c9b]">416-831-8942</a> if you&apos;re not certain about your package.
+              Before completing this form, please review your package details to ensure accuracy. If you have any questions about what&apos;s included, Marianna is happy to help at{' '}
+              <a href="tel:4168318942" className="font-medium underline text-[#4a7c9b]">416-831-8942</a>.
             </div>
 
             {/* ── Wedding Album ────────────────────────────────────────── */}
@@ -492,11 +492,6 @@ export default function PhotoOrderPublicPage() {
 
               {hasBGPortrait && (
                 <div className="space-y-4 border-t pt-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={bgPortraitPurchased} onChange={(e) => setBGPortraitPurchased(e.target.checked)} className="w-4 h-4 accent-[#4a7c9b] rounded" />
-                    <span className="text-sm font-medium">Already purchased with frame &amp; album appointment</span>
-                  </label>
-
                   {!bgPortraitPurchased && (
                     <>
                       <div>
@@ -528,6 +523,11 @@ export default function PhotoOrderPublicPage() {
                       </div>
                     </>
                   )}
+
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={bgPortraitPurchased} onChange={(e) => setBGPortraitPurchased(e.target.checked)} className="w-4 h-4 accent-[#4a7c9b] rounded" />
+                    <span className="text-sm font-medium">Already purchased with frame &amp; album appointment</span>
+                  </label>
                 </div>
               )}
             </div>
@@ -682,6 +682,13 @@ export default function PhotoOrderPublicPage() {
                 rows={3}
                 className="w-full"
               />
+            </div>
+
+            {/* Pre-submit note */}
+            <div className="bg-[#eef3f7] border border-[#c5d5e0] rounded-lg px-4 py-3 text-sm">
+              Once submitted, Jean will personally review your selections and confirm all details before we begin. If you have any questions or need to make changes, reach out to us at{' '}
+              <a href="mailto:info@sigsphoto.ca" className="font-medium underline text-[#4a7c9b]">info@sigsphoto.ca</a> or call{' '}
+              <a href="tel:4168318942" className="font-medium underline text-[#4a7c9b]">416-831-8942</a> — we&apos;re here to help.
             </div>
 
             {/* Submit */}
