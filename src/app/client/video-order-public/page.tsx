@@ -111,7 +111,7 @@ export default function VideoOrderPublicPage() {
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
                     isCompleted
-                      ? 'bg-teal-600 text-white'
+                      ? 'bg-[#4a7c9b] text-white'
                       : isActive
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-muted-foreground'
@@ -140,11 +140,11 @@ export default function VideoOrderPublicPage() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={{ backgroundColor: '#f5f0e8', color: '#333' }}>
       {/* Header */}
       <div className="border-b bg-card">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-2">
-          <Video className="w-6 h-6 text-teal-600" />
+          <Video className="w-6 h-6 text-[#4a7c9b]" />
           <span className="font-semibold text-lg">SIGS Photography</span>
         </div>
       </div>
@@ -162,7 +162,7 @@ export default function VideoOrderPublicPage() {
         {step === 1 && (
           <div className="bg-card rounded-xl border p-6 shadow-sm">
             <div className="text-center mb-6">
-              <Video className="w-10 h-10 text-teal-600 mx-auto mb-3" />
+              <Video className="w-10 h-10 text-[#4a7c9b] mx-auto mb-3" />
               <h1 className="text-2xl font-bold text-foreground">Video Order Form</h1>
               <p className="text-muted-foreground mt-1">Tell us about your wedding</p>
             </div>
@@ -266,7 +266,7 @@ export default function VideoOrderPublicPage() {
               <button
                 onClick={handleContinue}
                 disabled={!step1Valid}
-                className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-[#4a7c9b] hover:bg-[#3d6a85] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 <ChevronRight className="w-4 h-4" />
                 Continue
@@ -279,7 +279,7 @@ export default function VideoOrderPublicPage() {
         {step === 2 && (
           <div className="space-y-6">
             {/* Instructions */}
-            <div className="bg-teal-50 border border-teal-200 rounded-lg px-4 py-3 text-sm text-teal-800 space-y-2">
+            <div className="bg-[#eef3f7] border border-[#c5d5e0] rounded-lg px-4 py-3 text-sm text-[#333] space-y-2">
               <p className="font-medium">Here&apos;s how to get your full-length wedding video and 8-11 minute highlight reel:</p>
               <ol className="list-decimal list-inside space-y-1">
                 <li>Fill out the form below with your must-have moments and music ideas.</li>
@@ -300,13 +300,13 @@ export default function VideoOrderPublicPage() {
                   type="checkbox"
                   checked={letJeanChoose}
                   onChange={(e) => setLetJeanChoose(e.target.checked)}
-                  className="w-4 h-4 accent-teal-600 rounded"
+                  className="w-4 h-4 accent-[#4a7c9b] rounded"
                 />
                 <span className="text-sm font-medium text-foreground">Let Jean choose the music for me</span>
               </label>
 
               {letJeanChoose ? (
-                <p className="text-sm text-teal-700 bg-teal-50 border border-teal-200 rounded-lg px-4 py-3">
+                <p className="text-sm text-[#4a7c9b] bg-[#eef3f7] border border-[#c5d5e0] rounded-lg px-4 py-3">
                   Great! Jean will select music that fits your wedding style.
                 </p>
               ) : (
@@ -372,7 +372,7 @@ export default function VideoOrderPublicPage() {
                     name="recapStyle"
                     checked={recapStyle === 'short'}
                     onChange={() => setRecapStyle('short')}
-                    className="w-4 h-4 accent-teal-600"
+                    className="w-4 h-4 accent-[#4a7c9b]"
                   />
                   <div>
                     <span className="text-sm font-medium">Short</span>
@@ -385,7 +385,7 @@ export default function VideoOrderPublicPage() {
                     name="recapStyle"
                     checked={recapStyle === 'longer'}
                     onChange={() => setRecapStyle('longer')}
-                    className="w-4 h-4 accent-teal-600"
+                    className="w-4 h-4 accent-[#4a7c9b]"
                   />
                   <div>
                     <span className="text-sm font-medium">Longer</span>
@@ -405,7 +405,7 @@ export default function VideoOrderPublicPage() {
                     name="includeVows"
                     checked={includeVows === true}
                     onChange={() => setIncludeVows(true)}
-                    className="w-4 h-4 accent-teal-600"
+                    className="w-4 h-4 accent-[#4a7c9b]"
                   />
                   <span className="text-sm font-medium">Yes</span>
                 </label>
@@ -415,7 +415,7 @@ export default function VideoOrderPublicPage() {
                     name="includeVows"
                     checked={includeVows === false}
                     onChange={() => setIncludeVows(false)}
-                    className="w-4 h-4 accent-teal-600"
+                    className="w-4 h-4 accent-[#4a7c9b]"
                   />
                   <span className="text-sm font-medium">No</span>
                 </label>
@@ -426,7 +426,7 @@ export default function VideoOrderPublicPage() {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 text-lg"
+              className="w-full bg-[#4a7c9b] hover:bg-[#3d6a85] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 text-lg"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -441,7 +441,7 @@ export default function VideoOrderPublicPage() {
         {/* ═══ STEP 3: Done ════════════════════════════════════════════ */}
         {step === 3 && (
           <div className="bg-card rounded-xl border p-8 shadow-sm text-center">
-            <CheckCircle className="w-16 h-16 text-teal-600 mx-auto mb-4" />
+            <CheckCircle className="w-16 h-16 text-[#4a7c9b] mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-foreground mb-2">
               Video Order Submitted!
             </h1>
