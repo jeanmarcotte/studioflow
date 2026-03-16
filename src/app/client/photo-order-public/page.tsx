@@ -339,7 +339,7 @@ export default function PhotoOrderPublicPage() {
                   <div>
                     <label className="block text-sm font-medium mb-1">Cover Photo</label>
                     <p className="text-xs text-[#888] mb-2">Select a horizontal photo for your album cover</p>
-                    <input type="text" value={coverPhoto} onChange={(e) => setCoverPhoto(e.target.value)} placeholder="e.g. DSC_1234.jpg" />
+                    <input type="text" value={coverPhoto} onChange={(e) => setCoverPhoto(e.target.value)} placeholder="e.g. Amanda_KyleWEDPROOFS_-732" />
                   </div>
 
                   {/* Main Album Photos (Custom only) */}
@@ -450,7 +450,7 @@ export default function PhotoOrderPublicPage() {
                       </div>
                       <div>
                         <label className="block text-xs text-[#888] mb-1">Filename</label>
-                        <input type="text" value={parentPortraitRows[i].filename} onChange={(e) => setParentPortraitRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: e.target.value } : r))} placeholder="e.g. DSC_5678.jpg" className="text-sm" />
+                        <input type="text" value={parentPortraitRows[i].filename} onChange={(e) => setParentPortraitRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: e.target.value } : r))} placeholder="e.g. Amanda_KyleWEDPROOFS_-732" className="text-sm" />
                       </div>
                       <div>
                         <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
@@ -489,7 +489,7 @@ export default function PhotoOrderPublicPage() {
                   </div>
                   <div>
                     <label className="block text-xs text-[#888] mb-1">Filename</label>
-                    <input type="text" value={bgPortraitFilename} onChange={(e) => setBGPortraitFilename(e.target.value)} placeholder="e.g. DSC_1234.jpg" className="text-sm" />
+                    <input type="text" value={bgPortraitFilename} onChange={(e) => setBGPortraitFilename(e.target.value)} placeholder="e.g. Amanda_KyleWEDPROOFS_-732" className="text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
@@ -564,7 +564,7 @@ export default function PhotoOrderPublicPage() {
                       </div>
                       <div>
                         <label className="block text-xs text-[#888] mb-1">Filename</label>
-                        <input type="text" value={row.filename} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: e.target.value } : r))} placeholder="e.g. DSC_5678.jpg" className="text-sm" />
+                        <input type="text" value={row.filename} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: e.target.value } : r))} placeholder="e.g. Amanda_KyleWEDPROOFS_-732" className="text-sm" />
                       </div>
                       <div>
                         <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
@@ -610,7 +610,7 @@ export default function PhotoOrderPublicPage() {
                           </div>
                           <div>
                             <label className="block text-xs text-[#888] mb-1">Filename</label>
-                            <input type="text" value={row.filename} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: e.target.value } : r))} placeholder="e.g. DSC_5678.jpg" className="text-sm" />
+                            <input type="text" value={row.filename} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: e.target.value } : r))} placeholder="e.g. Amanda_KyleWEDPROOFS_-732" className="text-sm" />
                           </div>
                           <div>
                             <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
