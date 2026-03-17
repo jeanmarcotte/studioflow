@@ -130,20 +130,19 @@ export default function PhotoProductionPage() {
         // Waiting for order (past weddings without photo order)
         supabase
           .from('couple_milestones')
-          .select('id', { count: 'exact', head: true })
-          .lt('wedding_date', today)
+          .select('id, couples!inner(wedding_date)', { count: 'exact', head: true })
+          .lt('couples.wedding_date', today)
           .eq('m24_photo_order_in', false),
         // Re-edit counts (for YTD sum)
         supabase
           .from('jobs')
           .select('reedit_count')
           .in('category', ['wedding', 'engagement']),
-        // Photos progress
+        // Photos progress (all jobs including completed for true progress)
         supabase
           .from('jobs')
           .select('edited_so_far, photos_taken')
-          .in('category', ['wedding', 'engagement'])
-          .not('status', 'in', '("completed","picked_up")'),
+          .in('category', ['wedding', 'engagement']),
       ])
 
       if (!jobsRes.error && jobsRes.data) {
