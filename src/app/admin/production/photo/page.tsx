@@ -92,7 +92,7 @@ export default function PhotoProductionPage() {
   const [sortDir, setSortDir] = useState<SortDir>('asc')
 
   // Collapsed lanes
-  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
+  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['not_started', 'at_lab', 'at_studio', 'on_hold']))
 
   // ── Fetch ─────────────────────────────────────────────────────
 
