@@ -24,6 +24,12 @@ interface Job {
   couples?: { couple_name: string; wedding_date: string | null } | null
 }
 
+interface WaitingOrderCouple {
+  id: string
+  couple_name: string
+  wedding_date: string | null
+}
+
 // ── Constants ────────────────────────────────────────────────────
 
 const JOB_TYPE_LABELS: Record<string, string> = {
@@ -72,6 +78,7 @@ const LANES = [
 
 const POPUP_LABELS: Record<string, string> = {
   active: 'Active Jobs',
+  waiting_order: 'Waiting for Order',
   in_progress: 'In Progress',
   waiting_approval: 'Waiting for Bride',
   reedits: 'Re-edits',
@@ -111,7 +118,7 @@ export default function PhotoProductionPage() {
 
   // Stats (fetched separately since main query excludes completed)
   const [completedCount, setCompletedCount] = useState(0)
-  const [waitingOrderCount, setWaitingOrderCount] = useState(0)
+  const [waitingOrderCouples, setWaitingOrderCouples] = useState<WaitingOrderCouple[]>([])
   const [reeditYtdCount, setReeditYtdCount] = useState(0)
   const [editedSoFar, setEditedSoFar] = useState(0)
   const [totalPhotos, setTotalPhotos] = useState(0)
@@ -142,9 +149,10 @@ export default function PhotoProductionPage() {
         // Waiting for order (past weddings without photo order)
         supabase
           .from('couples')
-          .select('id, couple_milestones!inner(m24_photo_order_in)', { count: 'exact', head: true })
+          .select('id, couple_name, wedding_date, couple_milestones!inner(m24_photo_order_in)')
           .lt('wedding_date', today)
-          .eq('couple_milestones.m24_photo_order_in', false),
+          .eq('couple_milestones.m24_photo_order_in', false)
+          .order('wedding_date', { ascending: true }),
         // Re-edit counts (for YTD sum)
         supabase
           .from('jobs')
@@ -158,7 +166,7 @@ export default function PhotoProductionPage() {
       ])
 
       console.log('[Photo Stats] completedRes:', completedRes.count, completedRes.error)
-      console.log('[Photo Stats] waitingRes:', waitingRes.count, waitingRes.error)
+      console.log('[Photo Stats] waitingRes:', waitingRes.data?.length, waitingRes.error, waitingRes.data)
       console.log('[Photo Stats] reeditRes:', reeditRes.data?.length, reeditRes.error)
       console.log('[Photo Stats] photosRes:', photosRes.data?.length, photosRes.error)
 
@@ -166,7 +174,9 @@ export default function PhotoProductionPage() {
         setJobs(jobsRes.data as unknown as Job[])
       }
       setCompletedCount(completedRes.count ?? 0)
-      setWaitingOrderCount(waitingRes.count ?? 0)
+      if (!waitingRes.error && waitingRes.data) {
+        setWaitingOrderCouples(waitingRes.data as unknown as WaitingOrderCouple[])
+      }
 
       if (!reeditRes.error && reeditRes.data) {
         const total = reeditRes.data.reduce((sum, r: any) => sum + (r.reedit_count || 0), 0)
@@ -534,12 +544,15 @@ export default function PhotoProductionPage() {
           </div>
 
           {/* Waiting for Order */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
+          <div
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            onClick={() => setPopupStatus('waiting_order')}
+          >
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               Waiting for Order
             </div>
-            <div className={`text-3xl font-bold ${waitingOrderCount > 0 ? 'text-amber-600' : 'text-foreground'}`}>
-              {waitingOrderCount}
+            <div className={`text-3xl font-bold ${waitingOrderCouples.length > 0 ? 'text-amber-600' : 'text-foreground'}`}>
+              {waitingOrderCouples.length}
             </div>
             <div className="text-xs text-muted-foreground mt-1">Past weddings awaiting order</div>
           </div>
@@ -658,7 +671,20 @@ export default function PhotoProductionPage() {
               </button>
             </div>
             <div className="overflow-y-auto max-h-[calc(70vh-60px)]">
-              {getPopupJobs(popupStatus).length > 0 ? (
+              {popupStatus === 'waiting_order' ? (
+                waitingOrderCouples.length > 0 ? (
+                  waitingOrderCouples.map(couple => (
+                    <div key={couple.id} className="px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors">
+                      <div className="font-medium text-sm">{couple.couple_name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {couple.wedding_date ? format(parseISO(couple.wedding_date), 'MMM d, yyyy') : 'No date'}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-4 py-6 text-center text-sm text-muted-foreground">No couples</div>
+                )
+              ) : getPopupJobs(popupStatus).length > 0 ? (
                 getPopupJobs(popupStatus).map(job => (
                   <div key={job.id} className="px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors">
                     <div className="font-medium text-sm">{job.couples?.couple_name || 'Unknown'}</div>
