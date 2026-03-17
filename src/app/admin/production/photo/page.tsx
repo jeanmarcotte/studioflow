@@ -91,6 +91,7 @@ export default function PhotoProductionPage() {
   const router = useRouter()
   const [jobs, setJobs] = useState<EditingJob[]>([])
   const [photoWaitingJobs, setPhotoWaitingJobs] = useState<PhotoWaitingJob[]>([])
+  const [readyToEditJobs, setReadyToEditJobs] = useState<PhotoWaitingJob[]>([])
   const [loading, setLoading] = useState(true)
 
   // Filters
@@ -120,14 +121,16 @@ export default function PhotoProductionPage() {
         supabase
           .from('editing_queue')
           .select('id, couple_id, status, section, couples(id, couple_name, wedding_date)')
-          .eq('section', 'waiting_photo'),
+          .in('section', ['waiting_photo', 'editing']),
       ])
 
       if (!editingRes.error && editingRes.data) {
         setJobs(editingRes.data as unknown as EditingJob[])
       }
       if (!photoRes.error && photoRes.data) {
-        setPhotoWaitingJobs(photoRes.data as unknown as PhotoWaitingJob[])
+        const allQueue = photoRes.data as unknown as PhotoWaitingJob[]
+        setPhotoWaitingJobs(allQueue.filter(j => j.section === 'waiting_photo'))
+        setReadyToEditJobs(allQueue.filter(j => j.section === 'editing' && j.status === 'not_started'))
       }
       setLoading(false)
     }
@@ -143,7 +146,11 @@ export default function PhotoProductionPage() {
       .eq('id', jobId)
 
     if (!error) {
+      const movedJob = photoWaitingJobs.find(j => j.id === jobId)
       setPhotoWaitingJobs(prev => prev.filter(j => j.id !== jobId))
+      if (movedJob) {
+        setReadyToEditJobs(prev => [...prev, { ...movedJob, section: 'editing', status: 'not_started' }])
+      }
     }
   }
 
@@ -344,7 +351,8 @@ export default function PhotoProductionPage() {
       <div className="space-y-4">
         {laneData.map(lane => {
           const isWaitingPhoto = lane.key === 'waiting_photo'
-          const laneCount = isWaitingPhoto ? photoWaitingJobs.length : lane.jobs.length
+          const isReadyToEdit = lane.key === 'not_started'
+          const laneCount = isWaitingPhoto ? photoWaitingJobs.length : isReadyToEdit ? readyToEditJobs.length : lane.jobs.length
 
           if (lane.key === 'completed' && !showCompleted) return null
           if (laneCount === 0 && !isWaitingPhoto && lane.key !== 'in_progress' && lane.key !== 'on_hold') return null
@@ -413,8 +421,42 @@ export default function PhotoProductionPage() {
                 </div>
               )}
 
+              {/* Ready to Edit — from editing_queue */}
+              {isReadyToEdit && !isCollapsed && readyToEditJobs.length > 0 && (
+                <div className="border-t">
+                  <div className="grid grid-cols-[1.2fr_160px_1fr] gap-4 px-4 py-2 border-b bg-muted/30">
+                    <span className="text-xs font-medium text-muted-foreground">Couple</span>
+                    <span className="text-xs font-medium text-muted-foreground">Wedding Date</span>
+                    <span className="text-xs font-medium text-muted-foreground">Status</span>
+                  </div>
+                  {readyToEditJobs.map(job => (
+                    <div key={job.id} className="grid grid-cols-[1.2fr_160px_1fr] gap-4 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors items-center">
+                      <div className="text-sm font-medium truncate">
+                        <button
+                          onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
+                          className="text-blue-600 hover:underline text-left"
+                        >
+                          {job.couples?.couple_name || 'Unknown'}
+                        </button>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {job.couples?.wedding_date
+                          ? format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')
+                          : <span className="text-amber-600 text-xs">No date</span>
+                        }
+                      </div>
+                      <div>
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${lane.badge}`}>
+                          Ready to Edit
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Regular lane body */}
-              {!isWaitingPhoto && !isCollapsed && lane.jobs.length > 0 && (
+              {!isWaitingPhoto && !isReadyToEdit && !isCollapsed && lane.jobs.length > 0 && (
                 <div className="border-t">
                   {/* Column headers */}
                   <div className="grid grid-cols-[1.2fr_160px_1fr_110px_150px] gap-4 px-4 py-2 border-b bg-muted/30">
