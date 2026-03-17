@@ -11,6 +11,7 @@ type Category = 'wedding' | 'engagement' | 'video'
 
 const JOB_TYPES: Record<Category, { value: string; label: string }[]> = {
   wedding: [
+    { value: 'wedding_proofs', label: 'Wedding Proofs' },
     { value: 'parent_album', label: 'Parent Album' },
     { value: 'bg_album', label: 'Bride & Groom Album' },
     { value: 'bg_portrait_canvas', label: 'B&G Portrait Canvas' },
@@ -23,6 +24,7 @@ const JOB_TYPES: Record<Category, { value: string; label: string }[]> = {
   engagement: [
     { value: 'eng_proofs', label: 'Engagement Proofs' },
     { value: 'eng_collage', label: 'Engagement Collage' },
+    { value: 'eng_signing_book', label: 'Engagement Signing Book' },
     { value: 'eng_album', label: 'Engagement Album' },
     { value: 'eng_prints', label: 'Extra Engagement Prints' },
     { value: 'hires_engagement', label: 'Hi-Res Engagement Export' },
@@ -41,17 +43,16 @@ const VENDORS = [
   { value: 'in_house', label: 'In-house' },
 ]
 
-const STATUSES = [
-  { value: 'not_started', label: 'Not Started' },
-  { value: 'ready_to_order', label: 'Ready to Order' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'waiting_approval', label: 'Waiting Approval' },
-  { value: 'ready_to_reedit', label: 'Ready to Re-edit' },
-  { value: 'reediting', label: 'Re-editing' },
-  { value: 'at_lab', label: 'At Lab' },
-  { value: 'on_hold', label: 'On Hold' },
-  { value: 'completed', label: 'Completed' },
-]
+const AUTO_FILL_QUANTITY: Record<string, number> = {
+  parent_album: 30,
+  bg_album: 70,
+  eng_collage: 3,
+  eng_signing_book: 22,
+  bg_portrait_canvas: 1,
+  bg_portrait_print: 1,
+  parent_portrait_canvas: 1,
+  parent_portrait_print: 1,
+}
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -83,7 +84,6 @@ export default function AddEditingJobPage() {
   const [vendor, setVendor] = useState('')
   const [quantity, setQuantity] = useState<number | string>(1)
   const [description, setDescription] = useState('')
-  const [status, setStatus] = useState('not_started')
   const [notes, setNotes] = useState('')
 
   // ── Submission state ───────────────────────────────────────────
@@ -151,6 +151,16 @@ export default function AddEditingJobPage() {
   const handleCategoryChange = (cat: Category) => {
     setCategory(cat)
     setJobType('')
+    setQuantity(1)
+  }
+
+  const handleJobTypeChange = (jt: string) => {
+    setJobType(jt)
+    if (jt in AUTO_FILL_QUANTITY) {
+      setQuantity(AUTO_FILL_QUANTITY[jt])
+    } else {
+      setQuantity(1)
+    }
   }
 
   const resetForm = () => {
@@ -162,7 +172,6 @@ export default function AddEditingJobPage() {
     setVendor('')
     setQuantity(1)
     setDescription('')
-    setStatus('not_started')
     setNotes('')
     setSuccess(false)
     setError('')
@@ -184,7 +193,7 @@ export default function AddEditingJobPage() {
         .insert({
           couple_id: coupleId,
           job_type: jobType,
-          status: status === 'not_started' ? 'not_started' : status,
+          status: 'not_started',
           notes: notes.trim() || null,
           section: 'editing',
         })
@@ -200,7 +209,7 @@ export default function AddEditingJobPage() {
           vendor: vendor || null,
           quantity: Number(quantity) || 1,
           description: description.trim() || null,
-          status,
+          status: 'not_started',
           notes: notes.trim() || null,
         })
       insertError = error
@@ -341,7 +350,7 @@ export default function AddEditingJobPage() {
             <Label>Job Type *</Label>
             <select
               value={jobType}
-              onChange={(e) => setJobType(e.target.value)}
+              onChange={(e) => handleJobTypeChange(e.target.value)}
               className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400"
             >
               <option value="">Select job type...</option>
@@ -368,17 +377,18 @@ export default function AddEditingJobPage() {
             </div>
           )}
 
-          {/* ── Quantity (hidden for video) ──────────────── */}
+          {/* ── Photos Taken (hidden for video) ─────────── */}
           {category !== 'video' && (
             <div>
-              <Label>Quantity</Label>
+              <Label>Photos Taken</Label>
               <input
                 type="number"
                 min={1}
-                max={99}
+                max={9999}
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value === '' ? '' : Math.max(1, Number(e.target.value)))}
-                className="w-24 rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400"
+                readOnly={jobType in AUTO_FILL_QUANTITY}
+                className={`w-24 rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400 ${jobType in AUTO_FILL_QUANTITY ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''}`}
               />
             </div>
           )}
@@ -396,20 +406,6 @@ export default function AddEditingJobPage() {
               />
             </div>
           )}
-
-          {/* ── Status ──────────────────────────────────────── */}
-          <div>
-            <Label>Status</Label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400"
-            >
-              {STATUSES.map(s => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-          </div>
 
           {/* ── Notes ───────────────────────────────────────── */}
           <div>
