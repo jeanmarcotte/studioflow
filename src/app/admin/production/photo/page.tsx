@@ -129,10 +129,10 @@ export default function PhotoProductionPage() {
           .in('status', ['completed', 'picked_up']),
         // Waiting for order (past weddings without photo order)
         supabase
-          .from('couple_milestones')
-          .select('id, couples!inner(wedding_date)', { count: 'exact', head: true })
-          .lt('couples.wedding_date', today)
-          .eq('m24_photo_order_in', false),
+          .from('couples')
+          .select('id, couple_milestones!inner(m24_photo_order_in)', { count: 'exact', head: true })
+          .lt('wedding_date', today)
+          .eq('couple_milestones.m24_photo_order_in', false),
         // Re-edit counts (for YTD sum)
         supabase
           .from('jobs')
@@ -145,6 +145,11 @@ export default function PhotoProductionPage() {
           .in('category', ['wedding', 'engagement']),
       ])
 
+      console.log('[Photo Stats] completedRes:', completedRes.count, completedRes.error)
+      console.log('[Photo Stats] waitingRes:', waitingRes.count, waitingRes.error)
+      console.log('[Photo Stats] reeditRes:', reeditRes.data?.length, reeditRes.error)
+      console.log('[Photo Stats] photosRes:', photosRes.data?.length, photosRes.error)
+
       if (!jobsRes.error && jobsRes.data) {
         setJobs(jobsRes.data as unknown as Job[])
       }
@@ -152,11 +157,16 @@ export default function PhotoProductionPage() {
       setWaitingOrderCount(waitingRes.count ?? 0)
 
       if (!reeditRes.error && reeditRes.data) {
-        setReeditYtdCount(reeditRes.data.reduce((sum, r) => sum + (r.reedit_count || 0), 0))
+        const total = reeditRes.data.reduce((sum, r: any) => sum + (r.reedit_count || 0), 0)
+        console.log('[Photo Stats] reedit YTD total:', total)
+        setReeditYtdCount(total)
       }
       if (!photosRes.error && photosRes.data) {
-        setEditedSoFar(photosRes.data.reduce((sum, r) => sum + (r.edited_so_far || 0), 0))
-        setTotalPhotos(photosRes.data.reduce((sum, r) => sum + (r.photos_taken || 0), 0))
+        const edited = photosRes.data.reduce((sum, r: any) => sum + (r.edited_so_far || 0), 0)
+        const taken = photosRes.data.reduce((sum, r: any) => sum + (r.photos_taken || 0), 0)
+        console.log('[Photo Stats] photos:', edited, 'of', taken)
+        setEditedSoFar(edited)
+        setTotalPhotos(taken)
       }
 
       setLoading(false)
