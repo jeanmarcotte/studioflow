@@ -8,13 +8,12 @@ import { differenceInDays, parseISO, format } from 'date-fns'
 
 // ── Types ────────────────────────────────────────────────────────
 
-interface EditingJob {
+interface Job {
   id: string
   couple_id: string
   job_type: string
   category: string
-  description: string | null
-  quantity: number
+  photos_taken: number | null
   vendor: string | null
   status: string
   due_date: string | null
@@ -25,17 +24,10 @@ interface EditingJob {
   couples?: { couple_name: string; wedding_date: string | null } | null
 }
 
-interface PhotoWaitingJob {
-  id: string
-  couple_id: string
-  status: string
-  section: string
-  couples?: { couple_name: string; id: string; wedding_date: string | null } | null
-}
-
 // ── Constants ────────────────────────────────────────────────────
 
 const JOB_TYPE_LABELS: Record<string, string> = {
+  wedding_proofs: 'Wedding Proofs',
   parent_album: 'Parent Album',
   bg_album: 'B&G Album',
   bg_portrait_canvas: 'B&G Portrait (Canvas)',
@@ -46,6 +38,7 @@ const JOB_TYPE_LABELS: Record<string, string> = {
   hires_wedding: 'Hi-Res Wedding',
   eng_proofs: 'Engagement Proofs',
   eng_collage: 'Engagement Collage',
+  eng_signing_book: 'Engagement Signing Book',
   eng_album: 'Engagement Album',
   eng_prints: 'Engagement Prints',
   hires_engagement: 'Hi-Res Engagement',
@@ -66,16 +59,13 @@ const VENDOR_COLORS: Record<string, string> = {
 }
 
 const LANES = [
-  { key: 'waiting_photo', label: 'Waiting for Photo Order', badge: 'bg-yellow-100 text-yellow-700' },
-  { key: 'not_started', label: 'Ready to Edit', badge: 'bg-gray-100 text-gray-700' },
+  { key: 'not_started', label: 'Ready to Start', badge: 'bg-gray-100 text-gray-700' },
   { key: 'in_progress', label: 'In Progress', badge: 'bg-blue-100 text-blue-700' },
+  { key: 'ready_to_reedit', label: 'Ready to Re-edit', badge: 'bg-orange-100 text-orange-700' },
   { key: 'reediting', label: 'Re-editing', badge: 'bg-rose-100 text-rose-700' },
   { key: 'at_lab', label: 'At Lab', badge: 'bg-indigo-100 text-indigo-700' },
-  { key: 'ready_to_order', label: 'Ready to Order', badge: 'bg-cyan-100 text-cyan-700' },
+  { key: 'at_studio', label: 'At Studio', badge: 'bg-cyan-100 text-cyan-700' },
   { key: 'on_hold', label: 'On Hold', badge: 'bg-stone-100 text-stone-700' },
-  { key: 'waiting_approval', label: 'Waiting Approval', badge: 'bg-amber-100 text-amber-700' },
-  { key: 'ready_to_reedit', label: 'Ready to Re-edit', badge: 'bg-orange-100 text-orange-700' },
-  { key: 'completed', label: 'Completed', badge: 'bg-green-100 text-green-700' },
 ] as const
 
 const STATUS_OPTIONS = LANES.map(l => ({ value: l.key, label: l.label }))
@@ -89,9 +79,7 @@ type SortDir = 'asc' | 'desc'
 
 export default function PhotoProductionPage() {
   const router = useRouter()
-  const [jobs, setJobs] = useState<EditingJob[]>([])
-  const [photoWaitingJobs, setPhotoWaitingJobs] = useState<PhotoWaitingJob[]>([])
-  const [readyToEditJobs, setReadyToEditJobs] = useState<PhotoWaitingJob[]>([])
+  const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
 
   // Filters
@@ -104,55 +92,26 @@ export default function PhotoProductionPage() {
   const [sortDir, setSortDir] = useState<SortDir>('asc')
 
   // Collapsed lanes
-  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['completed']))
-
-  // Show completed
-  const [showCompleted, setShowCompleted] = useState(false)
+  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
 
   // ── Fetch ─────────────────────────────────────────────────────
 
   useEffect(() => {
     const fetchJobs = async () => {
-      const [editingRes, photoRes] = await Promise.all([
-        supabase
-          .from('production_jobs')
-          .select('*, couples(couple_name, wedding_date)')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('editing_queue')
-          .select('id, couple_id, status, section, couples(id, couple_name, wedding_date)')
-          .in('section', ['waiting_photo', 'editing']),
-      ])
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*, couples(couple_name, wedding_date)')
+        .in('category', ['wedding', 'engagement'])
+        .not('status', 'in', '("completed","picked_up")')
+        .order('created_at', { ascending: false })
 
-      if (!editingRes.error && editingRes.data) {
-        setJobs(editingRes.data as unknown as EditingJob[])
-      }
-      if (!photoRes.error && photoRes.data) {
-        const allQueue = photoRes.data as unknown as PhotoWaitingJob[]
-        setPhotoWaitingJobs(allQueue.filter(j => j.section === 'waiting_photo'))
-        setReadyToEditJobs(allQueue.filter(j => j.section === 'editing' && j.status === 'not_started'))
+      if (!error && data) {
+        setJobs(data as unknown as Job[])
       }
       setLoading(false)
     }
     fetchJobs()
   }, [])
-
-  // ── Move photo_job from waiting_photo to not_started ──────────
-
-  const initiatePhotoJob = async (jobId: string) => {
-    const { error } = await supabase
-      .from('editing_queue')
-      .update({ section: 'editing', status: 'not_started' })
-      .eq('id', jobId)
-
-    if (!error) {
-      const movedJob = photoWaitingJobs.find(j => j.id === jobId)
-      setPhotoWaitingJobs(prev => prev.filter(j => j.id !== jobId))
-      if (movedJob) {
-        setReadyToEditJobs(prev => [...prev, { ...movedJob, section: 'editing', status: 'not_started' }])
-      }
-    }
-  }
 
   // ── Status update ─────────────────────────────────────────────
 
@@ -168,7 +127,7 @@ export default function PhotoProductionPage() {
     }
 
     const { error } = await supabase
-      .from('production_jobs')
+      .from('jobs')
       .update(updates)
       .eq('id', jobId)
 
@@ -187,7 +146,7 @@ export default function PhotoProductionPage() {
       result = result.filter(j =>
         (j.couples?.couple_name || '').toLowerCase().includes(term) ||
         (JOB_TYPE_LABELS[j.job_type] || j.job_type).toLowerCase().includes(term) ||
-        (j.description || '').toLowerCase().includes(term)
+        (j.notes || '').toLowerCase().includes(term)
       )
     }
 
@@ -231,7 +190,7 @@ export default function PhotoProductionPage() {
     }))
   }, [filteredJobs])
 
-  const activeCount = jobs.filter(j => j.status !== 'completed' && j.status !== 'not_started').length
+  const activeCount = jobs.length
 
   // ── Sort handler ──────────────────────────────────────────────
 
@@ -296,9 +255,9 @@ export default function PhotoProductionPage() {
 
       {/* Status badges row */}
       <div className="flex flex-wrap gap-2">
-        {laneData.filter(l => l.key !== 'completed').map(lane => (
+        {laneData.map(lane => (
           <span key={lane.key} className={`text-xs rounded-full px-2.5 py-1 font-medium ${lane.badge}`}>
-            {lane.label}: {lane.key === 'waiting_photo' ? photoWaitingJobs.length : lane.jobs.length}
+            {lane.label}: {lane.jobs.length}
           </span>
         ))}
       </div>
@@ -350,12 +309,9 @@ export default function PhotoProductionPage() {
       {/* Lanes */}
       <div className="space-y-4">
         {laneData.map(lane => {
-          const isWaitingPhoto = lane.key === 'waiting_photo'
-          const isReadyToEdit = lane.key === 'not_started'
-          const laneCount = isWaitingPhoto ? photoWaitingJobs.length : isReadyToEdit ? readyToEditJobs.length : lane.jobs.length
+          const laneCount = lane.jobs.length
 
-          if (lane.key === 'completed' && !showCompleted) return null
-          if (laneCount === 0 && !isWaitingPhoto && lane.key !== 'in_progress' && lane.key !== 'on_hold') return null
+          if (laneCount === 0 && lane.key !== 'not_started' && lane.key !== 'in_progress') return null
 
           const isCollapsed = collapsedLanes.has(lane.key)
 
@@ -378,91 +334,14 @@ export default function PhotoProductionPage() {
                 </div>
               </button>
 
-              {/* Waiting for Photo Order — from editing_queue */}
-              {isWaitingPhoto && !isCollapsed && photoWaitingJobs.length > 0 && (
-                <div className="border-t">
-                  <div className="grid grid-cols-[1.2fr_160px_1fr_150px] gap-4 px-4 py-2 border-b bg-muted/30">
-                    <span className="text-xs font-medium text-muted-foreground">Couple</span>
-                    <span className="text-xs font-medium text-muted-foreground">Wedding Date</span>
-                    <span className="text-xs font-medium text-muted-foreground">Photo Status</span>
-                    <span className="text-xs font-medium text-muted-foreground">Action</span>
-                  </div>
-                  {photoWaitingJobs.map(job => (
-                    <div key={job.id} className="grid grid-cols-[1.2fr_160px_1fr_150px] gap-4 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors items-center">
-                      <div className="text-sm font-medium truncate">
-                        <button
-                          onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
-                          className="text-blue-600 hover:underline text-left"
-                        >
-                          {job.couples?.couple_name || 'Unknown'}
-                        </button>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {job.couples?.wedding_date
-                          ? format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')
-                          : <span className="text-amber-600 text-xs">No date</span>
-                        }
-                      </div>
-                      <div>
-                        <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
-                          Waiting for Photo Order
-                        </span>
-                      </div>
-                      <div>
-                        <button
-                          onClick={() => initiatePhotoJob(job.id)}
-                          className="text-xs rounded-lg bg-stone-800 text-white px-3 py-1.5 hover:bg-stone-700 transition-colors font-medium"
-                        >
-                          Move to Ready to Edit
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Ready to Edit — from editing_queue */}
-              {isReadyToEdit && !isCollapsed && readyToEditJobs.length > 0 && (
-                <div className="border-t">
-                  <div className="grid grid-cols-[1.2fr_160px_1fr] gap-4 px-4 py-2 border-b bg-muted/30">
-                    <span className="text-xs font-medium text-muted-foreground">Couple</span>
-                    <span className="text-xs font-medium text-muted-foreground">Wedding Date</span>
-                    <span className="text-xs font-medium text-muted-foreground">Status</span>
-                  </div>
-                  {readyToEditJobs.map(job => (
-                    <div key={job.id} className="grid grid-cols-[1.2fr_160px_1fr] gap-4 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors items-center">
-                      <div className="text-sm font-medium truncate">
-                        <button
-                          onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
-                          className="text-blue-600 hover:underline text-left"
-                        >
-                          {job.couples?.couple_name || 'Unknown'}
-                        </button>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {job.couples?.wedding_date
-                          ? format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')
-                          : <span className="text-amber-600 text-xs">No date</span>
-                        }
-                      </div>
-                      <div>
-                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${lane.badge}`}>
-                          Ready to Edit
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Regular lane body */}
-              {!isWaitingPhoto && !isReadyToEdit && !isCollapsed && lane.jobs.length > 0 && (
+              {/* Lane body */}
+              {!isCollapsed && laneCount > 0 && (
                 <div className="border-t">
                   {/* Column headers */}
-                  <div className="grid grid-cols-[1.2fr_160px_1fr_110px_150px] gap-4 px-4 py-2 border-b bg-muted/30">
+                  <div className="grid grid-cols-[1.2fr_160px_80px_110px_150px] gap-4 px-4 py-2 border-b bg-muted/30">
                     <SortHeader field="couple">Couple</SortHeader>
                     <SortHeader field="job_type">Job Type</SortHeader>
-                    <span className="text-xs font-medium text-muted-foreground">Description</span>
+                    <span className="text-xs font-medium text-muted-foreground">Photos</span>
                     <SortHeader field="vendor">Vendor</SortHeader>
                     <span className="text-xs font-medium text-muted-foreground">Status</span>
                   </div>
@@ -471,13 +350,18 @@ export default function PhotoProductionPage() {
                   {lane.jobs.map(job => (
                     <div
                       key={job.id}
-                      className="grid grid-cols-[1.2fr_160px_1fr_110px_150px] gap-4 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors items-center"
+                      className="grid grid-cols-[1.2fr_160px_80px_110px_150px] gap-4 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors items-center"
                     >
                       {/* Couple */}
                       <div className="min-w-0">
                         <div className="text-sm font-medium truncate">
                           {job.couples?.couple_name || 'Unknown'}
                         </div>
+                        {job.couples?.wedding_date && (
+                          <div className="text-[11px] text-muted-foreground">
+                            {format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')}
+                          </div>
+                        )}
                         {job.status === 'at_lab' && job.at_lab_date && (
                           <div className="text-[11px] text-indigo-600">
                             At lab {differenceInDays(new Date(), parseISO(job.at_lab_date))} days — since {format(parseISO(job.at_lab_date), 'MMM d')}
@@ -490,9 +374,9 @@ export default function PhotoProductionPage() {
                         {JOB_TYPE_LABELS[job.job_type] || job.job_type}
                       </div>
 
-                      {/* Description */}
-                      <div className="text-sm text-muted-foreground truncate">
-                        {job.description || '—'}
+                      {/* Photos Taken */}
+                      <div className="text-sm text-muted-foreground">
+                        {job.photos_taken ?? '—'}
                       </div>
 
                       {/* Vendor */}
@@ -530,25 +414,6 @@ export default function PhotoProductionPage() {
             </div>
           )
         })}
-      </div>
-
-      {/* Show/hide completed */}
-      <div className="text-center">
-        <button
-          onClick={() => {
-            setShowCompleted(!showCompleted)
-            if (!showCompleted) {
-              setCollapsedLanes(prev => {
-                const next = new Set(prev)
-                next.delete('completed')
-                return next
-              })
-            }
-          }}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {showCompleted ? 'Hide Completed' : `Show Completed (${laneData.find(l => l.key === 'completed')?.jobs.length || 0})`}
-        </button>
       </div>
     </div>
   )

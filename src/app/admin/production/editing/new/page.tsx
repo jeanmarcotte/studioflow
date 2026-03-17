@@ -199,16 +199,15 @@ export default function AddEditingJobPage() {
         })
       insertError = error
     } else {
-      // Engagement & Wedding jobs go into production_jobs table
+      // Engagement & Wedding jobs go into jobs table
       const { error } = await supabase
-        .from('production_jobs')
+        .from('jobs')
         .insert({
           couple_id: coupleId,
           category,
           job_type: jobType,
           vendor: vendor || null,
-          quantity: Number(quantity) || 1,
-          description: description.trim() || null,
+          photos_taken: Number(quantity) || null,
           status: 'not_started',
           notes: notes.trim() || null,
         })
