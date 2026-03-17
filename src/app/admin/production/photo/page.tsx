@@ -100,23 +100,69 @@ export default function PhotoProductionPage() {
   // Collapsed lanes
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['not_started', 'waiting_approval', 'ready_to_order', 'at_lab', 'at_studio', 'on_hold']))
 
+  // Stats (fetched separately since main query excludes completed)
+  const [completedCount, setCompletedCount] = useState(0)
+  const [waitingOrderCount, setWaitingOrderCount] = useState(0)
+  const [reeditYtdCount, setReeditYtdCount] = useState(0)
+  const [editedSoFar, setEditedSoFar] = useState(0)
+  const [totalPhotos, setTotalPhotos] = useState(0)
+
   // ── Fetch ─────────────────────────────────────────────────────
 
   useEffect(() => {
-    const fetchJobs = async () => {
-      const { data, error } = await supabase
-        .from('jobs')
-        .select('*, couples(couple_name, wedding_date)')
-        .in('category', ['wedding', 'engagement'])
-        .not('status', 'in', '("completed","picked_up")')
-        .order('created_at', { ascending: false })
+    const fetchAll = async () => {
+      const today = new Date().toISOString().split('T')[0]
 
-      if (!error && data) {
-        setJobs(data as unknown as Job[])
+      const [jobsRes, completedRes, waitingRes, reeditRes, photosRes] = await Promise.all([
+        // Active jobs (existing query)
+        supabase
+          .from('jobs')
+          .select('*, couples(couple_name, wedding_date)')
+          .in('category', ['wedding', 'engagement'])
+          .not('status', 'in', '("completed","picked_up")')
+          .order('created_at', { ascending: false }),
+        // Completed count
+        supabase
+          .from('jobs')
+          .select('id', { count: 'exact', head: true })
+          .in('category', ['wedding', 'engagement'])
+          .in('status', ['completed', 'picked_up']),
+        // Waiting for order (past weddings without photo order)
+        supabase
+          .from('couple_milestones')
+          .select('id', { count: 'exact', head: true })
+          .lt('wedding_date', today)
+          .eq('m24_photo_order_in', false),
+        // Re-edit counts (for YTD sum)
+        supabase
+          .from('jobs')
+          .select('reedit_count')
+          .in('category', ['wedding', 'engagement']),
+        // Photos progress
+        supabase
+          .from('jobs')
+          .select('edited_so_far, photos_taken')
+          .in('category', ['wedding', 'engagement'])
+          .not('status', 'in', '("completed","picked_up")'),
+      ])
+
+      if (!jobsRes.error && jobsRes.data) {
+        setJobs(jobsRes.data as unknown as Job[])
       }
+      setCompletedCount(completedRes.count ?? 0)
+      setWaitingOrderCount(waitingRes.count ?? 0)
+
+      if (!reeditRes.error && reeditRes.data) {
+        setReeditYtdCount(reeditRes.data.reduce((sum, r) => sum + (r.reedit_count || 0), 0))
+      }
+      if (!photosRes.error && photosRes.data) {
+        setEditedSoFar(photosRes.data.reduce((sum, r) => sum + (r.edited_so_far || 0), 0))
+        setTotalPhotos(photosRes.data.reduce((sum, r) => sum + (r.photos_taken || 0), 0))
+      }
+
       setLoading(false)
     }
-    fetchJobs()
+    fetchAll()
   }, [])
 
   // ── Status update ─────────────────────────────────────────────
@@ -198,6 +244,14 @@ export default function PhotoProductionPage() {
 
   const activeCount = jobs.length
 
+  const sidebarStats = useMemo(() => ({
+    inProgressCount: jobs.filter(j => j.status === 'in_progress').length,
+    waitingApprovalCount: jobs.filter(j => j.status === 'waiting_approval').length,
+    reeditCount: jobs.filter(j => j.status === 'ready_to_reedit' || j.status === 'reediting').length,
+    atLabCount: jobs.filter(j => j.status === 'at_lab').length,
+    photosPercent: totalPhotos > 0 ? Math.round((editedSoFar / totalPhotos) * 100) : 0,
+  }), [jobs, editedSoFar, totalPhotos])
+
   // ── Sort handler ──────────────────────────────────────────────
 
   const handleSort = (field: SortField) => {
@@ -243,9 +297,9 @@ export default function PhotoProductionPage() {
   // ── Render ────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="px-6 pt-6 pb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Photo Production</h1>
           <p className="text-sm text-muted-foreground">{activeCount} active jobs</p>
@@ -260,7 +314,7 @@ export default function PhotoProductionPage() {
       </div>
 
       {/* Status badges row */}
-      <div className="flex flex-wrap gap-2">
+      <div className="px-6 pb-4 flex flex-wrap gap-2">
         {laneData.map(lane => (
           <span key={lane.key} className={`text-xs rounded-full px-2.5 py-1 font-medium ${lane.badge}`}>
             {lane.label}: {lane.jobs.length}
@@ -268,158 +322,266 @@ export default function PhotoProductionPage() {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search couples, job types..."
-            className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-stone-400"
-          />
-        </div>
-
-        {/* Category filter */}
-        <div className="flex rounded-lg border border-input overflow-hidden">
-          {(['all', 'wedding', 'engagement'] as const).map(cat => (
-            <button
-              key={cat}
-              onClick={() => setFilterCategory(cat)}
-              className={`px-3 py-2 text-xs font-medium transition-colors ${
-                filterCategory === cat
-                  ? 'bg-stone-800 text-white'
-                  : 'bg-background hover:bg-accent/50'
-              }`}
-            >
-              {cat === 'all' ? 'All' : cat === 'wedding' ? 'Wedding' : 'Engagement'}
-            </button>
-          ))}
-        </div>
-
-        {/* Vendor filter */}
-        <select
-          value={filterVendor}
-          onChange={(e) => setFilterVendor(e.target.value)}
-          className="rounded-lg border border-input bg-background px-3 py-2 text-xs outline-none transition-colors focus:border-stone-400"
-        >
-          <option value="">All Vendors</option>
-          {Object.entries(VENDOR_LABELS).map(([val, label]) => (
-            <option key={val} value={val}>{label}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Lanes */}
-      <div className="space-y-4">
-        {laneData.map(lane => {
-          const laneCount = lane.jobs.length
-
-          if (laneCount === 0 && lane.key !== 'not_started' && lane.key !== 'in_progress') return null
-
-          const isCollapsed = collapsedLanes.has(lane.key)
-
-          return (
-            <div key={lane.key} className="rounded-xl border bg-card">
-              {/* Lane header */}
-              <button
-                onClick={() => toggleLane(lane.key)}
-                className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  {isCollapsed
-                    ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    : <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  }
-                  <span className="font-semibold text-sm">{lane.label}</span>
-                  <span className={`text-xs rounded-full px-2 py-0.5 font-medium ${lane.badge}`}>
-                    {laneCount}
-                  </span>
-                </div>
-              </button>
-
-              {/* Lane body */}
-              {!isCollapsed && laneCount > 0 && (
-                <div className="border-t">
-                  {/* Column headers */}
-                  <div className="grid grid-cols-[1.2fr_160px_80px_110px_150px] gap-4 px-4 py-2 border-b bg-muted/30">
-                    <SortHeader field="couple">Couple</SortHeader>
-                    <SortHeader field="job_type">Job Type</SortHeader>
-                    <span className="text-xs font-medium text-muted-foreground">Photos</span>
-                    <SortHeader field="vendor">Vendor</SortHeader>
-                    <span className="text-xs font-medium text-muted-foreground">Status</span>
-                  </div>
-
-                  {/* Jobs */}
-                  {lane.jobs.map(job => (
-                    <div
-                      key={job.id}
-                      className="grid grid-cols-[1.2fr_160px_80px_110px_150px] gap-4 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors items-center"
-                    >
-                      {/* Couple */}
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium truncate">
-                          {job.couples?.couple_name || 'Unknown'}
-                        </div>
-                        {job.couples?.wedding_date && (
-                          <div className="text-[11px] text-muted-foreground">
-                            {format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')}
-                          </div>
-                        )}
-                        {job.status === 'at_lab' && job.at_lab_date && (
-                          <div className="text-[11px] text-indigo-600">
-                            At lab {differenceInDays(new Date(), parseISO(job.at_lab_date))} days — since {format(parseISO(job.at_lab_date), 'MMM d')}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Job Type */}
-                      <div className="text-sm text-muted-foreground truncate">
-                        {JOB_TYPE_LABELS[job.job_type] || job.job_type}
-                      </div>
-
-                      {/* Photos Taken */}
-                      <div className="text-sm text-muted-foreground">
-                        {job.photos_taken ?? '—'}
-                      </div>
-
-                      {/* Vendor */}
-                      <div>
-                        {job.vendor ? (
-                          <span className={`text-[11px] rounded-full px-2 py-0.5 font-medium ${VENDOR_COLORS[job.vendor] || 'bg-gray-100 text-gray-700'}`}>
-                            {VENDOR_LABELS[job.vendor] || job.vendor}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </div>
-
-                      {/* Status dropdown */}
-                      <select
-                        value={job.status}
-                        onChange={(e) => updateStatus(job.id, e.target.value)}
-                        className="text-xs rounded-lg border border-input bg-background px-2 py-1.5 outline-none transition-colors focus:border-stone-400 cursor-pointer"
-                      >
-                        {STATUS_OPTIONS.map(s => (
-                          <option key={s.value} value={s.value}>{s.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Empty lane */}
-              {!isCollapsed && laneCount === 0 && (
-                <div className="border-t px-4 py-6 text-center text-sm text-muted-foreground">
-                  No jobs
-                </div>
-              )}
+      {/* Content area: jobs panel + stats sidebar */}
+      <div className="flex">
+        {/* Job List Panel */}
+        <div className="flex-1 overflow-y-auto p-6 border-r border-border">
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search couples, job types..."
+                className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-stone-400"
+              />
             </div>
-          )
-        })}
+
+            {/* Category filter */}
+            <div className="flex rounded-lg border border-input overflow-hidden">
+              {(['all', 'wedding', 'engagement'] as const).map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setFilterCategory(cat)}
+                  className={`px-3 py-2 text-xs font-medium transition-colors ${
+                    filterCategory === cat
+                      ? 'bg-stone-800 text-white'
+                      : 'bg-background hover:bg-accent/50'
+                  }`}
+                >
+                  {cat === 'all' ? 'All' : cat === 'wedding' ? 'Wedding' : 'Engagement'}
+                </button>
+              ))}
+            </div>
+
+            {/* Vendor filter */}
+            <select
+              value={filterVendor}
+              onChange={(e) => setFilterVendor(e.target.value)}
+              className="rounded-lg border border-input bg-background px-3 py-2 text-xs outline-none transition-colors focus:border-stone-400"
+            >
+              <option value="">All Vendors</option>
+              {Object.entries(VENDOR_LABELS).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Lanes */}
+          <div className="space-y-4">
+            {laneData.map(lane => {
+              const laneCount = lane.jobs.length
+
+              if (laneCount === 0 && lane.key !== 'not_started' && lane.key !== 'in_progress') return null
+
+              const isCollapsed = collapsedLanes.has(lane.key)
+
+              return (
+                <div key={lane.key} className="rounded-xl border bg-card">
+                  {/* Lane header */}
+                  <button
+                    onClick={() => toggleLane(lane.key)}
+                    className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      {isCollapsed
+                        ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      }
+                      <span className="font-semibold text-sm">{lane.label}</span>
+                      <span className={`text-xs rounded-full px-2 py-0.5 font-medium ${lane.badge}`}>
+                        {laneCount}
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Lane body */}
+                  {!isCollapsed && laneCount > 0 && (
+                    <div className="border-t">
+                      {/* Column headers */}
+                      <div className="grid grid-cols-[1.2fr_160px_80px_110px_150px] gap-4 px-4 py-2 border-b bg-muted/30">
+                        <SortHeader field="couple">Couple</SortHeader>
+                        <SortHeader field="job_type">Job Type</SortHeader>
+                        <span className="text-xs font-medium text-muted-foreground">Photos</span>
+                        <SortHeader field="vendor">Vendor</SortHeader>
+                        <span className="text-xs font-medium text-muted-foreground">Status</span>
+                      </div>
+
+                      {/* Jobs */}
+                      {lane.jobs.map(job => (
+                        <div
+                          key={job.id}
+                          className="grid grid-cols-[1.2fr_160px_80px_110px_150px] gap-4 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors items-center"
+                        >
+                          {/* Couple */}
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium truncate">
+                              {job.couples?.couple_name || 'Unknown'}
+                            </div>
+                            {job.couples?.wedding_date && (
+                              <div className="text-[11px] text-muted-foreground">
+                                {format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')}
+                              </div>
+                            )}
+                            {job.status === 'at_lab' && job.at_lab_date && (
+                              <div className="text-[11px] text-indigo-600">
+                                At lab {differenceInDays(new Date(), parseISO(job.at_lab_date))} days — since {format(parseISO(job.at_lab_date), 'MMM d')}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Job Type */}
+                          <div className="text-sm text-muted-foreground truncate">
+                            {JOB_TYPE_LABELS[job.job_type] || job.job_type}
+                          </div>
+
+                          {/* Photos Taken */}
+                          <div className="text-sm text-muted-foreground">
+                            {job.photos_taken ?? '—'}
+                          </div>
+
+                          {/* Vendor */}
+                          <div>
+                            {job.vendor ? (
+                              <span className={`text-[11px] rounded-full px-2 py-0.5 font-medium ${VENDOR_COLORS[job.vendor] || 'bg-gray-100 text-gray-700'}`}>
+                                {VENDOR_LABELS[job.vendor] || job.vendor}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </div>
+
+                          {/* Status dropdown */}
+                          <select
+                            value={job.status}
+                            onChange={(e) => updateStatus(job.id, e.target.value)}
+                            className="text-xs rounded-lg border border-input bg-background px-2 py-1.5 outline-none transition-colors focus:border-stone-400 cursor-pointer"
+                          >
+                            {STATUS_OPTIONS.map(s => (
+                              <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Empty lane */}
+                  {!isCollapsed && laneCount === 0 && (
+                    <div className="border-t px-4 py-6 text-center text-sm text-muted-foreground">
+                      No jobs
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Stats Sidebar */}
+        <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
+          {/* Active Jobs */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Active Jobs
+            </div>
+            <div className="text-3xl font-bold">
+              {activeCount}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {completedCount} completed
+            </div>
+          </div>
+
+          {/* Waiting for Order */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Waiting for Order
+            </div>
+            <div className={`text-3xl font-bold ${waitingOrderCount > 0 ? 'text-amber-600' : 'text-foreground'}`}>
+              {waitingOrderCount}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Past weddings awaiting order</div>
+          </div>
+
+          {/* In Progress */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              In Progress
+            </div>
+            <div className="text-3xl font-bold">
+              {sidebarStats.inProgressCount}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Currently editing</div>
+          </div>
+
+          {/* Waiting for Bride */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Waiting for Bride
+            </div>
+            <div className={`text-3xl font-bold ${sidebarStats.waitingApprovalCount > 0 ? 'text-orange-600' : 'text-foreground'}`}>
+              {sidebarStats.waitingApprovalCount}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Awaiting client approval</div>
+          </div>
+
+          {/* Re-edits */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Re-edits
+            </div>
+            <div className={`text-3xl font-bold ${sidebarStats.reeditCount > 0 ? 'text-rose-600' : 'text-foreground'}`}>
+              {sidebarStats.reeditCount}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Client requested changes</div>
+          </div>
+
+          {/* At Lab */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              At Lab
+            </div>
+            <div className={`text-3xl font-bold ${sidebarStats.atLabCount > 0 ? 'text-indigo-600' : 'text-foreground'}`}>
+              {sidebarStats.atLabCount}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Prints/albums being made</div>
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-border my-6" />
+
+          {/* Re-edits YTD */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Re-edits YTD
+            </div>
+            <div className="text-3xl font-bold">
+              {reeditYtdCount}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Times client requested changes</div>
+          </div>
+
+          {/* Photos Complete */}
+          <div className="rounded-xl border bg-card p-4">
+            <div className="text-xs font-semibold text-foreground mb-3">
+              Photos Complete
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-green-500 rounded-full transition-all"
+                style={{ width: `${sidebarStats.photosPercent}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground mt-2">
+              <span>{editedSoFar} of {totalPhotos} edited</span>
+              <span>{sidebarStats.photosPercent}%</span>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   )
