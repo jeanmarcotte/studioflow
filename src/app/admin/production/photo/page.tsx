@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, Plus, ChevronDown, ChevronRight } from 'lucide-react'
+import { Search, Plus, ChevronDown, ChevronRight, X } from 'lucide-react'
 import { differenceInDays, parseISO, format } from 'date-fns'
 
 // ── Types ────────────────────────────────────────────────────────
@@ -64,11 +64,20 @@ const LANES = [
   { key: 'waiting_approval', label: 'Waiting for Bride', badge: 'bg-amber-100 text-amber-700' },
   { key: 'ready_to_reedit', label: 'Ready to Re-edit', badge: 'bg-orange-100 text-orange-700' },
   { key: 'reediting', label: 'Re-editing', badge: 'bg-rose-100 text-rose-700' },
-  { key: 'ready_to_order', label: 'Ready to Order', badge: 'bg-cyan-100 text-cyan-700' },
   { key: 'at_lab', label: 'At Lab', badge: 'bg-indigo-100 text-indigo-700' },
   { key: 'at_studio', label: 'At Studio', badge: 'bg-teal-100 text-teal-700' },
   { key: 'on_hold', label: 'On Hold', badge: 'bg-stone-100 text-stone-700' },
+  { key: 'ready_to_order', label: 'Ready to Order', badge: 'bg-cyan-100 text-cyan-700' },
 ] as const
+
+const POPUP_LABELS: Record<string, string> = {
+  active: 'Active Jobs',
+  in_progress: 'In Progress',
+  waiting_approval: 'Waiting for Bride',
+  reedits: 'Re-edits',
+  at_lab: 'At Lab',
+  ready_to_order: 'Ready to Order',
+}
 
 const STATUS_OPTIONS = [
   ...LANES.map(l => ({ value: l.key, label: l.label })),
@@ -106,6 +115,9 @@ export default function PhotoProductionPage() {
   const [reeditYtdCount, setReeditYtdCount] = useState(0)
   const [editedSoFar, setEditedSoFar] = useState(0)
   const [totalPhotos, setTotalPhotos] = useState(0)
+
+  // Sidebar popup
+  const [popupStatus, setPopupStatus] = useState<string | null>(null)
 
   // ── Fetch ─────────────────────────────────────────────────────
 
@@ -258,8 +270,21 @@ export default function PhotoProductionPage() {
     waitingApprovalCount: jobs.filter(j => j.status === 'waiting_approval').length,
     reeditCount: jobs.filter(j => j.status === 'ready_to_reedit' || j.status === 'reediting').length,
     atLabCount: jobs.filter(j => j.status === 'at_lab').length,
+    readyToOrderCount: jobs.filter(j => j.status === 'ready_to_order').length,
     photosPercent: totalPhotos > 0 ? Math.round((editedSoFar / totalPhotos) * 100) : 0,
   }), [jobs, editedSoFar, totalPhotos])
+
+  const getPopupJobs = (key: string): Job[] => {
+    switch (key) {
+      case 'active': return jobs
+      case 'in_progress': return jobs.filter(j => j.status === 'in_progress')
+      case 'waiting_approval': return jobs.filter(j => j.status === 'waiting_approval')
+      case 'reedits': return jobs.filter(j => j.status === 'ready_to_reedit' || j.status === 'reediting')
+      case 'at_lab': return jobs.filter(j => j.status === 'at_lab')
+      case 'ready_to_order': return jobs.filter(j => j.status === 'ready_to_order')
+      default: return []
+    }
+  }
 
   // ── Sort handler ──────────────────────────────────────────────
 
@@ -493,7 +518,10 @@ export default function PhotoProductionPage() {
         {/* Stats Sidebar */}
         <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
           {/* Active Jobs */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
+          <div
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            onClick={() => setPopupStatus('active')}
+          >
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               Active Jobs
             </div>
@@ -517,7 +545,10 @@ export default function PhotoProductionPage() {
           </div>
 
           {/* In Progress */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
+          <div
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            onClick={() => setPopupStatus('in_progress')}
+          >
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               In Progress
             </div>
@@ -528,7 +559,10 @@ export default function PhotoProductionPage() {
           </div>
 
           {/* Waiting for Bride */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
+          <div
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            onClick={() => setPopupStatus('waiting_approval')}
+          >
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               Waiting for Bride
             </div>
@@ -539,7 +573,10 @@ export default function PhotoProductionPage() {
           </div>
 
           {/* Re-edits */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
+          <div
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            onClick={() => setPopupStatus('reedits')}
+          >
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               Re-edits
             </div>
@@ -550,7 +587,10 @@ export default function PhotoProductionPage() {
           </div>
 
           {/* At Lab */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
+          <div
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            onClick={() => setPopupStatus('at_lab')}
+          >
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               At Lab
             </div>
@@ -558,6 +598,20 @@ export default function PhotoProductionPage() {
               {sidebarStats.atLabCount}
             </div>
             <div className="text-xs text-muted-foreground mt-1">Prints/albums being made</div>
+          </div>
+
+          {/* Ready to Order */}
+          <div
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            onClick={() => setPopupStatus('ready_to_order')}
+          >
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Ready to Order
+            </div>
+            <div className={`text-3xl font-bold ${sidebarStats.readyToOrderCount > 0 ? 'text-cyan-600' : 'text-foreground'}`}>
+              {sidebarStats.readyToOrderCount}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Ready for lab submission</div>
           </div>
 
           {/* Divider */}
@@ -592,6 +646,35 @@ export default function PhotoProductionPage() {
           </div>
         </aside>
       </div>
+
+      {/* Stats Popup Modal */}
+      {popupStatus && POPUP_LABELS[popupStatus] && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setPopupStatus(null)}>
+          <div className="bg-card rounded-xl border shadow-xl w-[480px] max-h-[70vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-semibold">{POPUP_LABELS[popupStatus]}</h3>
+              <button onClick={() => setPopupStatus(null)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-[calc(70vh-60px)]">
+              {getPopupJobs(popupStatus).length > 0 ? (
+                getPopupJobs(popupStatus).map(job => (
+                  <div key={job.id} className="px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors">
+                    <div className="font-medium text-sm">{job.couples?.couple_name || 'Unknown'}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {JOB_TYPE_LABELS[job.job_type] || job.job_type}
+                      {job.photos_taken != null && <span> &middot; {job.photos_taken} photos</span>}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="px-4 py-6 text-center text-sm text-muted-foreground">No jobs</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
