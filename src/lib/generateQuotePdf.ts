@@ -293,6 +293,14 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
   const rightEdge = pageWidth - margin
   let y = 15
 
+  // Contract mode uses more generous spacing to fill page 1
+  const isContract = !!data.contractMode
+  const sectionGap = isContract ? 12 : 6       // gap after hrules / between sections
+  const labelGap = isContract ? 8 : 6          // gap between label-value rows
+  const featureLineH = isContract ? 6 : 4      // feature bullet spacing
+  const sectionPad = isContract ? 6 : 4        // padding after section content
+  const headerGap = isContract ? 12 : 8        // gap after section headers
+
   const checkPageBreak = (needed: number) => {
     if (y + needed > pageHeight - 20) {
       doc.addPage()
@@ -326,20 +334,20 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(11)
   doc.setTextColor(...COLORS.body)
-  doc.text('Wedding Photography Proposal', pageWidth / 2, y, { align: 'center' })
+  doc.text(isContract ? 'Wedding Photography Contract' : 'Wedding Photography Proposal', pageWidth / 2, y, { align: 'center' })
   y += 6
   drawHRule(doc, y, margin, rightEdge)
-  y += 8
+  y += sectionGap
 
   // ── 3. Couple Information ────────────────────────────────
   drawSectionHeader(doc, 'Couple Information', margin, y, contentWidth)
-  y += 8
+  y += headerGap
 
   const colRight = margin + 90
   // Names
   drawLabelValue(doc, 'Bride', `${data.brideFirstName} ${data.brideLastName}`.trim(), margin, y)
   drawLabelValue(doc, 'Groom', `${data.groomFirstName} ${data.groomLastName}`.trim(), colRight, y)
-  y += 5.5
+  y += labelGap
   // Emails
   if (data.brideEmail || data.groomEmail) {
     doc.setFont('helvetica', 'normal')
@@ -347,7 +355,7 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     doc.setTextColor(...COLORS.muted)
     if (data.brideEmail) doc.text(data.brideEmail, margin, y)
     if (data.groomEmail) doc.text(data.groomEmail, colRight, y)
-    y += 4.5
+    y += labelGap - 2
   }
   // Phones
   if (data.bridePhone || data.groomPhone) {
@@ -356,18 +364,18 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     doc.setTextColor(...COLORS.muted)
     if (data.bridePhone) doc.text(data.bridePhone, margin, y)
     if (data.groomPhone) doc.text(data.groomPhone, colRight, y)
-    y += 4.5
+    y += labelGap - 2
   }
-  y += 4
+  y += sectionPad
 
   // ── 4. Wedding Details ───────────────────────────────────
   drawSectionHeader(doc, 'Wedding Details', margin, y, contentWidth)
-  y += 8
+  y += headerGap
 
   drawLabelValue(doc, 'Date', formatDate(data.weddingDate), margin, y)
-  y += 6
-  if (data.ceremonyVenue) { drawLabelValue(doc, 'Ceremony', data.ceremonyVenue, margin, y); y += 6 }
-  if (data.receptionVenue) { drawLabelValue(doc, 'Reception', data.receptionVenue, margin, y); y += 6 }
+  y += labelGap
+  if (data.ceremonyVenue) { drawLabelValue(doc, 'Ceremony', data.ceremonyVenue, margin, y); y += labelGap }
+  if (data.receptionVenue) { drawLabelValue(doc, 'Reception', data.receptionVenue, margin, y); y += labelGap }
 
   const detailParts: string[] = []
   if (data.guestCount) detailParts.push(`${data.guestCount} Guests`)
@@ -376,26 +384,26 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
   detailParts.push(`${data.ringBearer ?? 0} Ring Bearer`)
   if (data.firstLook) detailParts.push('First Look')
   drawLabelValue(doc, 'Details', detailParts.join('  |  '), margin, y)
-  y += 6
+  y += labelGap
 
   if (data.engagementLocationLabel) {
     drawLabelValue(doc, 'Engagement Session', data.engagementLocationLabel, margin, y)
-    y += 6
+    y += labelGap
   }
 
   if (data.leadSource) {
     drawLabelValue(doc, 'We met you at', data.leadSource, margin, y)
-    y += 6
+    y += labelGap
   }
 
   y += 2
   drawHRule(doc, y, margin, rightEdge)
-  y += 6
+  y += sectionGap
 
   // ── 5. Package ───────────────────────────────────────────
   checkPageBreak(50)
   drawSectionHeader(doc, 'Your Package', margin, y, contentWidth)
-  y += 8
+  y += headerGap
 
   // Package type badge
   const isPhotoOnly = data.selectedPackage === 'exclusively_photo'
@@ -428,7 +436,7 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     const right = data.packageFeatures[i + half]
     if (left) doc.text(`• ${left}`, margin + 2, y)
     if (right) doc.text(`• ${right}`, midCol, y)
-    y += 4
+    y += featureLineH
   }
 
   // Add-ons
@@ -488,18 +496,9 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     y += 5
   }
 
-  // In contract mode, stretch to fill remaining page 1 space
-  if (data.contractMode) {
-    const pageBottom = pageHeight - 25
-    const remaining = pageBottom - y
-    if (remaining > 10 && remaining < 120) {
-      y += remaining
-    }
-  }
-
   y += 2
   drawHRule(doc, y, margin, rightEdge)
-  y += 6
+  y += sectionGap
 
   // ── 6. Timeline ──────────────────────────────────────────
   const hasTimeline = data.timeline.some(t => t.startTime || t.endTime)
@@ -771,7 +770,6 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
   }
 
   // ── 12. Document Properties & Save ───────────────────────
-  const isContract = data.contractMode
   doc.setProperties({
     title: `SIGS Photography ${isContract ? 'Contract' : 'Quote'} - ${data.brideFirstName} & ${data.groomFirstName}`,
     subject: isContract ? 'Wedding Photography Agreement' : 'Wedding Photography Proposal',
