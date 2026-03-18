@@ -104,6 +104,7 @@ export default function PhotoOrderPage() {
   const [mainAlbumNotes, setMainAlbumNotes] = useState('')
   const [mainAlbumNotesOpen, setMainAlbumNotesOpen] = useState(false)
   const [printRows, setPrintRows] = useState<PrintRow[]>([])
+  const [printNotes, setPrintNotes] = useState('')
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [noSpecialRequests, setNoSpecialRequests] = useState(false)
   const [videoPromptDismissed, setVideoPromptDismissed] = useState(false)
@@ -249,6 +250,7 @@ export default function PhotoOrderPage() {
           main_album_photos: mainAlbumPhotos || null,
           main_album_notes: mainAlbumNotes || null,
           portrait_prints: printRows.length > 0 ? printRows.filter(r => r.fileName).map(r => ({ size: r.size, printNumber: r.printNumber, fileName: r.fileName })) : null,
+          portrait_prints_notes: printNotes || null,
           special_instructions: specialInstructions || null,
           no_special_requests: noSpecialRequests,
           submitted_by_email: email,
@@ -649,6 +651,34 @@ export default function PhotoOrderPage() {
               </>
             )}
 
+            {/* Main Album — only if has main album AND custom */}
+            {isCustom && hasMainAlbum && (
+              <div className={`bg-card rounded-xl border p-6 shadow-sm ${mainAlbumError ? 'border-red-400' : ''}`}>
+                <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
+                  <span>📷</span> Your Wedding Album — Select {mainAlbumImages} photos
+                </h2>
+                <p className="text-xs text-muted-foreground mb-3">Enter filenames, one per line or comma-separated</p>
+                <div className="flex items-center justify-end mb-1">
+                  <span className={`text-xs ${mainCount > 0 && mainCount !== mainAlbumImages ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                    {mainCount} of {mainAlbumImages}{mainCount > mainAlbumImages ? ' — too many!' : ''}
+                  </span>
+                </div>
+                <textarea
+                  value={mainAlbumPhotos}
+                  onChange={(e) => setMainAlbumPhotos(e.target.value)}
+                  placeholder="Enter filenames, one per line or comma-separated..."
+                  rows={3}
+                  className="w-full"
+                />
+                <NotesToggle
+                  open={mainAlbumNotesOpen}
+                  onToggle={() => setMainAlbumNotesOpen(!mainAlbumNotesOpen)}
+                  value={mainAlbumNotes}
+                  onChange={setMainAlbumNotes}
+                />
+              </div>
+            )}
+
             {/* Parent Album Selections — only if custom */}
             {parentAlbumsQty > 0 && (
               <div className={`bg-card rounded-xl border p-6 shadow-sm ${parent1Error || parent2Error ? 'border-red-400' : ''}`}>
@@ -708,34 +738,6 @@ export default function PhotoOrderPage() {
               </div>
             )}
 
-            {/* Main Album — only if has main album AND custom */}
-            {isCustom && hasMainAlbum && (
-              <div className={`bg-card rounded-xl border p-6 shadow-sm ${mainAlbumError ? 'border-red-400' : ''}`}>
-                <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
-                  <span>📷</span> Your Wedding Album — Select {mainAlbumImages} photos
-                </h2>
-                <p className="text-xs text-muted-foreground mb-3">Enter filenames, one per line or comma-separated</p>
-                <div className="flex items-center justify-end mb-1">
-                  <span className={`text-xs ${mainCount > 0 && mainCount !== mainAlbumImages ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
-                    {mainCount} of {mainAlbumImages}{mainCount > mainAlbumImages ? ' — too many!' : ''}
-                  </span>
-                </div>
-                <textarea
-                  value={mainAlbumPhotos}
-                  onChange={(e) => setMainAlbumPhotos(e.target.value)}
-                  placeholder="Enter filenames, one per line or comma-separated..."
-                  rows={3}
-                  className="w-full"
-                />
-                <NotesToggle
-                  open={mainAlbumNotesOpen}
-                  onToggle={() => setMainAlbumNotesOpen(!mainAlbumNotesOpen)}
-                  value={mainAlbumNotes}
-                  onChange={setMainAlbumNotes}
-                />
-              </div>
-            )}
-
             {/* Portrait Prints — dynamic rows */}
             {printRows.length > 0 && (
               <div className="bg-card rounded-xl border p-6 shadow-sm">
@@ -760,6 +762,16 @@ export default function PhotoOrderPage() {
                       />
                     </div>
                   ))}
+                </div>
+                <div className="mt-4">
+                  <label className="text-sm font-medium text-foreground block mb-1">Notes (optional)</label>
+                  <textarea
+                    value={printNotes}
+                    onChange={(e) => setPrintNotes(e.target.value)}
+                    placeholder="Any special requests for your prints? Different crops, black & white, etc."
+                    rows={2}
+                    className="w-full"
+                  />
                 </div>
               </div>
             )}
