@@ -90,7 +90,7 @@ export default function CoupleQuotesPage() {
   const router = useRouter()
   const [meetings, setMeetings] = useState<SalesMeeting[]>([])
   const [meetingsLoading, setMeetingsLoading] = useState(true)
-  const [sortField, setSortField] = useState<string>('meeting_num')
+  const [sortField, setSortField] = useState<string>('status')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [showCosts, setShowCosts] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {}
@@ -683,7 +683,14 @@ export default function CoupleQuotesPage() {
                       const db = b.appt_date ? Math.floor((now - new Date(b.appt_date + 'T12:00:00').getTime()) / 86400000) : -Infinity
                       return (da - db) * dir
                     }
-                    case 'status': return ((a.status || '').localeCompare(b.status || '')) * dir
+                    case 'status': {
+                      const statusOrder: Record<string, number> = { Pending: 0, Booked: 1, Failed: 2 }
+                      const sa = statusOrder[a.status || 'Pending'] ?? 1
+                      const sb = statusOrder[b.status || 'Pending'] ?? 1
+                      if (sa !== sb) return (sa - sb) * dir
+                      // Tiebreaker: appt_date descending (most recent first)
+                      return (b.appt_date || '').localeCompare(a.appt_date || '')
+                    }
                     default: return 0
                   }
                 }).map(m => {
