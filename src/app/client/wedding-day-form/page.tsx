@@ -95,15 +95,28 @@ interface FormData {
   venue_arrival_time: string
   // Vendors
   vendor_wedding_planner: string
+  vendor_wedding_planner_ig: string
   vendor_officiant: string
+  vendor_officiant_ig: string
   vendor_makeup: string
+  vendor_makeup_ig: string
   vendor_hair: string
+  vendor_hair_ig: string
   vendor_floral: string
+  vendor_floral_ig: string
   vendor_event_design: string
+  vendor_event_design_ig: string
   vendor_dj_mc: string
+  vendor_dj_mc_ig: string
   vendor_transportation: string
-  vendor_venue: string
-  vendor_instagram_tag: string
+  vendor_transportation_ig: string
+  // Venue Contact
+  venue_contact_name: string
+  venue_contact_phone: string
+  venue_contact_email: string
+  // Couple Social
+  couple_instagram: string
+  wedding_hashtag: string
   // First Look
   has_first_look: boolean | null
   // General Info
@@ -135,9 +148,16 @@ const EMPTY_FORM: FormData = {
   drive_time_bride_to_first_look: '', drive_time_first_look_to_park: '',
   drive_time_park_to_ceremony: '', drive_time_ceremony_to_reception: '',
   ceremony_begins_at: '', hours_in_contract: '', photo_video_end_time: '', venue_arrival_time: '',
-  vendor_wedding_planner: '', vendor_officiant: '', vendor_makeup: '', vendor_hair: '',
-  vendor_floral: '', vendor_event_design: '', vendor_dj_mc: '', vendor_transportation: '',
-  vendor_venue: '', vendor_instagram_tag: '',
+  vendor_wedding_planner: '', vendor_wedding_planner_ig: '',
+  vendor_officiant: '', vendor_officiant_ig: '',
+  vendor_makeup: '', vendor_makeup_ig: '',
+  vendor_hair: '', vendor_hair_ig: '',
+  vendor_floral: '', vendor_floral_ig: '',
+  vendor_event_design: '', vendor_event_design_ig: '',
+  vendor_dj_mc: '', vendor_dj_mc_ig: '',
+  vendor_transportation: '', vendor_transportation_ig: '',
+  venue_contact_name: '', venue_contact_phone: '', venue_contact_email: '',
+  couple_instagram: '', wedding_hashtag: '',
   has_first_look: null,
   bridal_party_count: '', parent_info: '', honeymoon_details: '', additional_notes: '',
 }
@@ -145,6 +165,14 @@ const EMPTY_FORM: FormData = {
 function formatWeddingDate(dateStr: string): string {
   const date = new Date(dateStr + 'T12:00:00')
   return format(date, 'EEEE, MMMM d, yyyy')
+}
+
+function formatPhoneNumber(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 10)
+  if (digits.length === 0) return ''
+  if (digits.length <= 3) return `(${digits}`
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
 }
 
 // ─── Reusable UI pieces (defined outside component to prevent remounting) ────
@@ -191,6 +219,24 @@ function TextInput({ label, value, onChange, placeholder }: {
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
+      />
+    </div>
+  )
+}
+
+function PhoneInput({ label, value, onChange }: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-foreground mb-1">{label}</label>
+      <input
+        type="tel"
+        value={value}
+        onChange={e => onChange(formatPhoneNumber(e.target.value))}
+        placeholder="(416) 555-1234"
       />
     </div>
   )
@@ -414,15 +460,26 @@ export default function WeddingDayFormPage() {
           photo_video_end_time: d.photo_video_end_time || '',
           venue_arrival_time: d.venue_arrival_time || '',
           vendor_wedding_planner: d.vendor_wedding_planner || '',
+          vendor_wedding_planner_ig: d.vendor_wedding_planner_ig || '',
           vendor_officiant: d.vendor_officiant || '',
+          vendor_officiant_ig: d.vendor_officiant_ig || '',
           vendor_makeup: d.vendor_makeup || '',
+          vendor_makeup_ig: d.vendor_makeup_ig || '',
           vendor_hair: d.vendor_hair || '',
+          vendor_hair_ig: d.vendor_hair_ig || '',
           vendor_floral: d.vendor_floral || '',
+          vendor_floral_ig: d.vendor_floral_ig || '',
           vendor_event_design: d.vendor_event_design || '',
+          vendor_event_design_ig: d.vendor_event_design_ig || '',
           vendor_dj_mc: d.vendor_dj_mc || '',
+          vendor_dj_mc_ig: d.vendor_dj_mc_ig || '',
           vendor_transportation: d.vendor_transportation || '',
-          vendor_venue: d.vendor_venue || '',
-          vendor_instagram_tag: d.vendor_instagram_tag || '',
+          vendor_transportation_ig: d.vendor_transportation_ig || '',
+          venue_contact_name: d.venue_contact_name || '',
+          venue_contact_phone: d.venue_contact_phone || '',
+          venue_contact_email: d.venue_contact_email || '',
+          couple_instagram: d.couple_instagram || '',
+          wedding_hashtag: d.wedding_hashtag || '',
           has_first_look: d.has_first_look ?? null,
           bridal_party_count: d.bridal_party_count?.toString() || '',
           parent_info: d.parent_info || '',
@@ -646,11 +703,11 @@ export default function WeddingDayFormPage() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Contact 1 Name" value={form.emergency_contact_1_name} onChange={v => updateField('emergency_contact_1_name', v)} placeholder="Full name" />
-                  <TextInput label="Contact 1 Phone" value={form.emergency_contact_1_phone} onChange={v => updateField('emergency_contact_1_phone', v)} placeholder="(416) 555-1234" />
+                  <PhoneInput label="Contact 1 Phone" value={form.emergency_contact_1_phone} onChange={v => updateField('emergency_contact_1_phone', v)} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Contact 2 Name" value={form.emergency_contact_2_name} onChange={v => updateField('emergency_contact_2_name', v)} placeholder="Full name" />
-                  <TextInput label="Contact 2 Phone" value={form.emergency_contact_2_phone} onChange={v => updateField('emergency_contact_2_phone', v)} placeholder="(416) 555-1234" />
+                  <PhoneInput label="Contact 2 Phone" value={form.emergency_contact_2_phone} onChange={v => updateField('emergency_contact_2_phone', v)} />
                 </div>
               </div>
             </div>
@@ -703,24 +760,61 @@ export default function WeddingDayFormPage() {
               <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <span>🤝</span> Vendors
               </h2>
-              <p className="text-xs text-muted-foreground mb-3">Name and contact info for each vendor</p>
+              <p className="text-xs text-muted-foreground mb-3">Name and Instagram for each vendor</p>
               <div className="space-y-3">
-                <TextInput label="Wedding Planner" value={form.vendor_wedding_planner} onChange={v => updateField('vendor_wedding_planner', v)} placeholder="Name & phone/email" />
-                <TextInput label="Officiant" value={form.vendor_officiant} onChange={v => updateField('vendor_officiant', v)} placeholder="Name & phone/email" />
+                <div className="grid grid-cols-2 gap-3">
+                  <TextInput label="Wedding Planner" value={form.vendor_wedding_planner} onChange={v => updateField('vendor_wedding_planner', v)} placeholder="Name" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_wedding_planner_ig} onChange={v => updateField('vendor_wedding_planner_ig', v)} placeholder="@username or URL" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <TextInput label="Officiant" value={form.vendor_officiant} onChange={v => updateField('vendor_officiant', v)} placeholder="Name" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_officiant_ig} onChange={v => updateField('vendor_officiant_ig', v)} placeholder="@username or URL" />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Makeup Artist" value={form.vendor_makeup} onChange={v => updateField('vendor_makeup', v)} placeholder="Name" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_makeup_ig} onChange={v => updateField('vendor_makeup_ig', v)} placeholder="@username or URL" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Hair Stylist" value={form.vendor_hair} onChange={v => updateField('vendor_hair', v)} placeholder="Name" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_hair_ig} onChange={v => updateField('vendor_hair_ig', v)} placeholder="@username or URL" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Floral" value={form.vendor_floral} onChange={v => updateField('vendor_floral', v)} placeholder="Name" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_floral_ig} onChange={v => updateField('vendor_floral_ig', v)} placeholder="@username or URL" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Event Design / Decor" value={form.vendor_event_design} onChange={v => updateField('vendor_event_design', v)} placeholder="Name" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_event_design_ig} onChange={v => updateField('vendor_event_design_ig', v)} placeholder="@username or URL" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="DJ / MC" value={form.vendor_dj_mc} onChange={v => updateField('vendor_dj_mc', v)} placeholder="Name" />
-                  <TextInput label="Transportation" value={form.vendor_transportation} onChange={v => updateField('vendor_transportation', v)} placeholder="Limo company, etc." />
+                  <TextInput label="Instagram (optional)" value={form.vendor_dj_mc_ig} onChange={v => updateField('vendor_dj_mc_ig', v)} placeholder="@username or URL" />
                 </div>
-                <TextInput label="Venue Contact" value={form.vendor_venue} onChange={v => updateField('vendor_venue', v)} placeholder="Venue coordinator name & phone" />
-                <TextInput label="Instagram / Hashtag" value={form.vendor_instagram_tag} onChange={v => updateField('vendor_instagram_tag', v)} placeholder="e.g. #SmithWedding2026" />
+                <div className="grid grid-cols-2 gap-3">
+                  <TextInput label="Transportation" value={form.vendor_transportation} onChange={v => updateField('vendor_transportation', v)} placeholder="Name" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_transportation_ig} onChange={v => updateField('vendor_transportation_ig', v)} placeholder="@username or URL" />
+                </div>
+
+                {/* Venue Contact */}
+                <div className="border-t pt-3 mt-3">
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Venue Contact</h3>
+                  <div className="space-y-3">
+                    <TextInput label="Venue Contact Name" value={form.venue_contact_name} onChange={v => updateField('venue_contact_name', v)} placeholder="Coordinator name" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <PhoneInput label="Venue Contact Phone" value={form.venue_contact_phone} onChange={v => updateField('venue_contact_phone', v)} />
+                      <TextInput label="Venue Contact Email" value={form.venue_contact_email} onChange={v => updateField('venue_contact_email', v)} placeholder="email@venue.com" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Couple Social */}
+                <div className="border-t pt-3 mt-3">
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Your Social Media</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <TextInput label="Your Instagram" value={form.couple_instagram} onChange={v => updateField('couple_instagram', v)} placeholder="@username" />
+                    <TextInput label="Wedding Hashtag" value={form.wedding_hashtag} onChange={v => updateField('wedding_hashtag', v)} placeholder="#SmithJonesWedding" />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -768,7 +862,7 @@ export default function WeddingDayFormPage() {
                   </h2>
                   <div className="space-y-3">
                     <TimeRow label="Time" startValue={form.groom_start_time} finishValue={form.groom_finish_time} onStartChange={v => updateField('groom_start_time', v)} onFinishChange={v => updateField('groom_finish_time', v)} />
-                    <TextInput label="Phone (day-of contact)" value={form.groom_phone} onChange={v => updateField('groom_phone', v)} placeholder="(416) 555-1234" />
+                    <PhoneInput label="Phone (day-of contact)" value={form.groom_phone} onChange={v => updateField('groom_phone', v)} />
                     <LocationFields form={form} updateField={updateField} prefix="groom" />
                   </div>
                 </div>
@@ -780,7 +874,7 @@ export default function WeddingDayFormPage() {
                   </h2>
                   <div className="space-y-3">
                     <TimeRow label="Time" startValue={form.bride_start_time} finishValue={form.bride_finish_time} onStartChange={v => updateField('bride_start_time', v)} onFinishChange={v => updateField('bride_finish_time', v)} />
-                    <TextInput label="Phone (day-of contact)" value={form.bride_phone} onChange={v => updateField('bride_phone', v)} placeholder="(416) 555-1234" />
+                    <PhoneInput label="Phone (day-of contact)" value={form.bride_phone} onChange={v => updateField('bride_phone', v)} />
                     <LocationFields form={form} updateField={updateField} prefix="bride" />
                   </div>
                 </div>

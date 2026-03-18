@@ -104,15 +104,28 @@ export async function POST(request: Request) {
       venue_arrival_time: body.venue_arrival_time || null,
       // Vendors
       vendor_wedding_planner: body.vendor_wedding_planner || null,
+      vendor_wedding_planner_ig: body.vendor_wedding_planner_ig || null,
       vendor_officiant: body.vendor_officiant || null,
+      vendor_officiant_ig: body.vendor_officiant_ig || null,
       vendor_makeup: body.vendor_makeup || null,
+      vendor_makeup_ig: body.vendor_makeup_ig || null,
       vendor_hair: body.vendor_hair || null,
+      vendor_hair_ig: body.vendor_hair_ig || null,
       vendor_floral: body.vendor_floral || null,
+      vendor_floral_ig: body.vendor_floral_ig || null,
       vendor_event_design: body.vendor_event_design || null,
+      vendor_event_design_ig: body.vendor_event_design_ig || null,
       vendor_dj_mc: body.vendor_dj_mc || null,
+      vendor_dj_mc_ig: body.vendor_dj_mc_ig || null,
       vendor_transportation: body.vendor_transportation || null,
-      vendor_venue: body.vendor_venue || null,
-      vendor_instagram_tag: body.vendor_instagram_tag || null,
+      vendor_transportation_ig: body.vendor_transportation_ig || null,
+      // Venue Contact
+      venue_contact_name: body.venue_contact_name || null,
+      venue_contact_phone: body.venue_contact_phone || null,
+      venue_contact_email: body.venue_contact_email || null,
+      // Couple Social
+      couple_instagram: body.couple_instagram || null,
+      wedding_hashtag: body.wedding_hashtag || null,
       // First Look
       has_first_look: body.has_first_look ?? null,
       // General Info
