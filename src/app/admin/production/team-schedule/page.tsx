@@ -1,0 +1,641 @@
+'use client'
+
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import {
+  CalendarDays, Users, AlertTriangle, Calendar, ChevronUp, ChevronDown,
+  X, Search, Camera, Video, Check, XCircle,
+} from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+
+// ── Types ──────────────────────────────────────────────────────────
+
+interface TeamMember {
+  id: string
+  name: string
+  role: string        // 'photographer' | 'videographer'
+  color: string
+  is_active: boolean
+}
+
+interface Assignment {
+  id: string
+  couple_id: string
+  photo_1: string | null
+  photo_2: string | null
+  video_1: string | null
+  status: string      // 'confirmed' | 'missing_crew' | 'pending'
+  couple_name: string
+  wedding_date: string
+  num_photographers: number
+  num_videographers: number
+}
+
+type SortField = 'wedding_date' | 'couple_name' | 'status'
+type SortDir = 'asc' | 'desc'
+
+// ── Helpers ────────────────────────────────────────────────────────
+
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+function formatDate(iso: string) {
+  const d = new Date(iso + 'T12:00:00')
+  return d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function getDayName(iso: string) {
+  const d = new Date(iso + 'T12:00:00')
+  return DAY_NAMES[d.getDay()]
+}
+
+function isDoubleWedding(date: string, all: Assignment[]) {
+  return all.filter(a => a.wedding_date === date).length > 1
+}
+
+function getConsecutiveDayWeddings(assignments: Assignment[]) {
+  const dates = Array.from(new Set(assignments.map(a => a.wedding_date))).sort()
+  const backToBack: Set<string> = new Set()
+  for (let i = 1; i < dates.length; i++) {
+    const prev = new Date(dates[i - 1] + 'T12:00:00')
+    const curr = new Date(dates[i] + 'T12:00:00')
+    const diff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24)
+    if (diff === 1) {
+      backToBack.add(dates[i - 1])
+      backToBack.add(dates[i])
+    }
+  }
+  return backToBack
+}
+
+// ══════════════════════════════════════════════════════════════════
+// STAT MODAL
+// ══════════════════════════════════════════════════════════════════
+
+function StatModal({ title, items, onClose }: {
+  title: string
+  items: { label: string; sub?: string }[]
+  onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card border rounded-xl shadow-2xl w-full max-w-md mx-4 max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b">
+          <h3 className="font-semibold text-lg">{title}</h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-muted transition-colors"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="p-4 overflow-y-auto space-y-2">
+          {items.length === 0 && <p className="text-muted-foreground text-sm">None found.</p>}
+          {items.map((item, i) => (
+            <div key={i} className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+              <span className="font-medium text-sm">{item.label}</span>
+              {item.sub && <span className="text-xs text-muted-foreground">{item.sub}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════
+// STAFF DROPDOWN
+// ══════════════════════════════════════════════════════════════════
+
+function StaffDropdown({ value, role, members, onSelect }: {
+  value: string | null
+  role: 'photographer' | 'videographer'
+  members: TeamMember[]
+  onSelect: (name: string | null) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const filtered = members.filter(m => m.role === role && m.is_active)
+  const member = members.find(m => m.name === value)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors hover:bg-muted/80 border border-transparent hover:border-border"
+      >
+        {value ? (
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+            style={{ backgroundColor: member?.color || '#6b7280' }}
+          >
+            {value}
+          </span>
+        ) : (
+          <span className="text-red-400 font-semibold">NEEDED</span>
+        )}
+        <ChevronDown className="h-3 w-3 text-muted-foreground" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute z-50 mt-1 w-44 rounded-lg border bg-popover shadow-xl overflow-hidden">
+            <button
+              onClick={() => { onSelect(null); setOpen(false) }}
+              className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 text-muted-foreground"
+            >
+              Unassign
+            </button>
+            {filtered.map(m => (
+              <button
+                key={m.id}
+                onClick={() => { onSelect(m.name); setOpen(false) }}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 flex items-center gap-2"
+              >
+                <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: m.color }} />
+                <span className="font-medium">{m.name}</span>
+                <span className="text-muted-foreground ml-auto capitalize">{m.role}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PAGE
+// ══════════════════════════════════════════════════════════════════
+
+export default function TeamSchedulePage() {
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [sortField, setSortField] = useState<SortField>('wedding_date')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [activeModal, setActiveModal] = useState<string | null>(null)
+
+  // ── Fetch data ─────────────────────────────────────────────────
+
+  const fetchData = useCallback(async () => {
+    const [assignRes, teamRes] = await Promise.all([
+      supabase
+        .from('wedding_assignments')
+        .select(`
+          id, couple_id, photo_1, photo_2, video_1, status,
+          couples(couple_name, wedding_date),
+          contracts(num_photographers, num_videographers)
+        `)
+        .gte('couples.wedding_date', '2026-01-01')
+        .lt('couples.wedding_date', '2027-01-01'),
+      supabase
+        .from('team_members')
+        .select('*')
+        .eq('is_active', true)
+        .order('name'),
+    ])
+
+    if (teamRes.data) setTeamMembers(teamRes.data as TeamMember[])
+
+    if (assignRes.data) {
+      const mapped: Assignment[] = (assignRes.data as any[])
+        .filter(a => a.couples) // filter out nulls from inner join
+        .map(a => ({
+          id: a.id,
+          couple_id: a.couple_id,
+          photo_1: a.photo_1,
+          photo_2: a.photo_2,
+          video_1: a.video_1,
+          status: a.status,
+          couple_name: a.couples.couple_name,
+          wedding_date: a.couples.wedding_date,
+          num_photographers: a.contracts?.num_photographers ?? 2,
+          num_videographers: a.contracts?.num_videographers ?? 0,
+        }))
+      setAssignments(mapped)
+    }
+
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  // ── Update assignment ──────────────────────────────────────────
+
+  const updateStaff = async (id: string, field: 'photo_1' | 'photo_2' | 'video_1', value: string | null) => {
+    const { error } = await supabase
+      .from('wedding_assignments')
+      .update({ [field]: value })
+      .eq('id', id)
+
+    if (!error) {
+      setAssignments(prev =>
+        prev.map(a => a.id === id ? { ...a, [field]: value } : a)
+      )
+    }
+  }
+
+  // ── Computed data ──────────────────────────────────────────────
+
+  const missingCrew = useMemo(() =>
+    assignments.filter(a => a.status === 'missing_crew'), [assignments])
+
+  const doubleWeddings = useMemo(() => {
+    const dateCounts: Record<string, Assignment[]> = {}
+    assignments.forEach(a => {
+      if (!dateCounts[a.wedding_date]) dateCounts[a.wedding_date] = []
+      dateCounts[a.wedding_date].push(a)
+    })
+    return Object.entries(dateCounts).filter(([, v]) => v.length > 1)
+  }, [assignments])
+
+  const backToBackDates = useMemo(() => getConsecutiveDayWeddings(assignments), [assignments])
+
+  const backToBackWeddings = useMemo(() =>
+    assignments.filter(a => backToBackDates.has(a.wedding_date)), [assignments, backToBackDates])
+
+  const nextNeedingCoverage = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0]
+    return assignments
+      .filter(a => a.wedding_date >= today && a.status === 'missing_crew')
+      .sort((a, b) => a.wedding_date.localeCompare(b.wedding_date))[0] || null
+  }, [assignments])
+
+  // ── Filtered + sorted ──────────────────────────────────────────
+
+  const filtered = useMemo(() => {
+    let result = [...assignments]
+
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter(a =>
+        a.couple_name.toLowerCase().includes(q) ||
+        (a.photo_1 || '').toLowerCase().includes(q) ||
+        (a.photo_2 || '').toLowerCase().includes(q) ||
+        (a.video_1 || '').toLowerCase().includes(q)
+      )
+    }
+
+    result.sort((a, b) => {
+      let cmp = 0
+      switch (sortField) {
+        case 'wedding_date':
+          cmp = a.wedding_date.localeCompare(b.wedding_date)
+          break
+        case 'couple_name':
+          cmp = a.couple_name.localeCompare(b.couple_name)
+          break
+        case 'status':
+          cmp = a.status.localeCompare(b.status)
+          break
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+
+    return result
+  }, [assignments, search, sortField, sortDir])
+
+  // ── Sort handler ───────────────────────────────────────────────
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDir('asc')
+    }
+  }
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ChevronDown className="h-3 w-3 opacity-30" />
+    return sortDir === 'asc'
+      ? <ChevronUp className="h-3 w-3" />
+      : <ChevronDown className="h-3 w-3" />
+  }
+
+  // ── Modal data ─────────────────────────────────────────────────
+
+  const modalData = useMemo(() => {
+    switch (activeModal) {
+      case 'missing':
+        return {
+          title: 'Missing Crew',
+          items: missingCrew.map(a => ({ label: a.couple_name, sub: formatDate(a.wedding_date) })),
+        }
+      case 'double':
+        return {
+          title: 'Double Weddings',
+          items: doubleWeddings.flatMap(([date, weddings]) =>
+            weddings.map(a => ({ label: a.couple_name, sub: formatDate(date) }))
+          ),
+        }
+      case 'backtoback':
+        return {
+          title: 'Back-to-Back Weddings',
+          items: backToBackWeddings.map(a => ({ label: a.couple_name, sub: formatDate(a.wedding_date) })),
+        }
+      case 'next':
+        return {
+          title: 'Next Wedding Needing Coverage',
+          items: nextNeedingCoverage
+            ? [{ label: nextNeedingCoverage.couple_name, sub: formatDate(nextNeedingCoverage.wedding_date) }]
+            : [],
+        }
+      default:
+        return null
+    }
+  }, [activeModal, missingCrew, doubleWeddings, backToBackWeddings, nextNeedingCoverage])
+
+  // ── Row styling ────────────────────────────────────────────────
+
+  function getRowClasses(a: Assignment) {
+    const isDouble = isDoubleWedding(a.wedding_date, assignments)
+    if (isDouble) return 'bg-orange-950/20 hover:bg-orange-950/30'
+    if (a.num_videographers === 0) return 'bg-blue-950/15 hover:bg-blue-950/25'
+    return 'hover:bg-muted/50'
+  }
+
+  // ── Crew indicator ─────────────────────────────────────────────
+
+  function CrewBadge({ a }: { a: Assignment }) {
+    const isDouble = isDoubleWedding(a.wedding_date, assignments)
+    if (isDouble) return <span title="Double Wedding" className="text-base">🔴</span>
+    if (a.num_photographers >= 2 && a.num_videographers >= 1) return <span title="3 Crew" className="text-base">🟢</span>
+    if (a.num_videographers === 0) return <span title="Photo Only" className="text-base">📷</span>
+    return <span title="Crew" className="text-base">🟢</span>
+  }
+
+  function StatusBadge({ status }: { status: string }) {
+    if (status === 'confirmed') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/20 text-green-400 px-2.5 py-0.5 text-xs font-semibold">
+          <Check className="h-3 w-3" /> Confirmed
+        </span>
+      )
+    }
+    if (status === 'missing_crew') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-red-500/20 text-red-400 px-2.5 py-0.5 text-xs font-semibold">
+          <XCircle className="h-3 w-3" /> Missing Crew
+        </span>
+      )
+    }
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500/20 text-yellow-400 px-2.5 py-0.5 text-xs font-semibold">
+        Pending
+      </span>
+    )
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // RENDER
+  // ══════════════════════════════════════════════════════════════
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 border-2 border-t-transparent border-blue-500 rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">Loading schedule...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* ── Header ──────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <CalendarDays className="h-6 w-6 text-blue-500" />
+            Team Schedule
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            2026 Season &middot; {assignments.length} wedding{assignments.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Team Member Badges ──────────────────────────────────── */}
+      {teamMembers.length > 0 && (
+        <div className="rounded-xl border bg-card p-4">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-3">Active Team</h3>
+          <div className="flex flex-wrap gap-2">
+            {teamMembers.filter(m => m.is_active).map(m => (
+              <span
+                key={m.id}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm"
+                style={{ backgroundColor: m.color }}
+              >
+                {m.role === 'photographer' ? <Camera className="h-3 w-3" /> : <Video className="h-3 w-3" />}
+                {m.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Stat Boxes ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Missing Crew */}
+        <button
+          onClick={() => setActiveModal('missing')}
+          className="rounded-xl border bg-gradient-to-br from-red-950/60 to-red-900/30 p-4 text-left transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-red-500/10"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="h-4 w-4 text-red-400" />
+            <span className="text-xs font-semibold uppercase text-red-300">Missing Crew</span>
+          </div>
+          <div className="text-3xl font-bold text-red-400">{missingCrew.length}</div>
+          <p className="text-xs text-red-300/70 mt-1">weddings needing staff</p>
+        </button>
+
+        {/* Double Weddings */}
+        <button
+          onClick={() => setActiveModal('double')}
+          className="rounded-xl border bg-gradient-to-br from-orange-950/60 to-orange-900/30 p-4 text-left transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-orange-500/10"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="h-4 w-4 text-orange-400" />
+            <span className="text-xs font-semibold uppercase text-orange-300">Double Weddings</span>
+          </div>
+          <div className="text-3xl font-bold text-orange-400">{doubleWeddings.length}</div>
+          <p className="text-xs text-orange-300/70 mt-1">dates with 2+ weddings</p>
+        </button>
+
+        {/* Back-to-Backs */}
+        <button
+          onClick={() => setActiveModal('backtoback')}
+          className="rounded-xl border bg-gradient-to-br from-yellow-950/60 to-yellow-900/30 p-4 text-left transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-yellow-500/10"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Calendar className="h-4 w-4 text-yellow-400" />
+            <span className="text-xs font-semibold uppercase text-yellow-300">Back-to-Backs</span>
+          </div>
+          <div className="text-3xl font-bold text-yellow-400">{backToBackWeddings.length}</div>
+          <p className="text-xs text-yellow-300/70 mt-1">consecutive day weddings</p>
+        </button>
+
+        {/* Next Needing Coverage */}
+        <button
+          onClick={() => setActiveModal('next')}
+          className="rounded-xl border bg-gradient-to-br from-purple-950/60 to-purple-900/30 p-4 text-left transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/10"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <CalendarDays className="h-4 w-4 text-purple-400" />
+            <span className="text-xs font-semibold uppercase text-purple-300">Next Needing Coverage</span>
+          </div>
+          <div className="text-lg font-bold text-purple-400 truncate">
+            {nextNeedingCoverage ? nextNeedingCoverage.couple_name : 'All covered'}
+          </div>
+          <p className="text-xs text-purple-300/70 mt-1">
+            {nextNeedingCoverage ? formatDate(nextNeedingCoverage.wedding_date) : 'No gaps found'}
+          </p>
+        </button>
+      </div>
+
+      {/* ── Legend ───────────────────────────────────────────────── */}
+      <div className="rounded-xl border bg-card px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5"><span className="text-base">🟢</span> 3 Crew (2P + 1V)</span>
+          <span className="flex items-center gap-1.5"><span className="text-base">📷</span> Photo Only</span>
+          <span className="flex items-center gap-1.5"><span className="text-base">🔴</span> Double Wedding</span>
+          <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-green-400" /> Fully Staffed</span>
+          <span className="flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5 text-red-400" /> Missing Crew</span>
+        </div>
+      </div>
+
+      {/* ── Search ──────────────────────────────────────────────── */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Search couples or staff..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full rounded-lg border bg-card pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+        />
+      </div>
+
+      {/* ── Table ───────────────────────────────────────────────── */}
+      <div className="rounded-xl border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50 text-xs uppercase text-muted-foreground">
+                <th
+                  className="px-4 py-3 text-left cursor-pointer hover:text-foreground transition-colors select-none"
+                  onClick={() => handleSort('wedding_date')}
+                >
+                  <span className="inline-flex items-center gap-1">Date <SortIcon field="wedding_date" /></span>
+                </th>
+                <th className="px-3 py-3 text-left">Day</th>
+                <th
+                  className="px-4 py-3 text-left cursor-pointer hover:text-foreground transition-colors select-none"
+                  onClick={() => handleSort('couple_name')}
+                >
+                  <span className="inline-flex items-center gap-1">Couple <SortIcon field="couple_name" /></span>
+                </th>
+                <th className="px-3 py-3 text-center">Crew</th>
+                <th className="px-4 py-3 text-left">Photo 1</th>
+                <th className="px-4 py-3 text-left">Photo 2</th>
+                <th className="px-4 py-3 text-left">Video 1</th>
+                <th
+                  className="px-4 py-3 text-left cursor-pointer hover:text-foreground transition-colors select-none"
+                  onClick={() => handleSort('status')}
+                >
+                  <span className="inline-flex items-center gap-1">Status <SortIcon field="status" /></span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
+                    {search ? 'No weddings match your search.' : 'No weddings scheduled for 2026.'}
+                  </td>
+                </tr>
+              )}
+              {filtered.map(a => {
+                const needsPhoto2 = a.num_photographers >= 2
+                const needsVideo = a.num_videographers >= 1
+
+                return (
+                  <tr key={a.id} className={`transition-colors ${getRowClasses(a)}`}>
+                    {/* Date */}
+                    <td className="px-4 py-3 font-medium whitespace-nowrap">
+                      {formatDate(a.wedding_date)}
+                    </td>
+
+                    {/* Day */}
+                    <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">
+                      {getDayName(a.wedding_date)}
+                    </td>
+
+                    {/* Couple */}
+                    <td className="px-4 py-3 font-medium">
+                      {a.couple_name}
+                    </td>
+
+                    {/* Crew badge */}
+                    <td className="px-3 py-3 text-center">
+                      <CrewBadge a={a} />
+                    </td>
+
+                    {/* Photo 1 */}
+                    <td className="px-4 py-3">
+                      <StaffDropdown
+                        value={a.photo_1}
+                        role="photographer"
+                        members={teamMembers}
+                        onSelect={v => updateStaff(a.id, 'photo_1', v)}
+                      />
+                    </td>
+
+                    {/* Photo 2 */}
+                    <td className="px-4 py-3">
+                      {needsPhoto2 ? (
+                        <StaffDropdown
+                          value={a.photo_2}
+                          role="photographer"
+                          members={teamMembers}
+                          onSelect={v => updateStaff(a.id, 'photo_2', v)}
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+
+                    {/* Video 1 */}
+                    <td className="px-4 py-3">
+                      {needsVideo ? (
+                        <StaffDropdown
+                          value={a.video_1}
+                          role="videographer"
+                          members={teamMembers}
+                          onSelect={v => updateStaff(a.id, 'video_1', v)}
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-4 py-3">
+                      <StatusBadge status={a.status} />
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Modal ───────────────────────────────────────────────── */}
+      {activeModal && modalData && (
+        <StatModal
+          title={modalData.title}
+          items={modalData.items}
+          onClose={() => setActiveModal(null)}
+        />
+      )}
+    </div>
+  )
+}

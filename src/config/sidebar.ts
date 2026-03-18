@@ -16,6 +16,7 @@ import {
   Search,
   Scissors,
   ClipboardList,
+  CalendarDays,
 } from 'lucide-react'
 
 export interface SidebarItem {
@@ -66,6 +67,7 @@ export const studioflowAdminConfig: SidebarConfig = {
             { title: 'Video Editing', href: '/admin/production/video', icon: Video },
             { title: 'Add Editing Job', href: '/admin/production/editing/new', icon: Scissors },
             { title: 'Team Notes', href: '/admin/production/team-notes', icon: StickyNote },
+            { title: 'Team Schedule', href: '/admin/production/team-schedule', icon: CalendarDays },
           ],
         },
         {
