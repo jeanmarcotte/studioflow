@@ -95,6 +95,8 @@ interface FormData {
   vendor_transportation: string
   vendor_venue: string
   vendor_instagram_tag: string
+  // First Look
+  has_first_look: boolean | null
   // General Info
   bridal_party_count: string
   parent_info: string
@@ -124,6 +126,7 @@ const EMPTY_FORM: FormData = {
   vendor_wedding_planner: '', vendor_officiant: '', vendor_makeup: '', vendor_hair: '',
   vendor_floral: '', vendor_event_design: '', vendor_dj_mc: '', vendor_transportation: '',
   vendor_venue: '', vendor_instagram_tag: '',
+  has_first_look: null,
   bridal_party_count: '', parent_info: '', honeymoon_details: '', additional_notes: '',
 }
 
@@ -400,6 +403,7 @@ export default function WeddingDayFormPage() {
           vendor_transportation: d.vendor_transportation || '',
           vendor_venue: d.vendor_venue || '',
           vendor_instagram_tag: d.vendor_instagram_tag || '',
+          has_first_look: d.has_first_look ?? null,
           bridal_party_count: d.bridal_party_count?.toString() || '',
           parent_info: d.parent_info || '',
           honeymoon_details: d.honeymoon_details || '',
@@ -420,6 +424,10 @@ export default function WeddingDayFormPage() {
 
   async function handleSubmit() {
     if (!couple) return
+    if (form.has_first_look === null) {
+      setError('Please select whether you will have a First Look.')
+      return
+    }
     setError(null)
     setLoading(true)
     try {
@@ -687,6 +695,36 @@ export default function WeddingDayFormPage() {
             {/* ── Your Wedding Day header ───────────────────────────── */}
             <div className="border-t pt-6">
               <h2 className="text-2xl font-bold text-foreground text-center">📅 Your Wedding Day</h2>
+            </div>
+
+            {/* ── First Look Toggle ────────────────────────────────── */}
+            <div className="bg-card rounded-xl border p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-foreground mb-2">Will you have a First Look before the ceremony?</h2>
+              <p className="text-sm text-muted-foreground mb-4">A First Look is when the couple sees each other privately before the ceremony for photos</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => updateField('has_first_look', true)}
+                  className={`py-3 px-4 rounded-lg font-medium text-sm border transition-colors ${
+                    form.has_first_look === true
+                      ? 'bg-teal-600 text-white border-teal-600'
+                      : 'bg-card text-foreground border-border hover:border-teal-400'
+                  }`}
+                >
+                  YES
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateField('has_first_look', false)}
+                  className={`py-3 px-4 rounded-lg font-medium text-sm border transition-colors ${
+                    form.has_first_look === false
+                      ? 'bg-teal-600 text-white border-teal-600'
+                      : 'bg-card text-foreground border-border hover:border-teal-400'
+                  }`}
+                >
+                  NO
+                </button>
+              </div>
             </div>
 
             {/* ── 4. Groom Prep ───────────────────────────────────────── */}

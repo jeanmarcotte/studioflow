@@ -104,6 +104,8 @@ export async function POST(request: Request) {
       vendor_transportation: body.vendor_transportation || null,
       vendor_venue: body.vendor_venue || null,
       vendor_instagram_tag: body.vendor_instagram_tag || null,
+      // First Look
+      has_first_look: body.has_first_look ?? null,
       // General Info
       bridal_party_count: body.bridal_party_count ?? null,
       parent_info: body.parent_info || null,
