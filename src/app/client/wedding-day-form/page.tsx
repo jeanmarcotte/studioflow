@@ -241,11 +241,14 @@ function LocationFields({ form, updateField, prefix, showFirstLook, showPermit, 
             onChange={e => updateField('park_permit_obtained', e.target.checked)}
             className="w-4 h-4 accent-teal-600 rounded"
           />
-          <span className="text-sm text-foreground">Park permit obtained</span>
+          <span className="text-sm text-foreground">Park Permit Obtained?</span>
         </label>
       )}
       {showPhotoArrival && (
-        <TextInput label="Photo/Video Arrival Time" value={form.ceremony_photo_arrival_time as string} onChange={v => updateField('ceremony_photo_arrival_time', v)} placeholder="e.g. 1:30 PM" />
+        <div>
+          <TextInput label="Photo/Video Arrival Time" value={form.ceremony_photo_arrival_time as string} onChange={v => updateField('ceremony_photo_arrival_time', v)} placeholder="e.g. 1:30 PM" />
+          <p className="text-xs text-muted-foreground mt-1">Usually 30 minutes before ceremony</p>
+        </div>
       )}
       <TextInput label="Address" value={form[addressField] as string} onChange={v => updateField(addressField, v)} placeholder="Street address" />
       <div className="grid grid-cols-2 gap-3">
@@ -611,7 +614,7 @@ export default function WeddingDayFormPage() {
             {/* ── Groom Prep ────────────────────────────────────────── */}
             <div className="bg-card rounded-xl border p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>🤵</span> Groom Prep
+                <span>🤵</span> Groom Prep <span className="text-sm font-normal text-muted-foreground">(1hr minimum — 1hr 15min preferred)</span>
               </h2>
               <div className="space-y-3">
                 <TimeRow label="Time" startValue={form.groom_start_time} finishValue={form.groom_finish_time} onStartChange={v => updateField('groom_start_time', v)} onFinishChange={v => updateField('groom_finish_time', v)} />
@@ -623,7 +626,7 @@ export default function WeddingDayFormPage() {
             {/* ── Bride Prep ────────────────────────────────────────── */}
             <div className="bg-card rounded-xl border p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>👰</span> Bride Prep
+                <span>👰</span> Bride Prep <span className="text-sm font-normal text-muted-foreground">(1hr 15min minimum preferred)</span>
               </h2>
               <div className="space-y-3">
                 <TimeRow label="Time" startValue={form.bride_start_time} finishValue={form.bride_finish_time} onStartChange={v => updateField('bride_start_time', v)} onFinishChange={v => updateField('bride_finish_time', v)} />
