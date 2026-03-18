@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sendFormNotification } from '@/lib/email'
 
 function getServiceClient() {
   return createClient(
@@ -31,6 +32,25 @@ export async function POST(request: Request) {
     if (error) {
       console.error('[POST /api/client/video-order] Insert failed:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // Send email notification (non-blocking)
+    if (body.couple_id) {
+      Promise.resolve(
+        supabase
+          .from('couples')
+          .select('couple_name, wedding_date')
+          .eq('id', body.couple_id)
+          .single()
+      ).then(({ data: couple }) => {
+        if (couple) {
+          sendFormNotification({
+            formType: 'video-order',
+            coupleName: couple.couple_name || 'Unknown',
+            weddingDate: couple.wedding_date || 'TBD',
+          }).catch(console.error)
+        }
+      }).catch(console.error)
     }
 
     return NextResponse.json({ id: data.id })
