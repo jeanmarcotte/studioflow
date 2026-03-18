@@ -488,6 +488,15 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     y += 5
   }
 
+  // In contract mode, stretch to fill remaining page 1 space
+  if (data.contractMode) {
+    const pageBottom = pageHeight - 25
+    const remaining = pageBottom - y
+    if (remaining > 10 && remaining < 120) {
+      y += remaining
+    }
+  }
+
   y += 2
   drawHRule(doc, y, margin, rightEdge)
   y += 6
