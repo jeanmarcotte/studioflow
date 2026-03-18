@@ -49,9 +49,9 @@ interface Extras {
 
 interface PrintRow {
   size: string
-  qty: number
-  filename: string
-  notes: string
+  printNumber: number
+  totalForSize: number
+  fileName: string
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -201,13 +201,15 @@ export default function PhotoOrderPage() {
       setContract(c)
       setExtras(e)
 
-      // Build print rows from contract
+      // Build print rows from contract — one row per individual print
       if (c) {
         const rows: PrintRow[] = []
         for (const ps of PRINT_SIZES) {
           const qty = c[ps.key] as number | null
           if (qty && qty > 0) {
-            rows.push({ size: ps.label, qty, filename: '', notes: '' })
+            for (let p = 1; p <= qty; p++) {
+              rows.push({ size: ps.label, printNumber: p, totalForSize: qty, fileName: '' })
+            }
           }
         }
         setPrintRows(rows)
@@ -246,7 +248,7 @@ export default function PhotoOrderPage() {
           parent_album_2_notes: parentAlbum2Notes || null,
           main_album_photos: mainAlbumPhotos || null,
           main_album_notes: mainAlbumNotes || null,
-          portrait_prints: printRows.length > 0 ? printRows.filter(r => r.filename).map(r => ({ size: r.size, qty: r.qty, filename: r.filename, notes: r.notes || null })) : null,
+          portrait_prints: printRows.length > 0 ? printRows.filter(r => r.fileName).map(r => ({ size: r.size, printNumber: r.printNumber, fileName: r.fileName })) : null,
           special_instructions: specialInstructions || null,
           no_special_requests: noSpecialRequests,
           submitted_by_email: email,
@@ -335,7 +337,9 @@ export default function PhotoOrderPage() {
 
     // Prints
     if (printRows.length > 0) {
-      items.push(`Portrait Prints: ${printRows.map(r => `${r.qty} \u00d7 ${r.size}`).join(', ')}`)
+      const sizeCounts: Record<string, number> = {}
+      for (const r of printRows) sizeCounts[r.size] = r.totalForSize
+      items.push(`Portrait Prints: ${Object.entries(sizeCounts).map(([size, qty]) => `${qty} \u00d7 ${size}`).join(', ')}`)
     }
 
     // Delivery
@@ -740,28 +744,19 @@ export default function PhotoOrderPage() {
                 </h2>
                 <div className="space-y-3">
                   {printRows.map((row, i) => (
-                    <div key={row.size} className="space-y-1.5">
-                      <label className="text-sm font-medium text-foreground block">
-                        {row.size} <span className="text-muted-foreground font-normal">({row.qty} print{row.qty > 1 ? 's' : ''})</span>
+                    <div key={`${row.size}-${row.printNumber}`} className="flex items-center gap-3">
+                      <label className="text-sm font-medium text-foreground whitespace-nowrap shrink-0">
+                        {row.size} — Print {row.printNumber} of {row.totalForSize}:
                       </label>
                       <input
                         type="text"
-                        value={row.filename}
+                        value={row.fileName}
                         onChange={(e) => {
                           const val = e.target.value
-                          setPrintRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: val } : r))
+                          setPrintRows(prev => prev.map((r, idx) => idx === i ? { ...r, fileName: val } : r))
                         }}
                         placeholder="Photo filename (e.g. DSC_5678.jpg)"
-                      />
-                      <input
-                        type="text"
-                        value={row.notes}
-                        onChange={(e) => {
-                          const val = e.target.value
-                          setPrintRows(prev => prev.map((r, idx) => idx === i ? { ...r, notes: val } : r))
-                        }}
-                        placeholder="Notes (optional — e.g. crop instructions, orientation)"
-                        className="text-xs"
+                        className="flex-1"
                       />
                     </div>
                   ))}
