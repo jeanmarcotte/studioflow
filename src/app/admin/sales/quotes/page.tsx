@@ -90,6 +90,8 @@ export default function CoupleQuotesPage() {
   const router = useRouter()
   const [meetings, setMeetings] = useState<SalesMeeting[]>([])
   const [meetingsLoading, setMeetingsLoading] = useState(true)
+  const [sortField, setSortField] = useState<string>('meeting_num')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [showCosts, setShowCosts] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {}
     LEAD_SOURCES_CONFIG.forEach(s => { init[s.name] = s.defaultShowCost })
@@ -616,15 +618,39 @@ export default function CoupleQuotesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left p-3 font-medium w-10">#</th>
-                  <th className="text-left p-3 font-medium">Couple</th>
-                  <th className="text-left p-3 font-medium hidden sm:table-cell">Wedding Date</th>
-                  <th className="text-left p-3 font-medium hidden lg:table-cell">Needs</th>
-                  <th className="text-left p-3 font-medium hidden md:table-cell">Lead Source</th>
-                  <th className="text-left p-3 font-medium hidden lg:table-cell">Appt Date</th>
-                  <th className="text-center p-3 font-medium">Quoted $</th>
-                  <th className="text-center p-3 font-medium hidden sm:table-cell w-16">Days</th>
-                  <th className="text-left p-3 font-medium">Status</th>
+                  {[
+                    { key: 'meeting_num', label: '#', align: 'text-left', className: 'w-10' },
+                    { key: 'couple', label: 'Couple', align: 'text-left', className: '' },
+                    { key: 'wedding_date', label: 'Wedding Date', align: 'text-left', className: 'hidden sm:table-cell' },
+                    { key: 'service_needs', label: 'Needs', align: 'text-left', className: 'hidden lg:table-cell' },
+                    { key: 'lead_source', label: 'Lead Source', align: 'text-left', className: 'hidden md:table-cell' },
+                    { key: 'appt_date', label: 'Appt Date', align: 'text-left', className: 'hidden lg:table-cell' },
+                    { key: 'quoted_amount', label: 'Quoted $', align: 'text-center', className: '' },
+                    { key: 'days', label: 'Days', align: 'text-center', className: 'hidden sm:table-cell w-16' },
+                    { key: 'status', label: 'Status', align: 'text-left', className: '' },
+                  ].map(col => (
+                    <th
+                      key={col.key}
+                      className={`${col.align} p-3 font-medium ${col.className} cursor-pointer select-none hover:bg-muted/80 transition-colors`}
+                      onClick={() => {
+                        if (sortField === col.key) {
+                          setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+                        } else {
+                          setSortField(col.key)
+                          setSortDirection('asc')
+                        }
+                      }}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {col.label}
+                        {sortField === col.key ? (
+                          sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                        ) : (
+                          <span className="h-3 w-3 opacity-0 group-hover:opacity-30">↕</span>
+                        )}
+                      </span>
+                    </th>
+                  ))}
                   <th className="text-left p-3 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -637,7 +663,30 @@ export default function CoupleQuotesPage() {
                   <tr>
                     <td colSpan={10} className="p-8 text-center text-muted-foreground">No meetings found</td>
                   </tr>
-                ) : meetings.map(m => {
+                ) : [...meetings].sort((a, b) => {
+                  const dir = sortDirection === 'asc' ? 1 : -1
+                  switch (sortField) {
+                    case 'meeting_num': return (a.meeting_num - b.meeting_num) * dir
+                    case 'couple': {
+                      const ac = a.groom_name ? `${a.bride_name} & ${a.groom_name}` : a.bride_name
+                      const bc = b.groom_name ? `${b.bride_name} & ${b.groom_name}` : b.bride_name
+                      return ac.localeCompare(bc) * dir
+                    }
+                    case 'wedding_date': return ((a.wedding_date || '').localeCompare(b.wedding_date || '')) * dir
+                    case 'service_needs': return ((a.service_needs || '').localeCompare(b.service_needs || '')) * dir
+                    case 'lead_source': return ((a.lead_source || '').localeCompare(b.lead_source || '')) * dir
+                    case 'appt_date': return ((a.appt_date || '').localeCompare(b.appt_date || '')) * dir
+                    case 'quoted_amount': return ((Number(a.quoted_amount) || 0) - (Number(b.quoted_amount) || 0)) * dir
+                    case 'days': {
+                      const now = new Date().setHours(0,0,0,0)
+                      const da = a.appt_date ? Math.floor((now - new Date(a.appt_date + 'T12:00:00').getTime()) / 86400000) : -Infinity
+                      const db = b.appt_date ? Math.floor((now - new Date(b.appt_date + 'T12:00:00').getTime()) / 86400000) : -Infinity
+                      return (da - db) * dir
+                    }
+                    case 'status': return ((a.status || '').localeCompare(b.status || '')) * dir
+                    default: return 0
+                  }
+                }).map(m => {
                   const couple = m.groom_name ? `${m.bride_name} & ${m.groom_name}` : m.bride_name
                   const needsLabel = m.service_needs === 'photo_only' ? 'Photo Only'
                     : m.service_needs === 'photo_video' ? 'Photo & Video'
@@ -682,14 +731,24 @@ export default function CoupleQuotesPage() {
                       </td>
                       <td className="p-3">
                         {m.client_quote_id && (
-                          <button
-                            onClick={() => router.push(`/client/new-quote?id=${m.client_quote_id}`)}
-                            className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
-                            title="View Quote"
-                          >
-                            <Eye className="h-3 w-3" />
-                            View Quote
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => router.push(`/client/new-quote?id=${m.client_quote_id}`)}
+                              className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+                              title="View Quote"
+                            >
+                              <Eye className="h-3 w-3" />
+                              View Quote
+                            </button>
+                            <button
+                              onClick={() => router.push(`/admin/contracts/generate?quote_id=${m.client_quote_id}`)}
+                              className="inline-flex items-center gap-1 rounded-md bg-stone-50 border border-stone-200 px-2 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100 transition-colors"
+                              title="Contract"
+                            >
+                              <FileText className="h-3 w-3" />
+                              Contract
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
