@@ -93,6 +93,10 @@ interface FormData {
   vendor_transportation: string
   vendor_venue: string
   vendor_instagram_tag: string
+  // Songs
+  first_dance_song: string
+  father_daughter_song: string
+  mother_son_song: string
   // General Info
   bridal_party_count: string
   parent_info: string
@@ -122,6 +126,7 @@ const EMPTY_FORM: FormData = {
   vendor_wedding_planner: '', vendor_officiant: '', vendor_makeup: '', vendor_hair: '',
   vendor_floral: '', vendor_event_design: '', vendor_dj_mc: '', vendor_transportation: '',
   vendor_venue: '', vendor_instagram_tag: '',
+  first_dance_song: '', father_daughter_song: '', mother_son_song: '',
   bridal_party_count: '', parent_info: '', honeymoon_details: '', additional_notes: '',
 }
 
@@ -396,6 +401,9 @@ export default function WeddingDayFormPage() {
           vendor_transportation: d.vendor_transportation || '',
           vendor_venue: d.vendor_venue || '',
           vendor_instagram_tag: d.vendor_instagram_tag || '',
+          first_dance_song: d.first_dance_song || '',
+          father_daughter_song: d.father_daughter_song || '',
+          mother_son_song: d.mother_son_song || '',
           bridal_party_count: d.bridal_party_count?.toString() || '',
           parent_info: d.parent_info || '',
           honeymoon_details: d.honeymoon_details || '',
@@ -594,7 +602,7 @@ export default function WeddingDayFormPage() {
               </div>
             )}
 
-            {/* ── Emergency Contacts ────────────────────────────────── */}
+            {/* ── 1. Emergency Contacts ─────────────────────────────── */}
             <div className="bg-card rounded-xl border p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <span>🚨</span> Emergency Contacts
@@ -611,148 +619,7 @@ export default function WeddingDayFormPage() {
               </div>
             </div>
 
-            {/* ── Groom Prep ────────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>🤵</span> Groom Prep <span className="text-sm font-normal text-muted-foreground">(1hr minimum — 1hr 15min preferred)</span>
-              </h2>
-              <div className="space-y-3">
-                <TimeRow label="Time" startValue={form.groom_start_time} finishValue={form.groom_finish_time} onStartChange={v => updateField('groom_start_time', v)} onFinishChange={v => updateField('groom_finish_time', v)} />
-                <TextInput label="Phone (day-of contact)" value={form.groom_phone} onChange={v => updateField('groom_phone', v)} placeholder="Phone number" />
-                <LocationFields form={form} updateField={updateField} prefix="groom" />
-              </div>
-            </div>
-
-            {/* ── Bride Prep ────────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>👰</span> Bride Prep <span className="text-sm font-normal text-muted-foreground">(1hr 15min minimum preferred)</span>
-              </h2>
-              <div className="space-y-3">
-                <TimeRow label="Time" startValue={form.bride_start_time} finishValue={form.bride_finish_time} onStartChange={v => updateField('bride_start_time', v)} onFinishChange={v => updateField('bride_finish_time', v)} />
-                <TextInput label="Phone (day-of contact)" value={form.bride_phone} onChange={v => updateField('bride_phone', v)} placeholder="Phone number" />
-                <LocationFields form={form} updateField={updateField} prefix="bride" />
-              </div>
-            </div>
-
-            {/* ── Ceremony ──────────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>💒</span> Ceremony
-              </h2>
-              <div className="space-y-3">
-                <TextInput label="Venue / Location Name" value={form.ceremony_location_name} onChange={v => updateField('ceremony_location_name', v)} placeholder="Church, hall, etc." />
-                <TimeRow label="Time" startValue={form.ceremony_start_time} finishValue={form.ceremony_finish_time} onStartChange={v => updateField('ceremony_start_time', v)} onFinishChange={v => updateField('ceremony_finish_time', v)} />
-                <LocationFields form={form} updateField={updateField} prefix="ceremony" showFirstLook showPhotoArrival />
-              </div>
-            </div>
-
-            {/* ── Park / Photos ─────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>🌳</span> Park / Photos
-              </h2>
-              <div className="space-y-3">
-                <TextInput label="Park Name" value={form.park_name} onChange={v => updateField('park_name', v)} placeholder="Park or photo location name" />
-                <TimeRow label="Time" startValue={form.park_start_time} finishValue={form.park_finish_time} onStartChange={v => updateField('park_start_time', v)} onFinishChange={v => updateField('park_finish_time', v)} />
-                <LocationFields form={form} updateField={updateField} prefix="park" showPermit />
-              </div>
-            </div>
-
-            {/* ── Extra Location (optional) ─────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>📍</span> Extra Location <span className="text-xs font-normal text-muted-foreground">(optional)</span>
-              </h2>
-              <div className="space-y-3">
-                <TextInput label="Location Name" value={form.extra_location_name} onChange={v => updateField('extra_location_name', v)} placeholder="Additional stop name" />
-                <TimeRow label="Time" startValue={form.extra_start_time} finishValue={form.extra_finish_time} onStartChange={v => updateField('extra_start_time', v)} onFinishChange={v => updateField('extra_finish_time', v)} />
-                <LocationFields form={form} updateField={updateField} prefix="extra" />
-              </div>
-            </div>
-
-            {/* ── Reception ─────────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>🥂</span> Reception
-              </h2>
-              <div className="space-y-3">
-                <TextInput label="Venue Name" value={form.reception_venue_name} onChange={v => updateField('reception_venue_name', v)} placeholder="Reception venue name" />
-                <TimeRow label="Time" startValue={form.reception_start_time} finishValue={form.reception_finish_time} onStartChange={v => updateField('reception_start_time', v)} onFinishChange={v => updateField('reception_finish_time', v)} />
-                <LocationFields form={form} updateField={updateField} prefix="reception" />
-              </div>
-            </div>
-
-            {/* ── Drive Times ───────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>🚗</span> Estimated Drive Times
-              </h2>
-              <p className="text-xs text-muted-foreground mb-3">Approximate minutes between locations</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Groom to Bride</label>
-                  <input type="number" value={form.drive_time_groom_to_bride} onChange={e => updateField('drive_time_groom_to_bride', e.target.value)} placeholder="min" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Bride to Ceremony</label>
-                  <input type="number" value={form.drive_time_bride_to_ceremony} onChange={e => updateField('drive_time_bride_to_ceremony', e.target.value)} placeholder="min" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Ceremony to Park</label>
-                  <input type="number" value={form.drive_time_ceremony_to_park} onChange={e => updateField('drive_time_ceremony_to_park', e.target.value)} placeholder="min" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Park to Reception</label>
-                  <input type="number" value={form.drive_time_park_to_reception} onChange={e => updateField('drive_time_park_to_reception', e.target.value)} placeholder="min" />
-                </div>
-              </div>
-            </div>
-
-            {/* ── Contract Info ──────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>📋</span> Contract Info
-              </h2>
-              <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-3">
-                  <TextInput label="Ceremony Begins At" value={form.ceremony_begins_at} onChange={v => updateField('ceremony_begins_at', v)} placeholder="e.g. 3:00 PM" />
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">Hours in Contract</label>
-                    <input type="number" value={form.hours_in_contract} onChange={e => updateField('hours_in_contract', e.target.value)} placeholder="e.g. 10" />
-                  </div>
-                  <TextInput label="Photo/Video End Time" value={form.photo_video_end_time} onChange={v => updateField('photo_video_end_time', v)} placeholder="e.g. 11:00 PM" />
-                </div>
-              </div>
-            </div>
-
-            {/* ── Vendors ───────────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>🤝</span> Vendors
-              </h2>
-              <p className="text-xs text-muted-foreground mb-3">Name and contact info for each vendor</p>
-              <div className="space-y-3">
-                <TextInput label="Wedding Planner" value={form.vendor_wedding_planner} onChange={v => updateField('vendor_wedding_planner', v)} placeholder="Name & phone/email" />
-                <TextInput label="Officiant" value={form.vendor_officiant} onChange={v => updateField('vendor_officiant', v)} placeholder="Name & phone/email" />
-                <div className="grid grid-cols-2 gap-3">
-                  <TextInput label="Makeup Artist" value={form.vendor_makeup} onChange={v => updateField('vendor_makeup', v)} placeholder="Name" />
-                  <TextInput label="Hair Stylist" value={form.vendor_hair} onChange={v => updateField('vendor_hair', v)} placeholder="Name" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <TextInput label="Floral" value={form.vendor_floral} onChange={v => updateField('vendor_floral', v)} placeholder="Name" />
-                  <TextInput label="Event Design / Decor" value={form.vendor_event_design} onChange={v => updateField('vendor_event_design', v)} placeholder="Name" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <TextInput label="DJ / MC" value={form.vendor_dj_mc} onChange={v => updateField('vendor_dj_mc', v)} placeholder="Name" />
-                  <TextInput label="Transportation" value={form.vendor_transportation} onChange={v => updateField('vendor_transportation', v)} placeholder="Limo company, etc." />
-                </div>
-                <TextInput label="Venue Contact" value={form.vendor_venue} onChange={v => updateField('vendor_venue', v)} placeholder="Venue coordinator name & phone" />
-                <TextInput label="Instagram / Hashtag" value={form.vendor_instagram_tag} onChange={v => updateField('vendor_instagram_tag', v)} placeholder="e.g. #SmithWedding2026" />
-              </div>
-            </div>
-
-            {/* ── General Info ──────────────────────────────────────── */}
+            {/* ── 2. General Info ─────────────────────────────────────── */}
             <div className="bg-card rounded-xl border p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <span>📝</span> General Info
@@ -791,6 +658,168 @@ export default function WeddingDayFormPage() {
                     rows={3}
                     className="w-full"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* ── 3. Vendors ──────────────────────────────────────────── */}
+            <div className="bg-card rounded-xl border p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <span>🤝</span> Vendors
+              </h2>
+              <p className="text-xs text-muted-foreground mb-3">Name and contact info for each vendor</p>
+              <div className="space-y-3">
+                <TextInput label="Wedding Planner" value={form.vendor_wedding_planner} onChange={v => updateField('vendor_wedding_planner', v)} placeholder="Name & phone/email" />
+                <TextInput label="Officiant" value={form.vendor_officiant} onChange={v => updateField('vendor_officiant', v)} placeholder="Name & phone/email" />
+                <div className="grid grid-cols-2 gap-3">
+                  <TextInput label="Makeup Artist" value={form.vendor_makeup} onChange={v => updateField('vendor_makeup', v)} placeholder="Name" />
+                  <TextInput label="Hair Stylist" value={form.vendor_hair} onChange={v => updateField('vendor_hair', v)} placeholder="Name" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <TextInput label="Floral" value={form.vendor_floral} onChange={v => updateField('vendor_floral', v)} placeholder="Name" />
+                  <TextInput label="Event Design / Decor" value={form.vendor_event_design} onChange={v => updateField('vendor_event_design', v)} placeholder="Name" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <TextInput label="DJ / MC" value={form.vendor_dj_mc} onChange={v => updateField('vendor_dj_mc', v)} placeholder="Name" />
+                  <TextInput label="Transportation" value={form.vendor_transportation} onChange={v => updateField('vendor_transportation', v)} placeholder="Limo company, etc." />
+                </div>
+                <TextInput label="Venue Contact" value={form.vendor_venue} onChange={v => updateField('vendor_venue', v)} placeholder="Venue coordinator name & phone" />
+                <TextInput label="Instagram / Hashtag" value={form.vendor_instagram_tag} onChange={v => updateField('vendor_instagram_tag', v)} placeholder="e.g. #SmithWedding2026" />
+              </div>
+            </div>
+
+            {/* ── 4. Songs ────────────────────────────────────────────── */}
+            <div className="bg-card rounded-xl border p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <span>🎵</span> Songs
+              </h2>
+              <div className="space-y-3">
+                <div>
+                  <TextInput label="First Dance Song" value={form.first_dance_song} onChange={v => updateField('first_dance_song', v)} placeholder="Song title and artist" />
+                  <p className="text-xs text-muted-foreground mt-1">Song title and artist for your first dance</p>
+                </div>
+                <div>
+                  <TextInput label="Father-Daughter Dance" value={form.father_daughter_song} onChange={v => updateField('father_daughter_song', v)} placeholder="Song title and artist" />
+                  <p className="text-xs text-muted-foreground mt-1">Leave blank if not having one</p>
+                </div>
+                <div>
+                  <TextInput label="Mother-Son Dance" value={form.mother_son_song} onChange={v => updateField('mother_son_song', v)} placeholder="Song title and artist" />
+                  <p className="text-xs text-muted-foreground mt-1">Leave blank if not having one</p>
+                </div>
+              </div>
+            </div>
+
+            {/* ── 5. Groom Prep ───────────────────────────────────────── */}
+            <div className="bg-card rounded-xl border p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <span>🤵</span> Groom Prep <span className="text-sm font-normal text-muted-foreground">(1hr minimum — 1hr 15min preferred)</span>
+              </h2>
+              <div className="space-y-3">
+                <TimeRow label="Time" startValue={form.groom_start_time} finishValue={form.groom_finish_time} onStartChange={v => updateField('groom_start_time', v)} onFinishChange={v => updateField('groom_finish_time', v)} />
+                <TextInput label="Phone (day-of contact)" value={form.groom_phone} onChange={v => updateField('groom_phone', v)} placeholder="Phone number" />
+                <LocationFields form={form} updateField={updateField} prefix="groom" />
+              </div>
+            </div>
+
+            {/* ── 6. Bride Prep ───────────────────────────────────────── */}
+            <div className="bg-card rounded-xl border p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <span>👰</span> Bride Prep <span className="text-sm font-normal text-muted-foreground">(1hr 15min minimum preferred)</span>
+              </h2>
+              <div className="space-y-3">
+                <TimeRow label="Time" startValue={form.bride_start_time} finishValue={form.bride_finish_time} onStartChange={v => updateField('bride_start_time', v)} onFinishChange={v => updateField('bride_finish_time', v)} />
+                <TextInput label="Phone (day-of contact)" value={form.bride_phone} onChange={v => updateField('bride_phone', v)} placeholder="Phone number" />
+                <LocationFields form={form} updateField={updateField} prefix="bride" />
+              </div>
+            </div>
+
+            {/* ── 7. Ceremony ─────────────────────────────────────────── */}
+            <div className="bg-card rounded-xl border p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <span>💒</span> Ceremony
+              </h2>
+              <div className="space-y-3">
+                <TextInput label="Venue / Location Name" value={form.ceremony_location_name} onChange={v => updateField('ceremony_location_name', v)} placeholder="Church, hall, etc." />
+                <TimeRow label="Time" startValue={form.ceremony_start_time} finishValue={form.ceremony_finish_time} onStartChange={v => updateField('ceremony_start_time', v)} onFinishChange={v => updateField('ceremony_finish_time', v)} />
+                <LocationFields form={form} updateField={updateField} prefix="ceremony" showFirstLook showPhotoArrival />
+              </div>
+            </div>
+
+            {/* ── 8. Park / Photos ────────────────────────────────────── */}
+            <div className="bg-card rounded-xl border p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <span>🌳</span> Park / Photos
+              </h2>
+              <div className="space-y-3">
+                <TextInput label="Park Name" value={form.park_name} onChange={v => updateField('park_name', v)} placeholder="Park or photo location name" />
+                <TimeRow label="Time" startValue={form.park_start_time} finishValue={form.park_finish_time} onStartChange={v => updateField('park_start_time', v)} onFinishChange={v => updateField('park_finish_time', v)} />
+                <LocationFields form={form} updateField={updateField} prefix="park" showPermit />
+              </div>
+            </div>
+
+            {/* ── 9. Extra Location (optional) ────────────────────────── */}
+            <div className="bg-card rounded-xl border p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <span>📍</span> Extra Location <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+              </h2>
+              <div className="space-y-3">
+                <TextInput label="Location Name" value={form.extra_location_name} onChange={v => updateField('extra_location_name', v)} placeholder="Additional stop name" />
+                <TimeRow label="Time" startValue={form.extra_start_time} finishValue={form.extra_finish_time} onStartChange={v => updateField('extra_start_time', v)} onFinishChange={v => updateField('extra_finish_time', v)} />
+                <LocationFields form={form} updateField={updateField} prefix="extra" />
+              </div>
+            </div>
+
+            {/* ── 10. Reception ────────────────────────────────────────── */}
+            <div className="bg-card rounded-xl border p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <span>🥂</span> Reception
+              </h2>
+              <div className="space-y-3">
+                <TextInput label="Venue Name" value={form.reception_venue_name} onChange={v => updateField('reception_venue_name', v)} placeholder="Reception venue name" />
+                <TimeRow label="Time" startValue={form.reception_start_time} finishValue={form.reception_finish_time} onStartChange={v => updateField('reception_start_time', v)} onFinishChange={v => updateField('reception_finish_time', v)} />
+                <LocationFields form={form} updateField={updateField} prefix="reception" />
+              </div>
+            </div>
+
+            {/* ── 11. Drive Times ──────────────────────────────────────── */}
+            <div className="bg-card rounded-xl border p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <span>🚗</span> Estimated Drive Times
+              </h2>
+              <p className="text-xs text-muted-foreground mb-3">Approximate minutes between locations</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">Groom to Bride</label>
+                  <input type="number" value={form.drive_time_groom_to_bride} onChange={e => updateField('drive_time_groom_to_bride', e.target.value)} placeholder="min" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">Bride to Ceremony</label>
+                  <input type="number" value={form.drive_time_bride_to_ceremony} onChange={e => updateField('drive_time_bride_to_ceremony', e.target.value)} placeholder="min" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">Ceremony to Park</label>
+                  <input type="number" value={form.drive_time_ceremony_to_park} onChange={e => updateField('drive_time_ceremony_to_park', e.target.value)} placeholder="min" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">Park to Reception</label>
+                  <input type="number" value={form.drive_time_park_to_reception} onChange={e => updateField('drive_time_park_to_reception', e.target.value)} placeholder="min" />
+                </div>
+              </div>
+            </div>
+
+            {/* ── 12. Contract Details ─────────────────────────────────── */}
+            <div className="bg-card rounded-xl border p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <span>📋</span> Contract Details
+              </h2>
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <TextInput label="Ceremony Begins At" value={form.ceremony_begins_at} onChange={v => updateField('ceremony_begins_at', v)} placeholder="e.g. 3:00 PM" />
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">Hours in Contract</label>
+                    <input type="number" value={form.hours_in_contract} onChange={e => updateField('hours_in_contract', e.target.value)} placeholder="e.g. 10" />
+                  </div>
+                  <TextInput label="Photo/Video End Time" value={form.photo_video_end_time} onChange={v => updateField('photo_video_end_time', v)} placeholder="e.g. 11:00 PM" />
                 </div>
               </div>
             </div>

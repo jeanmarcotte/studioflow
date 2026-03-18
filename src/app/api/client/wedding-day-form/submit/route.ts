@@ -102,6 +102,10 @@ export async function POST(request: Request) {
       vendor_transportation: body.vendor_transportation || null,
       vendor_venue: body.vendor_venue || null,
       vendor_instagram_tag: body.vendor_instagram_tag || null,
+      // Songs
+      first_dance_song: body.first_dance_song || null,
+      father_daughter_song: body.father_daughter_song || null,
+      mother_son_song: body.mother_son_song || null,
       // General Info
       bridal_party_count: body.bridal_party_count ?? null,
       parent_info: body.parent_info || null,
