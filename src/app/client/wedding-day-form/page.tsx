@@ -93,10 +93,6 @@ interface FormData {
   vendor_transportation: string
   vendor_venue: string
   vendor_instagram_tag: string
-  // Songs
-  first_dance_song: string
-  father_daughter_song: string
-  mother_son_song: string
   // General Info
   bridal_party_count: string
   parent_info: string
@@ -126,7 +122,6 @@ const EMPTY_FORM: FormData = {
   vendor_wedding_planner: '', vendor_officiant: '', vendor_makeup: '', vendor_hair: '',
   vendor_floral: '', vendor_event_design: '', vendor_dj_mc: '', vendor_transportation: '',
   vendor_venue: '', vendor_instagram_tag: '',
-  first_dance_song: '', father_daughter_song: '', mother_son_song: '',
   bridal_party_count: '', parent_info: '', honeymoon_details: '', additional_notes: '',
 }
 
@@ -252,7 +247,7 @@ function LocationFields({ form, updateField, prefix, showFirstLook, showPermit, 
       {showPhotoArrival && (
         <div>
           <TextInput label="Photo/Video Arrival Time" value={form.ceremony_photo_arrival_time as string} onChange={v => updateField('ceremony_photo_arrival_time', v)} placeholder="e.g. 1:30 PM" />
-          <p className="text-xs text-muted-foreground mt-1">Usually 30 minutes before ceremony</p>
+          <p className="text-xs text-muted-foreground mt-1">⚠️ MUST ARRIVE 30 MIN before ceremony</p>
         </div>
       )}
       <TextInput label="Address" value={form[addressField] as string} onChange={v => updateField(addressField, v)} placeholder="Street address" />
@@ -401,9 +396,6 @@ export default function WeddingDayFormPage() {
           vendor_transportation: d.vendor_transportation || '',
           vendor_venue: d.vendor_venue || '',
           vendor_instagram_tag: d.vendor_instagram_tag || '',
-          first_dance_song: d.first_dance_song || '',
-          father_daughter_song: d.father_daughter_song || '',
-          mother_son_song: d.mother_son_song || '',
           bridal_party_count: d.bridal_party_count?.toString() || '',
           parent_info: d.parent_info || '',
           honeymoon_details: d.honeymoon_details || '',
@@ -610,11 +602,11 @@ export default function WeddingDayFormPage() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Contact 1 Name" value={form.emergency_contact_1_name} onChange={v => updateField('emergency_contact_1_name', v)} placeholder="Full name" />
-                  <TextInput label="Contact 1 Phone" value={form.emergency_contact_1_phone} onChange={v => updateField('emergency_contact_1_phone', v)} placeholder="Phone number" />
+                  <TextInput label="Contact 1 Phone" value={form.emergency_contact_1_phone} onChange={v => updateField('emergency_contact_1_phone', v)} placeholder="(416) 555-1234" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Contact 2 Name" value={form.emergency_contact_2_name} onChange={v => updateField('emergency_contact_2_name', v)} placeholder="Full name" />
-                  <TextInput label="Contact 2 Phone" value={form.emergency_contact_2_phone} onChange={v => updateField('emergency_contact_2_phone', v)} placeholder="Phone number" />
+                  <TextInput label="Contact 2 Phone" value={form.emergency_contact_2_phone} onChange={v => updateField('emergency_contact_2_phone', v)} placeholder="(416) 555-1234" />
                 </div>
               </div>
             </div>
@@ -688,35 +680,14 @@ export default function WeddingDayFormPage() {
               </div>
             </div>
 
-            {/* ── 4. Songs ────────────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>🎵</span> Songs
-              </h2>
-              <div className="space-y-3">
-                <div>
-                  <TextInput label="First Dance Song" value={form.first_dance_song} onChange={v => updateField('first_dance_song', v)} placeholder="Song title and artist" />
-                  <p className="text-xs text-muted-foreground mt-1">Song title and artist for your first dance</p>
-                </div>
-                <div>
-                  <TextInput label="Father-Daughter Dance" value={form.father_daughter_song} onChange={v => updateField('father_daughter_song', v)} placeholder="Song title and artist" />
-                  <p className="text-xs text-muted-foreground mt-1">Leave blank if not having one</p>
-                </div>
-                <div>
-                  <TextInput label="Mother-Son Dance" value={form.mother_son_song} onChange={v => updateField('mother_son_song', v)} placeholder="Song title and artist" />
-                  <p className="text-xs text-muted-foreground mt-1">Leave blank if not having one</p>
-                </div>
-              </div>
-            </div>
-
-            {/* ── 5. Groom Prep ───────────────────────────────────────── */}
+            {/* ── 4. Groom Prep ───────────────────────────────────────── */}
             <div className="bg-card rounded-xl border p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <span>🤵</span> Groom Prep <span className="text-sm font-normal text-muted-foreground">(1hr minimum — 1hr 15min preferred)</span>
               </h2>
               <div className="space-y-3">
                 <TimeRow label="Time" startValue={form.groom_start_time} finishValue={form.groom_finish_time} onStartChange={v => updateField('groom_start_time', v)} onFinishChange={v => updateField('groom_finish_time', v)} />
-                <TextInput label="Phone (day-of contact)" value={form.groom_phone} onChange={v => updateField('groom_phone', v)} placeholder="Phone number" />
+                <TextInput label="Phone (day-of contact)" value={form.groom_phone} onChange={v => updateField('groom_phone', v)} placeholder="(416) 555-1234" />
                 <LocationFields form={form} updateField={updateField} prefix="groom" />
               </div>
             </div>
@@ -728,7 +699,7 @@ export default function WeddingDayFormPage() {
               </h2>
               <div className="space-y-3">
                 <TimeRow label="Time" startValue={form.bride_start_time} finishValue={form.bride_finish_time} onStartChange={v => updateField('bride_start_time', v)} onFinishChange={v => updateField('bride_finish_time', v)} />
-                <TextInput label="Phone (day-of contact)" value={form.bride_phone} onChange={v => updateField('bride_phone', v)} placeholder="Phone number" />
+                <TextInput label="Phone (day-of contact)" value={form.bride_phone} onChange={v => updateField('bride_phone', v)} placeholder="(416) 555-1234" />
                 <LocationFields form={form} updateField={updateField} prefix="bride" />
               </div>
             </div>
