@@ -214,6 +214,7 @@ function ContractGenerateContent() {
         discountType: quote.discount_type || 'none',
         discountAmount: quote.discount_value || undefined,
         leadSource: quote.lead_source || '',
+        notes: quote.notes || '',
         contractMode: true,
       }
 

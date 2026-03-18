@@ -75,6 +75,7 @@ export interface QuotePdfData {
 
   contractMode?: boolean
   leadSource?: string
+  notes?: string
 }
 
 // ============================================================
@@ -685,54 +686,75 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
     y += 10
   }
 
-  // ── 9. Closing Paragraph ─────────────────────────────────
-  checkPageBreak(45)
-  drawHRule(doc, y, margin, rightEdge)
-  y += 8
+  // ── 9. Notes (contract mode only) ───────────────────────
+  if (data.contractMode && data.notes) {
+    checkPageBreak(20)
+    drawHRule(doc, y, margin, rightEdge)
+    y += 6
+    drawSectionHeader(doc, 'Notes', margin, y, contentWidth)
+    y += 8
 
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.setTextColor(...COLORS.body)
-
-  const closingText = "We like to keep things easy and pressure-free. If you're ready to move forward, just shoot a text to Marianna at 416-831-8942 to let her know. We'll do a quick happy dance on this end, then send a DocuSign agreement your way. Once you've reviewed and signed, the system will automatically email you a PDF copy for your records. You can send the e-transfer to info@sigsphoto.ca to get everything finalized!"
-
-  const splitClosing = doc.splitTextToSize(closingText, contentWidth - 10)
-  doc.text(splitClosing, margin + 5, y)
-  y += splitClosing.length * 4.5 + 10
-
-  // ── 10. Quote Date & Footer ─────────────────────────────
-  checkPageBreak(30)
-
-  // Quote generated date
-  const quoteNow = new Date()
-  const quoteDate = quoteNow.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7)
-  doc.setTextColor(...COLORS.muted)
-  doc.text(`Quote generated: ${quoteDate}`, pageWidth / 2, y, { align: 'center' })
-  y += 8
-
-  if (logoBase64) {
-    try {
-      const smallLogo = 15
-      doc.addImage(logoBase64, 'JPEG', (pageWidth - smallLogo) / 2, y, smallLogo, smallLogo)
-      y += smallLogo + 3
-    } catch {
-      // Continue without footer logo
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(...COLORS.body)
+    const splitNotes = doc.splitTextToSize(data.notes, contentWidth - 10) as string[]
+    for (const line of splitNotes) {
+      checkPageBreak(5)
+      doc.text(line, margin + 5, y)
+      y += 4
     }
+    y += 4
   }
 
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(8)
-  doc.setTextColor(...COLORS.dark)
-  doc.text('SIGS Photography Ltd.', pageWidth / 2, y, { align: 'center' })
-  y += 4
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7)
-  doc.setTextColor(...COLORS.muted)
-  doc.text('265 Rimrock Rd, Unit 2A, Toronto, ON M3J 3A6', pageWidth / 2, y, { align: 'center' })
-  y += 3.5
-  doc.text('416-831-8942  |  info@sigsphoto.ca', pageWidth / 2, y, { align: 'center' })
+  // ── 10. Closing Paragraph & Footer (quote mode only) ───
+  if (!data.contractMode) {
+    checkPageBreak(45)
+    drawHRule(doc, y, margin, rightEdge)
+    y += 8
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(...COLORS.body)
+
+    const closingText = "We like to keep things easy and pressure-free. If you're ready to move forward, just shoot a text to Marianna at 416-831-8942 to let her know. We'll do a quick happy dance on this end, then send a DocuSign agreement your way. Once you've reviewed and signed, the system will automatically email you a PDF copy for your records. You can send the e-transfer to info@sigsphoto.ca to get everything finalized!"
+
+    const splitClosing = doc.splitTextToSize(closingText, contentWidth - 10)
+    doc.text(splitClosing, margin + 5, y)
+    y += splitClosing.length * 4.5 + 10
+
+    checkPageBreak(30)
+
+    // Quote generated date
+    const quoteNow = new Date()
+    const quoteDate = quoteNow.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7)
+    doc.setTextColor(...COLORS.muted)
+    doc.text(`Quote generated: ${quoteDate}`, pageWidth / 2, y, { align: 'center' })
+    y += 8
+
+    if (logoBase64) {
+      try {
+        const smallLogo = 15
+        doc.addImage(logoBase64, 'JPEG', (pageWidth - smallLogo) / 2, y, smallLogo, smallLogo)
+        y += smallLogo + 3
+      } catch {
+        // Continue without footer logo
+      }
+    }
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8)
+    doc.setTextColor(...COLORS.dark)
+    doc.text('SIGS Photography Ltd.', pageWidth / 2, y, { align: 'center' })
+    y += 4
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7)
+    doc.setTextColor(...COLORS.muted)
+    doc.text('265 Rimrock Rd, Unit 2A, Toronto, ON M3J 3A6', pageWidth / 2, y, { align: 'center' })
+    y += 3.5
+    doc.text('416-831-8942  |  info@sigsphoto.ca', pageWidth / 2, y, { align: 'center' })
+  }
 
   // ── 11. Contract Terms Page (when converting to contract) ─
   if (data.contractMode) {

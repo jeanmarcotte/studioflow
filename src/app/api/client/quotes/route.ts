@@ -48,6 +48,7 @@ export async function POST(request: Request) {
         total: body.total || null,
         installments: body.installments || null,
         timeline: body.timeline || null,
+        notes: body.notes || null,
         lead_source: body.lead_source || null,
         ballot_id: body.ballot_id || null,
         sales_meeting_id: body.sales_meeting_id || null,

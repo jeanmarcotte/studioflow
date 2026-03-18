@@ -2282,6 +2282,7 @@ function QuoteBuilderInner() {
                       total: pricing.total,
                       installments,
                       timeline,
+                      notes: watchedValues.notes || null,
                     }),
                   })
                 } catch (err) {
