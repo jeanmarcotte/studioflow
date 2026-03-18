@@ -15,6 +15,7 @@ import {
   Globe,
   Search,
   Scissors,
+  ClipboardList,
 } from 'lucide-react'
 
 export interface SidebarItem {
@@ -91,6 +92,7 @@ export const studioflowAdminConfig: SidebarConfig = {
             { title: 'New Client Quote', href: '/admin/client/new-quote', icon: FileText },
             { title: 'Extras Sales', href: '/admin/client/extras-sales', icon: Package },
             { title: 'Communication', href: '/admin/client/communication', icon: Mail },
+            { title: 'Wedding Day Form', href: '/client/wedding-day-form', icon: ClipboardList },
           ],
         },
       ],
