@@ -95,21 +95,21 @@ interface FormData {
   venue_arrival_time: string
   // Vendors
   vendor_wedding_planner: string
-  vendor_wedding_planner_ig: string
+  vendor_wedding_planner_instagram: string
   vendor_officiant: string
-  vendor_officiant_ig: string
+  vendor_officiant_instagram: string
   vendor_makeup: string
-  vendor_makeup_ig: string
+  vendor_makeup_instagram: string
   vendor_hair: string
-  vendor_hair_ig: string
+  vendor_hair_instagram: string
   vendor_floral: string
-  vendor_floral_ig: string
+  vendor_floral_instagram: string
   vendor_event_design: string
-  vendor_event_design_ig: string
+  vendor_event_design_instagram: string
   vendor_dj_mc: string
-  vendor_dj_mc_ig: string
+  vendor_dj_mc_instagram: string
   vendor_transportation: string
-  vendor_transportation_ig: string
+  vendor_transportation_instagram: string
   // Venue Contact
   venue_contact_name: string
   venue_contact_phone: string
@@ -157,14 +157,14 @@ const EMPTY_FORM: FormData = {
   drive_time_bride_to_first_look: '', drive_time_first_look_to_park: '',
   drive_time_park_to_ceremony: '', drive_time_ceremony_to_reception: '',
   ceremony_begins_at: '', hours_in_contract: '', photo_video_end_time: '', venue_arrival_time: '',
-  vendor_wedding_planner: '', vendor_wedding_planner_ig: '',
-  vendor_officiant: '', vendor_officiant_ig: '',
-  vendor_makeup: '', vendor_makeup_ig: '',
-  vendor_hair: '', vendor_hair_ig: '',
-  vendor_floral: '', vendor_floral_ig: '',
-  vendor_event_design: '', vendor_event_design_ig: '',
-  vendor_dj_mc: '', vendor_dj_mc_ig: '',
-  vendor_transportation: '', vendor_transportation_ig: '',
+  vendor_wedding_planner: '', vendor_wedding_planner_instagram: '',
+  vendor_officiant: '', vendor_officiant_instagram: '',
+  vendor_makeup: '', vendor_makeup_instagram: '',
+  vendor_hair: '', vendor_hair_instagram: '',
+  vendor_floral: '', vendor_floral_instagram: '',
+  vendor_event_design: '', vendor_event_design_instagram: '',
+  vendor_dj_mc: '', vendor_dj_mc_instagram: '',
+  vendor_transportation: '', vendor_transportation_instagram: '',
   venue_contact_name: '', venue_contact_phone: '', venue_contact_email: '',
   couple_instagram: '', wedding_hashtag: '',
   inspiration_link_1: '', inspiration_link_2: '', inspiration_link_3: '',
@@ -473,21 +473,21 @@ export default function WeddingDayFormPage() {
           photo_video_end_time: d.photo_video_end_time || '',
           venue_arrival_time: d.venue_arrival_time || '',
           vendor_wedding_planner: d.vendor_wedding_planner || '',
-          vendor_wedding_planner_ig: d.vendor_wedding_planner_ig || '',
+          vendor_wedding_planner_instagram: d.vendor_wedding_planner_instagram || '',
           vendor_officiant: d.vendor_officiant || '',
-          vendor_officiant_ig: d.vendor_officiant_ig || '',
+          vendor_officiant_instagram: d.vendor_officiant_instagram || '',
           vendor_makeup: d.vendor_makeup || '',
-          vendor_makeup_ig: d.vendor_makeup_ig || '',
+          vendor_makeup_instagram: d.vendor_makeup_instagram || '',
           vendor_hair: d.vendor_hair || '',
-          vendor_hair_ig: d.vendor_hair_ig || '',
+          vendor_hair_instagram: d.vendor_hair_instagram || '',
           vendor_floral: d.vendor_floral || '',
-          vendor_floral_ig: d.vendor_floral_ig || '',
+          vendor_floral_instagram: d.vendor_floral_instagram || '',
           vendor_event_design: d.vendor_event_design || '',
-          vendor_event_design_ig: d.vendor_event_design_ig || '',
+          vendor_event_design_instagram: d.vendor_event_design_instagram || '',
           vendor_dj_mc: d.vendor_dj_mc || '',
-          vendor_dj_mc_ig: d.vendor_dj_mc_ig || '',
+          vendor_dj_mc_instagram: d.vendor_dj_mc_instagram || '',
           vendor_transportation: d.vendor_transportation || '',
-          vendor_transportation_ig: d.vendor_transportation_ig || '',
+          vendor_transportation_instagram: d.vendor_transportation_instagram || '',
           venue_contact_name: d.venue_contact_name || '',
           venue_contact_phone: d.venue_contact_phone || '',
           venue_contact_email: d.venue_contact_email || '',
@@ -785,35 +785,35 @@ export default function WeddingDayFormPage() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Wedding Planner" value={form.vendor_wedding_planner} onChange={v => updateField('vendor_wedding_planner', v)} placeholder="Name" />
-                  <TextInput label="Instagram (optional)" value={form.vendor_wedding_planner_ig} onChange={v => updateField('vendor_wedding_planner_ig', v)} placeholder="@username or URL" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_wedding_planner_instagram} onChange={v => updateField('vendor_wedding_planner_instagram', v)} placeholder="@username or URL" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Officiant" value={form.vendor_officiant} onChange={v => updateField('vendor_officiant', v)} placeholder="Name" />
-                  <TextInput label="Instagram (optional)" value={form.vendor_officiant_ig} onChange={v => updateField('vendor_officiant_ig', v)} placeholder="@username or URL" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_officiant_instagram} onChange={v => updateField('vendor_officiant_instagram', v)} placeholder="@username or URL" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Makeup Artist" value={form.vendor_makeup} onChange={v => updateField('vendor_makeup', v)} placeholder="Name" />
-                  <TextInput label="Instagram (optional)" value={form.vendor_makeup_ig} onChange={v => updateField('vendor_makeup_ig', v)} placeholder="@username or URL" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_makeup_instagram} onChange={v => updateField('vendor_makeup_instagram', v)} placeholder="@username or URL" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Hair Stylist" value={form.vendor_hair} onChange={v => updateField('vendor_hair', v)} placeholder="Name" />
-                  <TextInput label="Instagram (optional)" value={form.vendor_hair_ig} onChange={v => updateField('vendor_hair_ig', v)} placeholder="@username or URL" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_hair_instagram} onChange={v => updateField('vendor_hair_instagram', v)} placeholder="@username or URL" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Floral" value={form.vendor_floral} onChange={v => updateField('vendor_floral', v)} placeholder="Name" />
-                  <TextInput label="Instagram (optional)" value={form.vendor_floral_ig} onChange={v => updateField('vendor_floral_ig', v)} placeholder="@username or URL" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_floral_instagram} onChange={v => updateField('vendor_floral_instagram', v)} placeholder="@username or URL" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Event Design / Decor" value={form.vendor_event_design} onChange={v => updateField('vendor_event_design', v)} placeholder="Name" />
-                  <TextInput label="Instagram (optional)" value={form.vendor_event_design_ig} onChange={v => updateField('vendor_event_design_ig', v)} placeholder="@username or URL" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_event_design_instagram} onChange={v => updateField('vendor_event_design_instagram', v)} placeholder="@username or URL" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="DJ / MC" value={form.vendor_dj_mc} onChange={v => updateField('vendor_dj_mc', v)} placeholder="Name" />
-                  <TextInput label="Instagram (optional)" value={form.vendor_dj_mc_ig} onChange={v => updateField('vendor_dj_mc_ig', v)} placeholder="@username or URL" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_dj_mc_instagram} onChange={v => updateField('vendor_dj_mc_instagram', v)} placeholder="@username or URL" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput label="Transportation" value={form.vendor_transportation} onChange={v => updateField('vendor_transportation', v)} placeholder="Name" />
-                  <TextInput label="Instagram (optional)" value={form.vendor_transportation_ig} onChange={v => updateField('vendor_transportation_ig', v)} placeholder="@username or URL" />
+                  <TextInput label="Instagram (optional)" value={form.vendor_transportation_instagram} onChange={v => updateField('vendor_transportation_instagram', v)} placeholder="@username or URL" />
                 </div>
 
                 {/* Venue Contact */}
