@@ -130,6 +130,133 @@ function formatWeddingDate(dateStr: string): string {
   return format(date, 'EEEE, MMMM d, yyyy')
 }
 
+// ─── Reusable UI pieces (defined outside component to prevent remounting) ────
+
+function FormProgressBar({ step }: { step: number }) {
+  const steps = ['Find Wedding', 'Confirm', 'Wedding Day Form', 'Done']
+  return (
+    <div className="flex items-center justify-center gap-1 mb-8">
+      {steps.map((label, i) => {
+        const stepNum = i + 1
+        const isActive = step === stepNum
+        const isCompleted = step > stepNum
+        return (
+          <div key={label} className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
+                isCompleted ? 'bg-teal-600 text-white' : isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+              }`}>
+                {isCompleted ? <CheckCircle className="w-4 h-4" /> : stepNum}
+              </div>
+              <span className={`text-xs hidden sm:inline ${isActive ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                {label}
+              </span>
+            </div>
+            {i < steps.length - 1 && <ChevronRight className="w-4 h-4 text-muted-foreground mx-1" />}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function TextInput({ label, value, onChange, placeholder }: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-foreground mb-1">{label}</label>
+      <input
+        type="text"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+    </div>
+  )
+}
+
+function TimeRow({ label, startValue, finishValue, onStartChange, onFinishChange }: {
+  label: string
+  startValue: string
+  finishValue: string
+  onStartChange: (value: string) => void
+  onFinishChange: (value: string) => void
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-foreground mb-1">{label}</label>
+      <div className="grid grid-cols-2 gap-3">
+        <input
+          type="text"
+          value={startValue}
+          onChange={e => onStartChange(e.target.value)}
+          placeholder="Start time (e.g. 10:00 AM)"
+        />
+        <input
+          type="text"
+          value={finishValue}
+          onChange={e => onFinishChange(e.target.value)}
+          placeholder="Finish time (e.g. 12:00 PM)"
+        />
+      </div>
+    </div>
+  )
+}
+
+function LocationFields({ form, updateField, prefix, showFirstLook, showPermit, showPhotoArrival }: {
+  form: FormData
+  updateField: <K extends keyof FormData>(field: K, value: FormData[K]) => void
+  prefix: 'groom' | 'bride' | 'ceremony' | 'park' | 'extra' | 'reception'
+  showFirstLook?: boolean
+  showPermit?: boolean
+  showPhotoArrival?: boolean
+}) {
+  const addressField = `${prefix}_address` as keyof FormData
+  const cityField = `${prefix}_city` as keyof FormData
+  const intersectionField = `${prefix}_intersection` as keyof FormData
+  const directionsField = `${prefix}_directions` as keyof FormData
+
+  return (
+    <div className="space-y-3">
+      {showFirstLook && (
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.ceremony_first_look}
+            onChange={e => updateField('ceremony_first_look', e.target.checked)}
+            className="w-4 h-4 accent-teal-600 rounded"
+          />
+          <span className="text-sm text-foreground">First Look (before ceremony)</span>
+        </label>
+      )}
+      {showPermit && (
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.park_permit_obtained}
+            onChange={e => updateField('park_permit_obtained', e.target.checked)}
+            className="w-4 h-4 accent-teal-600 rounded"
+          />
+          <span className="text-sm text-foreground">Park permit obtained</span>
+        </label>
+      )}
+      {showPhotoArrival && (
+        <TextInput label="Photo/Video Arrival Time" value={form.ceremony_photo_arrival_time as string} onChange={v => updateField('ceremony_photo_arrival_time', v)} placeholder="e.g. 1:30 PM" />
+      )}
+      <TextInput label="Address" value={form[addressField] as string} onChange={v => updateField(addressField, v)} placeholder="Street address" />
+      <div className="grid grid-cols-2 gap-3">
+        <TextInput label="City" value={form[cityField] as string} onChange={v => updateField(cityField, v)} placeholder="City" />
+        <TextInput label="Nearest Intersection" value={form[intersectionField] as string} onChange={v => updateField(intersectionField, v)} placeholder="Cross streets" />
+      </div>
+      <TextInput label="Directions / Notes" value={form[directionsField] as string} onChange={v => updateField(directionsField, v)} placeholder="Parking info, entrance, etc." />
+    </div>
+  )
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function WeddingDayFormPage() {
@@ -317,120 +444,6 @@ export default function WeddingDayFormPage() {
     }
   }
 
-  // ─── Reusable UI pieces ────────────────────────────────────────────
-
-  function ProgressBar() {
-    const steps = ['Find Wedding', 'Confirm', 'Wedding Day Form', 'Done']
-    return (
-      <div className="flex items-center justify-center gap-1 mb-8">
-        {steps.map((label, i) => {
-          const stepNum = i + 1
-          const isActive = step === stepNum
-          const isCompleted = step > stepNum
-          return (
-            <div key={label} className="flex items-center gap-1">
-              <div className="flex items-center gap-1.5">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
-                  isCompleted ? 'bg-teal-600 text-white' : isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                }`}>
-                  {isCompleted ? <CheckCircle className="w-4 h-4" /> : stepNum}
-                </div>
-                <span className={`text-xs hidden sm:inline ${isActive ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                  {label}
-                </span>
-              </div>
-              {i < steps.length - 1 && <ChevronRight className="w-4 h-4 text-muted-foreground mx-1" />}
-            </div>
-          )
-        })}
-      </div>
-    )
-  }
-
-  function TextInput({ label, field, placeholder }: { label: string; field: keyof FormData; placeholder?: string }) {
-    return (
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-1">{label}</label>
-        <input
-          type="text"
-          value={form[field] as string}
-          onChange={e => updateField(field, e.target.value)}
-          placeholder={placeholder}
-        />
-      </div>
-    )
-  }
-
-  function TimeRow({ label, startField, finishField }: { label: string; startField: keyof FormData; finishField: keyof FormData }) {
-    return (
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-1">{label}</label>
-        <div className="grid grid-cols-2 gap-3">
-          <input
-            type="text"
-            value={form[startField] as string}
-            onChange={e => updateField(startField, e.target.value)}
-            placeholder="Start time (e.g. 10:00 AM)"
-          />
-          <input
-            type="text"
-            value={form[finishField] as string}
-            onChange={e => updateField(finishField, e.target.value)}
-            placeholder="Finish time (e.g. 12:00 PM)"
-          />
-        </div>
-      </div>
-    )
-  }
-
-  function LocationFields({ prefix, showFirstLook, showPermit, showPhotoArrival }: {
-    prefix: 'groom' | 'bride' | 'ceremony' | 'park' | 'extra' | 'reception'
-    showFirstLook?: boolean
-    showPermit?: boolean
-    showPhotoArrival?: boolean
-  }) {
-    const addressField = `${prefix}_address` as keyof FormData
-    const cityField = `${prefix}_city` as keyof FormData
-    const intersectionField = `${prefix}_intersection` as keyof FormData
-    const directionsField = `${prefix}_directions` as keyof FormData
-
-    return (
-      <div className="space-y-3">
-        {showFirstLook && (
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.ceremony_first_look}
-              onChange={e => updateField('ceremony_first_look', e.target.checked)}
-              className="w-4 h-4 accent-teal-600 rounded"
-            />
-            <span className="text-sm text-foreground">First Look (before ceremony)</span>
-          </label>
-        )}
-        {showPermit && (
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.park_permit_obtained}
-              onChange={e => updateField('park_permit_obtained', e.target.checked)}
-              className="w-4 h-4 accent-teal-600 rounded"
-            />
-            <span className="text-sm text-foreground">Park permit obtained</span>
-          </label>
-        )}
-        {showPhotoArrival && (
-          <TextInput label="Photo/Video Arrival Time" field="ceremony_photo_arrival_time" placeholder="e.g. 1:30 PM" />
-        )}
-        <TextInput label="Address" field={addressField} placeholder="Street address" />
-        <div className="grid grid-cols-2 gap-3">
-          <TextInput label="City" field={cityField} placeholder="City" />
-          <TextInput label="Nearest Intersection" field={intersectionField} placeholder="Cross streets" />
-        </div>
-        <TextInput label="Directions / Notes" field={directionsField} placeholder="Parking info, entrance, etc." />
-      </div>
-    )
-  }
-
   // ─── Render ────────────────────────────────────────────────────────
 
   return (
@@ -444,7 +457,7 @@ export default function WeddingDayFormPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <ProgressBar />
+        <FormProgressBar step={step} />
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-6 text-sm">
@@ -585,12 +598,12 @@ export default function WeddingDayFormPage() {
               </h2>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <TextInput label="Contact 1 Name" field="emergency_contact_1_name" placeholder="Full name" />
-                  <TextInput label="Contact 1 Phone" field="emergency_contact_1_phone" placeholder="Phone number" />
+                  <TextInput label="Contact 1 Name" value={form.emergency_contact_1_name} onChange={v => updateField('emergency_contact_1_name', v)} placeholder="Full name" />
+                  <TextInput label="Contact 1 Phone" value={form.emergency_contact_1_phone} onChange={v => updateField('emergency_contact_1_phone', v)} placeholder="Phone number" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <TextInput label="Contact 2 Name" field="emergency_contact_2_name" placeholder="Full name" />
-                  <TextInput label="Contact 2 Phone" field="emergency_contact_2_phone" placeholder="Phone number" />
+                  <TextInput label="Contact 2 Name" value={form.emergency_contact_2_name} onChange={v => updateField('emergency_contact_2_name', v)} placeholder="Full name" />
+                  <TextInput label="Contact 2 Phone" value={form.emergency_contact_2_phone} onChange={v => updateField('emergency_contact_2_phone', v)} placeholder="Phone number" />
                 </div>
               </div>
             </div>
@@ -601,9 +614,9 @@ export default function WeddingDayFormPage() {
                 <span>🤵</span> Groom Prep
               </h2>
               <div className="space-y-3">
-                <TimeRow label="Time" startField="groom_start_time" finishField="groom_finish_time" />
-                <TextInput label="Phone (day-of contact)" field="groom_phone" placeholder="Phone number" />
-                <LocationFields prefix="groom" />
+                <TimeRow label="Time" startValue={form.groom_start_time} finishValue={form.groom_finish_time} onStartChange={v => updateField('groom_start_time', v)} onFinishChange={v => updateField('groom_finish_time', v)} />
+                <TextInput label="Phone (day-of contact)" value={form.groom_phone} onChange={v => updateField('groom_phone', v)} placeholder="Phone number" />
+                <LocationFields form={form} updateField={updateField} prefix="groom" />
               </div>
             </div>
 
@@ -613,9 +626,9 @@ export default function WeddingDayFormPage() {
                 <span>👰</span> Bride Prep
               </h2>
               <div className="space-y-3">
-                <TimeRow label="Time" startField="bride_start_time" finishField="bride_finish_time" />
-                <TextInput label="Phone (day-of contact)" field="bride_phone" placeholder="Phone number" />
-                <LocationFields prefix="bride" />
+                <TimeRow label="Time" startValue={form.bride_start_time} finishValue={form.bride_finish_time} onStartChange={v => updateField('bride_start_time', v)} onFinishChange={v => updateField('bride_finish_time', v)} />
+                <TextInput label="Phone (day-of contact)" value={form.bride_phone} onChange={v => updateField('bride_phone', v)} placeholder="Phone number" />
+                <LocationFields form={form} updateField={updateField} prefix="bride" />
               </div>
             </div>
 
@@ -625,9 +638,9 @@ export default function WeddingDayFormPage() {
                 <span>💒</span> Ceremony
               </h2>
               <div className="space-y-3">
-                <TextInput label="Venue / Location Name" field="ceremony_location_name" placeholder="Church, hall, etc." />
-                <TimeRow label="Time" startField="ceremony_start_time" finishField="ceremony_finish_time" />
-                <LocationFields prefix="ceremony" showFirstLook showPhotoArrival />
+                <TextInput label="Venue / Location Name" value={form.ceremony_location_name} onChange={v => updateField('ceremony_location_name', v)} placeholder="Church, hall, etc." />
+                <TimeRow label="Time" startValue={form.ceremony_start_time} finishValue={form.ceremony_finish_time} onStartChange={v => updateField('ceremony_start_time', v)} onFinishChange={v => updateField('ceremony_finish_time', v)} />
+                <LocationFields form={form} updateField={updateField} prefix="ceremony" showFirstLook showPhotoArrival />
               </div>
             </div>
 
@@ -637,9 +650,9 @@ export default function WeddingDayFormPage() {
                 <span>🌳</span> Park / Photos
               </h2>
               <div className="space-y-3">
-                <TextInput label="Park Name" field="park_name" placeholder="Park or photo location name" />
-                <TimeRow label="Time" startField="park_start_time" finishField="park_finish_time" />
-                <LocationFields prefix="park" showPermit />
+                <TextInput label="Park Name" value={form.park_name} onChange={v => updateField('park_name', v)} placeholder="Park or photo location name" />
+                <TimeRow label="Time" startValue={form.park_start_time} finishValue={form.park_finish_time} onStartChange={v => updateField('park_start_time', v)} onFinishChange={v => updateField('park_finish_time', v)} />
+                <LocationFields form={form} updateField={updateField} prefix="park" showPermit />
               </div>
             </div>
 
@@ -649,9 +662,9 @@ export default function WeddingDayFormPage() {
                 <span>📍</span> Extra Location <span className="text-xs font-normal text-muted-foreground">(optional)</span>
               </h2>
               <div className="space-y-3">
-                <TextInput label="Location Name" field="extra_location_name" placeholder="Additional stop name" />
-                <TimeRow label="Time" startField="extra_start_time" finishField="extra_finish_time" />
-                <LocationFields prefix="extra" />
+                <TextInput label="Location Name" value={form.extra_location_name} onChange={v => updateField('extra_location_name', v)} placeholder="Additional stop name" />
+                <TimeRow label="Time" startValue={form.extra_start_time} finishValue={form.extra_finish_time} onStartChange={v => updateField('extra_start_time', v)} onFinishChange={v => updateField('extra_finish_time', v)} />
+                <LocationFields form={form} updateField={updateField} prefix="extra" />
               </div>
             </div>
 
@@ -661,9 +674,9 @@ export default function WeddingDayFormPage() {
                 <span>🥂</span> Reception
               </h2>
               <div className="space-y-3">
-                <TextInput label="Venue Name" field="reception_venue_name" placeholder="Reception venue name" />
-                <TimeRow label="Time" startField="reception_start_time" finishField="reception_finish_time" />
-                <LocationFields prefix="reception" />
+                <TextInput label="Venue Name" value={form.reception_venue_name} onChange={v => updateField('reception_venue_name', v)} placeholder="Reception venue name" />
+                <TimeRow label="Time" startValue={form.reception_start_time} finishValue={form.reception_finish_time} onStartChange={v => updateField('reception_start_time', v)} onFinishChange={v => updateField('reception_finish_time', v)} />
+                <LocationFields form={form} updateField={updateField} prefix="reception" />
               </div>
             </div>
 
@@ -700,12 +713,12 @@ export default function WeddingDayFormPage() {
               </h2>
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-3">
-                  <TextInput label="Ceremony Begins At" field="ceremony_begins_at" placeholder="e.g. 3:00 PM" />
+                  <TextInput label="Ceremony Begins At" value={form.ceremony_begins_at} onChange={v => updateField('ceremony_begins_at', v)} placeholder="e.g. 3:00 PM" />
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">Hours in Contract</label>
                     <input type="number" value={form.hours_in_contract} onChange={e => updateField('hours_in_contract', e.target.value)} placeholder="e.g. 10" />
                   </div>
-                  <TextInput label="Photo/Video End Time" field="photo_video_end_time" placeholder="e.g. 11:00 PM" />
+                  <TextInput label="Photo/Video End Time" value={form.photo_video_end_time} onChange={v => updateField('photo_video_end_time', v)} placeholder="e.g. 11:00 PM" />
                 </div>
               </div>
             </div>
@@ -717,22 +730,22 @@ export default function WeddingDayFormPage() {
               </h2>
               <p className="text-xs text-muted-foreground mb-3">Name and contact info for each vendor</p>
               <div className="space-y-3">
-                <TextInput label="Wedding Planner" field="vendor_wedding_planner" placeholder="Name & phone/email" />
-                <TextInput label="Officiant" field="vendor_officiant" placeholder="Name & phone/email" />
+                <TextInput label="Wedding Planner" value={form.vendor_wedding_planner} onChange={v => updateField('vendor_wedding_planner', v)} placeholder="Name & phone/email" />
+                <TextInput label="Officiant" value={form.vendor_officiant} onChange={v => updateField('vendor_officiant', v)} placeholder="Name & phone/email" />
                 <div className="grid grid-cols-2 gap-3">
-                  <TextInput label="Makeup Artist" field="vendor_makeup" placeholder="Name" />
-                  <TextInput label="Hair Stylist" field="vendor_hair" placeholder="Name" />
+                  <TextInput label="Makeup Artist" value={form.vendor_makeup} onChange={v => updateField('vendor_makeup', v)} placeholder="Name" />
+                  <TextInput label="Hair Stylist" value={form.vendor_hair} onChange={v => updateField('vendor_hair', v)} placeholder="Name" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <TextInput label="Floral" field="vendor_floral" placeholder="Name" />
-                  <TextInput label="Event Design / Decor" field="vendor_event_design" placeholder="Name" />
+                  <TextInput label="Floral" value={form.vendor_floral} onChange={v => updateField('vendor_floral', v)} placeholder="Name" />
+                  <TextInput label="Event Design / Decor" value={form.vendor_event_design} onChange={v => updateField('vendor_event_design', v)} placeholder="Name" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <TextInput label="DJ / MC" field="vendor_dj_mc" placeholder="Name" />
-                  <TextInput label="Transportation" field="vendor_transportation" placeholder="Limo company, etc." />
+                  <TextInput label="DJ / MC" value={form.vendor_dj_mc} onChange={v => updateField('vendor_dj_mc', v)} placeholder="Name" />
+                  <TextInput label="Transportation" value={form.vendor_transportation} onChange={v => updateField('vendor_transportation', v)} placeholder="Limo company, etc." />
                 </div>
-                <TextInput label="Venue Contact" field="vendor_venue" placeholder="Venue coordinator name & phone" />
-                <TextInput label="Instagram / Hashtag" field="vendor_instagram_tag" placeholder="e.g. #SmithWedding2026" />
+                <TextInput label="Venue Contact" value={form.vendor_venue} onChange={v => updateField('vendor_venue', v)} placeholder="Venue coordinator name & phone" />
+                <TextInput label="Instagram / Hashtag" value={form.vendor_instagram_tag} onChange={v => updateField('vendor_instagram_tag', v)} placeholder="e.g. #SmithWedding2026" />
               </div>
             </div>
 
