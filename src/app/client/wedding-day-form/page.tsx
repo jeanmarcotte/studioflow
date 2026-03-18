@@ -66,6 +66,11 @@ interface FormData {
   extra_intersection: string
   extra_directions: string
   extra_location_notes: string
+  // First Look Location
+  first_look_location_name: string
+  first_look_time: string
+  first_look_address: string
+  first_look_city: string
   // Reception
   reception_venue_name: string
   reception_start_time: string
@@ -79,6 +84,10 @@ interface FormData {
   drive_time_bride_to_ceremony: string
   drive_time_ceremony_to_park: string
   drive_time_park_to_reception: string
+  drive_time_bride_to_first_look: string
+  drive_time_first_look_to_park: string
+  drive_time_park_to_ceremony: string
+  drive_time_ceremony_to_reception: string
   // Contract Info
   ceremony_begins_at: string
   hours_in_contract: string
@@ -118,10 +127,13 @@ const EMPTY_FORM: FormData = {
   park_address: '', park_city: '', park_intersection: '', park_directions: '',
   extra_location_name: '', extra_start_time: '', extra_finish_time: '', extra_address: '',
   extra_city: '', extra_intersection: '', extra_directions: '', extra_location_notes: '',
+  first_look_location_name: '', first_look_time: '', first_look_address: '', first_look_city: '',
   reception_venue_name: '', reception_start_time: '', reception_finish_time: '',
   reception_address: '', reception_city: '', reception_intersection: '', reception_directions: '',
   drive_time_groom_to_bride: '', drive_time_bride_to_ceremony: '',
   drive_time_ceremony_to_park: '', drive_time_park_to_reception: '',
+  drive_time_bride_to_first_look: '', drive_time_first_look_to_park: '',
+  drive_time_park_to_ceremony: '', drive_time_ceremony_to_reception: '',
   ceremony_begins_at: '', hours_in_contract: '', photo_video_end_time: '', venue_arrival_time: '',
   vendor_wedding_planner: '', vendor_officiant: '', vendor_makeup: '', vendor_hair: '',
   vendor_floral: '', vendor_event_design: '', vendor_dj_mc: '', vendor_transportation: '',
@@ -378,6 +390,10 @@ export default function WeddingDayFormPage() {
           extra_intersection: d.extra_intersection || '',
           extra_directions: d.extra_directions || '',
           extra_location_notes: d.extra_location_notes || '',
+          first_look_location_name: d.first_look_location_name || '',
+          first_look_time: d.first_look_time || '',
+          first_look_address: d.first_look_address || '',
+          first_look_city: d.first_look_city || '',
           reception_venue_name: d.reception_venue_name || '',
           reception_start_time: d.reception_start_time || '',
           reception_finish_time: d.reception_finish_time || '',
@@ -389,6 +405,10 @@ export default function WeddingDayFormPage() {
           drive_time_bride_to_ceremony: d.drive_time_bride_to_ceremony?.toString() || '',
           drive_time_ceremony_to_park: d.drive_time_ceremony_to_park?.toString() || '',
           drive_time_park_to_reception: d.drive_time_park_to_reception?.toString() || '',
+          drive_time_bride_to_first_look: d.drive_time_bride_to_first_look?.toString() || '',
+          drive_time_first_look_to_park: d.drive_time_first_look_to_park?.toString() || '',
+          drive_time_park_to_ceremony: d.drive_time_park_to_ceremony?.toString() || '',
+          drive_time_ceremony_to_reception: d.drive_time_ceremony_to_reception?.toString() || '',
           ceremony_begins_at: d.ceremony_begins_at || '',
           hours_in_contract: d.hours_in_contract?.toString() || '',
           photo_video_end_time: d.photo_video_end_time || '',
@@ -428,6 +448,14 @@ export default function WeddingDayFormPage() {
       setError('Please select whether you will have a First Look.')
       return
     }
+    if (form.has_first_look && !form.first_look_location_name.trim()) {
+      setError('First Look location is required.')
+      return
+    }
+    if (form.has_first_look && !form.first_look_time) {
+      setError('First Look time is required.')
+      return
+    }
     setError(null)
     setLoading(true)
     try {
@@ -444,6 +472,10 @@ export default function WeddingDayFormPage() {
           drive_time_park_to_reception: form.drive_time_park_to_reception ? parseInt(form.drive_time_park_to_reception) : null,
           hours_in_contract: form.hours_in_contract ? parseInt(form.hours_in_contract) : null,
           bridal_party_count: form.bridal_party_count ? parseInt(form.bridal_party_count) : null,
+          drive_time_bride_to_first_look: form.drive_time_bride_to_first_look ? parseInt(form.drive_time_bride_to_first_look) : null,
+          drive_time_first_look_to_park: form.drive_time_first_look_to_park ? parseInt(form.drive_time_first_look_to_park) : null,
+          drive_time_park_to_ceremony: form.drive_time_park_to_ceremony ? parseInt(form.drive_time_park_to_ceremony) : null,
+          drive_time_ceremony_to_reception: form.drive_time_ceremony_to_reception ? parseInt(form.drive_time_ceremony_to_reception) : null,
         }),
       })
       const json = await res.json()
@@ -727,160 +759,236 @@ export default function WeddingDayFormPage() {
               </div>
             </div>
 
-            {/* ── 4. Groom Prep ───────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>🤵</span> Groom Prep <span className="text-sm font-normal text-muted-foreground">(1hr minimum — 1hr 15min preferred)</span>
-              </h2>
-              <div className="space-y-3">
-                <TimeRow label="Time" startValue={form.groom_start_time} finishValue={form.groom_finish_time} onStartChange={v => updateField('groom_start_time', v)} onFinishChange={v => updateField('groom_finish_time', v)} />
-                <TextInput label="Phone (day-of contact)" value={form.groom_phone} onChange={v => updateField('groom_phone', v)} placeholder="(416) 555-1234" />
-                <LocationFields form={form} updateField={updateField} prefix="groom" />
-              </div>
-            </div>
-
-            {/* ── 6. Bride Prep ───────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>👰</span> Bride Prep <span className="text-sm font-normal text-muted-foreground">(1hr 15min minimum preferred)</span>
-              </h2>
-              <div className="space-y-3">
-                <TimeRow label="Time" startValue={form.bride_start_time} finishValue={form.bride_finish_time} onStartChange={v => updateField('bride_start_time', v)} onFinishChange={v => updateField('bride_finish_time', v)} />
-                <TextInput label="Phone (day-of contact)" value={form.bride_phone} onChange={v => updateField('bride_phone', v)} placeholder="(416) 555-1234" />
-                <LocationFields form={form} updateField={updateField} prefix="bride" />
-              </div>
-            </div>
-
-            {/* ── 7. Ceremony ─────────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>💒</span> Ceremony
-              </h2>
-              <div className="space-y-3">
-                <TextInput label="Venue / Location Name" value={form.ceremony_location_name} onChange={v => updateField('ceremony_location_name', v)} placeholder="Church, hall, etc." />
-                <TimeRow label="Time" startValue={form.ceremony_start_time} finishValue={form.ceremony_finish_time} onStartChange={v => updateField('ceremony_start_time', v)} onFinishChange={v => updateField('ceremony_finish_time', v)} />
-                <LocationFields form={form} updateField={updateField} prefix="ceremony" showFirstLook showPhotoArrival />
-              </div>
-            </div>
-
-            {/* ── 8. Park / Photos ────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>🌳</span> Park / Photos
-              </h2>
-              <div className="space-y-3">
-                <TextInput label="Park Name" value={form.park_name} onChange={v => updateField('park_name', v)} placeholder="Park or photo location name" />
-                <TimeRow label="Time" startValue={form.park_start_time} finishValue={form.park_finish_time} onStartChange={v => updateField('park_start_time', v)} onFinishChange={v => updateField('park_finish_time', v)} />
-                <LocationFields form={form} updateField={updateField} prefix="park" showPermit />
-              </div>
-            </div>
-
-            {/* ── 9. Extra Location (optional) ────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>📍</span> Extra Location <span className="text-xs font-normal text-muted-foreground">(optional)</span>
-              </h2>
-              <div className="space-y-3">
-                <TextInput label="Location Name" value={form.extra_location_name} onChange={v => updateField('extra_location_name', v)} placeholder="Additional stop name" />
-                <TimeRow label="Time" startValue={form.extra_start_time} finishValue={form.extra_finish_time} onStartChange={v => updateField('extra_start_time', v)} onFinishChange={v => updateField('extra_finish_time', v)} />
-                <LocationFields form={form} updateField={updateField} prefix="extra" />
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Notes</label>
-                  <textarea
-                    value={form.extra_location_notes}
-                    onChange={e => updateField('extra_location_notes', e.target.value)}
-                    placeholder="Any special instructions for this location?"
-                    rows={2}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* ── 10. Reception ────────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>🥂</span> Reception
-              </h2>
-              <div className="space-y-3">
-                <TextInput label="Venue Name" value={form.reception_venue_name} onChange={v => updateField('reception_venue_name', v)} placeholder="Reception venue name" />
-                <TimeRow label="Time" startValue={form.reception_start_time} finishValue={form.reception_finish_time} onStartChange={v => updateField('reception_start_time', v)} onFinishChange={v => updateField('reception_finish_time', v)} />
-                <LocationFields form={form} updateField={updateField} prefix="reception" />
-              </div>
-            </div>
-
-            {/* ── 11. Drive Times ──────────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>🚗</span> Estimated Drive Times
-              </h2>
-              <p className="text-xs text-muted-foreground mb-3">Approximate minutes between locations</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Groom to Bride</label>
-                  <input type="number" value={form.drive_time_groom_to_bride} onChange={e => updateField('drive_time_groom_to_bride', e.target.value)} placeholder="min" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Bride to Ceremony</label>
-                  <input type="number" value={form.drive_time_bride_to_ceremony} onChange={e => updateField('drive_time_bride_to_ceremony', e.target.value)} placeholder="min" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Ceremony to Park</label>
-                  <input type="number" value={form.drive_time_ceremony_to_park} onChange={e => updateField('drive_time_ceremony_to_park', e.target.value)} placeholder="min" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Park to Reception</label>
-                  <input type="number" value={form.drive_time_park_to_reception} onChange={e => updateField('drive_time_park_to_reception', e.target.value)} placeholder="min" />
-                </div>
-              </div>
-            </div>
-
-            {/* ── 12. Contract Details ─────────────────────────────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>📋</span> Contract Details
-              </h2>
-              <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-3">
-                  <TextInput label="Ceremony Begins At" value={form.ceremony_begins_at} onChange={v => updateField('ceremony_begins_at', v)} placeholder="e.g. 3:00 PM" />
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">Hours in Contract</label>
-                    <input type="number" value={form.hours_in_contract} onChange={e => updateField('hours_in_contract', e.target.value)} placeholder="e.g. 10" />
+            {form.has_first_look !== null && (
+              <>
+                {/* ── Groom Prep ───────────────────────────────────────── */}
+                <div className="bg-card rounded-xl border p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <span>🤵</span> Groom Prep <span className="text-sm font-normal text-muted-foreground">(1hr minimum — 1hr 15min preferred)</span>
+                  </h2>
+                  <div className="space-y-3">
+                    <TimeRow label="Time" startValue={form.groom_start_time} finishValue={form.groom_finish_time} onStartChange={v => updateField('groom_start_time', v)} onFinishChange={v => updateField('groom_finish_time', v)} />
+                    <TextInput label="Phone (day-of contact)" value={form.groom_phone} onChange={v => updateField('groom_phone', v)} placeholder="(416) 555-1234" />
+                    <LocationFields form={form} updateField={updateField} prefix="groom" />
                   </div>
-                  <TextInput label="Photo/Video End Time" value={form.photo_video_end_time} onChange={v => updateField('photo_video_end_time', v)} placeholder="e.g. 11:00 PM" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">MUST ARRIVE AT VENUE BY <span className="text-red-500">*</span></label>
-                  <select
-                    value={form.venue_arrival_time}
-                    onChange={e => updateField('venue_arrival_time', e.target.value)}
-                    required
-                  >
-                    <option value="">Select a time</option>
-                    {Array.from({ length: 33 }, (_, i) => {
-                      const totalMin = 6 * 60 + i * 30
-                      const h = Math.floor(totalMin / 60)
-                      const m = totalMin % 60
-                      const period = h >= 12 ? 'PM' : 'AM'
-                      const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h
-                      const label = `${h12}:${m.toString().padStart(2, '0')} ${period}`
-                      return <option key={label} value={label}>{label}</option>
-                    })}
-                  </select>
-                </div>
-                <p className="text-xs text-muted-foreground">💡 If you need additional hours, please contact Marianna before the wedding day.</p>
-              </div>
-            </div>
 
-            {/* Submit */}
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 text-lg"
-            >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
-              {isUpdate ? 'Update Wedding Day Form' : 'Submit Wedding Day Form'}
-            </button>
+                {/* ── Bride Prep ───────────────────────────────────────── */}
+                <div className="bg-card rounded-xl border p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <span>👰</span> Bride Prep <span className="text-sm font-normal text-muted-foreground">(1hr 15min minimum preferred)</span>
+                  </h2>
+                  <div className="space-y-3">
+                    <TimeRow label="Time" startValue={form.bride_start_time} finishValue={form.bride_finish_time} onStartChange={v => updateField('bride_start_time', v)} onFinishChange={v => updateField('bride_finish_time', v)} />
+                    <TextInput label="Phone (day-of contact)" value={form.bride_phone} onChange={v => updateField('bride_phone', v)} placeholder="(416) 555-1234" />
+                    <LocationFields form={form} updateField={updateField} prefix="bride" />
+                  </div>
+                </div>
+
+                {/* ── First Look (YES only) ─────────────────────────────── */}
+                {form.has_first_look && (
+                  <div className="bg-card rounded-xl border p-6 shadow-sm">
+                    <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <span>💑</span> First Look
+                    </h2>
+                    <div className="space-y-3">
+                      <TextInput label="First Look Location" value={form.first_look_location_name} onChange={v => updateField('first_look_location_name', v)} placeholder="Location name" />
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-1">First Look Time <span className="text-red-500">*</span></label>
+                        <select
+                          value={form.first_look_time}
+                          onChange={e => updateField('first_look_time', e.target.value)}
+                          required
+                        >
+                          <option value="">Select a time</option>
+                          {Array.from({ length: 33 }, (_, i) => {
+                            const totalMin = 6 * 60 + i * 30
+                            const h = Math.floor(totalMin / 60)
+                            const m = totalMin % 60
+                            const period = h >= 12 ? 'PM' : 'AM'
+                            const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h
+                            const timeLabel = `${h12}:${m.toString().padStart(2, '0')} ${period}`
+                            return <option key={timeLabel} value={timeLabel}>{timeLabel}</option>
+                          })}
+                        </select>
+                      </div>
+                      <TextInput label="Address" value={form.first_look_address} onChange={v => updateField('first_look_address', v)} placeholder="Street address" />
+                      <TextInput label="City" value={form.first_look_city} onChange={v => updateField('first_look_city', v)} placeholder="City" />
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Ceremony (NO path: before Park) ──────────────────── */}
+                {!form.has_first_look && (
+                  <div className="bg-card rounded-xl border p-6 shadow-sm">
+                    <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <span>💒</span> Ceremony
+                    </h2>
+                    <div className="space-y-3">
+                      <TextInput label="Venue / Location Name" value={form.ceremony_location_name} onChange={v => updateField('ceremony_location_name', v)} placeholder="Church, hall, etc." />
+                      <TimeRow label="Time" startValue={form.ceremony_start_time} finishValue={form.ceremony_finish_time} onStartChange={v => updateField('ceremony_start_time', v)} onFinishChange={v => updateField('ceremony_finish_time', v)} />
+                      <LocationFields form={form} updateField={updateField} prefix="ceremony" showPhotoArrival />
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Park / Photos ────────────────────────────────────── */}
+                <div className="bg-card rounded-xl border p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <span>🌳</span> Park / Photos
+                  </h2>
+                  <div className="space-y-3">
+                    <TextInput label="Park Name" value={form.park_name} onChange={v => updateField('park_name', v)} placeholder="Park or photo location name" />
+                    <TimeRow label="Time" startValue={form.park_start_time} finishValue={form.park_finish_time} onStartChange={v => updateField('park_start_time', v)} onFinishChange={v => updateField('park_finish_time', v)} />
+                    <LocationFields form={form} updateField={updateField} prefix="park" showPermit />
+                  </div>
+                </div>
+
+                {/* ── Extra Location (optional) ────────────────────────── */}
+                <div className="bg-card rounded-xl border p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <span>📍</span> Extra Location <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                  </h2>
+                  <div className="space-y-3">
+                    <TextInput label="Location Name" value={form.extra_location_name} onChange={v => updateField('extra_location_name', v)} placeholder="Additional stop name" />
+                    <TimeRow label="Time" startValue={form.extra_start_time} finishValue={form.extra_finish_time} onStartChange={v => updateField('extra_start_time', v)} onFinishChange={v => updateField('extra_finish_time', v)} />
+                    <LocationFields form={form} updateField={updateField} prefix="extra" />
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">Notes</label>
+                      <textarea
+                        value={form.extra_location_notes}
+                        onChange={e => updateField('extra_location_notes', e.target.value)}
+                        placeholder="Any special instructions for this location?"
+                        rows={2}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Ceremony (YES path: after Park/Extra) ────────────── */}
+                {form.has_first_look && (
+                  <div className="bg-card rounded-xl border p-6 shadow-sm">
+                    <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <span>💒</span> Ceremony
+                    </h2>
+                    <div className="space-y-3">
+                      <TextInput label="Venue / Location Name" value={form.ceremony_location_name} onChange={v => updateField('ceremony_location_name', v)} placeholder="Church, hall, etc." />
+                      <TimeRow label="Time" startValue={form.ceremony_start_time} finishValue={form.ceremony_finish_time} onStartChange={v => updateField('ceremony_start_time', v)} onFinishChange={v => updateField('ceremony_finish_time', v)} />
+                      <LocationFields form={form} updateField={updateField} prefix="ceremony" showPhotoArrival />
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Reception ────────────────────────────────────────── */}
+                <div className="bg-card rounded-xl border p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <span>🥂</span> Reception
+                  </h2>
+                  <div className="space-y-3">
+                    <TextInput label="Venue Name" value={form.reception_venue_name} onChange={v => updateField('reception_venue_name', v)} placeholder="Reception venue name" />
+                    <TimeRow label="Time" startValue={form.reception_start_time} finishValue={form.reception_finish_time} onStartChange={v => updateField('reception_start_time', v)} onFinishChange={v => updateField('reception_finish_time', v)} />
+                    <LocationFields form={form} updateField={updateField} prefix="reception" />
+                  </div>
+                </div>
+
+                {/* ── Drive Times ──────────────────────────────────────── */}
+                <div className="bg-card rounded-xl border p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <span>🚗</span> Estimated Drive Times
+                  </h2>
+                  <p className="text-xs text-muted-foreground mb-3">Approximate minutes between locations</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">Groom to Bride</label>
+                      <input type="number" value={form.drive_time_groom_to_bride} onChange={e => updateField('drive_time_groom_to_bride', e.target.value)} placeholder="min" />
+                    </div>
+                    {form.has_first_look ? (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-1">Bride to First Look</label>
+                          <input type="number" value={form.drive_time_bride_to_first_look} onChange={e => updateField('drive_time_bride_to_first_look', e.target.value)} placeholder="min" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-1">First Look to Park</label>
+                          <input type="number" value={form.drive_time_first_look_to_park} onChange={e => updateField('drive_time_first_look_to_park', e.target.value)} placeholder="min" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-1">Park to Ceremony</label>
+                          <input type="number" value={form.drive_time_park_to_ceremony} onChange={e => updateField('drive_time_park_to_ceremony', e.target.value)} placeholder="min" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-1">Ceremony to Reception</label>
+                          <input type="number" value={form.drive_time_ceremony_to_reception} onChange={e => updateField('drive_time_ceremony_to_reception', e.target.value)} placeholder="min" />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-1">Bride to Ceremony</label>
+                          <input type="number" value={form.drive_time_bride_to_ceremony} onChange={e => updateField('drive_time_bride_to_ceremony', e.target.value)} placeholder="min" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-1">Ceremony to Park</label>
+                          <input type="number" value={form.drive_time_ceremony_to_park} onChange={e => updateField('drive_time_ceremony_to_park', e.target.value)} placeholder="min" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-1">Park to Reception</label>
+                          <input type="number" value={form.drive_time_park_to_reception} onChange={e => updateField('drive_time_park_to_reception', e.target.value)} placeholder="min" />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Contract Details ─────────────────────────────────── */}
+                <div className="bg-card rounded-xl border p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <span>📋</span> Contract Details
+                  </h2>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-3">
+                      <TextInput label="Ceremony Begins At" value={form.ceremony_begins_at} onChange={v => updateField('ceremony_begins_at', v)} placeholder="e.g. 3:00 PM" />
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-1">Hours in Contract</label>
+                        <input type="number" value={form.hours_in_contract} onChange={e => updateField('hours_in_contract', e.target.value)} placeholder="e.g. 10" />
+                      </div>
+                      <TextInput label="Photo/Video End Time" value={form.photo_video_end_time} onChange={v => updateField('photo_video_end_time', v)} placeholder="e.g. 11:00 PM" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">MUST ARRIVE AT VENUE BY <span className="text-red-500">*</span></label>
+                      <select
+                        value={form.venue_arrival_time}
+                        onChange={e => updateField('venue_arrival_time', e.target.value)}
+                        required
+                      >
+                        <option value="">Select a time</option>
+                        {Array.from({ length: 33 }, (_, i) => {
+                          const totalMin = 6 * 60 + i * 30
+                          const h = Math.floor(totalMin / 60)
+                          const m = totalMin % 60
+                          const period = h >= 12 ? 'PM' : 'AM'
+                          const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h
+                          const timeLabel = `${h12}:${m.toString().padStart(2, '0')} ${period}`
+                          return <option key={timeLabel} value={timeLabel}>{timeLabel}</option>
+                        })}
+                      </select>
+                    </div>
+                    <p className="text-xs text-muted-foreground">💡 If you need additional hours, please contact Marianna before the wedding day.</p>
+                  </div>
+                </div>
+
+                {/* Submit */}
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 text-lg"
+                >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
+                  {isUpdate ? 'Update Wedding Day Form' : 'Submit Wedding Day Form'}
+                </button>
+              </>
+            )}
           </div>
         )}
 

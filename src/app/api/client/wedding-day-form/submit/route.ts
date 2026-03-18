@@ -75,6 +75,11 @@ export async function POST(request: Request) {
       extra_intersection: body.extra_intersection || null,
       extra_directions: body.extra_directions || null,
       extra_location_notes: body.extra_location_notes || null,
+      // First Look Location
+      first_look_location_name: body.first_look_location_name || null,
+      first_look_time: body.first_look_time || null,
+      first_look_address: body.first_look_address || null,
+      first_look_city: body.first_look_city || null,
       // Reception
       reception_venue_name: body.reception_venue_name || null,
       reception_start_time: body.reception_start_time || null,
@@ -88,6 +93,10 @@ export async function POST(request: Request) {
       drive_time_bride_to_ceremony: body.drive_time_bride_to_ceremony ?? null,
       drive_time_ceremony_to_park: body.drive_time_ceremony_to_park ?? null,
       drive_time_park_to_reception: body.drive_time_park_to_reception ?? null,
+      drive_time_bride_to_first_look: body.drive_time_bride_to_first_look ?? null,
+      drive_time_first_look_to_park: body.drive_time_first_look_to_park ?? null,
+      drive_time_park_to_ceremony: body.drive_time_park_to_ceremony ?? null,
+      drive_time_ceremony_to_reception: body.drive_time_ceremony_to_reception ?? null,
       // Contract Info
       ceremony_begins_at: body.ceremony_begins_at || null,
       hours_in_contract: body.hours_in_contract ?? null,
