@@ -126,13 +126,22 @@ export async function POST(request: Request) {
       // Couple Social
       couple_instagram: body.couple_instagram || null,
       wedding_hashtag: body.wedding_hashtag || null,
+      // Inspiration
+      inspiration_link_1: body.inspiration_link_1 || null,
+      inspiration_link_2: body.inspiration_link_2 || null,
+      inspiration_link_3: body.inspiration_link_3 || null,
+      inspiration_link_4: body.inspiration_link_4 || null,
+      inspiration_link_5: body.inspiration_link_5 || null,
       // First Look
       has_first_look: body.has_first_look ?? null,
+      park_same_as_first_look: body.park_same_as_first_look ?? false,
+      reception_same_as_first_look: body.reception_same_as_first_look ?? false,
       // General Info
       bridal_party_count: body.bridal_party_count ?? null,
       parent_info: body.parent_info || null,
       honeymoon_details: body.honeymoon_details || null,
       additional_notes: body.additional_notes || null,
+      final_notes: body.final_notes || null,
     }
 
     if (existing) {

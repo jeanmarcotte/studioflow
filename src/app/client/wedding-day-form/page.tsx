@@ -117,13 +117,22 @@ interface FormData {
   // Couple Social
   couple_instagram: string
   wedding_hashtag: string
+  // Inspiration
+  inspiration_link_1: string
+  inspiration_link_2: string
+  inspiration_link_3: string
+  inspiration_link_4: string
+  inspiration_link_5: string
   // First Look
   has_first_look: boolean | null
+  park_same_as_first_look: boolean
+  reception_same_as_first_look: boolean
   // General Info
   bridal_party_count: string
   parent_info: string
   honeymoon_details: string
   additional_notes: string
+  final_notes: string
 }
 
 const EMPTY_FORM: FormData = {
@@ -158,8 +167,12 @@ const EMPTY_FORM: FormData = {
   vendor_transportation: '', vendor_transportation_ig: '',
   venue_contact_name: '', venue_contact_phone: '', venue_contact_email: '',
   couple_instagram: '', wedding_hashtag: '',
+  inspiration_link_1: '', inspiration_link_2: '', inspiration_link_3: '',
+  inspiration_link_4: '', inspiration_link_5: '',
   has_first_look: null,
+  park_same_as_first_look: false, reception_same_as_first_look: false,
   bridal_party_count: '', parent_info: '', honeymoon_details: '', additional_notes: '',
+  final_notes: '',
 }
 
 function formatWeddingDate(dateStr: string): string {
@@ -480,11 +493,19 @@ export default function WeddingDayFormPage() {
           venue_contact_email: d.venue_contact_email || '',
           couple_instagram: d.couple_instagram || '',
           wedding_hashtag: d.wedding_hashtag || '',
+          inspiration_link_1: d.inspiration_link_1 || '',
+          inspiration_link_2: d.inspiration_link_2 || '',
+          inspiration_link_3: d.inspiration_link_3 || '',
+          inspiration_link_4: d.inspiration_link_4 || '',
+          inspiration_link_5: d.inspiration_link_5 || '',
           has_first_look: d.has_first_look ?? null,
+          park_same_as_first_look: d.park_same_as_first_look ?? false,
+          reception_same_as_first_look: d.reception_same_as_first_look ?? false,
           bridal_party_count: d.bridal_party_count?.toString() || '',
           parent_info: d.parent_info || '',
           honeymoon_details: d.honeymoon_details || '',
           additional_notes: d.additional_notes || '',
+          final_notes: d.final_notes || '',
         })
         setIsUpdate(true)
       }
@@ -818,6 +839,21 @@ export default function WeddingDayFormPage() {
               </div>
             </div>
 
+            {/* ── Photography Inspiration ──────────────────────────── */}
+            <div className="bg-card rounded-xl border p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
+                <span>📌</span> Photography Inspiration
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">Share Pinterest boards or photos that inspire your wedding vision</p>
+              <div className="space-y-3">
+                <TextInput label="Pinterest Link 1" value={form.inspiration_link_1} onChange={v => updateField('inspiration_link_1', v)} placeholder="https://pinterest.com/..." />
+                <TextInput label="Pinterest Link 2" value={form.inspiration_link_2} onChange={v => updateField('inspiration_link_2', v)} placeholder="https://pinterest.com/..." />
+                <TextInput label="Pinterest Link 3" value={form.inspiration_link_3} onChange={v => updateField('inspiration_link_3', v)} placeholder="https://pinterest.com/..." />
+                <TextInput label="Pinterest Link 4" value={form.inspiration_link_4} onChange={v => updateField('inspiration_link_4', v)} placeholder="https://pinterest.com/..." />
+                <TextInput label="Pinterest Link 5" value={form.inspiration_link_5} onChange={v => updateField('inspiration_link_5', v)} placeholder="https://pinterest.com/..." />
+              </div>
+            </div>
+
             {/* ── Your Wedding Day header ───────────────────────────── */}
             <div className="border-t pt-6">
               <h2 className="text-2xl font-bold text-foreground text-center">📅 Your Wedding Day</h2>
@@ -932,7 +968,37 @@ export default function WeddingDayFormPage() {
                     <span>🌳</span> Park / Photos
                   </h2>
                   <div className="space-y-3">
-                    <TextInput label="Park Name" value={form.park_name} onChange={v => updateField('park_name', v)} placeholder="Park or photo location name" />
+                    {form.has_first_look && (
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.park_same_as_first_look}
+                          onChange={e => {
+                            const checked = e.target.checked
+                            if (checked) {
+                              setForm(prev => ({
+                                ...prev,
+                                park_same_as_first_look: true,
+                                park_name: prev.first_look_location_name,
+                                park_address: prev.first_look_address,
+                                park_city: prev.first_look_city,
+                              }))
+                            } else {
+                              setForm(prev => ({
+                                ...prev,
+                                park_same_as_first_look: false,
+                                park_name: '',
+                                park_address: '',
+                                park_city: '',
+                              }))
+                            }
+                          }}
+                          className="w-4 h-4 accent-teal-600 rounded"
+                        />
+                        <span className="text-sm text-foreground">Same as First Look location</span>
+                      </label>
+                    )}
+                    <TextInput label="Park Name" value={form.park_name} onChange={v => updateField('park_name', v)} placeholder={form.park_same_as_first_look ? '' : 'Park or photo location name'} />
                     <TimeRow label="Time" startValue={form.park_start_time} finishValue={form.park_finish_time} onStartChange={v => updateField('park_start_time', v)} onFinishChange={v => updateField('park_finish_time', v)} />
                     <LocationFields form={form} updateField={updateField} prefix="park" showPermit />
                   </div>
@@ -980,7 +1046,37 @@ export default function WeddingDayFormPage() {
                     <span>🥂</span> Reception
                   </h2>
                   <div className="space-y-3">
-                    <TextInput label="Venue Name" value={form.reception_venue_name} onChange={v => updateField('reception_venue_name', v)} placeholder="Reception venue name" />
+                    {form.has_first_look && (
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.reception_same_as_first_look}
+                          onChange={e => {
+                            const checked = e.target.checked
+                            if (checked) {
+                              setForm(prev => ({
+                                ...prev,
+                                reception_same_as_first_look: true,
+                                reception_venue_name: prev.first_look_location_name,
+                                reception_address: prev.first_look_address,
+                                reception_city: prev.first_look_city,
+                              }))
+                            } else {
+                              setForm(prev => ({
+                                ...prev,
+                                reception_same_as_first_look: false,
+                                reception_venue_name: '',
+                                reception_address: '',
+                                reception_city: '',
+                              }))
+                            }
+                          }}
+                          className="w-4 h-4 accent-teal-600 rounded"
+                        />
+                        <span className="text-sm text-foreground">Same as First Look location</span>
+                      </label>
+                    )}
+                    <TextInput label="Venue Name" value={form.reception_venue_name} onChange={v => updateField('reception_venue_name', v)} placeholder={form.reception_same_as_first_look ? '' : 'Reception venue name'} />
                     <TimeRow label="Time" startValue={form.reception_start_time} finishValue={form.reception_finish_time} onStartChange={v => updateField('reception_start_time', v)} onFinishChange={v => updateField('reception_finish_time', v)} />
                     <LocationFields form={form} updateField={updateField} prefix="reception" />
                   </div>
@@ -1069,6 +1165,23 @@ export default function WeddingDayFormPage() {
                       </select>
                     </div>
                     <p className="text-xs text-muted-foreground">💡 If you need additional hours, please contact Marianna before the wedding day.</p>
+                  </div>
+                </div>
+
+                {/* ── Anything Else? ────────────────────────────────────── */}
+                <div className="bg-card rounded-xl border p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <span>📝</span> Anything Else?
+                  </h2>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">Is there anything else you&apos;d like us to know?</label>
+                    <textarea
+                      value={form.final_notes}
+                      onChange={e => updateField('final_notes', e.target.value)}
+                      placeholder="Special requests, family dynamics, surprises you're planning, accessibility needs, or anything else that will help us capture your day perfectly..."
+                      rows={6}
+                      className="w-full"
+                    />
                   </div>
                 </div>
 
