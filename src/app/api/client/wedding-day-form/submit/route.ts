@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sendFormNotification } from '@/lib/email'
 
 function getServiceClient() {
   return createClient(
@@ -158,6 +159,21 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 })
       }
 
+      // Send email notification (non-blocking)
+      const { data: couple } = await supabase
+        .from('couples')
+        .select('couple_name, wedding_date')
+        .eq('id', body.couple_id)
+        .single()
+
+      if (couple) {
+        sendFormNotification({
+          formType: 'wedding-day',
+          coupleName: couple.couple_name,
+          weddingDate: couple.wedding_date,
+        }).catch(err => console.error('Email notification failed:', err))
+      }
+
       return NextResponse.json({ success: true, id: data.id })
     } else {
       // Insert new form (trigger will set m15_day_form_approved)
@@ -170,6 +186,21 @@ export async function POST(request: Request) {
       if (error) {
         console.error('[POST /api/client/wedding-day-form/submit] Insert failed:', error)
         return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+      }
+
+      // Send email notification (non-blocking)
+      const { data: couple } = await supabase
+        .from('couples')
+        .select('couple_name, wedding_date')
+        .eq('id', body.couple_id)
+        .single()
+
+      if (couple) {
+        sendFormNotification({
+          formType: 'wedding-day',
+          coupleName: couple.couple_name,
+          weddingDate: couple.wedding_date,
+        }).catch(err => console.error('Email notification failed:', err))
       }
 
       return NextResponse.json({ success: true, id: data.id })
