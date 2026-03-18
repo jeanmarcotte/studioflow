@@ -30,7 +30,7 @@ export async function sendFormNotification({
   try {
     const resend = getResend()
     const { data, error } = await resend.emails.send({
-      from: 'StudioFlow <onboarding@resend.dev>',
+      from: 'SIGS Photography <noreply@sigsphoto.ca>',
       to: ['info@sigsphoto.ca'],
       subject: subjects[formType],
       html: `
