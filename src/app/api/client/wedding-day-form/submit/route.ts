@@ -74,6 +74,7 @@ export async function POST(request: Request) {
       extra_city: body.extra_city || null,
       extra_intersection: body.extra_intersection || null,
       extra_directions: body.extra_directions || null,
+      extra_location_notes: body.extra_location_notes || null,
       // Reception
       reception_venue_name: body.reception_venue_name || null,
       reception_start_time: body.reception_start_time || null,
@@ -91,6 +92,7 @@ export async function POST(request: Request) {
       ceremony_begins_at: body.ceremony_begins_at || null,
       hours_in_contract: body.hours_in_contract ?? null,
       photo_video_end_time: body.photo_video_end_time || null,
+      venue_arrival_time: body.venue_arrival_time || null,
       // Vendors
       vendor_wedding_planner: body.vendor_wedding_planner || null,
       vendor_officiant: body.vendor_officiant || null,

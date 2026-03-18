@@ -65,6 +65,7 @@ interface FormData {
   extra_city: string
   extra_intersection: string
   extra_directions: string
+  extra_location_notes: string
   // Reception
   reception_venue_name: string
   reception_start_time: string
@@ -82,6 +83,7 @@ interface FormData {
   ceremony_begins_at: string
   hours_in_contract: string
   photo_video_end_time: string
+  venue_arrival_time: string
   // Vendors
   vendor_wedding_planner: string
   vendor_officiant: string
@@ -113,12 +115,12 @@ const EMPTY_FORM: FormData = {
   park_name: '', park_permit_obtained: false, park_start_time: '', park_finish_time: '',
   park_address: '', park_city: '', park_intersection: '', park_directions: '',
   extra_location_name: '', extra_start_time: '', extra_finish_time: '', extra_address: '',
-  extra_city: '', extra_intersection: '', extra_directions: '',
+  extra_city: '', extra_intersection: '', extra_directions: '', extra_location_notes: '',
   reception_venue_name: '', reception_start_time: '', reception_finish_time: '',
   reception_address: '', reception_city: '', reception_intersection: '', reception_directions: '',
   drive_time_groom_to_bride: '', drive_time_bride_to_ceremony: '',
   drive_time_ceremony_to_park: '', drive_time_park_to_reception: '',
-  ceremony_begins_at: '', hours_in_contract: '', photo_video_end_time: '',
+  ceremony_begins_at: '', hours_in_contract: '', photo_video_end_time: '', venue_arrival_time: '',
   vendor_wedding_planner: '', vendor_officiant: '', vendor_makeup: '', vendor_hair: '',
   vendor_floral: '', vendor_event_design: '', vendor_dj_mc: '', vendor_transportation: '',
   vendor_venue: '', vendor_instagram_tag: '',
@@ -372,6 +374,7 @@ export default function WeddingDayFormPage() {
           extra_city: d.extra_city || '',
           extra_intersection: d.extra_intersection || '',
           extra_directions: d.extra_directions || '',
+          extra_location_notes: d.extra_location_notes || '',
           reception_venue_name: d.reception_venue_name || '',
           reception_start_time: d.reception_start_time || '',
           reception_finish_time: d.reception_finish_time || '',
@@ -386,6 +389,7 @@ export default function WeddingDayFormPage() {
           ceremony_begins_at: d.ceremony_begins_at || '',
           hours_in_contract: d.hours_in_contract?.toString() || '',
           photo_video_end_time: d.photo_video_end_time || '',
+          venue_arrival_time: d.venue_arrival_time || '',
           vendor_wedding_planner: d.vendor_wedding_planner || '',
           vendor_officiant: d.vendor_officiant || '',
           vendor_makeup: d.vendor_makeup || '',
@@ -680,6 +684,11 @@ export default function WeddingDayFormPage() {
               </div>
             </div>
 
+            {/* ── Your Wedding Day header ───────────────────────────── */}
+            <div className="border-t pt-6">
+              <h2 className="text-2xl font-bold text-foreground text-center">📅 Your Wedding Day</h2>
+            </div>
+
             {/* ── 4. Groom Prep ───────────────────────────────────────── */}
             <div className="bg-card rounded-xl border p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -737,6 +746,16 @@ export default function WeddingDayFormPage() {
                 <TextInput label="Location Name" value={form.extra_location_name} onChange={v => updateField('extra_location_name', v)} placeholder="Additional stop name" />
                 <TimeRow label="Time" startValue={form.extra_start_time} finishValue={form.extra_finish_time} onStartChange={v => updateField('extra_start_time', v)} onFinishChange={v => updateField('extra_finish_time', v)} />
                 <LocationFields form={form} updateField={updateField} prefix="extra" />
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">Notes</label>
+                  <textarea
+                    value={form.extra_location_notes}
+                    onChange={e => updateField('extra_location_notes', e.target.value)}
+                    placeholder="Any special instructions for this location?"
+                    rows={2}
+                    className="w-full"
+                  />
+                </div>
               </div>
             </div>
 
@@ -792,6 +811,26 @@ export default function WeddingDayFormPage() {
                   </div>
                   <TextInput label="Photo/Video End Time" value={form.photo_video_end_time} onChange={v => updateField('photo_video_end_time', v)} placeholder="e.g. 11:00 PM" />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">MUST ARRIVE AT VENUE BY <span className="text-red-500">*</span></label>
+                  <select
+                    value={form.venue_arrival_time}
+                    onChange={e => updateField('venue_arrival_time', e.target.value)}
+                    required
+                  >
+                    <option value="">Select a time</option>
+                    {Array.from({ length: 33 }, (_, i) => {
+                      const totalMin = 6 * 60 + i * 30
+                      const h = Math.floor(totalMin / 60)
+                      const m = totalMin % 60
+                      const period = h >= 12 ? 'PM' : 'AM'
+                      const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h
+                      const label = `${h12}:${m.toString().padStart(2, '0')} ${period}`
+                      return <option key={label} value={label}>{label}</option>
+                    })}
+                  </select>
+                </div>
+                <p className="text-xs text-muted-foreground">💡 If you need additional hours, please contact Marianna before the wedding day.</p>
               </div>
             </div>
 
