@@ -87,12 +87,23 @@ export default function CoupleDetailPage() {
           setInstallments(installmentsData || []);
         }
 
-        const { data: extrasData } = await supabase
-          .from('extras_orders')
+        // Fetch extras_invoices (linked by couple_name, not couple_id)
+        const { data: extrasInvoiceData } = await supabase
+          .from('extras_invoices')
           .select('*')
-          .eq('couple_id', coupleId)
-          .order('order_date');
-        setExtrasOrders(extrasData || []);
+          .eq('couple_name', coupleData.couple_name);
+
+        // Transform extras_invoices to match ExtrasOrder interface
+        const transformedExtras = (extrasInvoiceData || []).map(inv => ({
+          id: inv.id,
+          order_date: inv.created_date || inv.created_at,
+          order_type: 'frames_albums',
+          items: inv.items || {},
+          total: inv.grand_total?.toString() || '0',
+          status: inv.payment_note?.toLowerCase().includes('paid') ? 'paid' : 'pending',
+          notes: inv.invoice_notes || inv.payment_note || null,
+        }));
+        setExtrasOrders(transformedExtras);
 
         const { data: invoicesData } = await supabase
           .from('addon_invoices')
