@@ -171,7 +171,8 @@ export default function CouplesPage() {
     const byFrame = { bought: 0, pending: 0, noSale: 0 }
 
     couples.forEach(c => {
-      if (c.wedding_year && c.wedding_year in byYear) byYear[c.wedding_year as keyof typeof byYear]++
+      const year = c.wedding_date ? new Date(c.wedding_date).getFullYear() : null
+      if (year && year in byYear) byYear[year as keyof typeof byYear]++
       if (c.package_type === 'photo_only') byPackage.photo_only++
       else if (c.package_type === 'photo_video') byPackage.photo_video++
       const fs = c.frame_sale_status?.toUpperCase()
