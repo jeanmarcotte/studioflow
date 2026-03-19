@@ -3,9 +3,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   CalendarDays, Users, AlertTriangle, Calendar, ChevronUp, ChevronDown,
-  X, Search, Camera, Video, Check, XCircle,
+  X, Search, Camera, Video, Check, XCircle, Download,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -30,7 +32,7 @@ interface Assignment {
   num_videographers: number
 }
 
-type SortField = 'wedding_date' | 'couple_name' | 'status'
+type SortField = 'wedding_date' | 'day' | 'couple_name' | 'crew' | 'photo_1' | 'photo_2' | 'video_1' | 'status'
 type SortDir = 'asc' | 'desc'
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -232,6 +234,57 @@ export default function TeamSchedulePage() {
     }
   }
 
+  // ── PDF Export ────────────────────────────────────────────────
+
+  const exportPDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape' })
+
+    doc.setFontSize(16)
+    doc.text('SIGS Photography — 2026 Wedding Schedule', 14, 18)
+    doc.setFontSize(9)
+    doc.setTextColor(120)
+    doc.text(`${filtered.length} weddings`, 14, 24)
+
+    const rows = filtered.map(a => {
+      const pCount = (a.photo_1 ? 1 : 0) + (a.photo_2 ? 1 : 0)
+      const vCount = a.video_1 ? 1 : 0
+      const crew = [pCount > 0 ? `${pCount}P` : '', vCount > 0 ? `${vCount}V` : ''].filter(Boolean).join(' ') || '0'
+      return [
+        formatDate(a.wedding_date),
+        getDayName(a.wedding_date),
+        a.couple_name,
+        crew,
+        a.photo_1 || '—',
+        a.photo_2 || '—',
+        a.video_1 || '—',
+        a.status.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      ]
+    })
+
+    autoTable(doc, {
+      startY: 28,
+      head: [['Date', 'Day', 'Couple', 'Crew', 'Photo 1', 'Photo 2', 'Video 1', 'Status']],
+      body: rows,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [30, 64, 175], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+    })
+
+    const pageCount = doc.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFontSize(7)
+      doc.setTextColor(160)
+      doc.text(
+        `Generated ${new Date().toLocaleDateString('en-CA')} — Page ${i} of ${pageCount}`,
+        doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 8,
+        { align: 'center' }
+      )
+    }
+
+    doc.save('SIGS-2026-Wedding-Schedule.pdf')
+  }
+
   // ── Computed data ──────────────────────────────────────────────
 
   const missingCrew = useMemo(() =>
@@ -284,15 +337,33 @@ export default function TeamSchedulePage() {
 
     result.sort((a, b) => {
       let cmp = 0
+      const crewCount = (r: Assignment) => (r.photo_1 ? 1 : 0) + (r.photo_2 ? 1 : 0) + (r.video_1 ? 1 : 0)
+      const dayIndex = (r: Assignment) => new Date(r.wedding_date + 'T12:00:00').getDay()
+      const statusOrder: Record<string, number> = { confirmed: 0, pending: 1, missing_crew: 2 }
       switch (sortField) {
         case 'wedding_date':
           cmp = a.wedding_date.localeCompare(b.wedding_date)
           break
+        case 'day':
+          cmp = dayIndex(a) - dayIndex(b)
+          break
         case 'couple_name':
           cmp = a.couple_name.localeCompare(b.couple_name)
           break
+        case 'crew':
+          cmp = crewCount(a) - crewCount(b)
+          break
+        case 'photo_1':
+          cmp = (a.photo_1 || '').localeCompare(b.photo_1 || '')
+          break
+        case 'photo_2':
+          cmp = (a.photo_2 || '').localeCompare(b.photo_2 || '')
+          break
+        case 'video_1':
+          cmp = (a.video_1 || '').localeCompare(b.video_1 || '')
+          break
         case 'status':
-          cmp = a.status.localeCompare(b.status)
+          cmp = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9)
           break
       }
       return sortDir === 'asc' ? cmp : -cmp
@@ -368,17 +439,17 @@ export default function TeamSchedulePage() {
   // ── Crew indicator ─────────────────────────────────────────────
 
   function CrewBadge({ a }: { a: Assignment }) {
-    const p = a.num_photographers
-    const v = a.num_videographers
+    const p = (a.photo_1 ? 1 : 0) + (a.photo_2 ? 1 : 0)
+    const v = a.video_1 ? 1 : 0
     const total = p + v
     const tooltip = `${p} photographer${p !== 1 ? 's' : ''}${v > 0 ? `, ${v} videographer${v !== 1 ? 's' : ''}` : ''}`
-    const bg = v > 0 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+    const bg = total === 0 ? 'bg-gray-100 text-gray-500' : v > 0 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
 
     return (
       <span title={tooltip} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${bg}`}>
         {p > 0 && <><span>{p}</span><Camera className="h-3 w-3" /></>}
         {v > 0 && <><span>{v}</span><Video className="h-3 w-3" /></>}
-        {total === 0 && <span className="text-muted-foreground">—</span>}
+        {total === 0 && <span>0</span>}
       </span>
     )
   }
@@ -433,6 +504,13 @@ export default function TeamSchedulePage() {
             2026 Season &middot; {assignments.length} wedding{assignments.length !== 1 ? 's' : ''}
           </p>
         </div>
+        <button
+          onClick={exportPDF}
+          className="inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-muted transition-colors shadow-sm"
+        >
+          <Download className="h-4 w-4" />
+          Download PDF
+        </button>
       </div>
 
       {/* ── Team Member Badges ──────────────────────────────────── */}
@@ -518,7 +596,7 @@ export default function TeamSchedulePage() {
 
       {/* ── Team Workload ────────────────────────────────────────── */}
       {memberCounts.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4">
           {memberCounts.map(m => (
             <div key={m.id} className="rounded-xl border bg-card p-4 transition-all hover:border-primary hover:shadow-md">
               <div className="flex items-center justify-between mb-2">
@@ -571,29 +649,24 @@ export default function TeamSchedulePage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50 text-xs uppercase text-muted-foreground">
-                <th
-                  className="px-4 py-3 text-left cursor-pointer hover:text-foreground transition-colors select-none"
-                  onClick={() => handleSort('wedding_date')}
-                >
-                  <span className="inline-flex items-center gap-1">Date <SortIcon field="wedding_date" /></span>
-                </th>
-                <th className="px-3 py-3 text-left">Day</th>
-                <th
-                  className="px-4 py-3 text-left cursor-pointer hover:text-foreground transition-colors select-none"
-                  onClick={() => handleSort('couple_name')}
-                >
-                  <span className="inline-flex items-center gap-1">Couple <SortIcon field="couple_name" /></span>
-                </th>
-                <th className="px-3 py-3 text-center">Crew</th>
-                <th className="px-4 py-3 text-left">Photo 1</th>
-                <th className="px-4 py-3 text-left">Photo 2</th>
-                <th className="px-4 py-3 text-left">Video 1</th>
-                <th
-                  className="px-4 py-3 text-left cursor-pointer hover:text-foreground transition-colors select-none"
-                  onClick={() => handleSort('status')}
-                >
-                  <span className="inline-flex items-center gap-1">Status <SortIcon field="status" /></span>
-                </th>
+                {([
+                  ['wedding_date', 'Date', 'px-4', 'text-left'],
+                  ['day', 'Day', 'px-3', 'text-left'],
+                  ['couple_name', 'Couple', 'px-4', 'text-left'],
+                  ['crew', 'Crew', 'px-3', 'text-center'],
+                  ['photo_1', 'Photo 1', 'px-4', 'text-left'],
+                  ['photo_2', 'Photo 2', 'px-4', 'text-left'],
+                  ['video_1', 'Video 1', 'px-4', 'text-left'],
+                  ['status', 'Status', 'px-4', 'text-left'],
+                ] as [SortField, string, string, string][]).map(([field, label, px, align]) => (
+                  <th
+                    key={field}
+                    className={`${px} py-3 ${align} cursor-pointer hover:text-foreground transition-colors select-none`}
+                    onClick={() => handleSort(field)}
+                  >
+                    <span className="inline-flex items-center gap-1">{label} <SortIcon field={field} /></span>
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y">
