@@ -1,187 +1,148 @@
 'use client';
 
-import { parseISO, differenceInDays } from 'date-fns';
-
-export interface MilestoneData {
-  m01_lead_captured: boolean;
-  m02_consultation_booked: boolean;
-  m03_consultation_done: boolean;
-  m04_contract_signed: boolean;
-  m05_deposit_received: boolean;
-  m06_eng_session_shot: boolean;
-  m07_eng_photos_edited: boolean;
-  m08_eng_proofs_to_lab: boolean;
-  m09_eng_prints_picked_up: boolean;
-  m10_frame_sale_quote: boolean;
-  m11_sale_results_pdf: boolean;
-  m12_eng_order_to_lab: boolean;
-  m13_eng_items_framed: boolean;
-  m14_eng_items_picked_up: boolean;
-  m15_day_form_approved: boolean;
-  m16_staff_confirmed: boolean;
-  m19_wedding_day: boolean;
-  m20_files_backed_up: boolean;
-  m22_proofs_edited: boolean;
-  m24_photo_order_in: boolean;
-  m25_video_order_in: boolean;
-  m26_photo_order_to_lab: boolean;
-  m27_video_long_form: boolean;
-  m28_recap_edited: boolean;
-  m29_lab_order_back: boolean;
-  m30_hires_on_usb: boolean;
-  m31_video_on_usb: boolean;
-  m32_ready_at_studio: boolean;
-  m33_final_payment: boolean;
-  m34_items_picked_up: boolean;
-  m35_archived: boolean;
-  m36_complete: boolean;
-}
-
-export interface ClientJourneyProps {
-  milestones: MilestoneData | null;
+interface ClientJourneyProps {
+  milestones: Record<string, boolean> | null;
   weddingDate: string;
 }
 
-type MilestoneKey = keyof MilestoneData;
+const MILESTONE_CONFIG = [
+  // PRE-WEDDING (9 items)
+  { key: 'm01_lead_captured', label: 'Lead Captured', section: 'PRE-WEDDING' },
+  { key: 'm02_consultation_booked', label: 'Consultation Booked', section: 'PRE-WEDDING' },
+  { key: 'm03_consultation_done', label: 'Consultation Done', section: 'PRE-WEDDING' },
+  { key: 'm04_contract_signed', label: 'Contract Signed', section: 'PRE-WEDDING' },
+  { key: 'm05_deposit_received', label: 'Deposit Received', section: 'PRE-WEDDING' },
+  { key: 'm06_eng_session_shot', label: 'Eng Session Shot', section: 'PRE-WEDDING' },
+  { key: 'm07_eng_photos_edited', label: 'Eng Photos Edited', section: 'PRE-WEDDING' },
+  { key: 'm08_eng_proofs_to_lab', label: 'Eng Proofs to Lab', section: 'PRE-WEDDING' },
+  { key: 'm09_eng_prints_picked_up', label: 'Eng Prints Picked Up', section: 'PRE-WEDDING' },
 
-interface MilestoneRow {
-  label: string;
-  keys: MilestoneKey[];
-}
+  // ENG SALES → WEDDING PREP (9 items)
+  { key: 'm10_frame_sale_quote', label: 'Frame Sale Quote', section: 'ENG SALES → WEDDING PREP' },
+  { key: 'm11_sale_results_pdf', label: 'Sale Results + PDF', section: 'ENG SALES → WEDDING PREP' },
+  { key: 'm12_eng_order_to_lab', label: 'Eng Order to Lab', section: 'ENG SALES → WEDDING PREP' },
+  { key: 'm13_eng_items_framed', label: 'Eng Items Framed', section: 'ENG SALES → WEDDING PREP' },
+  { key: 'm14_eng_items_picked_up', label: 'Eng Items Picked Up', section: 'ENG SALES → WEDDING PREP' },
+  { key: 'm15_day_form_approved', label: 'Day Form Approved', section: 'ENG SALES → WEDDING PREP', urgent: true },
+  { key: 'm16_staff_confirmed', label: 'Staff Confirmed', section: 'ENG SALES → WEDDING PREP', urgent: true },
+  { key: 'm17_tuesday_confirm', label: 'Tuesday Confirm', section: 'ENG SALES → WEDDING PREP' },
+  { key: 'm18_equipment_packed', label: 'Equipment Packed', section: 'ENG SALES → WEDDING PREP' },
 
-const ROWS: MilestoneRow[] = [
-  {
-    label: 'PRE-WEDDING (M01–M09)',
-    keys: [
-      'm01_lead_captured', 'm02_consultation_booked', 'm03_consultation_done',
-      'm04_contract_signed', 'm05_deposit_received', 'm06_eng_session_shot',
-      'm07_eng_photos_edited', 'm08_eng_proofs_to_lab', 'm09_eng_prints_picked_up',
-    ],
-  },
-  {
-    label: 'ENG SALES → PREP (M10–M16)',
-    keys: [
-      'm10_frame_sale_quote', 'm11_sale_results_pdf', 'm12_eng_order_to_lab',
-      'm13_eng_items_framed', 'm14_eng_items_picked_up', 'm15_day_form_approved',
-      'm16_staff_confirmed',
-    ],
-  },
-  {
-    label: 'WEDDING → POST (M19–M28)',
-    keys: [
-      'm19_wedding_day', 'm20_files_backed_up', 'm22_proofs_edited',
-      'm24_photo_order_in', 'm25_video_order_in', 'm26_photo_order_to_lab',
-      'm27_video_long_form', 'm28_recap_edited',
-    ],
-  },
-  {
-    label: 'DELIVERY → COMPLETE (M29–M36)',
-    keys: [
-      'm29_lab_order_back', 'm30_hires_on_usb', 'm31_video_on_usb',
-      'm32_ready_at_studio', 'm33_final_payment', 'm34_items_picked_up',
-      'm35_archived', 'm36_complete',
-    ],
-  },
+  // WEDDING → POST-PRODUCTION (9 items)
+  { key: 'm19_wedding_day', label: 'Wedding Day ✓', section: 'WEDDING → POST-PRODUCTION' },
+  { key: 'm20_files_backed_up', label: 'Files Backed Up', section: 'WEDDING → POST-PRODUCTION' },
+  { key: 'm21_sneak_peek_posted', label: 'Sneak Peek Posted', section: 'WEDDING → POST-PRODUCTION' },
+  { key: 'm22_proofs_edited', label: 'Proofs Edited', section: 'WEDDING → POST-PRODUCTION' },
+  { key: 'm23_couple_contacted', label: 'Couple Contacted', section: 'WEDDING → POST-PRODUCTION' },
+  { key: 'm24_photo_order_in', label: 'Photo Order In', section: 'WEDDING → POST-PRODUCTION' },
+  { key: 'm25_video_order_in', label: 'Video Order In', section: 'WEDDING → POST-PRODUCTION' },
+  { key: 'm26_photo_order_to_lab', label: 'Photo Order to Lab', section: 'WEDDING → POST-PRODUCTION' },
+  { key: 'm27_video_long_form', label: 'Video Long Form', section: 'WEDDING → POST-PRODUCTION' },
+
+  // DELIVERY → COMPLETE (9 items)
+  { key: 'm28_recap_edited', label: 'Recap Edited', section: 'DELIVERY → COMPLETE' },
+  { key: 'm29_lab_order_back', label: 'Lab Order Back', section: 'DELIVERY → COMPLETE' },
+  { key: 'm30_hires_on_usb', label: 'Hi-Res on USB', section: 'DELIVERY → COMPLETE' },
+  { key: 'm31_video_on_usb', label: 'Video on USB', section: 'DELIVERY → COMPLETE' },
+  { key: 'm32_ready_at_studio', label: 'Ready at Studio', section: 'DELIVERY → COMPLETE' },
+  { key: 'm33_final_payment', label: 'Final Payment', section: 'DELIVERY → COMPLETE' },
+  { key: 'm34_items_picked_up', label: 'Items Picked Up', section: 'DELIVERY → COMPLETE' },
+  { key: 'm35_archived', label: 'Archived', section: 'DELIVERY → COMPLETE' },
+  { key: 'm36_complete', label: 'COMPLETE', section: 'DELIVERY → COMPLETE', isComplete: true },
 ];
-
-const ALL_KEYS: MilestoneKey[] = ROWS.flatMap((r) => r.keys);
-
-function extractNumber(key: string): string {
-  const match = key.match(/^m(\d+)/);
-  return match ? match[1] : '?';
-}
-
-function getUrgentCount(milestones: MilestoneData, weddingDate: string): number {
-  if (!weddingDate) return 0;
-  const daysUntil = differenceInDays(parseISO(weddingDate), new Date());
-  let urgent = 0;
-
-  // Pre-wedding milestones become urgent within 30 days of wedding
-  if (daysUntil <= 30 && daysUntil > 0) {
-    if (!milestones.m15_day_form_approved) urgent++;
-    if (!milestones.m16_staff_confirmed) urgent++;
-  }
-
-  // Post-wedding milestones become urgent 60+ days after wedding
-  if (daysUntil < -60) {
-    if (!milestones.m22_proofs_edited) urgent++;
-    if (!milestones.m24_photo_order_in) urgent++;
-  }
-
-  return urgent;
-}
 
 export function ClientJourney({ milestones, weddingDate }: ClientJourneyProps) {
   if (!milestones) {
     return (
       <div className="bg-white rounded-xl border border-slate-200 p-5 mb-4">
-        <p className="text-slate-400">No milestone data available</p>
+        <p className="text-slate-500 text-sm">No milestone data available</p>
       </div>
     );
   }
 
-  const completed = ALL_KEYS.filter((k) => milestones[k]).length;
-  const total = ALL_KEYS.length;
-  const remaining = total - completed;
-  const pct = Math.round((completed / total) * 100);
-  const urgent = getUrgentCount(milestones, weddingDate);
+  const today = new Date();
+  const wedding = weddingDate ? new Date(weddingDate) : null;
+  const isPreWedding = wedding ? wedding > today : false;
 
-  const pctColor = pct > 90 ? 'bg-green-100 text-green-700' : pct > 50 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600';
+  // Calculate stats
+  const completed = MILESTONE_CONFIG.filter(m => milestones[m.key] === true).length;
+  const total = MILESTONE_CONFIG.length;
+  const pending = total - completed;
+  const percentage = Math.round((completed / total) * 100);
+
+  // Count urgent items (pre-wedding milestones not done when wedding is within 14 days)
+  const urgentCount = MILESTONE_CONFIG.filter(m =>
+    m.urgent && !milestones[m.key] && isPreWedding && wedding && (wedding.getTime() - today.getTime()) < 14 * 24 * 60 * 60 * 1000
+  ).length;
+
+  // Group milestones by section
+  const sections = ['PRE-WEDDING', 'ENG SALES → WEDDING PREP', 'WEDDING → POST-PRODUCTION', 'DELIVERY → COMPLETE'];
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5 mb-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold text-slate-800">🎯 Client Journey</h2>
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${pctColor}`}>
-          {pct}%
-        </span>
-      </div>
-
-      {/* Stats Row */}
-      <div className="text-sm text-slate-500 mb-3">
-        ✅ {completed} complete · 🚨 {urgent} urgent · ○ {remaining} remaining
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-semibold text-slate-800">Client Journey</h3>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-green-600">✅ {completed}</span>
+          {urgentCount > 0 && <span className="text-red-500">🚨 {urgentCount} urgent</span>}
+          <span className="text-slate-400">○ {pending}</span>
+          <span className={`font-bold text-lg ${percentage >= 90 ? 'text-green-600' : percentage >= 50 ? 'text-amber-500' : 'text-slate-400'}`}>
+            {percentage}%
+          </span>
+        </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="h-2 bg-slate-100 rounded-full mb-5 overflow-hidden">
+      <div className="h-2 bg-slate-100 rounded-full mb-6 overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-green-500 to-teal-500 rounded-full transition-all duration-500"
-          style={{ width: `${pct}%` }}
+          className="h-full bg-gradient-to-r from-teal-500 to-teal-600 rounded-full transition-all duration-500"
+          style={{ width: `${percentage}%` }}
         />
       </div>
 
-      {/* Milestone Rows */}
-      <div className="flex flex-col gap-4">
-        {ROWS.map((row) => (
-          <div key={row.label}>
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              {row.label}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {row.keys.map((key) => {
-                const done = milestones[key];
-                const num = extractNumber(key);
-                const isComplete = key === 'm36_complete' && done;
+      {/* Sections */}
+      {sections.map(section => {
+        const sectionMilestones = MILESTONE_CONFIG.filter(m => m.section === section);
+
+        return (
+          <div key={section} className="mb-6">
+            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+              {section}
+            </h4>
+            <div className="grid grid-cols-9 gap-2">
+              {sectionMilestones.map(milestone => {
+                const isDone = milestones[milestone.key] === true;
+                const isUrgent = milestone.urgent && !isDone && isPreWedding && wedding && (wedding.getTime() - today.getTime()) < 14 * 24 * 60 * 60 * 1000;
+                const isFinalComplete = milestone.isComplete && isDone;
 
                 return (
-                  <div
-                    key={key}
-                    title={key.replace(/^m\d+_/, '').replace(/_/g, ' ')}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
-                      done
-                        ? 'bg-green-500 text-white'
-                        : 'bg-slate-100 border border-slate-300 text-slate-400'
-                    }`}
-                  >
-                    {isComplete ? '🎊' : done ? '✓' : num}
+                  <div key={milestone.key} className="flex flex-col items-center">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
+                        isFinalComplete
+                          ? 'bg-gradient-to-br from-amber-100 to-amber-200 border-2 border-amber-400'
+                          : isDone
+                          ? 'bg-teal-500 text-white'
+                          : isUrgent
+                          ? 'bg-red-100 border-2 border-red-400 text-red-600'
+                          : 'bg-slate-100 text-slate-400 border border-slate-200'
+                      }`}
+                    >
+                      {isFinalComplete ? '🎊' : isDone ? '✓' : isUrgent ? '!' : '○'}
+                    </div>
+                    <span className={`text-xs mt-1.5 text-center leading-tight ${
+                      isUrgent ? 'text-red-600 font-semibold' : isDone ? 'text-teal-700' : 'text-slate-500'
+                    }`}>
+                      {milestone.label}
+                    </span>
                   </div>
                 );
               })}
             </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }

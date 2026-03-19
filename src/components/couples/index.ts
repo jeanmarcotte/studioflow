@@ -1,5 +1,5 @@
 export { ClientCard, type ClientCardProps } from './ClientCard';
-export { ClientJourney, type ClientJourneyProps, type MilestoneData } from './ClientJourney';
+export { ClientJourney } from './ClientJourney';
 export { TeamSection, type TeamSectionProps } from './TeamSection';
 export { NotesSection, type NotesSectionProps } from './NotesSection';
 export { FormsBox, type FormsBoxProps } from './FormsBox';
