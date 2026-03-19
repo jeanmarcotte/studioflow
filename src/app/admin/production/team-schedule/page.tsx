@@ -107,7 +107,7 @@ function StaffDropdown({ value, role, members, onSelect }: {
   onSelect: (name: string | null) => void
 }) {
   const [open, setOpen] = useState(false)
-  const filtered = members.filter(m => m.role === role && m.is_active)
+  const filtered = members.filter(m => (m.role === role || m.role === 'both') && m.is_active)
   const member = members.find(m => m.name === value)
 
   return (
@@ -453,7 +453,7 @@ export default function TeamSchedulePage() {
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm"
                 style={{ backgroundColor: m.color }}
               >
-                {m.role === 'photographer' ? <Camera className="h-3 w-3" /> : <Video className="h-3 w-3" />}
+                {m.role === 'videographer' ? <Video className="h-3 w-3" /> : <Camera className="h-3 w-3" />}
                 {m.name}
               </span>
             ))}
@@ -532,7 +532,9 @@ export default function TeamSchedulePage() {
                 <div className="rounded-lg p-2" style={{ backgroundColor: m.color + '18' }}>
                   {m.role === 'videographer'
                     ? <Video className="h-4 w-4" style={{ color: m.color }} />
-                    : <Camera className="h-4 w-4" style={{ color: m.color }} />}
+                    : m.role === 'both'
+                      ? <Users className="h-4 w-4" style={{ color: m.color }} />
+                      : <Camera className="h-4 w-4" style={{ color: m.color }} />}
                 </div>
                 <span className="text-2xl font-bold">{m.count}</span>
               </div>
