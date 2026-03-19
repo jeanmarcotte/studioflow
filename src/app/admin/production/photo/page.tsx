@@ -134,14 +134,18 @@ export default function PhotoProductionPage() {
     const fetchAll = async () => {
       const today = new Date().toISOString().split('T')[0]
 
-      const [jobsRes, completedRes, waitingRes, reeditRes, photosRes] = await Promise.all([
-        // Active jobs (existing query)
+      const [jobsRes, couplesRes, completedRes, waitingRes, reeditRes, photosRes] = await Promise.all([
+        // Active jobs
         supabase
           .from('jobs')
-          .select('*, couples(couple_name, wedding_date)')
+          .select('*')
           .in('category', ['wedding', 'engagement'])
           .not('status', 'in', '("completed","picked_up")')
           .order('created_at', { ascending: false }),
+        // All couples (for name lookup)
+        supabase
+          .from('couples')
+          .select('id, couple_name, wedding_date'),
         // Completed count
         supabase
           .from('jobs')
@@ -167,13 +171,18 @@ export default function PhotoProductionPage() {
           .in('category', ['wedding', 'engagement']),
       ])
 
-      console.log('[Photo Stats] completedRes:', completedRes.count, completedRes.error)
-      console.log('[Photo Stats] waitingRes:', waitingRes.data?.length, waitingRes.error, waitingRes.data)
-      console.log('[Photo Stats] reeditRes:', reeditRes.data?.length, reeditRes.error)
-      console.log('[Photo Stats] photosRes:', photosRes.data?.length, photosRes.error)
+      // Build couple lookup map
+      const coupleMap = new Map<string, { couple_name: string; wedding_date: string | null }>()
+      if (couplesRes.data) {
+        couplesRes.data.forEach((c: any) => coupleMap.set(c.id, { couple_name: c.couple_name, wedding_date: c.wedding_date }))
+      }
 
       if (!jobsRes.error && jobsRes.data) {
-        setJobs(jobsRes.data as unknown as Job[])
+        const enriched = (jobsRes.data as any[]).map(j => ({
+          ...j,
+          couples: coupleMap.get(j.couple_id) || null,
+        }))
+        setJobs(enriched as Job[])
       }
       setCompletedCount(completedRes.count ?? 0)
       if (!waitingRes.error && waitingRes.data) {
