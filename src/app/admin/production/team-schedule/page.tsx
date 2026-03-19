@@ -124,7 +124,7 @@ function StaffDropdown({ value, role, members, onSelect }: {
             {value}
           </span>
         ) : (
-          <span className="text-red-600 font-medium">Needed</span>
+          <span className="text-muted-foreground">—</span>
         )}
         <ChevronDown className="h-3 w-3 text-muted-foreground" />
       </button>
@@ -368,24 +368,17 @@ export default function TeamSchedulePage() {
   // ── Crew indicator ─────────────────────────────────────────────
 
   function CrewBadge({ a }: { a: Assignment }) {
-    const isDouble = isDoubleWedding(a.wedding_date, assignments)
-    if (isDouble) {
-      return (
-        <span title="Double Wedding" className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 px-2 py-0.5 text-[10px] font-semibold">
-          <Users className="h-3 w-3" /> 2x
-        </span>
-      )
-    }
-    if (a.num_videographers === 0) {
-      return (
-        <span title="Photo Only" className="inline-flex items-center gap-1 rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 text-[10px] font-semibold">
-          <Camera className="h-3 w-3" /> Photo
-        </span>
-      )
-    }
+    const p = a.num_photographers
+    const v = a.num_videographers
+    const total = p + v
+    const tooltip = `${p} photographer${p !== 1 ? 's' : ''}${v > 0 ? `, ${v} videographer${v !== 1 ? 's' : ''}` : ''}`
+    const bg = v > 0 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+
     return (
-      <span title="Photo + Video" className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-[10px] font-semibold">
-        <Camera className="h-3 w-3" /><span className="mx-0.5">&</span><Video className="h-3 w-3" />
+      <span title={tooltip} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${bg}`}>
+        {p > 0 && <><span>{p}</span><Camera className="h-3 w-3" /></>}
+        {v > 0 && <><span>{v}</span><Video className="h-3 w-3" /></>}
+        {total === 0 && <span className="text-muted-foreground">—</span>}
       </span>
     )
   }
@@ -612,9 +605,6 @@ export default function TeamSchedulePage() {
                 </tr>
               )}
               {filtered.map(a => {
-                const needsPhoto2 = a.num_photographers >= 2
-                const needsVideo = a.num_videographers >= 1
-
                 return (
                   <tr key={a.id} className={getRowClasses(a)}>
                     {/* Date */}
@@ -649,30 +639,22 @@ export default function TeamSchedulePage() {
 
                     {/* Photo 2 */}
                     <td className="px-4 py-3">
-                      {needsPhoto2 ? (
-                        <StaffDropdown
-                          value={a.photo_2}
-                          role="photographer"
-                          members={teamMembers}
-                          onSelect={v => updateStaff(a.id, 'photo_2', v)}
-                        />
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
+                      <StaffDropdown
+                        value={a.photo_2}
+                        role="photographer"
+                        members={teamMembers}
+                        onSelect={v => updateStaff(a.id, 'photo_2', v)}
+                      />
                     </td>
 
                     {/* Video 1 */}
                     <td className="px-4 py-3">
-                      {needsVideo ? (
-                        <StaffDropdown
-                          value={a.video_1}
-                          role="videographer"
-                          members={teamMembers}
-                          onSelect={v => updateStaff(a.id, 'video_1', v)}
-                        />
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
+                      <StaffDropdown
+                        value={a.video_1}
+                        role="videographer"
+                        members={teamMembers}
+                        onSelect={v => updateStaff(a.id, 'video_1', v)}
+                      />
                     </td>
 
                     {/* Status */}
