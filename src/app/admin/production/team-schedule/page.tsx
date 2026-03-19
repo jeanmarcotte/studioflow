@@ -175,7 +175,7 @@ export default function TeamSchedulePage() {
   // ── Fetch data ─────────────────────────────────────────────────
 
   const fetchData = useCallback(async () => {
-    const [assignRes, teamRes] = await Promise.all([
+    const [assignRes, teamRes, contractsRes] = await Promise.all([
       supabase
         .from('wedding_assignments')
         .select(`
@@ -189,6 +189,9 @@ export default function TeamSchedulePage() {
         .select('*')
         .eq('is_active', true)
         .order('name'),
+      supabase
+        .from('contracts')
+        .select('couple_id, num_photographers, num_videographers'),
     ])
 
     if (teamRes.data) setTeamMembers(teamRes.data as TeamMember[])
@@ -197,20 +200,34 @@ export default function TeamSchedulePage() {
       console.error('Failed to fetch assignments:', assignRes.error)
     }
 
+    // Build contract lookup by couple_id
+    const contractMap = new Map<string, { num_photographers: number; num_videographers: number }>()
+    if (contractsRes.data) {
+      for (const c of contractsRes.data as any[]) {
+        contractMap.set(c.couple_id, {
+          num_photographers: c.num_photographers ?? 1,
+          num_videographers: c.num_videographers ?? 0,
+        })
+      }
+    }
+
     if (assignRes.data) {
       const mapped: Assignment[] = (assignRes.data as any[])
-        .map(a => ({
-          id: a.id,
-          couple_id: a.couple_id,
-          photo_1: a.photo_1,
-          photo_2: a.photo_2,
-          video_1: a.video_1,
-          status: a.status,
-          couple_name: a.couples.couple_name,
-          wedding_date: a.couples.wedding_date,
-          num_photographers: a.photo_2 !== null ? 2 : 1,
-          num_videographers: a.video_1 !== null ? 1 : 0,
-        }))
+        .map(a => {
+          const contract = contractMap.get(a.couple_id)
+          return {
+            id: a.id,
+            couple_id: a.couple_id,
+            photo_1: a.photo_1,
+            photo_2: a.photo_2,
+            video_1: a.video_1,
+            status: a.status,
+            couple_name: a.couples.couple_name,
+            wedding_date: a.couples.wedding_date,
+            num_photographers: contract?.num_photographers ?? 1,
+            num_videographers: contract?.num_videographers ?? 0,
+          }
+        })
       setAssignments(mapped)
     }
 
@@ -246,9 +263,7 @@ export default function TeamSchedulePage() {
     doc.text(`${filtered.length} weddings`, 14, 24)
 
     const rows = filtered.map(a => {
-      const pCount = (a.photo_1 ? 1 : 0) + (a.photo_2 ? 1 : 0)
-      const vCount = a.video_1 ? 1 : 0
-      const crew = [pCount > 0 ? `${pCount}P` : '', vCount > 0 ? `${vCount}V` : ''].filter(Boolean).join(' ') || '0'
+      const crew = [a.num_photographers > 0 ? `${a.num_photographers}P` : '', a.num_videographers > 0 ? `${a.num_videographers}V` : ''].filter(Boolean).join(' ') || '0'
       return [
         formatDate(a.wedding_date),
         getDayName(a.wedding_date),
@@ -337,7 +352,7 @@ export default function TeamSchedulePage() {
 
     result.sort((a, b) => {
       let cmp = 0
-      const crewCount = (r: Assignment) => (r.photo_1 ? 1 : 0) + (r.photo_2 ? 1 : 0) + (r.video_1 ? 1 : 0)
+      const crewCount = (r: Assignment) => r.num_photographers + r.num_videographers
       const dayIndex = (r: Assignment) => new Date(r.wedding_date + 'T12:00:00').getDay()
       const statusOrder: Record<string, number> = { confirmed: 0, pending: 1, missing_crew: 2 }
       switch (sortField) {
@@ -439,10 +454,10 @@ export default function TeamSchedulePage() {
   // ── Crew indicator ─────────────────────────────────────────────
 
   function CrewBadge({ a }: { a: Assignment }) {
-    const p = (a.photo_1 ? 1 : 0) + (a.photo_2 ? 1 : 0)
-    const v = a.video_1 ? 1 : 0
+    const p = a.num_photographers
+    const v = a.num_videographers
     const total = p + v
-    const tooltip = `${p} photographer${p !== 1 ? 's' : ''}${v > 0 ? `, ${v} videographer${v !== 1 ? 's' : ''}` : ''}`
+    const tooltip = `Contract: ${p} photographer${p !== 1 ? 's' : ''}${v > 0 ? `, ${v} videographer${v !== 1 ? 's' : ''}` : ''}`
     const bg = total === 0 ? 'bg-gray-100 text-gray-500' : v > 0 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
 
     return (
