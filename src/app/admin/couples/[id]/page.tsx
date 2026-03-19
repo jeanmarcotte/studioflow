@@ -98,7 +98,12 @@ export default function CoupleDetailPage() {
           id: inv.id,
           order_date: inv.created_date || inv.created_at,
           order_type: 'frames_albums',
-          items: inv.items || {},
+          items: Array.isArray(inv.items)
+            ? inv.items.reduce((acc: Record<string, string>, item: any) => {
+                acc[item.description || 'item'] = item.amount || item.total?.toString() || '';
+                return acc;
+              }, {})
+            : (inv.items || {}),
           total: inv.grand_total?.toString() || '0',
           status: inv.payment_note?.toLowerCase().includes('paid') ? 'paid' : 'pending',
           notes: inv.invoice_notes || inv.payment_note || null,
