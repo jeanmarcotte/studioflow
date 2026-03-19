@@ -174,9 +174,71 @@ export function FinancialLedger({
           </tbody>
         </table>
 
+        {/* Part 2: Installment Schedule */}
+        {installments.length > 0 && (
+          <>
+            <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">
+              Part 2: Payment Schedule ({installments.length} installments)
+            </h4>
+            <table className="w-full text-sm mb-6">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="text-left py-2 text-xs font-semibold text-slate-500 uppercase w-8">#</th>
+                  <th className="text-left py-2 text-xs font-semibold text-slate-500 uppercase">Description</th>
+                  <th className="text-left py-2 text-xs font-semibold text-slate-500 uppercase w-28">Due Date</th>
+                  <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase w-24">Amount</th>
+                  <th className="text-center py-2 text-xs font-semibold text-slate-500 uppercase w-24">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {installments.map((inst) => {
+                  const amount = parseFloat(inst.amount);
+                  const dueDate = inst.due_date ? new Date(inst.due_date) : null;
+                  const today = new Date();
+                  const isOverdue = dueDate && dueDate < today;
+
+                  // Calculate cumulative amount up to this installment
+                  const cumulativeAmount = installments
+                    .filter(i => i.installment_number <= inst.installment_number)
+                    .reduce((sum, i) => sum + parseFloat(i.amount), 0);
+
+                  // Determine if this installment is paid based on total paid vs cumulative
+                  const isPaid = totalPaid >= cumulativeAmount;
+
+                  return (
+                    <tr key={inst.id} className="border-b border-slate-100">
+                      <td className="py-3 text-slate-400 font-mono">{inst.installment_number}</td>
+                      <td className="py-3 font-medium">{inst.due_description}</td>
+                      <td className="py-3 font-mono text-slate-600">
+                        {dueDate ? format(dueDate, 'MMM d, yyyy') : '—'}
+                      </td>
+                      <td className="py-3 text-right font-mono">${amount.toLocaleString()}</td>
+                      <td className="py-3 text-center">
+                        {isPaid ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                            ✓ Paid
+                          </span>
+                        ) : isOverdue ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 animate-pulse">
+                            ⚠️ Overdue
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+                            Pending
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </>
+        )}
+
         {/* Part 3: Payment History */}
         <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">
-          Part 2: Payment History ({payments.length} payments)
+          Part 3: Payment History ({payments.length} payments)
         </h4>
         <table className="w-full text-sm mb-6">
           <thead>
@@ -221,7 +283,7 @@ export function FinancialLedger({
         {/* Part 4: By Payer */}
         {Object.keys(payerTotals).length > 0 && (
           <>
-            <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">Part 3: Payments by Payer</h4>
+            <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">Part 4: Payments by Payer</h4>
             <div className="grid grid-cols-2 gap-3 mb-6">
               {Object.entries(payerTotals).map(([name, data]) => (
                 <div key={name} className="bg-slate-50 rounded-lg p-4 flex justify-between items-center">
