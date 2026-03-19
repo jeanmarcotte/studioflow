@@ -14,9 +14,11 @@ import autoTable from 'jspdf-autotable'
 interface TeamMember {
   id: string
   name: string
-  role: string        // 'photographer' | 'videographer'
+  role: string        // 'photographer' | 'videographer' | 'both'
   color: string
   is_active: boolean
+  team_tier: string   // 'core' | 'backup'
+  display_order: number
 }
 
 interface Assignment {
@@ -345,12 +347,15 @@ export default function TeamSchedulePage() {
   }, [assignments])
 
   const memberCounts = useMemo(() => {
-    return teamMembers.map(m => {
+    const withCounts = teamMembers.map(m => {
       const count = assignments.filter(a =>
         a.photo_1 === m.name || a.photo_2 === m.name || a.video_1 === m.name
       ).length
       return { ...m, count }
     })
+    const core = withCounts.filter(m => m.team_tier === 'core').sort((a, b) => a.display_order - b.display_order)
+    const backup = withCounts.filter(m => m.team_tier === 'backup').sort((a, b) => a.display_order - b.display_order)
+    return { core, backup }
   }, [assignments, teamMembers])
 
   // ── Filtered + sorted ──────────────────────────────────────────
@@ -546,25 +551,6 @@ export default function TeamSchedulePage() {
         </button>
       </div>
 
-      {/* ── Team Member Badges ──────────────────────────────────── */}
-      {teamMembers.length > 0 && (
-        <div className="rounded-xl border bg-card p-4">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-3">Active Team</h3>
-          <div className="flex flex-wrap gap-2">
-            {teamMembers.filter(m => m.is_active).map(m => (
-              <span
-                key={m.id}
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm"
-                style={{ backgroundColor: m.color }}
-              >
-                {m.role === 'videographer' ? <Video className="h-3 w-3" /> : <Camera className="h-3 w-3" />}
-                {m.name}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ── Stat Boxes ──────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <button
@@ -627,25 +613,53 @@ export default function TeamSchedulePage() {
         </button>
       </div>
 
-      {/* ── Team Workload ────────────────────────────────────────── */}
-      {memberCounts.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4">
-          {memberCounts.map(m => (
-            <div key={m.id} className="rounded-xl border bg-card p-4 transition-all hover:border-primary hover:shadow-md">
-              <div className="flex items-center justify-between mb-2">
-                <div className="rounded-lg p-2" style={{ backgroundColor: m.color + '18' }}>
-                  {m.role === 'videographer'
-                    ? <Video className="h-4 w-4" style={{ color: m.color }} />
-                    : m.role === 'both'
-                      ? <Users className="h-4 w-4" style={{ color: m.color }} />
-                      : <Camera className="h-4 w-4" style={{ color: m.color }} />}
+      {/* ── Core Team ──────────────────────────────────────────── */}
+      {memberCounts.core.length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-3">Core Team</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {memberCounts.core.map(m => (
+              <div key={m.id} className="rounded-xl border bg-card p-4 transition-all hover:border-primary hover:shadow-md">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="rounded-lg p-2" style={{ backgroundColor: m.color + '18' }}>
+                    {m.role === 'videographer'
+                      ? <Video className="h-4 w-4" style={{ color: m.color }} />
+                      : m.role === 'both'
+                        ? <Users className="h-4 w-4" style={{ color: m.color }} />
+                        : <Camera className="h-4 w-4" style={{ color: m.color }} />}
+                  </div>
+                  <span className="text-2xl font-bold">{m.count}</span>
                 </div>
-                <span className="text-2xl font-bold">{m.count}</span>
+                <div className="text-sm font-medium">{m.name}</div>
+                <p className="text-xs text-muted-foreground mt-0.5 capitalize">{m.role}</p>
               </div>
-              <div className="text-sm font-medium">{m.name}</div>
-              <p className="text-xs text-muted-foreground mt-0.5 capitalize">{m.role}</p>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Backup Team ────────────────────────────────────────── */}
+      {memberCounts.backup.length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-3">Backup</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {memberCounts.backup.map(m => (
+              <div key={m.id} className="rounded-xl border bg-card p-4 transition-all hover:border-primary hover:shadow-md border-dashed">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="rounded-lg p-2" style={{ backgroundColor: m.color + '18' }}>
+                    {m.role === 'videographer'
+                      ? <Video className="h-4 w-4" style={{ color: m.color }} />
+                      : m.role === 'both'
+                        ? <Users className="h-4 w-4" style={{ color: m.color }} />
+                        : <Camera className="h-4 w-4" style={{ color: m.color }} />}
+                  </div>
+                  <span className="text-2xl font-bold">{m.count}</span>
+                </div>
+                <div className="text-sm font-medium">{m.name}</div>
+                <p className="text-xs text-muted-foreground mt-0.5 capitalize">{m.role}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
