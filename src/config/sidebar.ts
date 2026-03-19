@@ -17,6 +17,9 @@ import {
   Scissors,
   ClipboardList,
   CalendarDays,
+  Upload,
+  CreditCard,
+  Clock,
 } from 'lucide-react'
 
 export interface SidebarItem {
@@ -101,7 +104,16 @@ export const studioflowAdminConfig: SidebarConfig = {
     },
     {
       items: [
-        { title: 'Finance', href: '/admin/finance', icon: DollarSign },
+        {
+          title: 'Finance',
+          icon: DollarSign,
+          children: [
+            { title: 'Dashboard', href: '/admin/finance', icon: DollarSign },
+            { title: 'Accounts', href: '/admin/finance/accounts', icon: CreditCard },
+            { title: 'Upcoming', href: '/admin/finance/upcoming', icon: Clock },
+            { title: 'Upload Payments', href: '/admin/finance/upload', icon: Upload },
+          ],
+        },
         { title: 'Settings', href: '/admin/settings', icon: Settings },
       ],
     },
