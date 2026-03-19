@@ -244,11 +244,29 @@ export default function TeamSchedulePage() {
       .update({ [field]: value })
       .eq('id', id)
 
-    if (!error) {
-      setAssignments(prev =>
-        prev.map(a => a.id === id ? { ...a, [field]: value } : a)
-      )
+    if (error) return
+
+    // Compute new status based on contract requirements
+    const current = assignments.find(a => a.id === id)
+    if (!current) return
+
+    const updated = { ...current, [field]: value }
+    const photoCount = (updated.photo_1 ? 1 : 0) + (updated.photo_2 ? 1 : 0)
+    const videoCount = updated.video_1 ? 1 : 0
+    const photoMet = photoCount >= updated.num_photographers
+    const videoMet = updated.num_videographers === 0 || videoCount >= updated.num_videographers
+    const newStatus = photoMet && videoMet ? 'confirmed' : 'missing_crew'
+
+    if (newStatus !== current.status) {
+      await supabase
+        .from('wedding_assignments')
+        .update({ status: newStatus })
+        .eq('id', id)
     }
+
+    setAssignments(prev =>
+      prev.map(a => a.id === id ? { ...a, [field]: value, status: newStatus } : a)
+    )
   }
 
   // ── PDF Export ────────────────────────────────────────────────
