@@ -258,6 +258,15 @@ export default function TeamSchedulePage() {
       .sort((a, b) => a.wedding_date.localeCompare(b.wedding_date))[0] || null
   }, [assignments])
 
+  const memberCounts = useMemo(() => {
+    return teamMembers.map(m => {
+      const count = assignments.filter(a =>
+        a.photo_1 === m.name || a.photo_2 === m.name || a.video_1 === m.name
+      ).length
+      return { ...m, count }
+    })
+  }, [assignments, teamMembers])
+
   // ── Filtered + sorted ──────────────────────────────────────────
 
   const filtered = useMemo(() => {
@@ -513,6 +522,26 @@ export default function TeamSchedulePage() {
           </p>
         </button>
       </div>
+
+      {/* ── Team Workload ────────────────────────────────────────── */}
+      {memberCounts.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {memberCounts.map(m => (
+            <div key={m.id} className="rounded-xl border bg-card p-4 transition-all hover:border-primary hover:shadow-md">
+              <div className="flex items-center justify-between mb-2">
+                <div className="rounded-lg p-2" style={{ backgroundColor: m.color + '18' }}>
+                  {m.role === 'videographer'
+                    ? <Video className="h-4 w-4" style={{ color: m.color }} />
+                    : <Camera className="h-4 w-4" style={{ color: m.color }} />}
+                </div>
+                <span className="text-2xl font-bold">{m.count}</span>
+              </div>
+              <div className="text-sm font-medium">{m.name}</div>
+              <p className="text-xs text-muted-foreground mt-0.5 capitalize">{m.role}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── Legend ───────────────────────────────────────────────── */}
       <div className="rounded-xl border bg-card px-4 py-3">
