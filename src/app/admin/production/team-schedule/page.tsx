@@ -173,28 +173,45 @@ export default function TeamSchedulePage() {
   // ── Fetch data ─────────────────────────────────────────────────
 
   const fetchData = useCallback(async () => {
-    const [assignRes, teamRes] = await Promise.all([
-      supabase
+    // First try with num_photographers/num_videographers columns
+    let assignRes = await supabase
+      .from('wedding_assignments')
+      .select(`
+        id, couple_id, photo_1, photo_2, video_1, status,
+        num_photographers, num_videographers,
+        couples!inner(couple_name, wedding_date)
+      `)
+      .gte('couples.wedding_date', '2026-01-01')
+      .lt('couples.wedding_date', '2027-01-01')
+
+    // Fallback: columns may not exist on wedding_assignments
+    if (assignRes.error) {
+      console.error('Retrying without num columns:', assignRes.error.message)
+      assignRes = await supabase
         .from('wedding_assignments')
         .select(`
           id, couple_id, photo_1, photo_2, video_1, status,
-          couples(couple_name, wedding_date),
-          contracts(num_photographers, num_videographers)
+          couples!inner(couple_name, wedding_date)
         `)
         .gte('couples.wedding_date', '2026-01-01')
-        .lt('couples.wedding_date', '2027-01-01'),
-      supabase
-        .from('team_members')
-        .select('*')
-        .eq('is_active', true)
-        .order('name'),
-    ])
+        .lt('couples.wedding_date', '2027-01-01')
+    }
+
+    const teamRes = await supabase
+      .from('team_members')
+      .select('*')
+      .eq('is_active', true)
+      .order('name')
 
     if (teamRes.data) setTeamMembers(teamRes.data as TeamMember[])
 
+    if (assignRes.error) {
+      console.error('Failed to fetch assignments:', assignRes.error)
+    }
+
     if (assignRes.data) {
       const mapped: Assignment[] = (assignRes.data as any[])
-        .filter(a => a.couples) // filter out nulls from inner join
+        .filter(a => a.couples)
         .map(a => ({
           id: a.id,
           couple_id: a.couple_id,
@@ -204,8 +221,8 @@ export default function TeamSchedulePage() {
           status: a.status,
           couple_name: a.couples.couple_name,
           wedding_date: a.couples.wedding_date,
-          num_photographers: a.contracts?.num_photographers ?? 2,
-          num_videographers: a.contracts?.num_videographers ?? 0,
+          num_photographers: a.num_photographers ?? 2,
+          num_videographers: a.num_videographers ?? 0,
         }))
       setAssignments(mapped)
     }
