@@ -92,6 +92,7 @@ function extractNumber(key: string): string {
 }
 
 function getUrgentCount(milestones: MilestoneData, weddingDate: string): number {
+  if (!weddingDate) return 0;
   const daysUntil = differenceInDays(parseISO(weddingDate), new Date());
   let urgent = 0;
 

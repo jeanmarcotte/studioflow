@@ -61,7 +61,7 @@ export function ContractPackage({
 }: ContractPackageProps) {
   const locationCount = [locGroom, locBride, locCeremony, locPark, locReception].filter(Boolean).length;
   const grandTotal = contractTotal + extrasTotal;
-  const formattedSignedDate = format(parseISO(signedDate), 'MMM d, yyyy');
+  const formattedSignedDate = signedDate ? format(parseISO(signedDate), 'MMM d, yyyy') : 'Unknown';
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-4">

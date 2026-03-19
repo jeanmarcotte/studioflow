@@ -145,7 +145,7 @@ export function FinancialLedger({
             {framesAlbums && (
               <tr className="border-b border-slate-100">
                 <td className="py-3 font-mono text-slate-600">
-                  {format(parseISO(framesAlbums.order_date), 'MMM d, yyyy')}
+                  {framesAlbums.order_date ? format(parseISO(framesAlbums.order_date), 'MMM d, yyyy') : '—'}
                 </td>
                 <td className="py-3">
                   <span className="font-semibold">Extras Sale — Frames & Albums</span>
@@ -157,7 +157,7 @@ export function FinancialLedger({
             {postWedding && (
               <tr className="border-b border-slate-100">
                 <td className="py-3 font-mono text-slate-600">
-                  {format(parseISO(postWedding.order_date), 'MMM d, yyyy')}
+                  {postWedding.order_date ? format(parseISO(postWedding.order_date), 'MMM d, yyyy') : '—'}
                 </td>
                 <td className="py-3">
                   <span className="font-semibold">Post-Wedding Extras</span>
@@ -254,7 +254,7 @@ export function FinancialLedger({
             {paymentsWithRunning.map((payment) => (
               <tr key={payment.id} className="border-b border-slate-100">
                 <td className="py-2 font-mono text-slate-600">
-                  {format(parseISO(payment.payment_date), 'MMM d, yyyy')}
+                  {payment.payment_date ? format(parseISO(payment.payment_date), 'MMM d, yyyy') : '—'}
                 </td>
                 <td className="py-2 truncate max-w-[120px]" title={payment.from_name}>
                   {payment.from_name?.split(' ')[0] || 'Unknown'}

@@ -32,13 +32,13 @@ export function ClientCard({
   isComplete,
 }: ClientCardProps) {
   const today = new Date();
-  const wedding = parseISO(weddingDate);
-  const daysUntil = differenceInDays(wedding, today);
+  const wedding = weddingDate ? parseISO(weddingDate) : null;
+  const daysUntil = wedding ? differenceInDays(wedding, today) : 0;
   const weddingPassed = daysUntil < 0;
   const isPaid = balance <= 0.05;
 
   // Format dates
-  const formattedWeddingDate = format(wedding, 'EEEE, MMMM d, yyyy');
+  const formattedWeddingDate = wedding ? format(wedding, 'EEEE, MMMM d, yyyy') : 'Date TBD';
   const formattedSignedDate = signedDate ? format(parseISO(signedDate), 'MMM d, yyyy') : null;
   const formattedBookedDate = bookedDate ? format(parseISO(bookedDate), 'MMM d, yyyy') : null;
 
