@@ -76,8 +76,8 @@ function StatModal({ title, items, onClose }: {
   onClose: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-card border rounded-xl shadow-2xl w-full max-w-md mx-4 max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card border rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-semibold text-lg">{title}</h3>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-muted transition-colors"><X className="h-4 w-4" /></button>
@@ -124,7 +124,7 @@ function StaffDropdown({ value, role, members, onSelect }: {
             {value}
           </span>
         ) : (
-          <span className="text-red-400 font-semibold">NEEDED</span>
+          <span className="text-red-600 font-medium">Needed</span>
         )}
         <ChevronDown className="h-3 w-3 text-muted-foreground" />
       </button>
@@ -349,35 +349,11 @@ export default function TeamSchedulePage() {
     const isDouble = isDoubleWedding(a.wedding_date, assignments)
     const isBackToBack = backToBackDates.has(a.wedding_date)
     const isMissing = a.status === 'missing_crew'
-    const isPhotoOnly = a.num_videographers === 0
 
-    const classes: string[] = ['transition-colors']
-
-    // Left border for key states
-    if (isMissing) {
-      classes.push('border-l-4 border-l-red-500')
-    } else if (isDouble) {
-      classes.push('border-l-4 border-l-orange-500')
-    } else if (isBackToBack) {
-      classes.push('border-l-4 border-l-amber-500')
-    } else if (isPhotoOnly) {
-      classes.push('border-l-4 border-l-sky-500')
-    }
-
-    // Background tint
-    if (isMissing) {
-      classes.push('bg-red-950/25 hover:bg-red-950/35')
-    } else if (isDouble) {
-      classes.push('bg-orange-950/20 hover:bg-orange-950/30')
-    } else if (isBackToBack) {
-      classes.push('bg-amber-950/20 hover:bg-amber-950/30')
-    } else if (isPhotoOnly) {
-      classes.push('bg-sky-950/15 hover:bg-sky-950/25')
-    } else {
-      classes.push('hover:bg-muted/50')
-    }
-
-    return classes.join(' ')
+    if (isMissing) return 'bg-red-50 hover:bg-red-100/70 border-l-2 border-l-red-400 transition-colors'
+    if (isDouble) return 'bg-orange-50/60 hover:bg-orange-50 border-l-2 border-l-orange-400 transition-colors'
+    if (isBackToBack) return 'bg-amber-50/50 hover:bg-amber-50 border-l-2 border-l-amber-400 transition-colors'
+    return 'hover:bg-accent/50 transition-colors'
   }
 
   // ── Crew indicator ─────────────────────────────────────────────
@@ -386,21 +362,21 @@ export default function TeamSchedulePage() {
     const isDouble = isDoubleWedding(a.wedding_date, assignments)
     if (isDouble) {
       return (
-        <span title="Double Wedding" className="inline-flex items-center gap-1 rounded-full bg-orange-500/20 text-orange-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+        <span title="Double Wedding" className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 px-2 py-0.5 text-[10px] font-semibold">
           <Users className="h-3 w-3" /> 2x
         </span>
       )
     }
     if (a.num_videographers === 0) {
       return (
-        <span title="Photo Only" className="inline-flex items-center gap-1 rounded-full bg-sky-500/20 text-sky-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+        <span title="Photo Only" className="inline-flex items-center gap-1 rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 text-[10px] font-semibold">
           <Camera className="h-3 w-3" /> Photo
         </span>
       )
     }
     return (
-      <span title="Photo + Video" className="inline-flex items-center gap-1 rounded-full bg-green-500/20 text-green-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
-        <Camera className="h-3 w-3" /><Video className="h-3 w-3" />
+      <span title="Photo + Video" className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-[10px] font-semibold">
+        <Camera className="h-3 w-3" /><span className="mx-0.5">&</span><Video className="h-3 w-3" />
       </span>
     )
   }
@@ -408,20 +384,20 @@ export default function TeamSchedulePage() {
   function StatusBadge({ status }: { status: string }) {
     if (status === 'confirmed') {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/20 text-green-400 px-2.5 py-0.5 text-xs font-semibold">
+        <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 px-2.5 py-0.5 text-xs font-medium">
           <Check className="h-3 w-3" /> Confirmed
         </span>
       )
     }
     if (status === 'missing_crew') {
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-red-500/25 text-red-400 px-2.5 py-1 text-xs font-bold border border-red-500/30">
-          <X className="h-4 w-4 stroke-[3]" /> MISSING CREW
+        <span className="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-600 px-2.5 py-0.5 text-xs font-semibold">
+          <XCircle className="h-3.5 w-3.5" /> Missing Crew
         </span>
       )
     }
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500/20 text-yellow-400 px-2.5 py-0.5 text-xs font-semibold">
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 px-2.5 py-0.5 text-xs font-medium">
         Pending
       </span>
     )
@@ -435,7 +411,7 @@ export default function TeamSchedulePage() {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 border-2 border-t-transparent border-blue-500 rounded-full animate-spin" />
+          <div className="h-8 w-8 border-2 border-t-transparent border-primary rounded-full animate-spin" />
           <p className="text-sm text-muted-foreground">Loading schedule...</p>
         </div>
       </div>
@@ -448,7 +424,7 @@ export default function TeamSchedulePage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-blue-500" />
+            <CalendarDays className="h-6 w-6 text-indigo-600" />
             Team Schedule
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
@@ -478,71 +454,78 @@ export default function TeamSchedulePage() {
 
       {/* ── Stat Boxes ──────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Missing Crew */}
         <button
           onClick={() => setActiveModal('missing')}
-          className="rounded-xl border bg-gradient-to-br from-red-950/60 to-red-900/30 p-4 text-left transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-red-500/10"
+          className="rounded-xl border bg-card p-4 text-left hover:border-primary hover:shadow-md transition-all"
         >
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-4 w-4 text-red-400" />
-            <span className="text-xs font-semibold uppercase text-red-300">Missing Crew</span>
+          <div className="flex items-center justify-between mb-2">
+            <div className="rounded-lg p-2 bg-red-50">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+            </div>
+            <span className="text-2xl font-bold">{missingCrew.length}</span>
           </div>
-          <div className="text-3xl font-bold text-red-400">{missingCrew.length}</div>
-          <p className="text-xs text-red-300/70 mt-1">weddings needing staff</p>
+          <div className="text-sm font-medium">Missing Crew</div>
+          <p className="text-xs text-muted-foreground mt-0.5">weddings needing staff</p>
         </button>
 
-        {/* Double Weddings */}
         <button
           onClick={() => setActiveModal('double')}
-          className="rounded-xl border bg-gradient-to-br from-orange-950/60 to-orange-900/30 p-4 text-left transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-orange-500/10"
+          className="rounded-xl border bg-card p-4 text-left hover:border-primary hover:shadow-md transition-all"
         >
-          <div className="flex items-center gap-2 mb-2">
-            <Users className="h-4 w-4 text-orange-400" />
-            <span className="text-xs font-semibold uppercase text-orange-300">Double Weddings</span>
+          <div className="flex items-center justify-between mb-2">
+            <div className="rounded-lg p-2 bg-orange-50">
+              <Users className="h-4 w-4 text-orange-600" />
+            </div>
+            <span className="text-2xl font-bold">{doubleWeddings.length}</span>
           </div>
-          <div className="text-3xl font-bold text-orange-400">{doubleWeddings.length}</div>
-          <p className="text-xs text-orange-300/70 mt-1">dates with 2+ weddings</p>
+          <div className="text-sm font-medium">Double Weddings</div>
+          <p className="text-xs text-muted-foreground mt-0.5">dates with 2+ weddings</p>
         </button>
 
-        {/* Back-to-Backs */}
         <button
           onClick={() => setActiveModal('backtoback')}
-          className="rounded-xl border bg-gradient-to-br from-yellow-950/60 to-yellow-900/30 p-4 text-left transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-yellow-500/10"
+          className="rounded-xl border bg-card p-4 text-left hover:border-primary hover:shadow-md transition-all"
         >
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar className="h-4 w-4 text-yellow-400" />
-            <span className="text-xs font-semibold uppercase text-yellow-300">Back-to-Backs</span>
+          <div className="flex items-center justify-between mb-2">
+            <div className="rounded-lg p-2 bg-amber-50">
+              <Calendar className="h-4 w-4 text-amber-600" />
+            </div>
+            <span className="text-2xl font-bold">{backToBackWeddings.length}</span>
           </div>
-          <div className="text-3xl font-bold text-yellow-400">{backToBackWeddings.length}</div>
-          <p className="text-xs text-yellow-300/70 mt-1">consecutive day weddings</p>
+          <div className="text-sm font-medium">Back-to-Backs</div>
+          <p className="text-xs text-muted-foreground mt-0.5">consecutive day weddings</p>
         </button>
 
-        {/* Next Needing Coverage */}
         <button
           onClick={() => setActiveModal('next')}
-          className="rounded-xl border bg-gradient-to-br from-purple-950/60 to-purple-900/30 p-4 text-left transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/10"
+          className="rounded-xl border bg-card p-4 text-left hover:border-primary hover:shadow-md transition-all"
         >
-          <div className="flex items-center gap-2 mb-2">
-            <CalendarDays className="h-4 w-4 text-purple-400" />
-            <span className="text-xs font-semibold uppercase text-purple-300">Next Needing Coverage</span>
+          <div className="flex items-center justify-between mb-2">
+            <div className="rounded-lg p-2 bg-indigo-50">
+              <CalendarDays className="h-4 w-4 text-indigo-600" />
+            </div>
           </div>
-          <div className="text-lg font-bold text-purple-400 truncate">
-            {nextNeedingCoverage ? nextNeedingCoverage.couple_name : 'All covered'}
+          <div className="text-sm font-medium truncate">
+            {nextNeedingCoverage ? nextNeedingCoverage.couple_name : 'All Covered'}
           </div>
-          <p className="text-xs text-purple-300/70 mt-1">
-            {nextNeedingCoverage ? formatDate(nextNeedingCoverage.wedding_date) : 'No gaps found'}
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {nextNeedingCoverage ? `Next: ${formatDate(nextNeedingCoverage.wedding_date)}` : 'No coverage gaps'}
           </p>
         </button>
       </div>
 
       {/* ── Legend ───────────────────────────────────────────────── */}
       <div className="rounded-xl border bg-card px-4 py-3">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5"><span className="h-4 w-1 rounded-full bg-red-500" /> Missing Crew</span>
-          <span className="flex items-center gap-1.5"><span className="h-4 w-1 rounded-full bg-orange-500" /> Double Wedding</span>
-          <span className="flex items-center gap-1.5"><span className="h-4 w-1 rounded-full bg-amber-500" /> Back-to-Back</span>
-          <span className="flex items-center gap-1.5"><span className="h-4 w-1 rounded-full bg-sky-500" /> Photo Only</span>
-          <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-green-400" /> Confirmed</span>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5"><span className="h-3.5 w-1 rounded-full bg-red-400" /> Missing Crew</span>
+          <span className="flex items-center gap-1.5"><span className="h-3.5 w-1 rounded-full bg-orange-400" /> Double Wedding</span>
+          <span className="flex items-center gap-1.5"><span className="h-3.5 w-1 rounded-full bg-amber-400" /> Back-to-Back</span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-1.5 py-px text-[9px] font-semibold"><Camera className="h-2.5 w-2.5" /></span> Photo Only
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-1.5 py-px text-[9px] font-semibold"><Camera className="h-2.5 w-2.5" /></span> Photo + Video
+          </span>
         </div>
       </div>
 
@@ -554,7 +537,7 @@ export default function TeamSchedulePage() {
           placeholder="Search couples or staff..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full rounded-lg border bg-card pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+          className="w-full rounded-lg border bg-background pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
