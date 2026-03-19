@@ -7,6 +7,11 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #2612 | 3:01 PM | 🔴 | Fixed undefined variable references in sync-couples API endpoint | ~323 |
-| #2611 | 3:00 PM | ✅ | Enhanced name parsing in couples sync API | ~331 |
+| #2635 | 4:03 PM | 🔵 | Server-side couple sync API with admin privileges and name parsing | ~376 |
+
+### Mar 12, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #3308 | 7:53 AM | 🟣 | Integrated ballot appointments system with quote builder workflow | ~711 |
 </claude-mem-context>

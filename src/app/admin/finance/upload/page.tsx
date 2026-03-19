@@ -73,6 +73,8 @@ export default function FinanceUploadPage() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; duplicates: number } | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState<'all' | 'unmatched' | 'review'>('unmatched');
+  const [toast, setToast] = useState<string | null>(null);
 
   // Load all couples for matching
   useEffect(() => {
@@ -167,18 +169,28 @@ export default function FinanceUploadPage() {
   }, [csvRows, couples]);
 
   function selectCouple(rowIdx: number, coupleId: string, coupleName: string) {
+    const fromName = matchedRows[rowIdx]?.from.trim().toLowerCase();
     setMatchedRows(prev => {
       const updated = [...prev];
-      updated[rowIdx] = {
-        ...updated[rowIdx],
-        couple_id: coupleId,
-        couple_name: coupleName,
-        confidence: 'high',
-      };
+      let count = 0;
+      updated.forEach((row, i) => {
+        if (row.from.trim().toLowerCase() === fromName) {
+          updated[i] = { ...row, couple_id: coupleId, couple_name: coupleName, confidence: 'high' };
+          count++;
+        }
+      });
+      if (count > 1) {
+        setToast(`Applied to ${count} rows from "${matchedRows[rowIdx]?.from}"`);
+        setTimeout(() => setToast(null), 3000);
+      }
       return updated;
     });
-    // Check duplicate async
-    checkDuplicate(rowIdx, coupleId);
+    // Check duplicates for all matching rows
+    matchedRows.forEach((row, i) => {
+      if (row.from.trim().toLowerCase() === fromName) {
+        checkDuplicate(i, coupleId);
+      }
+    });
   }
 
   async function checkDuplicate(rowIdx: number, coupleId: string) {
@@ -241,6 +253,13 @@ export default function FinanceUploadPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 bg-teal-600 text-white px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-in fade-in slide-in-from-top-2">
+          {toast}
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">💰 Finance — Upload Payments</h1>
@@ -399,6 +418,27 @@ export default function FinanceUploadPage() {
             )}
           </div>
 
+          {/* Filter Buttons */}
+          <div className="flex gap-1 bg-slate-100 rounded-lg p-1 mb-6 w-fit">
+            {([
+              { key: 'all' as const, label: 'Show All' },
+              { key: 'unmatched' as const, label: 'Unmatched Only' },
+              { key: 'review' as const, label: 'Review Only' },
+            ]).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setReviewFilter(tab.key)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                  reviewFilter === tab.key
+                    ? 'bg-white text-teal-600 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           {/* Match Table */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <table className="w-full text-sm">
@@ -412,7 +452,10 @@ export default function FinanceUploadPage() {
                 </tr>
               </thead>
               <tbody>
-                {matchedRows.map((row, idx) => (
+                {matchedRows.map((row, idx) => {
+                  if (reviewFilter === 'unmatched' && row.confidence !== 'unmatched') return null;
+                  if (reviewFilter === 'review' && row.confidence !== 'review') return null;
+                  return (
                   <tr
                     key={idx}
                     className={`border-b border-slate-100 ${
@@ -459,7 +502,8 @@ export default function FinanceUploadPage() {
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
