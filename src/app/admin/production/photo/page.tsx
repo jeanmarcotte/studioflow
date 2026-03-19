@@ -135,12 +135,12 @@ export default function PhotoProductionPage() {
       const today = new Date().toISOString().split('T')[0]
 
       const [jobsRes, couplesRes, completedRes, waitingRes, reeditRes, photosRes] = await Promise.all([
-        // Active jobs
+        // Active jobs — exclude completed & picked_up
         supabase
           .from('jobs')
           .select('*')
-          .in('category', ['wedding', 'engagement'])
-          .not('status', 'in', '("completed","picked_up")')
+          .neq('status', 'completed')
+          .neq('status', 'picked_up')
           .order('created_at', { ascending: false }),
         // All couples (for name lookup)
         supabase
@@ -150,7 +150,6 @@ export default function PhotoProductionPage() {
         supabase
           .from('jobs')
           .select('id', { count: 'exact', head: true })
-          .in('category', ['wedding', 'engagement'])
           .in('status', ['completed', 'picked_up']),
         // Waiting for order (past weddings without photo order)
         supabase
@@ -162,13 +161,11 @@ export default function PhotoProductionPage() {
         // Re-edit counts (for YTD sum)
         supabase
           .from('jobs')
-          .select('reedit_count')
-          .in('category', ['wedding', 'engagement']),
+          .select('reedit_count'),
         // Photos progress (all jobs including completed for true progress)
         supabase
           .from('jobs')
-          .select('edited_so_far, photos_taken')
-          .in('category', ['wedding', 'engagement']),
+          .select('edited_so_far, photos_taken'),
       ])
 
       // Build couple lookup map
@@ -177,12 +174,17 @@ export default function PhotoProductionPage() {
         couplesRes.data.forEach((c: any) => coupleMap.set(c.id, { couple_name: c.couple_name, wedding_date: c.wedding_date }))
       }
 
+      console.log('[Photo] jobsRes:', jobsRes.data?.length, 'error:', jobsRes.error)
+      console.log('[Photo] couplesRes:', couplesRes.data?.length, 'error:', couplesRes.error)
+
       if (!jobsRes.error && jobsRes.data) {
         const enriched = (jobsRes.data as any[]).map(j => ({
           ...j,
           couples: coupleMap.get(j.couple_id) || null,
         }))
         setJobs(enriched as Job[])
+      } else if (jobsRes.error) {
+        console.error('[Photo] Jobs query failed:', jobsRes.error)
       }
       setCompletedCount(completedRes.count ?? 0)
       if (!waitingRes.error && waitingRes.data) {
