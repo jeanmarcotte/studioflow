@@ -347,19 +347,62 @@ export default function TeamSchedulePage() {
 
   function getRowClasses(a: Assignment) {
     const isDouble = isDoubleWedding(a.wedding_date, assignments)
-    if (isDouble) return 'bg-orange-950/20 hover:bg-orange-950/30'
-    if (a.num_videographers === 0) return 'bg-blue-950/15 hover:bg-blue-950/25'
-    return 'hover:bg-muted/50'
+    const isBackToBack = backToBackDates.has(a.wedding_date)
+    const isMissing = a.status === 'missing_crew'
+    const isPhotoOnly = a.num_videographers === 0
+
+    const classes: string[] = ['transition-colors']
+
+    // Left border for key states
+    if (isMissing) {
+      classes.push('border-l-4 border-l-red-500')
+    } else if (isDouble) {
+      classes.push('border-l-4 border-l-orange-500')
+    } else if (isBackToBack) {
+      classes.push('border-l-4 border-l-amber-500')
+    } else if (isPhotoOnly) {
+      classes.push('border-l-4 border-l-sky-500')
+    }
+
+    // Background tint
+    if (isMissing) {
+      classes.push('bg-red-950/25 hover:bg-red-950/35')
+    } else if (isDouble) {
+      classes.push('bg-orange-950/20 hover:bg-orange-950/30')
+    } else if (isBackToBack) {
+      classes.push('bg-amber-950/20 hover:bg-amber-950/30')
+    } else if (isPhotoOnly) {
+      classes.push('bg-sky-950/15 hover:bg-sky-950/25')
+    } else {
+      classes.push('hover:bg-muted/50')
+    }
+
+    return classes.join(' ')
   }
 
   // ── Crew indicator ─────────────────────────────────────────────
 
   function CrewBadge({ a }: { a: Assignment }) {
     const isDouble = isDoubleWedding(a.wedding_date, assignments)
-    if (isDouble) return <span title="Double Wedding" className="text-base">🔴</span>
-    if (a.num_photographers >= 2 && a.num_videographers >= 1) return <span title="3 Crew" className="text-base">🟢</span>
-    if (a.num_videographers === 0) return <span title="Photo Only" className="text-base">📷</span>
-    return <span title="Crew" className="text-base">🟢</span>
+    if (isDouble) {
+      return (
+        <span title="Double Wedding" className="inline-flex items-center gap-1 rounded-full bg-orange-500/20 text-orange-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+          <Users className="h-3 w-3" /> 2x
+        </span>
+      )
+    }
+    if (a.num_videographers === 0) {
+      return (
+        <span title="Photo Only" className="inline-flex items-center gap-1 rounded-full bg-sky-500/20 text-sky-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+          <Camera className="h-3 w-3" /> Photo
+        </span>
+      )
+    }
+    return (
+      <span title="Photo + Video" className="inline-flex items-center gap-1 rounded-full bg-green-500/20 text-green-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+        <Camera className="h-3 w-3" /><Video className="h-3 w-3" />
+      </span>
+    )
   }
 
   function StatusBadge({ status }: { status: string }) {
@@ -372,8 +415,8 @@ export default function TeamSchedulePage() {
     }
     if (status === 'missing_crew') {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-red-500/20 text-red-400 px-2.5 py-0.5 text-xs font-semibold">
-          <XCircle className="h-3 w-3" /> Missing Crew
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-red-500/25 text-red-400 px-2.5 py-1 text-xs font-bold border border-red-500/30">
+          <X className="h-4 w-4 stroke-[3]" /> MISSING CREW
         </span>
       )
     }
@@ -495,11 +538,11 @@ export default function TeamSchedulePage() {
       {/* ── Legend ───────────────────────────────────────────────── */}
       <div className="rounded-xl border bg-card px-4 py-3">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5"><span className="text-base">🟢</span> 3 Crew (2P + 1V)</span>
-          <span className="flex items-center gap-1.5"><span className="text-base">📷</span> Photo Only</span>
-          <span className="flex items-center gap-1.5"><span className="text-base">🔴</span> Double Wedding</span>
-          <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-green-400" /> Fully Staffed</span>
-          <span className="flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5 text-red-400" /> Missing Crew</span>
+          <span className="flex items-center gap-1.5"><span className="h-4 w-1 rounded-full bg-red-500" /> Missing Crew</span>
+          <span className="flex items-center gap-1.5"><span className="h-4 w-1 rounded-full bg-orange-500" /> Double Wedding</span>
+          <span className="flex items-center gap-1.5"><span className="h-4 w-1 rounded-full bg-amber-500" /> Back-to-Back</span>
+          <span className="flex items-center gap-1.5"><span className="h-4 w-1 rounded-full bg-sky-500" /> Photo Only</span>
+          <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-green-400" /> Confirmed</span>
         </div>
       </div>
 
@@ -559,7 +602,7 @@ export default function TeamSchedulePage() {
                 const needsVideo = a.num_videographers >= 1
 
                 return (
-                  <tr key={a.id} className={`transition-colors ${getRowClasses(a)}`}>
+                  <tr key={a.id} className={getRowClasses(a)}>
                     {/* Date */}
                     <td className="px-4 py-3 font-medium whitespace-nowrap">
                       {formatDate(a.wedding_date)}
