@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Users, Search, Filter, ChevronUp, ChevronDown, Calendar, Camera, Frame, FileText, Package } from 'lucide-react'
+import { Search, ChevronUp, ChevronDown, Calendar, Camera, FileText, Package, Copy, Check } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import PdfImporter from '@/components/admin/PdfImporter'
 import ExtrasImporter from '@/components/admin/ExtrasImporter'
@@ -14,15 +14,16 @@ interface Couple {
   wedding_date: string | null
   wedding_year: number | null
   package_type: string | null
-  photographer: string | null
-  frame_sale_status: string | null
   balance_owing: number | null
   status: string | null
-  ceremony_venue: string | null
+  reception_venue: string | null
   contract_total: number | null
+  email: string | null
+  bride_phone: string | null
+  has_wedding_form: boolean
 }
 
-type SortField = 'couple_name' | 'wedding_date' | 'balance_owing' | 'package_type' | 'photographer'
+type SortField = 'couple_name' | 'wedding_date' | 'balance_owing' | 'package_type'
 type SortDir = 'asc' | 'desc'
 
 const YEARS = [2026, 2027, 2025, 2024]
@@ -39,25 +40,23 @@ function formatPackage(pkg: string | null): string {
   return pkg
 }
 
-function frameBadge(status: string | null) {
-  if (!status) return <span className="text-muted-foreground text-xs">—</span>
-  const s = status.toUpperCase()
-  if (s === 'BOUGHT')
-    return <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-medium">Bought</span>
-  if (s === 'NO FRAME SALE')
-    return <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-600 px-2 py-0.5 text-xs font-medium">No Sale</span>
-  if (s.includes('NEED TO SHOOT'))
-    return <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-medium">Needs Eng.</span>
-  return <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-600 px-2 py-0.5 text-xs font-medium">{status}</span>
-}
-
-function statusBadge(status: string | null) {
-  if (!status) return null
-  if (status === 'booked')
-    return <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 text-xs font-medium">Booked</span>
-  if (status === 'completed')
-    return <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-medium">Completed</span>
-  return <span className="text-xs text-muted-foreground">{status}</span>
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+  return (
+    <button
+      onClick={handleCopy}
+      className="ml-1.5 inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
+      title="Copy"
+    >
+      {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+    </button>
+  )
 }
 
 export default function CouplesPage() {
@@ -74,14 +73,28 @@ export default function CouplesPage() {
 
   useEffect(() => {
     const fetchCouples = async () => {
+      // Fetch couples
       const { data, error } = await supabase
         .from('couples')
-        .select('id, couple_name, wedding_date, wedding_year, package_type, photographer, frame_sale_status, balance_owing, status, ceremony_venue, contract_total')
+        .select('id, couple_name, wedding_date, wedding_year, package_type, balance_owing, status, reception_venue, contract_total, email, bride_phone')
         .order('wedding_date', { ascending: true })
 
-      if (!error && data) {
-        setCouples(data)
+      if (error || !data) {
+        setLoading(false)
+        return
       }
+
+      // Fetch which couples have wedding day forms
+      const { data: formData } = await supabase
+        .from('wedding_day_forms')
+        .select('couple_id')
+
+      const formCoupleIds = new Set((formData || []).map(f => f.couple_id))
+
+      setCouples(data.map(c => ({
+        ...c,
+        has_wedding_form: formCoupleIds.has(c.id),
+      })))
       setLoading(false)
     }
     fetchCouples()
@@ -104,8 +117,8 @@ export default function CouplesPage() {
       const q = search.toLowerCase()
       result = result.filter(c =>
         c.couple_name.toLowerCase().includes(q) ||
-        c.ceremony_venue?.toLowerCase().includes(q) ||
-        c.photographer?.toLowerCase().includes(q)
+        c.reception_venue?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q)
       )
     }
 
@@ -147,9 +160,6 @@ export default function CouplesPage() {
         case 'package_type':
           cmp = (a.package_type || '').localeCompare(b.package_type || '')
           break
-        case 'photographer':
-          cmp = (a.photographer || '').localeCompare(b.photographer || '')
-          break
       }
       return sortDir === 'asc' ? cmp : -cmp
     })
@@ -168,20 +178,15 @@ export default function CouplesPage() {
   const stats = useMemo(() => {
     const byYear = { 2025: 0, 2026: 0, 2027: 0 }
     const byPackage = { photo_only: 0, photo_video: 0 }
-    const byFrame = { bought: 0, pending: 0, noSale: 0 }
 
     couples.forEach(c => {
       const year = c.wedding_date ? new Date(c.wedding_date).getFullYear() : null
       if (year && year in byYear) byYear[year as keyof typeof byYear]++
       if (c.package_type === 'photo_only') byPackage.photo_only++
       else if (c.package_type === 'photo_video') byPackage.photo_video++
-      const fs = c.frame_sale_status?.toUpperCase()
-      if (fs === 'BOUGHT') byFrame.bought++
-      else if (fs === 'NO FRAME SALE') byFrame.noSale++
-      else byFrame.pending++
     })
 
-    return { byYear, byPackage, byFrame }
+    return { byYear, byPackage }
   }, [couples])
 
   if (loading) {
@@ -241,7 +246,7 @@ export default function CouplesPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Weddings by Year */}
         <div className="rounded-xl border bg-card p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -275,28 +280,6 @@ export default function CouplesPage() {
             </div>
           </div>
         </div>
-
-        {/* Frame Sales */}
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Frame className="h-4 w-4 text-amber-500" />
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Frame Sales</h3>
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Bought</span>
-              <span className="text-sm font-semibold text-green-600">{stats.byFrame.bought}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Pending</span>
-              <span className="text-sm font-semibold text-amber-600">{stats.byFrame.pending}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">No Sale</span>
-              <span className="text-sm font-semibold text-gray-500">{stats.byFrame.noSale}</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Filters */}
@@ -306,7 +289,7 @@ export default function CouplesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search by name, venue, photographer..."
+            placeholder="Search by name, venue, email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 !w-full"
@@ -352,7 +335,7 @@ export default function CouplesPage() {
               <tr className="border-b bg-muted/50">
                 <th className="text-left p-3 font-medium">
                   <button onClick={() => handleSort('couple_name')} className="group flex items-center gap-1 hover:text-foreground">
-                    Couple <SortIcon field="couple_name" />
+                    Name <SortIcon field="couple_name" />
                   </button>
                 </th>
                 <th className="text-left p-3 font-medium">
@@ -360,29 +343,26 @@ export default function CouplesPage() {
                     Wedding Date <SortIcon field="wedding_date" />
                   </button>
                 </th>
-                <th className="text-left p-3 font-medium hidden md:table-cell">Status</th>
+                <th className="text-left p-3 font-medium hidden lg:table-cell">Venue</th>
                 <th className="text-left p-3 font-medium hidden lg:table-cell">
                   <button onClick={() => handleSort('package_type')} className="group flex items-center gap-1 hover:text-foreground">
                     Package <SortIcon field="package_type" />
                   </button>
                 </th>
-                <th className="text-left p-3 font-medium hidden lg:table-cell">
-                  <button onClick={() => handleSort('photographer')} className="group flex items-center gap-1 hover:text-foreground">
-                    Photographer <SortIcon field="photographer" />
-                  </button>
-                </th>
-                <th className="text-left p-3 font-medium hidden md:table-cell">Frames</th>
+                <th className="text-left p-3 font-medium hidden xl:table-cell">Email</th>
+                <th className="text-left p-3 font-medium hidden xl:table-cell">Phone</th>
                 <th className="text-right p-3 font-medium">
                   <button onClick={() => handleSort('balance_owing')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Balance <SortIcon field="balance_owing" />
                   </button>
                 </th>
+                <th className="text-center p-3 font-medium w-12">Form</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
                     No couples found matching your filters.
                   </td>
                 </tr>
@@ -407,23 +387,59 @@ export default function CouplesPage() {
                           : <span className="text-muted-foreground">TBD</span>
                         }
                       </td>
-                      <td className="p-3 hidden md:table-cell">
-                        {statusBadge(couple.status)}
-                      </td>
                       <td className="p-3 hidden lg:table-cell text-muted-foreground">
-                        {formatPackage(couple.package_type)}
+                        {couple.reception_venue || '—'}
                       </td>
-                      <td className="p-3 hidden lg:table-cell text-muted-foreground">
-                        {couple.photographer || '—'}
-                      </td>
-                      <td className="p-3 hidden md:table-cell">
-                        {frameBadge(couple.frame_sale_status)}
-                      </td>
-                      <td className="p-3 text-right">
-                        {bal > 0 ? (
-                          <span className="font-medium text-red-600">${bal.toLocaleString()}</span>
+                      <td className="p-3 hidden lg:table-cell">
+                        {couple.package_type === 'photo_video' ? (
+                          <span className="inline-flex items-center rounded-full bg-purple-100 text-purple-700 px-2 py-0.5 text-xs font-medium">Photo + Video</span>
+                        ) : couple.package_type === 'photo_only' ? (
+                          <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 text-xs font-medium">Photo Only</span>
                         ) : (
-                          <span className="text-muted-foreground">$0</span>
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="p-3 hidden xl:table-cell">
+                        {couple.email ? (
+                          <div className="flex items-center">
+                            <span className="text-xs text-muted-foreground truncate max-w-[180px]">{couple.email}</span>
+                            <CopyButton text={couple.email} />
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="p-3 hidden xl:table-cell">
+                        {couple.bride_phone ? (
+                          <div className="flex items-center">
+                            <span className="text-xs text-muted-foreground">{couple.bride_phone}</span>
+                            <CopyButton text={couple.bride_phone} />
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="p-3 text-right align-middle">
+                        {bal > 0 ? (
+                          <span className="font-semibold text-red-600">${bal.toLocaleString()}</span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-medium">PAID</span>
+                        )}
+                      </td>
+                      <td className="p-3 text-center align-middle">
+                        {couple.has_wedding_form ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              window.open(`/api/wedding-form-pdf/${couple.id}`, '_blank')
+                            }}
+                            className="inline-flex items-center justify-center text-blue-600 hover:text-blue-800 transition-colors"
+                            title="Download Wedding Day Form"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
                         )}
                       </td>
                     </tr>
