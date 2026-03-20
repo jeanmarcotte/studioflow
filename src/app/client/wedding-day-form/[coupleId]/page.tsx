@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { format } from 'date-fns'
-import { Camera, Clock, MapPin, Phone, User, Heart, Music, Flower2, Car, Instagram, Link, MessageSquare, Users, Plane, FileText } from 'lucide-react'
+import { Camera, Clock, MapPin, Phone, User, Heart, Music, Flower2, Car, Instagram, Link, MessageSquare, Users, Plane, FileText, Download } from 'lucide-react'
 
 function getServiceClient() {
   return createClient(
@@ -127,14 +127,23 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
       {/* ─── Header ────────────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
-              <Camera className="w-6 h-6 text-blue-600" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
+                <Camera className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{coupleName}</h1>
+                {weddingDate && <p className="text-sm text-gray-500 mt-0.5">{weddingDate}</p>}
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{coupleName}</h1>
-              {weddingDate && <p className="text-sm text-gray-500 mt-0.5">{weddingDate}</p>}
-            </div>
+            <a
+              href={`/api/wedding-form-pdf/${coupleId}`}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Download PDF
+            </a>
           </div>
           {form.updated_at && (
             <p className="text-xs text-gray-400 mt-4">
