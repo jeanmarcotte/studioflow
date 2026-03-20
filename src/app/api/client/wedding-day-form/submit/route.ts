@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendFormNotification } from '@/lib/email'
+import { sendFormNotification, sendTeamWeddingDayNotification } from '@/lib/email'
 
 function getServiceClient() {
   return createClient(
@@ -162,7 +162,7 @@ export async function POST(request: Request) {
       // Send email notification (non-blocking)
       const { data: couple } = await supabase
         .from('couples')
-        .select('couple_name, wedding_date')
+        .select('couple_name, wedding_date, package_type')
         .eq('id', body.couple_id)
         .single()
 
@@ -172,6 +172,15 @@ export async function POST(request: Request) {
           coupleName: couple.couple_name,
           weddingDate: couple.wedding_date,
         }).catch(err => console.error('Email notification failed:', err))
+
+        // Send team notification with full schedule (non-blocking)
+        sendTeamWeddingDayNotification({
+          coupleId: body.couple_id,
+          coupleName: couple.couple_name,
+          weddingDate: couple.wedding_date,
+          packageType: couple.package_type ?? null,
+          form: formData,
+        }).catch(err => console.error('Team notification failed:', err))
       }
 
       return NextResponse.json({ success: true, id: data.id })
@@ -191,7 +200,7 @@ export async function POST(request: Request) {
       // Send email notification (non-blocking)
       const { data: couple } = await supabase
         .from('couples')
-        .select('couple_name, wedding_date')
+        .select('couple_name, wedding_date, package_type')
         .eq('id', body.couple_id)
         .single()
 
@@ -201,6 +210,15 @@ export async function POST(request: Request) {
           coupleName: couple.couple_name,
           weddingDate: couple.wedding_date,
         }).catch(err => console.error('Email notification failed:', err))
+
+        // Send team notification with full schedule (non-blocking)
+        sendTeamWeddingDayNotification({
+          coupleId: body.couple_id,
+          coupleName: couple.couple_name,
+          weddingDate: couple.wedding_date,
+          packageType: couple.package_type ?? null,
+          form: formData,
+        }).catch(err => console.error('Team notification failed:', err))
       }
 
       return NextResponse.json({ success: true, id: data.id })

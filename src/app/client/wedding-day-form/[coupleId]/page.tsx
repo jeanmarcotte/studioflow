@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { format } from 'date-fns'
 import { Camera, Clock, MapPin, Phone, User, Heart, Music, Flower2, Car, Instagram, Link, MessageSquare, Users, Plane, FileText, Download, ExternalLink, AlertTriangle } from 'lucide-react'
+import { formatTime, parseTimeToMinutes, parseEndTimeToMinutes, buildScheduleRows, calculateHoursValidation } from '@/lib/time-utils'
 
 function getServiceClient() {
   return createClient(
@@ -11,98 +12,6 @@ function getServiceClient() {
 
 interface PageProps {
   params: { coupleId: string }
-}
-
-// ─── Time Formatting Helpers ────────────────────────────────────────────────
-
-/** Normalize a single time token (no ranges) into "H:MM AM/PM" */
-function formatSingleTime(raw: string, hint: 'am' | 'pm' | 'auto'): string {
-  const s = raw.trim()
-  if (!s) return ''
-
-  // Extract existing AM/PM
-  const ampmMatch = s.match(/([ap])\.?\s*m\.?/i)
-  let period = ampmMatch
-    ? (ampmMatch[0].replace(/[\s.]/g, '').toUpperCase().startsWith('A') ? 'AM' : 'PM')
-    : ''
-
-  // Strip AM/PM to get numeric part
-  const numeric = s.replace(/\s*[ap]\.?\s*m\.?/gi, '').trim()
-
-  let hour: number, minute: number
-  if (numeric.includes(':')) {
-    const [h, m] = numeric.split(':')
-    hour = parseInt(h, 10)
-    minute = parseInt(m, 10) || 0
-  } else {
-    hour = parseInt(numeric, 10)
-    minute = 0
-  }
-  if (isNaN(hour)) return s // unparseable — return as-is
-
-  // Infer AM/PM if missing
-  if (!period) {
-    if (hint === 'am') period = 'AM'
-    else if (hint === 'pm') period = 'PM'
-    else period = (hour >= 8 && hour <= 11) ? 'AM' : 'PM'
-  }
-
-  return `${hour}:${minute.toString().padStart(2, '0')} ${period}`
-}
-
-/**
- * Format a time string that may contain ranges ("3:45-4PM") into clean display.
- * hint provides context for AM/PM inference when the bride didn't type it.
- */
-function formatTime(raw: string | null | undefined, hint: 'am' | 'pm' | 'auto' = 'auto'): string {
-  if (!raw) return ''
-  const s = raw.trim()
-
-  // Handle ranges like "3:45-4PM" or "3:45 – 4PM"
-  const rangeSep = s.match(/\s*[-–]\s*/)
-  if (rangeSep && rangeSep.index !== undefined) {
-    const left = s.slice(0, rangeSep.index)
-    const right = s.slice(rangeSep.index + rangeSep[0].length)
-    // Right part usually has the AM/PM — parse it first to extract the period
-    const rightFormatted = formatSingleTime(right, hint)
-    const rightPeriod = rightFormatted.includes('PM') ? 'pm' : rightFormatted.includes('AM') ? 'am' : hint
-    const leftFormatted = formatSingleTime(left, rightPeriod as 'am' | 'pm' | 'auto')
-    return `${leftFormatted} – ${rightFormatted}`
-  }
-
-  return formatSingleTime(s, hint)
-}
-
-/** Parse a time string to minutes since midnight for duration math. Returns null if unparseable. */
-function parseTimeToMinutes(raw: string | null | undefined, hint: 'am' | 'pm' | 'auto' = 'auto'): number | null {
-  if (!raw) return null
-  const formatted = formatTime(raw, hint)
-  // Take the first time if it's a range
-  const first = formatted.split('–')[0].trim()
-  const match = first.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i)
-  if (!match) return null
-  let hour = parseInt(match[1], 10)
-  const min = parseInt(match[2], 10)
-  const p = match[3].toUpperCase()
-  if (p === 'PM' && hour !== 12) hour += 12
-  if (p === 'AM' && hour === 12) hour = 0
-  return hour * 60 + min
-}
-
-/** Parse a time string and return the LAST time in a range (for end-time duration calc). */
-function parseEndTimeToMinutes(raw: string | null | undefined, hint: 'am' | 'pm' | 'auto' = 'auto'): number | null {
-  if (!raw) return null
-  const formatted = formatTime(raw, hint)
-  const parts = formatted.split('–')
-  const last = parts[parts.length - 1].trim()
-  const match = last.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i)
-  if (!match) return null
-  let hour = parseInt(match[1], 10)
-  const min = parseInt(match[2], 10)
-  const p = match[3].toUpperCase()
-  if (p === 'PM' && hour !== 12) hour += 12
-  if (p === 'AM' && hour === 12) hour = 0
-  return hour * 60 + min
 }
 
 // ─── Helper: Google Maps URL ────────────────────────────────────────────────
@@ -271,122 +180,29 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
   // Derive city from reception, ceremony, or bride prep
   const weddingCity = (form.reception_city || form.ceremony_city || form.bride_city || '').trim()
 
-  // ─── Build call-sheet rows with formatted times ───────────────────────────
-  const rows: { time: string; event: string; location?: string | null; mapHref?: string | null }[] = []
-
-  // Photo/Video contract line
-  const arrivalFmt = formatTime(form.venue_arrival_time, 'auto')
-  const endFmt = formatTime(form.photo_video_end_time, 'pm')
-  if (arrivalFmt || endFmt) {
-    const contractTime = [arrivalFmt, endFmt].filter(Boolean).join(' → ')
-    const hoursNote = form.hours_in_contract ? ` (${form.hours_in_contract}h)` : ''
-    rows.push({ time: contractTime + hoursNote, event: 'Photo / Video', location: null, mapHref: null })
+  // ─── Build call-sheet rows and hours validation using shared utils ────────
+  const scheduleRows = buildScheduleRows(form)
+  const rows = scheduleRows.map(r => ({
+    ...r,
+    location: r.location || null,
+    mapHref: null as string | null, // will be set per-row below
+  }))
+  // Add Maps links for location rows
+  const mapsQueries: Record<string, (string | null | undefined)[]> = {
+    'Groom Prep': [form.groom_address, form.groom_city],
+    'Bride Prep': [form.bride_address, form.bride_city],
+    'First Look': [form.first_look_address, form.first_look_city, form.first_look_location_name],
+    'Ceremony': [form.ceremony_address, form.ceremony_city, form.ceremony_location_name],
+    'Photos': [form.park_address, form.park_city, form.park_name],
+    'Reception': [form.reception_address, form.reception_city, form.reception_venue_name],
   }
-
-  // Groom Prep
-  const groomStart = formatTime(form.groom_start_time, 'am')
-  const groomEnd = formatTime(form.groom_finish_time, 'am')
-  if (groomStart || groomEnd) {
-    rows.push({
-      time: [groomStart, groomEnd].filter(Boolean).join(' → '),
-      event: 'Groom Prep',
-      location: [form.groom_address, form.groom_city].filter(Boolean).join(', ').trim() || null,
-      mapHref: mapsUrl([form.groom_address, form.groom_city]),
-    })
-  }
-
-  // Bride Prep
-  const brideStart = formatTime(form.bride_start_time, 'auto')
-  const brideEnd = formatTime(form.bride_finish_time, 'pm')
-  if (brideStart || brideEnd) {
-    rows.push({
-      time: [brideStart, brideEnd].filter(Boolean).join(' → '),
-      event: 'Bride Prep',
-      location: [form.bride_address, form.bride_city].filter(Boolean).join(', ').trim() || null,
-      mapHref: mapsUrl([form.bride_address, form.bride_city]),
-    })
-  }
-
-  // First Look
-  if (form.has_first_look && form.first_look_time) {
-    rows.push({
-      time: formatTime(form.first_look_time, 'pm'),
-      event: 'First Look',
-      location: form.first_look_location_name || null,
-      mapHref: mapsUrl([form.first_look_address, form.first_look_city, form.first_look_location_name]),
-    })
-  }
-
-  // Ceremony
-  const ceremonyStart = formatTime(form.ceremony_start_time, 'pm')
-  const ceremonyEnd = formatTime(form.ceremony_finish_time, 'pm')
-  if (ceremonyStart || ceremonyEnd) {
-    rows.push({
-      time: [ceremonyStart, ceremonyEnd].filter(Boolean).join(' → '),
-      event: 'Ceremony',
-      location: form.ceremony_location_name || null,
-      mapHref: mapsUrl([form.ceremony_address, form.ceremony_city, form.ceremony_location_name]),
-    })
-  }
-
-  // Photos / Park
-  const parkStart = formatTime(form.park_start_time, 'pm')
-  const parkEnd = formatTime(form.park_finish_time, 'pm')
-  if (parkStart || parkEnd) {
-    rows.push({
-      time: [parkStart, parkEnd].filter(Boolean).join(' → '),
-      event: 'Photos',
-      location: form.park_name || null,
-      mapHref: mapsUrl([form.park_address, form.park_city, form.park_name]),
-    })
-  }
-
-  // Reception
-  const recStart = formatTime(form.reception_start_time, 'pm')
-  const recEnd = formatTime(form.reception_finish_time, 'pm')
-  if (recStart || recEnd) {
-    rows.push({
-      time: [recStart, recEnd].filter(Boolean).join(' → '),
-      event: 'Reception',
-      location: form.reception_venue_name || null,
-      mapHref: mapsUrl([form.reception_address, form.reception_city, form.reception_venue_name]),
-    })
-  }
-
-  // ─── Hours validation ─────────────────────────────────────────────────────
-  const startCandidates = [
-    parseTimeToMinutes(form.groom_start_time, 'am'),
-    parseTimeToMinutes(form.bride_start_time, 'auto'),
-    parseTimeToMinutes(form.venue_arrival_time, 'auto'),
-  ].filter((v): v is number => v !== null)
-
-  const endCandidates = [
-    parseEndTimeToMinutes(form.reception_finish_time, 'pm'),
-    parseEndTimeToMinutes(form.photo_video_end_time, 'pm'),
-  ].filter((v): v is number => v !== null)
-
-  const earliestMin = startCandidates.length > 0 ? Math.min(...startCandidates) : null
-  const latestMin = endCandidates.length > 0 ? Math.max(...endCandidates) : null
-
-  let actualHours: number | null = null
-  let exceedsBy: number | null = null
-  let earliestFmt = ''
-  let latestFmt = ''
-
-  if (earliestMin !== null && latestMin !== null) {
-    actualHours = Math.round((latestMin - earliestMin) / 60 * 10) / 10
-    // Format earliest/latest for display
-    const eH = Math.floor(earliestMin / 60)
-    const eM = earliestMin % 60
-    earliestFmt = `${eH > 12 ? eH - 12 : eH || 12}:${eM.toString().padStart(2, '0')} ${eH >= 12 ? 'PM' : 'AM'}`
-    const lH = Math.floor(latestMin / 60)
-    const lM = latestMin % 60
-    latestFmt = `${lH > 12 ? lH - 12 : lH || 12}:${lM.toString().padStart(2, '0')} ${lH >= 12 ? 'PM' : 'AM'}`
-
-    if (form.hours_in_contract && actualHours > form.hours_in_contract) {
-      exceedsBy = Math.ceil(actualHours - form.hours_in_contract)
+  for (const row of rows) {
+    if (mapsQueries[row.event]) {
+      row.mapHref = mapsUrl(mapsQueries[row.event])
     }
   }
+
+  const { contracted, actualHours, earliestFmt, latestFmt, exceedsBy } = calculateHoursValidation(form)
 
   // ─── Package badge ────────────────────────────────────────────────────────
   const isPhotoOnly = packageType === 'photo_only'
@@ -465,11 +281,11 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
           </div>
 
           {/* Hours validation */}
-          {(form.hours_in_contract || actualHours !== null) && (
+          {(contracted || actualHours !== null) && (
             <div className="px-4 py-3 border-t border-gray-200 bg-gray-50/50 space-y-1.5">
-              {form.hours_in_contract && (
+              {contracted && (
                 <p className="text-xs text-gray-500">
-                  <span className="font-medium text-gray-700">Contracted:</span> {form.hours_in_contract} hours
+                  <span className="font-medium text-gray-700">Contracted:</span> {contracted} hours
                 </p>
               )}
               {actualHours !== null && (
