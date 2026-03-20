@@ -33,7 +33,7 @@ interface VideoJob {
   full_video_id: string | null
   created_at: string
   updated_at: string
-  couples?: { couple_name: string; id: string }
+  couples?: { couple_name: string; id: string; wedding_date: string | null }
 }
 
 interface PhotoWaitingJob {
@@ -152,7 +152,7 @@ export default function VideoProductionPage() {
       const [videoRes, photoRes] = await Promise.all([
         supabase
           .from('video_jobs')
-          .select('*, couples(id, couple_name)')
+          .select('*, couples(id, couple_name, wedding_date)')
           .order('sort_order', { ascending: true, nullsFirst: false }),
         supabase
           .from('editing_queue')
@@ -170,8 +170,18 @@ export default function VideoProductionPage() {
   // ── Update status inline ───────────────────────────────────────
 
   const updateJobStatus = async (jobId: string, newStatus: string) => {
+    const job = jobs.find(j => j.id === jobId)
     const updates: Record<string, any> = { status: newStatus }
-    if (newStatus === 'complete') updates.section = 'completed'
+    if (newStatus === 'complete') {
+      updates.section = 'completed'
+    } else if (job?.section === 'completed') {
+      // Leaving completed state — restore section based on job type
+      if (job.job_type === 'RECAP' || job.job_type === 'ENG_SLIDESHOW') {
+        updates.section = 'editing'
+      } else {
+        updates.section = 'editing'
+      }
+    }
 
     const { error } = await supabase
       .from('video_jobs')
@@ -335,7 +345,7 @@ export default function VideoProductionPage() {
             case 'couple_name':
               return (a.couples?.couple_name || '').localeCompare(b.couples?.couple_name || '') * dir
             case 'wedding_date':
-              return (a.wedding_date || '9999').localeCompare(b.wedding_date || '9999') * dir
+              return (a.wedding_date || a.couples?.wedding_date || '9999').localeCompare(b.wedding_date || b.couples?.wedding_date || '9999') * dir
             case 'ceremony_done':
             case 'reception_done':
             case 'park_done':
@@ -363,7 +373,7 @@ export default function VideoProductionPage() {
           const aOrder = a.sort_order ?? 9999
           const bOrder = b.sort_order ?? 9999
           if (aOrder !== bOrder) return aOrder - bOrder
-          return (a.wedding_date || '9999').localeCompare(b.wedding_date || '9999')
+          return (a.wedding_date || a.couples?.wedding_date || '9999').localeCompare(b.wedding_date || b.couples?.wedding_date || '9999')
         })
       }
     }
@@ -693,8 +703,8 @@ export default function VideoProductionPage() {
                               </button>
                             </td>
                             <td className="p-3 hidden lg:table-cell text-muted-foreground">
-                              {job.wedding_date
-                                ? format(parseISO(job.wedding_date), 'MMM d, yyyy')
+                              {(job.wedding_date || job.couples?.wedding_date)
+                                ? format(parseISO((job.wedding_date || job.couples?.wedding_date)!), 'MMM d, yyyy')
                                 : <span className="text-amber-600 text-xs">No date</span>
                               }
                             </td>
