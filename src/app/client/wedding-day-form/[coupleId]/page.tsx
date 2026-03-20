@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { format } from 'date-fns'
-import { Camera, Clock, MapPin, Phone, User, Heart, Music, Flower2, Car, Instagram, Link, MessageSquare, Users, Plane, FileText, Download, ExternalLink } from 'lucide-react'
+import { Camera, Clock, MapPin, Phone, User, Heart, Music, Flower2, Car, Instagram, Link, MessageSquare, Users, Plane, FileText, Download, ExternalLink, AlertTriangle } from 'lucide-react'
 
 function getServiceClient() {
   return createClient(
@@ -11,6 +11,98 @@ function getServiceClient() {
 
 interface PageProps {
   params: { coupleId: string }
+}
+
+// ─── Time Formatting Helpers ────────────────────────────────────────────────
+
+/** Normalize a single time token (no ranges) into "H:MM AM/PM" */
+function formatSingleTime(raw: string, hint: 'am' | 'pm' | 'auto'): string {
+  const s = raw.trim()
+  if (!s) return ''
+
+  // Extract existing AM/PM
+  const ampmMatch = s.match(/([ap])\.?\s*m\.?/i)
+  let period = ampmMatch
+    ? (ampmMatch[0].replace(/[\s.]/g, '').toUpperCase().startsWith('A') ? 'AM' : 'PM')
+    : ''
+
+  // Strip AM/PM to get numeric part
+  const numeric = s.replace(/\s*[ap]\.?\s*m\.?/gi, '').trim()
+
+  let hour: number, minute: number
+  if (numeric.includes(':')) {
+    const [h, m] = numeric.split(':')
+    hour = parseInt(h, 10)
+    minute = parseInt(m, 10) || 0
+  } else {
+    hour = parseInt(numeric, 10)
+    minute = 0
+  }
+  if (isNaN(hour)) return s // unparseable — return as-is
+
+  // Infer AM/PM if missing
+  if (!period) {
+    if (hint === 'am') period = 'AM'
+    else if (hint === 'pm') period = 'PM'
+    else period = (hour >= 8 && hour <= 11) ? 'AM' : 'PM'
+  }
+
+  return `${hour}:${minute.toString().padStart(2, '0')} ${period}`
+}
+
+/**
+ * Format a time string that may contain ranges ("3:45-4PM") into clean display.
+ * hint provides context for AM/PM inference when the bride didn't type it.
+ */
+function formatTime(raw: string | null | undefined, hint: 'am' | 'pm' | 'auto' = 'auto'): string {
+  if (!raw) return ''
+  const s = raw.trim()
+
+  // Handle ranges like "3:45-4PM" or "3:45 – 4PM"
+  const rangeSep = s.match(/\s*[-–]\s*/)
+  if (rangeSep && rangeSep.index !== undefined) {
+    const left = s.slice(0, rangeSep.index)
+    const right = s.slice(rangeSep.index + rangeSep[0].length)
+    // Right part usually has the AM/PM — parse it first to extract the period
+    const rightFormatted = formatSingleTime(right, hint)
+    const rightPeriod = rightFormatted.includes('PM') ? 'pm' : rightFormatted.includes('AM') ? 'am' : hint
+    const leftFormatted = formatSingleTime(left, rightPeriod as 'am' | 'pm' | 'auto')
+    return `${leftFormatted} – ${rightFormatted}`
+  }
+
+  return formatSingleTime(s, hint)
+}
+
+/** Parse a time string to minutes since midnight for duration math. Returns null if unparseable. */
+function parseTimeToMinutes(raw: string | null | undefined, hint: 'am' | 'pm' | 'auto' = 'auto'): number | null {
+  if (!raw) return null
+  const formatted = formatTime(raw, hint)
+  // Take the first time if it's a range
+  const first = formatted.split('–')[0].trim()
+  const match = first.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i)
+  if (!match) return null
+  let hour = parseInt(match[1], 10)
+  const min = parseInt(match[2], 10)
+  const p = match[3].toUpperCase()
+  if (p === 'PM' && hour !== 12) hour += 12
+  if (p === 'AM' && hour === 12) hour = 0
+  return hour * 60 + min
+}
+
+/** Parse a time string and return the LAST time in a range (for end-time duration calc). */
+function parseEndTimeToMinutes(raw: string | null | undefined, hint: 'am' | 'pm' | 'auto' = 'auto'): number | null {
+  if (!raw) return null
+  const formatted = formatTime(raw, hint)
+  const parts = formatted.split('–')
+  const last = parts[parts.length - 1].trim()
+  const match = last.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i)
+  if (!match) return null
+  let hour = parseInt(match[1], 10)
+  const min = parseInt(match[2], 10)
+  const p = match[3].toUpperCase()
+  if (p === 'PM' && hour !== 12) hour += 12
+  if (p === 'AM' && hour === 12) hour = 0
+  return hour * 60 + min
 }
 
 // ─── Helper: Google Maps URL ────────────────────────────────────────────────
@@ -116,19 +208,27 @@ function VendorRow({ name, instagram, label }: { name?: string | null; instagram
   )
 }
 
-// ─── Quick Overview Timeline ────────────────────────────────────────────────
+// ─── Call Sheet Row ─────────────────────────────────────────────────────────
 
-function TimelineRow({ label, time, location }: { label: string; time: string | null | undefined; location?: string | null }) {
-  if (!time) return null
+function CallSheetRow({ time, event, location, mapHref, odd }: {
+  time: string
+  event: string
+  location?: string | null
+  mapHref?: string | null
+  odd: boolean
+}) {
   return (
-    <div className="flex items-start gap-3 py-2">
-      <div className="w-2 h-2 rounded-full bg-blue-400 mt-1.5 shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-sm font-medium text-gray-900">{label}</span>
-          <span className="text-sm text-gray-600">{time}</span>
-        </div>
-        {location && <p className="text-xs text-gray-400 mt-0.5 truncate">{location}</p>}
+    <div className={`grid grid-cols-[1fr] sm:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,2.5fr)] gap-x-4 gap-y-0.5 px-4 py-2.5 ${odd ? 'bg-gray-50/60' : ''}`}>
+      <div className="text-sm text-gray-700 font-mono tabular-nums">{time}</div>
+      <div className="text-sm font-medium text-gray-900">{event}</div>
+      <div className="text-sm">
+        {location && mapHref ? (
+          <a href={mapHref} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline">
+            {location}
+          </a>
+        ) : location ? (
+          <span className="text-gray-500">{location}</span>
+        ) : null}
       </div>
     </div>
   )
@@ -142,7 +242,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
 
   const [{ data: form, error: formError }, { data: couple, error: coupleError }] = await Promise.all([
     supabase.from('wedding_day_forms').select('*').eq('couple_id', coupleId).single(),
-    supabase.from('couples').select('couple_name, wedding_date, reception_venue').eq('id', coupleId).single(),
+    supabase.from('couples').select('couple_name, wedding_date, reception_venue, package_type').eq('id', coupleId).single(),
   ])
 
   // ─── No Form Found ─────────────────────────────────────────────────────────
@@ -166,18 +266,132 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
   const weddingDate = couple?.wedding_date
     ? format(new Date(couple.wedding_date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
     : null
+  const packageType = couple?.package_type ?? null
 
   // Derive city from reception, ceremony, or bride prep
   const weddingCity = (form.reception_city || form.ceremony_city || form.bride_city || '').trim()
 
-  // Build timeline time strings
-  const photoTimeline = [form.venue_arrival_time, form.photo_video_end_time].filter(Boolean).join(' → ')
-  const hoursLabel = form.hours_in_contract ? `(${form.hours_in_contract} hours)` : ''
-  const groomTime = [form.groom_start_time, form.groom_finish_time].filter(Boolean).join(' → ')
-  const brideTime = [form.bride_start_time, form.bride_finish_time].filter(Boolean).join(' → ')
-  const ceremonyTime = [form.ceremony_start_time, form.ceremony_finish_time].filter(Boolean).join(' → ')
-  const parkTime = [form.park_start_time, form.park_finish_time].filter(Boolean).join(' → ')
-  const receptionTime = [form.reception_start_time, form.reception_finish_time].filter(Boolean).join(' → ')
+  // ─── Build call-sheet rows with formatted times ───────────────────────────
+  const rows: { time: string; event: string; location?: string | null; mapHref?: string | null }[] = []
+
+  // Photo/Video contract line
+  const arrivalFmt = formatTime(form.venue_arrival_time, 'auto')
+  const endFmt = formatTime(form.photo_video_end_time, 'pm')
+  if (arrivalFmt || endFmt) {
+    const contractTime = [arrivalFmt, endFmt].filter(Boolean).join(' → ')
+    const hoursNote = form.hours_in_contract ? ` (${form.hours_in_contract}h)` : ''
+    rows.push({ time: contractTime + hoursNote, event: 'Photo / Video', location: null, mapHref: null })
+  }
+
+  // Groom Prep
+  const groomStart = formatTime(form.groom_start_time, 'am')
+  const groomEnd = formatTime(form.groom_finish_time, 'am')
+  if (groomStart || groomEnd) {
+    rows.push({
+      time: [groomStart, groomEnd].filter(Boolean).join(' → '),
+      event: 'Groom Prep',
+      location: [form.groom_address, form.groom_city].filter(Boolean).join(', ').trim() || null,
+      mapHref: mapsUrl([form.groom_address, form.groom_city]),
+    })
+  }
+
+  // Bride Prep
+  const brideStart = formatTime(form.bride_start_time, 'auto')
+  const brideEnd = formatTime(form.bride_finish_time, 'pm')
+  if (brideStart || brideEnd) {
+    rows.push({
+      time: [brideStart, brideEnd].filter(Boolean).join(' → '),
+      event: 'Bride Prep',
+      location: [form.bride_address, form.bride_city].filter(Boolean).join(', ').trim() || null,
+      mapHref: mapsUrl([form.bride_address, form.bride_city]),
+    })
+  }
+
+  // First Look
+  if (form.has_first_look && form.first_look_time) {
+    rows.push({
+      time: formatTime(form.first_look_time, 'pm'),
+      event: 'First Look',
+      location: form.first_look_location_name || null,
+      mapHref: mapsUrl([form.first_look_address, form.first_look_city, form.first_look_location_name]),
+    })
+  }
+
+  // Ceremony
+  const ceremonyStart = formatTime(form.ceremony_start_time, 'pm')
+  const ceremonyEnd = formatTime(form.ceremony_finish_time, 'pm')
+  if (ceremonyStart || ceremonyEnd) {
+    rows.push({
+      time: [ceremonyStart, ceremonyEnd].filter(Boolean).join(' → '),
+      event: 'Ceremony',
+      location: form.ceremony_location_name || null,
+      mapHref: mapsUrl([form.ceremony_address, form.ceremony_city, form.ceremony_location_name]),
+    })
+  }
+
+  // Photos / Park
+  const parkStart = formatTime(form.park_start_time, 'pm')
+  const parkEnd = formatTime(form.park_finish_time, 'pm')
+  if (parkStart || parkEnd) {
+    rows.push({
+      time: [parkStart, parkEnd].filter(Boolean).join(' → '),
+      event: 'Photos',
+      location: form.park_name || null,
+      mapHref: mapsUrl([form.park_address, form.park_city, form.park_name]),
+    })
+  }
+
+  // Reception
+  const recStart = formatTime(form.reception_start_time, 'pm')
+  const recEnd = formatTime(form.reception_finish_time, 'pm')
+  if (recStart || recEnd) {
+    rows.push({
+      time: [recStart, recEnd].filter(Boolean).join(' → '),
+      event: 'Reception',
+      location: form.reception_venue_name || null,
+      mapHref: mapsUrl([form.reception_address, form.reception_city, form.reception_venue_name]),
+    })
+  }
+
+  // ─── Hours validation ─────────────────────────────────────────────────────
+  const startCandidates = [
+    parseTimeToMinutes(form.groom_start_time, 'am'),
+    parseTimeToMinutes(form.bride_start_time, 'auto'),
+    parseTimeToMinutes(form.venue_arrival_time, 'auto'),
+  ].filter((v): v is number => v !== null)
+
+  const endCandidates = [
+    parseEndTimeToMinutes(form.reception_finish_time, 'pm'),
+    parseEndTimeToMinutes(form.photo_video_end_time, 'pm'),
+  ].filter((v): v is number => v !== null)
+
+  const earliestMin = startCandidates.length > 0 ? Math.min(...startCandidates) : null
+  const latestMin = endCandidates.length > 0 ? Math.max(...endCandidates) : null
+
+  let actualHours: number | null = null
+  let exceedsBy: number | null = null
+  let earliestFmt = ''
+  let latestFmt = ''
+
+  if (earliestMin !== null && latestMin !== null) {
+    actualHours = Math.round((latestMin - earliestMin) / 60 * 10) / 10
+    // Format earliest/latest for display
+    const eH = Math.floor(earliestMin / 60)
+    const eM = earliestMin % 60
+    earliestFmt = `${eH > 12 ? eH - 12 : eH || 12}:${eM.toString().padStart(2, '0')} ${eH >= 12 ? 'PM' : 'AM'}`
+    const lH = Math.floor(latestMin / 60)
+    const lM = latestMin % 60
+    latestFmt = `${lH > 12 ? lH - 12 : lH || 12}:${lM.toString().padStart(2, '0')} ${lH >= 12 ? 'PM' : 'AM'}`
+
+    if (form.hours_in_contract && actualHours > form.hours_in_contract) {
+      exceedsBy = Math.ceil(actualHours - form.hours_in_contract)
+    }
+  }
+
+  // ─── Package badge ────────────────────────────────────────────────────────
+  const isPhotoOnly = packageType === 'photo_only'
+  const packageLabel = isPhotoOnly ? 'PHOTO ONLY' : 'PHOTO & VIDEO'
+  const packageEmoji = isPhotoOnly ? '\u{1F4F7}' : '\u{1F4F7}\u{1F3A5}'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -218,34 +432,61 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
       {/* ─── Content ───────────────────────────────────────────────────────── */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-        {/* Quick Overview — Day at a Glance */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-              <Clock className="w-4 h-4 text-blue-600" />
+        {/* ── Quick Overview ─────────────────────────────────────────────── */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden border-l-4" style={{ borderLeftColor: '#1e3a5f' }}>
+          <div className="px-5 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#1e3a5f' }}>
+                <Clock className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Quick Overview</h2>
+                <p className="text-xs text-gray-400">Day at a glance</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Quick Overview</h2>
-              <p className="text-xs text-gray-400">The day at a glance</p>
-            </div>
+            {packageType && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: '#1e3a5f' }}>
+                {packageEmoji} {packageLabel}
+              </span>
+            )}
           </div>
-          <div className="px-6 py-5">
-            <div className="border-l-2 border-blue-100 pl-4 space-y-0">
-              <TimelineRow
-                label="Photo / Video"
-                time={photoTimeline ? `${photoTimeline} ${hoursLabel}` : hoursLabel || null}
-                location={null}
-              />
-              <TimelineRow label="Groom Prep" time={groomTime} location={[form.groom_address, form.groom_city].filter(Boolean).join(', ')} />
-              <TimelineRow label="Bride Prep" time={brideTime} location={[form.bride_address, form.bride_city].filter(Boolean).join(', ')} />
-              {form.has_first_look && (
-                <TimelineRow label="First Look" time={form.first_look_time} location={form.first_look_location_name} />
+
+          {/* Call sheet grid */}
+          <div className="divide-y divide-gray-100">
+            {/* Column headers - desktop only */}
+            <div className="hidden sm:grid grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,2.5fr)] gap-x-4 px-4 py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+              <div>Time</div>
+              <div>Event</div>
+              <div>Location</div>
+            </div>
+            {rows.map((row, i) => (
+              <CallSheetRow key={i} time={row.time} event={row.event} location={row.location} mapHref={row.mapHref} odd={i % 2 === 0} />
+            ))}
+          </div>
+
+          {/* Hours validation */}
+          {(form.hours_in_contract || actualHours !== null) && (
+            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50/50 space-y-1.5">
+              {form.hours_in_contract && (
+                <p className="text-xs text-gray-500">
+                  <span className="font-medium text-gray-700">Contracted:</span> {form.hours_in_contract} hours
+                </p>
               )}
-              <TimelineRow label="Ceremony" time={ceremonyTime} location={form.ceremony_location_name} />
-              <TimelineRow label="Photos" time={parkTime} location={form.park_name} />
-              <TimelineRow label="Reception" time={receptionTime} location={form.reception_venue_name} />
+              {actualHours !== null && (
+                <p className="text-xs text-gray-500">
+                  <span className="font-medium text-gray-700">Actual day:</span> {earliestFmt} → {latestFmt} ({actualHours} hours)
+                </p>
+              )}
+              {exceedsBy !== null && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                  <span className="text-xs font-semibold text-amber-700">
+                    Day exceeds contract by {exceedsBy} hour{exceedsBy !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Emergency Contacts */}
