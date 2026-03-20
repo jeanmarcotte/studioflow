@@ -186,6 +186,14 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
     pdf.doc.text(weddingDate, MARGIN, pdf.y)
     pdf.y += 4
   }
+  const weddingCity = (form.reception_city || form.ceremony_city || form.bride_city || '').trim()
+  if (weddingCity) {
+    pdf.doc.setFont('helvetica', 'normal')
+    pdf.doc.setFontSize(9)
+    pdf.doc.setTextColor(156, 163, 175)
+    pdf.doc.text(`📍 ${weddingCity}`, MARGIN, pdf.y)
+    pdf.y += 5
+  }
   pdf.doc.setFont('helvetica', 'normal')
   pdf.doc.setFontSize(8)
   pdf.doc.setTextColor(156, 163, 175)
@@ -198,10 +206,49 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
   pdf.doc.line(MARGIN, pdf.y, MARGIN + CONTENT_W, pdf.y)
   pdf.y += 6
 
-  // ─── Contract Info ──────────────────────────────────────────────────────────
-  pdf.header('Contract Info')
-  pdf.fieldRow([['Ceremony Begins At', form.ceremony_begins_at], ['Hours in Contract', form.hours_in_contract], ['Photo/Video End Time', form.photo_video_end_time]])
-  pdf.fieldRow([['Venue Arrival Time', form.venue_arrival_time]])
+  // ─── Quick Overview — Day at a Glance ───────────────────────────────────────
+  pdf.header('Quick Overview — Day at a Glance')
+
+  // Helper to build timeline row in the PDF
+  const timelineRow = (label: string, time: string | null, location?: string | null) => {
+    if (!time) return
+    pdf.checkPage(10)
+    // Dot
+    pdf.doc.setFillColor(96, 165, 250)
+    pdf.doc.circle(MARGIN + 2, pdf.y + 1, 1.2, 'F')
+    // Label + time
+    pdf.doc.setFont('helvetica', 'bold')
+    pdf.doc.setFontSize(9)
+    pdf.doc.setTextColor(17, 24, 39)
+    pdf.doc.text(label, MARGIN + 7, pdf.y + 2)
+    const labelW = pdf.doc.getTextWidth(label)
+    pdf.doc.setFont('helvetica', 'normal')
+    pdf.doc.setFontSize(9)
+    pdf.doc.setTextColor(75, 85, 99)
+    pdf.doc.text(time, MARGIN + 7 + labelW + 3, pdf.y + 2)
+    // Location
+    if (location) {
+      pdf.doc.setFontSize(7.5)
+      pdf.doc.setTextColor(156, 163, 175)
+      pdf.doc.text(location, MARGIN + 7, pdf.y + 6.5)
+      pdf.y += 10
+    } else {
+      pdf.y += 7
+    }
+  }
+
+  const photoTimeline = [form.venue_arrival_time, form.photo_video_end_time].filter(Boolean).join(' → ')
+  const hoursLabel = form.hours_in_contract ? `(${form.hours_in_contract} hours)` : ''
+  timelineRow('Photo / Video', photoTimeline ? `${photoTimeline} ${hoursLabel}` : hoursLabel || null)
+  timelineRow('Groom Prep', [form.groom_start_time, form.groom_finish_time].filter(Boolean).join(' → ') || null, [form.groom_address, form.groom_city].filter(Boolean).join(', '))
+  timelineRow('Bride Prep', [form.bride_start_time, form.bride_finish_time].filter(Boolean).join(' → ') || null, [form.bride_address, form.bride_city].filter(Boolean).join(', '))
+  if (form.has_first_look) {
+    timelineRow('First Look', form.first_look_time, form.first_look_location_name)
+  }
+  timelineRow('Ceremony', [form.ceremony_start_time, form.ceremony_finish_time].filter(Boolean).join(' → ') || null, form.ceremony_location_name)
+  timelineRow('Photos', [form.park_start_time, form.park_finish_time].filter(Boolean).join(' → ') || null, form.park_name)
+  timelineRow('Reception', [form.reception_start_time, form.reception_finish_time].filter(Boolean).join(' → ') || null, form.reception_venue_name)
+  pdf.gap(2)
 
   // ─── Emergency Contacts ─────────────────────────────────────────────────────
   pdf.header('Emergency Contacts')

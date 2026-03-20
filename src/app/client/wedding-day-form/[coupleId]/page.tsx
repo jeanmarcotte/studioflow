@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { format } from 'date-fns'
-import { Camera, Clock, MapPin, Phone, User, Heart, Music, Flower2, Car, Instagram, Link, MessageSquare, Users, Plane, FileText, Download } from 'lucide-react'
+import { Camera, Clock, MapPin, Phone, User, Heart, Music, Flower2, Car, Instagram, Link, MessageSquare, Users, Plane, FileText, Download, ExternalLink } from 'lucide-react'
 
 function getServiceClient() {
   return createClient(
@@ -11,6 +11,14 @@ function getServiceClient() {
 
 interface PageProps {
   params: { coupleId: string }
+}
+
+// ─── Helper: Google Maps URL ────────────────────────────────────────────────
+
+function mapsUrl(parts: (string | null | undefined)[]): string | null {
+  const query = parts.filter(Boolean).join(', ').trim()
+  if (!query) return null
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
 }
 
 // ─── Helper Components ──────────────────────────────────────────────────────
@@ -44,7 +52,23 @@ function FieldGrid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6">{children}</div>
 }
 
-function LocationBlock({ name, address, city, intersection, startTime, finishTime, directions, extras }: {
+function MapsLink({ href }: { href: string | null }) {
+  if (!href) return null
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 mt-2 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+    >
+      <MapPin className="w-3.5 h-3.5" />
+      Open in Google Maps
+      <ExternalLink className="w-3 h-3" />
+    </a>
+  )
+}
+
+function LocationBlock({ name, address, city, intersection, startTime, finishTime, directions, extras, mapsQuery }: {
   name?: string | null
   address?: string | null
   city?: string | null
@@ -53,9 +77,11 @@ function LocationBlock({ name, address, city, intersection, startTime, finishTim
   finishTime?: string | null
   directions?: string | null
   extras?: React.ReactNode
+  mapsQuery?: (string | null | undefined)[]
 }) {
   const hasContent = name || address || city || startTime || finishTime || directions
   if (!hasContent) return null
+  const mapHref = mapsQuery ? mapsUrl(mapsQuery) : mapsUrl([address, city])
   return (
     <div className="space-y-1">
       {name && <p className="font-medium text-gray-900">{name}</p>}
@@ -68,6 +94,7 @@ function LocationBlock({ name, address, city, intersection, startTime, finishTim
       </FieldGrid>
       <Field label="Directions / Notes" value={directions} />
       {extras}
+      <MapsLink href={mapHref} />
     </div>
   )
 }
@@ -85,6 +112,24 @@ function VendorRow({ name, instagram, label }: { name?: string | null; instagram
           <Instagram className="w-3 h-3" /> {instagram}
         </span>
       )}
+    </div>
+  )
+}
+
+// ─── Quick Overview Timeline ────────────────────────────────────────────────
+
+function TimelineRow({ label, time, location }: { label: string; time: string | null | undefined; location?: string | null }) {
+  if (!time) return null
+  return (
+    <div className="flex items-start gap-3 py-2">
+      <div className="w-2 h-2 rounded-full bg-blue-400 mt-1.5 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="text-sm font-medium text-gray-900">{label}</span>
+          <span className="text-sm text-gray-600">{time}</span>
+        </div>
+        {location && <p className="text-xs text-gray-400 mt-0.5 truncate">{location}</p>}
+      </div>
     </div>
   )
 }
@@ -122,6 +167,18 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
     ? format(new Date(couple.wedding_date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
     : null
 
+  // Derive city from reception, ceremony, or bride prep
+  const weddingCity = (form.reception_city || form.ceremony_city || form.bride_city || '').trim()
+
+  // Build timeline time strings
+  const photoTimeline = [form.venue_arrival_time, form.photo_video_end_time].filter(Boolean).join(' → ')
+  const hoursLabel = form.hours_in_contract ? `(${form.hours_in_contract} hours)` : ''
+  const groomTime = [form.groom_start_time, form.groom_finish_time].filter(Boolean).join(' → ')
+  const brideTime = [form.bride_start_time, form.bride_finish_time].filter(Boolean).join(' → ')
+  const ceremonyTime = [form.ceremony_start_time, form.ceremony_finish_time].filter(Boolean).join(' → ')
+  const parkTime = [form.park_start_time, form.park_finish_time].filter(Boolean).join(' → ')
+  const receptionTime = [form.reception_start_time, form.reception_finish_time].filter(Boolean).join(' → ')
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ─── Header ────────────────────────────────────────────────────────── */}
@@ -135,6 +192,11 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{coupleName}</h1>
                 {weddingDate && <p className="text-sm text-gray-500 mt-0.5">{weddingDate}</p>}
+                {weddingCity && (
+                  <p className="text-sm text-gray-400 mt-0.5 flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5" /> {weddingCity}
+                  </p>
+                )}
               </div>
             </div>
             <a
@@ -156,15 +218,35 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
       {/* ─── Content ───────────────────────────────────────────────────────── */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-        {/* Contract Info */}
-        <Section title="Contract Info" icon={FileText}>
-          <FieldGrid>
-            <Field label="Ceremony Begins At" value={form.ceremony_begins_at} />
-            <Field label="Hours in Contract" value={form.hours_in_contract} />
-            <Field label="Photo/Video End Time" value={form.photo_video_end_time} />
-            <Field label="Venue Arrival Time" value={form.venue_arrival_time} />
-          </FieldGrid>
-        </Section>
+        {/* Quick Overview — Day at a Glance */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Clock className="w-4 h-4 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Quick Overview</h2>
+              <p className="text-xs text-gray-400">The day at a glance</p>
+            </div>
+          </div>
+          <div className="px-6 py-5">
+            <div className="border-l-2 border-blue-100 pl-4 space-y-0">
+              <TimelineRow
+                label="Photo / Video"
+                time={photoTimeline ? `${photoTimeline} ${hoursLabel}` : hoursLabel || null}
+                location={null}
+              />
+              <TimelineRow label="Groom Prep" time={groomTime} location={[form.groom_address, form.groom_city].filter(Boolean).join(', ')} />
+              <TimelineRow label="Bride Prep" time={brideTime} location={[form.bride_address, form.bride_city].filter(Boolean).join(', ')} />
+              {form.has_first_look && (
+                <TimelineRow label="First Look" time={form.first_look_time} location={form.first_look_location_name} />
+              )}
+              <TimelineRow label="Ceremony" time={ceremonyTime} location={form.ceremony_location_name} />
+              <TimelineRow label="Photos" time={parkTime} location={form.park_name} />
+              <TimelineRow label="Reception" time={receptionTime} location={form.reception_venue_name} />
+            </div>
+          </div>
+        </div>
 
         {/* Emergency Contacts */}
         <Section title="Emergency Contacts" icon={Phone}>
@@ -188,6 +270,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             finishTime={form.groom_finish_time}
             directions={form.groom_directions}
             extras={<Field label="Contact Phone" value={form.groom_phone} />}
+            mapsQuery={[form.groom_address, form.groom_city]}
           />
         </Section>
 
@@ -201,6 +284,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             finishTime={form.bride_finish_time}
             directions={form.bride_directions}
             extras={<Field label="Contact Phone" value={form.bride_phone} />}
+            mapsQuery={[form.bride_address, form.bride_city]}
           />
         </Section>
 
@@ -212,6 +296,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
               address={form.first_look_address}
               city={form.first_look_city}
               startTime={form.first_look_time}
+              mapsQuery={[form.first_look_address, form.first_look_city, form.first_look_location_name]}
             />
           </Section>
         )}
@@ -232,6 +317,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
                 <Field label="First Look at Ceremony" value={form.ceremony_first_look} />
               </>
             }
+            mapsQuery={[form.ceremony_address, form.ceremony_city, form.ceremony_location_name]}
           />
         </Section>
 
@@ -246,6 +332,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             finishTime={form.park_finish_time}
             directions={form.park_directions}
             extras={<Field label="Park Permit Obtained" value={form.park_permit_obtained} />}
+            mapsQuery={[form.park_address, form.park_city, form.park_name]}
           />
         </Section>
 
@@ -261,6 +348,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
               finishTime={form.extra_finish_time}
               directions={form.extra_directions}
               extras={<Field label="Notes" value={form.extra_location_notes} />}
+              mapsQuery={[form.extra_address, form.extra_city, form.extra_location_name]}
             />
           </Section>
         )}
@@ -275,6 +363,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             startTime={form.reception_start_time}
             finishTime={form.reception_finish_time}
             directions={form.reception_directions}
+            mapsQuery={[form.reception_address, form.reception_city, form.reception_venue_name]}
           />
         </Section>
 
