@@ -33,6 +33,7 @@ const JOB_TYPES: Record<Category, { value: string; label: string }[]> = {
     { value: 'FULL', label: 'Full Length Video' },
     { value: 'RECAP', label: 'Recap Video' },
     { value: 'ENG_SLIDESHOW', label: 'Engagement Slideshow' },
+    { value: 'RAW_VIDEO_OUTPUT', label: 'Raw Video Output' },
   ],
 }
 
