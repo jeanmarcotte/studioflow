@@ -109,11 +109,11 @@ export async function sendTeamWeddingDayNotification(data: TeamNotifyData) {
 
   // Hours validation
   let hoursHtml = ''
-  if (contracted) {
-    hoursHtml += `<p style="margin:4px 0;font-size:13px;color:#374151;"><strong>Contracted:</strong> ${contracted} hours</p>`
-  }
-  if (actualHours !== null) {
-    hoursHtml += `<p style="margin:4px 0;font-size:13px;color:#374151;"><strong>Actual day:</strong> ${earliestFmt} \u2192 ${latestFmt} (${actualHours} hours)</p>`
+  const hoursParts: string[] = []
+  if (contracted) hoursParts.push(`<strong>Contracted:</strong> ${contracted} hours`)
+  if (actualHours !== null) hoursParts.push(`<strong>Actual:</strong> ${earliestFmt} \u2192 ${latestFmt} (${actualHours} hours)`)
+  if (hoursParts.length > 0) {
+    hoursHtml += `<p style="margin:4px 0;font-size:13px;color:#374151;">${hoursParts.join(' | ')}</p>`
   }
   if (exceedsBy !== null) {
     hoursHtml += `<p style="margin:8px 0 4px;font-size:14px;font-weight:700;color:#dc2626;">\u26A0\uFE0F Day exceeds contract by ${exceedsBy} hour${exceedsBy !== 1 ? 's' : ''}</p>`

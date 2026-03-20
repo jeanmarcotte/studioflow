@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { jsPDF } from 'jspdf'
 import { format } from 'date-fns'
+import { formatTime, buildScheduleRows, calculateHoursValidation } from '@/lib/time-utils'
 
 function getServiceClient() {
   return createClient(
@@ -237,17 +238,31 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
     }
   }
 
-  const photoTimeline = [form.venue_arrival_time, form.photo_video_end_time].filter(Boolean).join(' → ')
-  const hoursLabel = form.hours_in_contract ? `(${form.hours_in_contract} hours)` : ''
-  timelineRow('Photo / Video', photoTimeline ? `${photoTimeline} ${hoursLabel}` : hoursLabel || null)
-  timelineRow('Groom Prep', [form.groom_start_time, form.groom_finish_time].filter(Boolean).join(' → ') || null, [form.groom_address, form.groom_city].filter(Boolean).join(', '))
-  timelineRow('Bride Prep', [form.bride_start_time, form.bride_finish_time].filter(Boolean).join(' → ') || null, [form.bride_address, form.bride_city].filter(Boolean).join(', '))
-  if (form.has_first_look) {
-    timelineRow('First Look', form.first_look_time, form.first_look_location_name)
+  const scheduleRows = buildScheduleRows(form)
+  for (const row of scheduleRows) {
+    timelineRow(row.event, row.time || null, row.location || null)
   }
-  timelineRow('Ceremony', [form.ceremony_start_time, form.ceremony_finish_time].filter(Boolean).join(' → ') || null, form.ceremony_location_name)
-  timelineRow('Photos', [form.park_start_time, form.park_finish_time].filter(Boolean).join(' → ') || null, form.park_name)
-  timelineRow('Reception', [form.reception_start_time, form.reception_finish_time].filter(Boolean).join(' → ') || null, form.reception_venue_name)
+
+  // Hours validation
+  const { contracted, actualHours, earliestFmt, latestFmt, exceedsBy } = calculateHoursValidation(form)
+  if (contracted || actualHours !== null) {
+    pdf.checkPage(10)
+    const parts: string[] = []
+    if (contracted) parts.push(`Contracted: ${contracted} hours`)
+    if (actualHours !== null) parts.push(`Actual: ${earliestFmt} \u2192 ${latestFmt} (${actualHours} hours)`)
+    pdf.doc.setFont('helvetica', 'normal')
+    pdf.doc.setFontSize(8)
+    pdf.doc.setTextColor(107, 114, 128)
+    pdf.doc.text(parts.join(' | '), MARGIN + 7, pdf.y + 2)
+    pdf.y += 6
+    if (exceedsBy !== null) {
+      pdf.doc.setFont('helvetica', 'bold')
+      pdf.doc.setFontSize(8)
+      pdf.doc.setTextColor(220, 38, 38)
+      pdf.doc.text(`Day exceeds contract by ${exceedsBy} hour${exceedsBy !== 1 ? 's' : ''}`, MARGIN + 7, pdf.y + 2)
+      pdf.y += 6
+    }
+  }
   pdf.gap(2)
 
   // ─── Emergency Contacts ─────────────────────────────────────────────────────
@@ -259,7 +274,7 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
   pdf.header('Groom Prep')
   pdf.locationBlock({
     address: form.groom_address, city: form.groom_city, intersection: form.groom_intersection,
-    startTime: form.groom_start_time, finishTime: form.groom_finish_time,
+    startTime: formatTime(form.groom_start_time, 'prep'), finishTime: formatTime(form.groom_finish_time, 'prep'),
     phone: form.groom_phone, directions: form.groom_directions,
   })
 
@@ -267,7 +282,7 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
   pdf.header('Bride Prep')
   pdf.locationBlock({
     address: form.bride_address, city: form.bride_city, intersection: form.bride_intersection,
-    startTime: form.bride_start_time, finishTime: form.bride_finish_time,
+    startTime: formatTime(form.bride_start_time, 'prep'), finishTime: formatTime(form.bride_finish_time, 'prep'),
     phone: form.bride_phone, directions: form.bride_directions,
   })
 
@@ -276,7 +291,7 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
     pdf.header('First Look')
     pdf.locationBlock({
       name: form.first_look_location_name, address: form.first_look_address, city: form.first_look_city,
-      startTime: form.first_look_time,
+      startTime: formatTime(form.first_look_time, 'ceremony'),
     })
   }
 
@@ -284,10 +299,10 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
   pdf.header('Ceremony')
   pdf.locationBlock({
     name: form.ceremony_location_name, address: form.ceremony_address, city: form.ceremony_city,
-    intersection: form.ceremony_intersection, startTime: form.ceremony_start_time,
-    finishTime: form.ceremony_finish_time, directions: form.ceremony_directions,
+    intersection: form.ceremony_intersection, startTime: formatTime(form.ceremony_start_time, 'ceremony'),
+    finishTime: formatTime(form.ceremony_finish_time, 'ceremony'), directions: form.ceremony_directions,
     extras: [
-      ['Photo Arrival Time', form.ceremony_photo_arrival_time],
+      ['Photo Arrival Time', formatTime(form.ceremony_photo_arrival_time, 'ceremony')],
       ['First Look at Ceremony', form.ceremony_first_look],
     ],
   })
@@ -296,8 +311,8 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
   pdf.header('Park / Photos')
   pdf.locationBlock({
     name: form.park_name, address: form.park_address, city: form.park_city,
-    intersection: form.park_intersection, startTime: form.park_start_time,
-    finishTime: form.park_finish_time, directions: form.park_directions,
+    intersection: form.park_intersection, startTime: formatTime(form.park_start_time, 'photos'),
+    finishTime: formatTime(form.park_finish_time, 'photos'), directions: form.park_directions,
     extras: [['Park Permit Obtained', form.park_permit_obtained]],
   })
 
@@ -306,8 +321,8 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
     pdf.header('Extra Location')
     pdf.locationBlock({
       name: form.extra_location_name, address: form.extra_address, city: form.extra_city,
-      intersection: form.extra_intersection, startTime: form.extra_start_time,
-      finishTime: form.extra_finish_time, directions: form.extra_directions,
+      intersection: form.extra_intersection, startTime: formatTime(form.extra_start_time, 'photos'),
+      finishTime: formatTime(form.extra_finish_time, 'photos'), directions: form.extra_directions,
     })
     pdf.textBlock('Notes', form.extra_location_notes)
   }
@@ -316,8 +331,8 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
   pdf.header('Reception')
   pdf.locationBlock({
     name: form.reception_venue_name, address: form.reception_address, city: form.reception_city,
-    intersection: form.reception_intersection, startTime: form.reception_start_time,
-    finishTime: form.reception_finish_time, directions: form.reception_directions,
+    intersection: form.reception_intersection, startTime: formatTime(form.reception_start_time, 'reception'),
+    finishTime: formatTime(form.reception_finish_time, 'reception_end'), directions: form.reception_directions,
   })
 
   // ─── Drive Times ────────────────────────────────────────────────────────────

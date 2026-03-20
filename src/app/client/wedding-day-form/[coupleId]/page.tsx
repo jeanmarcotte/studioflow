@@ -283,16 +283,15 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
           {/* Hours validation */}
           {(contracted || actualHours !== null) && (
             <div className="px-4 py-3 border-t border-gray-200 bg-gray-50/50 space-y-1.5">
-              {contracted && (
-                <p className="text-xs text-gray-500">
-                  <span className="font-medium text-gray-700">Contracted:</span> {contracted} hours
-                </p>
-              )}
-              {actualHours !== null && (
-                <p className="text-xs text-gray-500">
-                  <span className="font-medium text-gray-700">Actual day:</span> {earliestFmt} → {latestFmt} ({actualHours} hours)
-                </p>
-              )}
+              <p className="text-xs text-gray-500">
+                {contracted && (
+                  <><span className="font-medium text-gray-700">Contracted:</span> {contracted} hours</>
+                )}
+                {contracted && actualHours !== null && ' | '}
+                {actualHours !== null && (
+                  <><span className="font-medium text-gray-700">Actual:</span> {earliestFmt} → {latestFmt} ({actualHours} hours)</>
+                )}
+              </p>
               {exceedsBy !== null && (
                 <div className="flex items-center gap-1.5 mt-1">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
@@ -323,8 +322,8 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             address={form.groom_address}
             city={form.groom_city}
             intersection={form.groom_intersection}
-            startTime={form.groom_start_time}
-            finishTime={form.groom_finish_time}
+            startTime={formatTime(form.groom_start_time, 'prep')}
+            finishTime={formatTime(form.groom_finish_time, 'prep')}
             directions={form.groom_directions}
             extras={<Field label="Contact Phone" value={form.groom_phone} />}
             mapsQuery={[form.groom_address, form.groom_city]}
@@ -337,8 +336,8 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             address={form.bride_address}
             city={form.bride_city}
             intersection={form.bride_intersection}
-            startTime={form.bride_start_time}
-            finishTime={form.bride_finish_time}
+            startTime={formatTime(form.bride_start_time, 'prep')}
+            finishTime={formatTime(form.bride_finish_time, 'prep')}
             directions={form.bride_directions}
             extras={<Field label="Contact Phone" value={form.bride_phone} />}
             mapsQuery={[form.bride_address, form.bride_city]}
@@ -352,7 +351,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
               name={form.first_look_location_name}
               address={form.first_look_address}
               city={form.first_look_city}
-              startTime={form.first_look_time}
+              startTime={formatTime(form.first_look_time, 'ceremony')}
               mapsQuery={[form.first_look_address, form.first_look_city, form.first_look_location_name]}
             />
           </Section>
@@ -365,12 +364,12 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             address={form.ceremony_address}
             city={form.ceremony_city}
             intersection={form.ceremony_intersection}
-            startTime={form.ceremony_start_time}
-            finishTime={form.ceremony_finish_time}
+            startTime={formatTime(form.ceremony_start_time, 'ceremony')}
+            finishTime={formatTime(form.ceremony_finish_time, 'ceremony')}
             directions={form.ceremony_directions}
             extras={
               <>
-                <Field label="Photo Arrival Time" value={form.ceremony_photo_arrival_time} />
+                <Field label="Photo Arrival Time" value={formatTime(form.ceremony_photo_arrival_time, 'ceremony')} />
                 <Field label="First Look at Ceremony" value={form.ceremony_first_look} />
               </>
             }
@@ -385,8 +384,8 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             address={form.park_address}
             city={form.park_city}
             intersection={form.park_intersection}
-            startTime={form.park_start_time}
-            finishTime={form.park_finish_time}
+            startTime={formatTime(form.park_start_time, 'photos')}
+            finishTime={formatTime(form.park_finish_time, 'photos')}
             directions={form.park_directions}
             extras={<Field label="Park Permit Obtained" value={form.park_permit_obtained} />}
             mapsQuery={[form.park_address, form.park_city, form.park_name]}
@@ -401,8 +400,8 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
               address={form.extra_address}
               city={form.extra_city}
               intersection={form.extra_intersection}
-              startTime={form.extra_start_time}
-              finishTime={form.extra_finish_time}
+              startTime={formatTime(form.extra_start_time, 'photos')}
+              finishTime={formatTime(form.extra_finish_time, 'photos')}
               directions={form.extra_directions}
               extras={<Field label="Notes" value={form.extra_location_notes} />}
               mapsQuery={[form.extra_address, form.extra_city, form.extra_location_name]}
@@ -417,8 +416,8 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             address={form.reception_address}
             city={form.reception_city}
             intersection={form.reception_intersection}
-            startTime={form.reception_start_time}
-            finishTime={form.reception_finish_time}
+            startTime={formatTime(form.reception_start_time, 'reception')}
+            finishTime={formatTime(form.reception_finish_time, 'reception_end')}
             directions={form.reception_directions}
             mapsQuery={[form.reception_address, form.reception_city, form.reception_venue_name]}
           />
