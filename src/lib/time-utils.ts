@@ -131,14 +131,17 @@ export function minutesToDisplay(totalMin: number): string {
  * Calculate hours validation for a wedding day form.
  * Returns contracted hours, actual span, and any overage.
  */
-export function calculateHoursValidation(form: {
-  groom_start_time?: string | null
-  bride_start_time?: string | null
-  venue_arrival_time?: string | null
-  reception_finish_time?: string | null
-  photo_video_end_time?: string | null
-  hours_in_contract?: number | null
-}) {
+export function calculateHoursValidation(
+  form: {
+    groom_start_time?: string | null
+    bride_start_time?: string | null
+    venue_arrival_time?: string | null
+    reception_finish_time?: string | null
+    photo_video_end_time?: string | null
+    hours_in_contract?: number | null
+  },
+  contract?: { start_time?: string | null; end_time?: string | null } | null
+) {
   const startCandidates = [
     parseTimeToMinutes(form.groom_start_time, 'prep'),
     parseTimeToMinutes(form.bride_start_time, 'prep'),
@@ -155,18 +158,38 @@ export function calculateHoursValidation(form: {
   const endCandidates = endCandidatesRaw.map(m => m < 360 ? m + 1440 : m)
   const latestMin = endCandidates.length > 0 ? Math.max(...endCandidates) : null
 
+  // Contract hours from contracts table (source of truth)
+  let contractedHours: number | null = null
+  let contractStartFmt = ''
+  let contractEndFmt = ''
+
+  if (contract?.start_time && contract?.end_time) {
+    const [sh, sm] = contract.start_time.split(':').map(Number)
+    const [ehRaw, em] = contract.end_time.split(':').map(Number)
+    // If end hour < start hour, it's PM — add 12
+    const eh = ehRaw < sh ? ehRaw + 12 : ehRaw
+    const startMin = sh * 60 + (sm || 0)
+    const endMin = eh * 60 + (em || 0)
+    contractedHours = Math.round((endMin - startMin) / 60 * 10) / 10
+    contractStartFmt = minutesToDisplay(startMin)
+    contractEndFmt = minutesToDisplay(endMin)
+  }
+
+  // Fall back to bride's form input if no contract data
+  const contracted = contractedHours ?? form.hours_in_contract ?? null
+
   if (earliestMin === null || latestMin === null) {
-    return { contracted: form.hours_in_contract ?? null, actualHours: null, earliestFmt: '', latestFmt: '', exceedsBy: null }
+    return { contracted, contractStartFmt, contractEndFmt, actualHours: null, earliestFmt: '', latestFmt: '', exceedsBy: null }
   }
 
   const actualHours = Math.round((latestMin - earliestMin) / 60 * 10) / 10
   const earliestFmt = minutesToDisplay(earliestMin)
   const latestFmt = minutesToDisplay(latestMin)
-  const exceedsBy = (form.hours_in_contract && actualHours > form.hours_in_contract)
-    ? Math.ceil(actualHours - form.hours_in_contract)
+  const exceedsBy = (contracted && actualHours > contracted)
+    ? Math.ceil(actualHours - contracted)
     : null
 
-  return { contracted: form.hours_in_contract ?? null, actualHours, earliestFmt, latestFmt, exceedsBy }
+  return { contracted, contractStartFmt, contractEndFmt, actualHours, earliestFmt, latestFmt, exceedsBy }
 }
 
 /**

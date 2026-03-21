@@ -160,11 +160,10 @@ export async function POST(request: Request) {
       }
 
       // Send email notification (non-blocking)
-      const { data: couple } = await supabase
-        .from('couples')
-        .select('couple_name, wedding_date, package_type')
-        .eq('id', body.couple_id)
-        .single()
+      const [{ data: couple }, { data: contract }] = await Promise.all([
+        supabase.from('couples').select('couple_name, wedding_date, package_type').eq('id', body.couple_id).single(),
+        supabase.from('contracts').select('start_time, end_time').eq('couple_id', body.couple_id).single(),
+      ])
 
       if (couple) {
         sendFormNotification({
@@ -180,6 +179,7 @@ export async function POST(request: Request) {
           weddingDate: couple.wedding_date,
           packageType: couple.package_type ?? null,
           form: formData,
+          contract: contract ?? null,
         }).catch(err => console.error('Team notification failed:', err))
       }
 
@@ -198,11 +198,10 @@ export async function POST(request: Request) {
       }
 
       // Send email notification (non-blocking)
-      const { data: couple } = await supabase
-        .from('couples')
-        .select('couple_name, wedding_date, package_type')
-        .eq('id', body.couple_id)
-        .single()
+      const [{ data: couple }, { data: contract }] = await Promise.all([
+        supabase.from('couples').select('couple_name, wedding_date, package_type').eq('id', body.couple_id).single(),
+        supabase.from('contracts').select('start_time, end_time').eq('couple_id', body.couple_id).single(),
+      ])
 
       if (couple) {
         sendFormNotification({
@@ -218,6 +217,7 @@ export async function POST(request: Request) {
           weddingDate: couple.wedding_date,
           packageType: couple.package_type ?? null,
           form: formData,
+          contract: contract ?? null,
         }).catch(err => console.error('Team notification failed:', err))
       }
 

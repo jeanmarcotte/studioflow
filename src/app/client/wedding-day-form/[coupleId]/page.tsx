@@ -149,9 +149,10 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
   const { coupleId } = params
   const supabase = getServiceClient()
 
-  const [{ data: form, error: formError }, { data: couple, error: coupleError }] = await Promise.all([
+  const [{ data: form, error: formError }, { data: couple, error: coupleError }, { data: contract }] = await Promise.all([
     supabase.from('wedding_day_forms').select('*').eq('couple_id', coupleId).single(),
     supabase.from('couples').select('couple_name, wedding_date, reception_venue, package_type').eq('id', coupleId).single(),
+    supabase.from('contracts').select('start_time, end_time').eq('couple_id', coupleId).single(),
   ])
 
   // ─── No Form Found ─────────────────────────────────────────────────────────
@@ -202,7 +203,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
     }
   }
 
-  const { contracted, actualHours, earliestFmt, latestFmt, exceedsBy } = calculateHoursValidation(form)
+  const { contracted, contractStartFmt, contractEndFmt, actualHours, earliestFmt, latestFmt, exceedsBy } = calculateHoursValidation(form, contract)
 
   // ─── Package badge ────────────────────────────────────────────────────────
   const isPhotoOnly = packageType === 'photo_only'
@@ -289,23 +290,29 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
           {/* Hours validation */}
           {(contracted || actualHours !== null) && (
             <div className="px-4 py-3 border-t border-gray-200 bg-gray-50/50 space-y-1.5">
-              <p className="text-xs text-gray-500">
-                {contracted && (
-                  <><span className="font-medium text-gray-700">Contracted:</span> {contracted} hours</>
-                )}
-                {contracted && actualHours !== null && ' | '}
-                {actualHours !== null && (
-                  <><span className="font-medium text-gray-700">Actual:</span> {earliestFmt} → {latestFmt} ({actualHours} hours)</>
-                )}
-              </p>
-              {exceedsBy !== null && (
+              {contracted && (
+                <p className="text-xs text-gray-500">
+                  <span className="font-medium text-gray-700">As per contract:</span>{' '}
+                  {contractStartFmt && contractEndFmt
+                    ? `${contractStartFmt} → ${contractEndFmt} (${contracted} hours)`
+                    : `${contracted} hours`}
+                </p>
+              )}
+              {actualHours !== null && (
+                <p className="text-xs text-gray-500">
+                  <span className="font-medium text-gray-700">Actual day:</span> {earliestFmt} → {latestFmt} ({actualHours} hours)
+                </p>
+              )}
+              {exceedsBy !== null ? (
                 <div className="flex items-center gap-1.5 mt-1">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
                   <span className="text-xs font-semibold text-amber-700">
                     Day exceeds contract by {exceedsBy} hour{exceedsBy !== 1 ? 's' : ''}
                   </span>
                 </div>
-              )}
+              ) : contracted && actualHours !== null ? (
+                <p className="text-xs text-green-600 mt-1">Schedule fits within contract</p>
+              ) : null}
             </div>
           )}
         </div>

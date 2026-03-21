@@ -73,6 +73,7 @@ interface TeamNotifyData {
   weddingDate: string
   packageType: string | null
   form: Record<string, unknown>
+  contract?: { start_time?: string | null; end_time?: string | null } | null
 }
 
 function escHtml(s: string): string {
@@ -80,7 +81,7 @@ function escHtml(s: string): string {
 }
 
 export async function sendTeamWeddingDayNotification(data: TeamNotifyData) {
-  const { coupleId, coupleName, weddingDate, packageType, form } = data
+  const { coupleId, coupleName, weddingDate, packageType, form, contract } = data
 
   const dateFormatted = weddingDate
     ? format(new Date(weddingDate + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
@@ -92,8 +93,9 @@ export async function sendTeamWeddingDayNotification(data: TeamNotifyData) {
 
   // Build schedule
   const scheduleRows = buildScheduleRows(form as Parameters<typeof buildScheduleRows>[0], packageType)
-  const { contracted, actualHours, earliestFmt, latestFmt, exceedsBy } = calculateHoursValidation(
-    form as Parameters<typeof calculateHoursValidation>[0]
+  const { contracted, contractStartFmt, contractEndFmt, actualHours, earliestFmt, latestFmt, exceedsBy } = calculateHoursValidation(
+    form as Parameters<typeof calculateHoursValidation>[0],
+    contract
   )
 
   // Schedule table rows
@@ -109,11 +111,14 @@ export async function sendTeamWeddingDayNotification(data: TeamNotifyData) {
 
   // Hours validation
   let hoursHtml = ''
-  const hoursParts: string[] = []
-  if (contracted) hoursParts.push(`<strong>Contracted:</strong> ${contracted} hours`)
-  if (actualHours !== null) hoursParts.push(`<strong>Actual:</strong> ${earliestFmt} \u2192 ${latestFmt} (${actualHours} hours)`)
-  if (hoursParts.length > 0) {
-    hoursHtml += `<p style="margin:4px 0;font-size:13px;color:#374151;">${hoursParts.join(' | ')}</p>`
+  if (contracted) {
+    const contractLine = contractStartFmt && contractEndFmt
+      ? `${contractStartFmt} \u2192 ${contractEndFmt} (${contracted} hours)`
+      : `${contracted} hours`
+    hoursHtml += `<p style="margin:4px 0;font-size:13px;color:#374151;"><strong>As per contract:</strong> ${contractLine}</p>`
+  }
+  if (actualHours !== null) {
+    hoursHtml += `<p style="margin:4px 0;font-size:13px;color:#374151;"><strong>Actual day:</strong> ${earliestFmt} \u2192 ${latestFmt} (${actualHours} hours)</p>`
   }
   if (exceedsBy !== null) {
     hoursHtml += `<p style="margin:8px 0 4px;font-size:14px;font-weight:700;color:#dc2626;">\u26A0\uFE0F Day exceeds contract by ${exceedsBy} hour${exceedsBy !== 1 ? 's' : ''}</p>`

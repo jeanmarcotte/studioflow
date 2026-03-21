@@ -154,9 +154,10 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
   const { coupleId } = params
   const supabase = getServiceClient()
 
-  const [{ data: form, error: formError }, { data: couple }] = await Promise.all([
+  const [{ data: form, error: formError }, { data: couple }, { data: contract }] = await Promise.all([
     supabase.from('wedding_day_forms').select('*').eq('couple_id', coupleId).single(),
     supabase.from('couples').select('couple_name, wedding_date, package_type').eq('id', coupleId).single(),
+    supabase.from('contracts').select('start_time, end_time').eq('couple_id', coupleId).single(),
   ])
 
   if (!form || formError) {
@@ -265,17 +266,26 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
   }
 
   // Hours validation
-  const { contracted, actualHours, earliestFmt, latestFmt, exceedsBy } = calculateHoursValidation(form)
+  const { contracted, contractStartFmt, contractEndFmt, actualHours, earliestFmt, latestFmt, exceedsBy } = calculateHoursValidation(form, contract)
   if (contracted || actualHours !== null) {
-    pdf.checkPage(10)
-    const parts: string[] = []
-    if (contracted) parts.push(`Contracted: ${contracted} hours`)
-    if (actualHours !== null) parts.push(`Actual: ${earliestFmt} \u2192 ${latestFmt} (${actualHours} hours)`)
-    pdf.doc.setFont('helvetica', 'normal')
-    pdf.doc.setFontSize(8)
-    pdf.doc.setTextColor(107, 114, 128)
-    pdf.doc.text(parts.join(' | '), MARGIN + 7, pdf.y + 2)
-    pdf.y += 6
+    pdf.checkPage(16)
+    if (contracted) {
+      pdf.doc.setFont('helvetica', 'normal')
+      pdf.doc.setFontSize(8)
+      pdf.doc.setTextColor(107, 114, 128)
+      const contractLine = contractStartFmt && contractEndFmt
+        ? `As per contract: ${contractStartFmt} \u2192 ${contractEndFmt} (${contracted} hours)`
+        : `Contracted: ${contracted} hours`
+      pdf.doc.text(contractLine, MARGIN + 7, pdf.y + 2)
+      pdf.y += 5
+    }
+    if (actualHours !== null) {
+      pdf.doc.setFont('helvetica', 'normal')
+      pdf.doc.setFontSize(8)
+      pdf.doc.setTextColor(107, 114, 128)
+      pdf.doc.text(`Actual day: ${earliestFmt} \u2192 ${latestFmt} (${actualHours} hours)`, MARGIN + 7, pdf.y + 2)
+      pdf.y += 5
+    }
     if (exceedsBy !== null) {
       pdf.doc.setFont('helvetica', 'bold')
       pdf.doc.setFontSize(8)

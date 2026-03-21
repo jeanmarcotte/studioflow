@@ -12,12 +12,20 @@ function getServiceClient() {
 export async function POST() {
   const supabase = getServiceClient()
 
-  const { data: forms, error } = await supabase
-    .from('wedding_day_forms')
-    .select('*, couples!inner(couple_name, wedding_date, package_type)')
+  const [{ data: forms, error }, { data: contracts }] = await Promise.all([
+    supabase.from('wedding_day_forms').select('*, couples!inner(couple_name, wedding_date, package_type)'),
+    supabase.from('contracts').select('couple_id, start_time, end_time'),
+  ])
 
   if (error || !forms) {
     return NextResponse.json({ error: error?.message || 'No forms found' }, { status: 500 })
+  }
+
+  const contractMap = new Map<string, { start_time: string | null; end_time: string | null }>()
+  if (contracts) {
+    for (const c of contracts) {
+      contractMap.set(c.couple_id, { start_time: c.start_time, end_time: c.end_time })
+    }
   }
 
   const results: { coupleName: string; success: boolean; error?: unknown }[] = []
@@ -30,6 +38,7 @@ export async function POST() {
       weddingDate: couple.wedding_date,
       packageType: couple.package_type,
       form: row,
+      contract: contractMap.get(row.couple_id) ?? null,
     })
     results.push({ coupleName: couple.couple_name, success: result.success, error: result.error })
   }
