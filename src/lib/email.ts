@@ -93,7 +93,7 @@ export async function sendTeamWeddingDayNotification(data: TeamNotifyData) {
 
   // Build schedule
   const scheduleRows = buildScheduleRows(form as Parameters<typeof buildScheduleRows>[0], packageType)
-  const { contracted, contractStartFmt, contractEndFmt, actualHours, earliestFmt, latestFmt, exceedsBy } = calculateHoursValidation(
+  const { contracted, contractStartFmt, contractEndFmt, actualHours, earliestFmt, latestFmt, exceedsBy, startsBeforeBy, endsAfterBy } = calculateHoursValidation(
     form as Parameters<typeof calculateHoursValidation>[0],
     contract
   )
@@ -109,21 +109,52 @@ export async function sendTeamWeddingDayNotification(data: TeamNotifyData) {
       </tr>`
   }).join('\n')
 
-  // Hours validation
-  let hoursHtml = ''
-  if (contracted) {
-    const contractLine = contractStartFmt && contractEndFmt
-      ? `${contractStartFmt} \u2192 ${contractEndFmt} (${contracted} hours)`
-      : `${contracted} hours`
-    hoursHtml += `<p style="margin:4px 0;font-size:13px;color:#374151;"><strong>As per contract:</strong> ${contractLine}</p>`
+  // Section A: CONTRACT
+  let contractHtml = ''
+  if (contracted || packageType) {
+    const coverageLine = contracted
+      ? (contractStartFmt && contractEndFmt
+          ? `${contractStartFmt} \u2192 ${contractEndFmt} (${contracted} hours)`
+          : `${contracted} hours`)
+      : ''
+    contractHtml = `
+      <div style="margin-bottom:20px;border-left:4px solid #1e3a5f;background:#f8fafc;border-radius:6px;overflow:hidden;">
+        <div style="background:#1e3a5f;padding:10px 16px;">
+          <p style="margin:0;font-size:14px;font-weight:700;color:#ffffff;letter-spacing:0.5px;">\u{1F4CB} CONTRACT</p>
+        </div>
+        <div style="padding:12px 16px;">
+          ${coverageLine ? `<p style="margin:4px 0;font-size:13px;color:#111827;"><strong>Coverage:</strong> ${coverageLine}</p>` : ''}
+          <p style="margin:4px 0;font-size:13px;color:#111827;"><strong>Package:</strong> ${packageLabel}</p>
+        </div>
+      </div>`
   }
-  if (actualHours !== null) {
-    hoursHtml += `<p style="margin:4px 0;font-size:13px;color:#374151;"><strong>Actual day:</strong> ${earliestFmt} \u2192 ${latestFmt} (${actualHours} hours)</p>`
-  }
-  if (exceedsBy !== null) {
-    hoursHtml += `<p style="margin:8px 0 4px;font-size:14px;font-weight:700;color:#dc2626;">\u26A0\uFE0F Day exceeds contract by ${exceedsBy} hour${exceedsBy !== 1 ? 's' : ''}</p>`
-  } else if (contracted && actualHours !== null) {
-    hoursHtml += `<p style="margin:8px 0 4px;font-size:13px;color:#16a34a;">\u2705 Schedule fits within contract</p>`
+
+  // Section C: SCHEDULE ALERTS
+  let alertsHtml = ''
+  const hasWarnings = startsBeforeBy !== null || endsAfterBy !== null
+  if (hasWarnings || (contracted && actualHours !== null)) {
+    const bgColor = hasWarnings ? '#fef2f2' : '#f0fdf4'
+    const borderColor = hasWarnings ? '#fecaca' : '#bbf7d0'
+    let alertLines = ''
+    if (startsBeforeBy !== null) {
+      const delta = startsBeforeBy >= 60
+        ? `${Math.round(startsBeforeBy / 60 * 10) / 10} hour${Math.round(startsBeforeBy / 60 * 10) / 10 !== 1 ? 's' : ''}`
+        : `${startsBeforeBy} minutes`
+      alertLines += `<p style="margin:4px 0;font-size:13px;font-weight:700;color:#b91c1c;">\u26A0\uFE0F Day starts at ${earliestFmt} \u2014 ${delta} BEFORE contract start (${contractStartFmt})</p>`
+    }
+    if (endsAfterBy !== null) {
+      const delta = endsAfterBy >= 60
+        ? `${Math.round(endsAfterBy / 60 * 10) / 10} hour${Math.round(endsAfterBy / 60 * 10) / 10 !== 1 ? 's' : ''}`
+        : `${endsAfterBy} minutes`
+      alertLines += `<p style="margin:4px 0;font-size:13px;font-weight:700;color:#b91c1c;">\u26A0\uFE0F Day ends at ${latestFmt} \u2014 ${delta} AFTER contract end (${contractEndFmt})</p>`
+    }
+    if (!hasWarnings && contracted && actualHours !== null) {
+      alertLines = `<p style="margin:4px 0;font-size:13px;font-weight:700;color:#15803d;">\u2705 Schedule fits within contracted hours</p>`
+    }
+    alertsHtml = `
+      <div style="margin-top:16px;padding:12px 16px;background:${bgColor};border-radius:6px;border:1px solid ${borderColor};">
+        ${alertLines}
+      </div>`
   }
 
   // Emergency contacts
@@ -154,9 +185,6 @@ export async function sendTeamWeddingDayNotification(data: TeamNotifyData) {
         <p style="margin:0;font-size:14px;opacity:0.85;">submitted their Wedding Day Form</p>
       </div>
 
-      <!-- Package type banner -->
-      <div style="background:${isPhotoOnly ? '#f59e0b' : '#1e3a5f'};color:${isPhotoOnly ? '#000000' : '#ffffff'};padding:14px 28px;text-align:center;font-size:18px;font-weight:700;letter-spacing:0.5px;">${packageLabel}</div>
-
       <div style="padding:24px 28px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
         <!-- Date + City -->
         <div style="margin-bottom:20px;">
@@ -164,18 +192,19 @@ export async function sendTeamWeddingDayNotification(data: TeamNotifyData) {
           ${city ? `<p style="margin:4px 0;font-size:14px;color:#6b7280;">\u{1F4CD} ${escHtml(city)}</p>` : ''}
         </div>
 
-        <!-- Schedule -->
+        <!-- Section A: CONTRACT -->
+        ${contractHtml}
+
+        <!-- Section B: BRIDE'S SCHEDULE -->
         <div style="border-top:2px solid #e5e7eb;padding-top:16px;">
-          <p style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 12px;">Schedule</p>
+          <p style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 12px;">Bride&apos;s Schedule</p>
           <table style="width:100%;border-collapse:collapse;">
             ${scheduleHtml}
           </table>
         </div>
 
-        <!-- Hours -->
-        <div style="margin-top:16px;padding:12px 16px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb;">
-          ${hoursHtml}
-        </div>
+        <!-- Section C: SCHEDULE ALERTS -->
+        ${alertsHtml}
 
         ${ecHtml}
 

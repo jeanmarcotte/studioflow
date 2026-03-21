@@ -178,8 +178,19 @@ export function calculateHoursValidation(
   // Fall back to bride's form input if no contract data
   const contracted = contractedHours ?? form.hours_in_contract ?? null
 
+  // Contract start/end in minutes for alert computation
+  let contractStartMin: number | null = null
+  let contractEndMin: number | null = null
+  if (contract?.start_time && contract?.end_time) {
+    const [csh, csm] = contract.start_time.split(':').map(Number)
+    const [cehRaw, cem] = contract.end_time.split(':').map(Number)
+    const ceh = cehRaw < csh ? cehRaw + 12 : cehRaw
+    contractStartMin = csh * 60 + (csm || 0)
+    contractEndMin = ceh * 60 + (cem || 0)
+  }
+
   if (earliestMin === null || latestMin === null) {
-    return { contracted, contractStartFmt, contractEndFmt, actualHours: null, earliestFmt: '', latestFmt: '', exceedsBy: null }
+    return { contracted, contractStartFmt, contractEndFmt, actualHours: null, earliestFmt: '', latestFmt: '', exceedsBy: null, contractStartMin, contractEndMin, startsBeforeBy: null, endsAfterBy: null }
   }
 
   const actualHours = Math.round((latestMin - earliestMin) / 60 * 10) / 10
@@ -189,7 +200,15 @@ export function calculateHoursValidation(
     ? Math.ceil(actualHours - contracted)
     : null
 
-  return { contracted, contractStartFmt, contractEndFmt, actualHours, earliestFmt, latestFmt, exceedsBy }
+  // Granular alerts: how many minutes the schedule starts before / ends after contract
+  const startsBeforeBy = contractStartMin !== null && earliestMin < contractStartMin
+    ? contractStartMin - earliestMin
+    : null
+  const endsAfterBy = contractEndMin !== null && latestMin > contractEndMin
+    ? latestMin - contractEndMin
+    : null
+
+  return { contracted, contractStartFmt, contractEndFmt, actualHours, earliestFmt, latestFmt, exceedsBy, contractStartMin, contractEndMin, startsBeforeBy, endsAfterBy }
 }
 
 /**

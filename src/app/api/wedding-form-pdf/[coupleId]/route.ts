@@ -209,37 +209,53 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
   pdf.doc.line(MARGIN, pdf.y, MARGIN + CONTENT_W, pdf.y)
   pdf.y += 6
 
-  // ─── Quick Overview — Day at a Glance ───────────────────────────────────────
-  pdf.header('Quick Overview — Day at a Glance')
+  // ─── Hours validation ──────────────────────────────────────────────────────
+  const { contracted, contractStartFmt, contractEndFmt, actualHours, earliestFmt, latestFmt, exceedsBy, startsBeforeBy, endsAfterBy } = calculateHoursValidation(form, contract)
 
-  // Package type banner
-  if (packageType) {
-    const isPhotoOnly = packageType === 'photo_only'
-    pdf.checkPage(12)
-    if (isPhotoOnly) {
-      pdf.doc.setFillColor(245, 158, 11) // amber
-      pdf.doc.setTextColor(0, 0, 0)
-    } else {
-      pdf.doc.setFillColor(30, 58, 95) // navy
-      pdf.doc.setTextColor(255, 255, 255)
-    }
-    pdf.doc.roundedRect(MARGIN, pdf.y, CONTENT_W, 9, 2, 2, 'F')
+  const isPhotoOnly = packageType === 'photo_only'
+  const packageLabel = isPhotoOnly ? 'PHOTO ONLY' : 'PHOTO & VIDEO'
+  const packageEmoji = isPhotoOnly ? '\u{1F4F7}' : '\u{1F4F7}\u{1F3A5}'
+
+  // ─── Section A: CONTRACT ──────────────────────────────────────────────────
+  if (contracted || packageType) {
+    pdf.checkPage(20)
+    // Navy header bar
+    pdf.doc.setFillColor(30, 58, 95)
+    pdf.doc.roundedRect(MARGIN, pdf.y, CONTENT_W, 8, 2, 2, 'F')
     pdf.doc.setFont('helvetica', 'bold')
-    pdf.doc.setFontSize(11)
-    const bannerText = isPhotoOnly ? 'PHOTO ONLY' : 'PHOTO & VIDEO'
-    const textW = pdf.doc.getTextWidth(bannerText)
-    pdf.doc.text(bannerText, MARGIN + (CONTENT_W - textW) / 2, pdf.y + 6.5)
-    pdf.y += 13
+    pdf.doc.setFontSize(10)
+    pdf.doc.setTextColor(255, 255, 255)
+    pdf.doc.text('CONTRACT', MARGIN + 4, pdf.y + 5.5)
+    pdf.y += 10
+
+    if (contracted) {
+      pdf.doc.setFont('helvetica', 'bold')
+      pdf.doc.setFontSize(9)
+      pdf.doc.setTextColor(17, 24, 39)
+      const coverageLine = contractStartFmt && contractEndFmt
+        ? `Coverage: ${contractStartFmt} \u2192 ${contractEndFmt} (${contracted} hours)`
+        : `Coverage: ${contracted} hours`
+      pdf.doc.text(coverageLine, MARGIN + 4, pdf.y + 2)
+      pdf.y += 6
+    }
+    if (packageType) {
+      pdf.doc.setFont('helvetica', 'bold')
+      pdf.doc.setFontSize(9)
+      pdf.doc.setTextColor(17, 24, 39)
+      pdf.doc.text(`Package: ${packageEmoji} ${packageLabel}`, MARGIN + 4, pdf.y + 2)
+      pdf.y += 6
+    }
+    pdf.gap(4)
   }
 
-  // Helper to build timeline row in the PDF
+  // ─── Section B: BRIDE'S SCHEDULE ──────────────────────────────────────────
+  pdf.header("Bride's Schedule")
+
   const timelineRow = (label: string, time: string | null, location?: string | null) => {
     if (!time) return
     pdf.checkPage(10)
-    // Dot
     pdf.doc.setFillColor(96, 165, 250)
     pdf.doc.circle(MARGIN + 2, pdf.y + 1, 1.2, 'F')
-    // Label + time
     pdf.doc.setFont('helvetica', 'bold')
     pdf.doc.setFontSize(9)
     pdf.doc.setTextColor(17, 24, 39)
@@ -249,7 +265,6 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
     pdf.doc.setFontSize(9)
     pdf.doc.setTextColor(75, 85, 99)
     pdf.doc.text(time, MARGIN + 7 + labelW + 3, pdf.y + 2)
-    // Location
     if (location) {
       pdf.doc.setFontSize(7.5)
       pdf.doc.setTextColor(156, 163, 175)
@@ -264,37 +279,48 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
   for (const row of scheduleRows) {
     timelineRow(row.event, row.time || null, row.location || null)
   }
+  pdf.gap(2)
 
-  // Hours validation
-  const { contracted, contractStartFmt, contractEndFmt, actualHours, earliestFmt, latestFmt, exceedsBy } = calculateHoursValidation(form, contract)
-  if (contracted || actualHours !== null) {
+  // ─── Section C: SCHEDULE ALERTS ───────────────────────────────────────────
+  const hasWarnings = startsBeforeBy !== null || endsAfterBy !== null
+  if (hasWarnings || (contracted && actualHours !== null)) {
     pdf.checkPage(16)
-    if (contracted) {
-      pdf.doc.setFont('helvetica', 'normal')
-      pdf.doc.setFontSize(8)
-      pdf.doc.setTextColor(107, 114, 128)
-      const contractLine = contractStartFmt && contractEndFmt
-        ? `As per contract: ${contractStartFmt} \u2192 ${contractEndFmt} (${contracted} hours)`
-        : `Contracted: ${contracted} hours`
-      pdf.doc.text(contractLine, MARGIN + 7, pdf.y + 2)
-      pdf.y += 5
+    if (hasWarnings) {
+      pdf.doc.setFillColor(254, 242, 242) // red-50
+    } else {
+      pdf.doc.setFillColor(240, 253, 244) // green-50
     }
-    if (actualHours !== null) {
-      pdf.doc.setFont('helvetica', 'normal')
-      pdf.doc.setFontSize(8)
-      pdf.doc.setTextColor(107, 114, 128)
-      pdf.doc.text(`Actual day: ${earliestFmt} \u2192 ${latestFmt} (${actualHours} hours)`, MARGIN + 7, pdf.y + 2)
-      pdf.y += 5
-    }
-    if (exceedsBy !== null) {
+    const alertBoxH = (hasWarnings ? ((startsBeforeBy !== null ? 1 : 0) + (endsAfterBy !== null ? 1 : 0)) * 6 : 6) + 6
+    pdf.doc.roundedRect(MARGIN, pdf.y, CONTENT_W, alertBoxH, 2, 2, 'F')
+    let alertY = pdf.y + 5
+    if (startsBeforeBy !== null) {
+      const delta = startsBeforeBy >= 60
+        ? `${Math.round(startsBeforeBy / 60 * 10) / 10} hours`
+        : `${startsBeforeBy} minutes`
       pdf.doc.setFont('helvetica', 'bold')
       pdf.doc.setFontSize(8)
-      pdf.doc.setTextColor(220, 38, 38)
-      pdf.doc.text(`Day exceeds contract by ${exceedsBy} hour${exceedsBy !== 1 ? 's' : ''}`, MARGIN + 7, pdf.y + 2)
-      pdf.y += 6
+      pdf.doc.setTextColor(185, 28, 28)
+      pdf.doc.text(`Day starts at ${earliestFmt} — ${delta} BEFORE contract start (${contractStartFmt})`, MARGIN + 4, alertY)
+      alertY += 6
     }
+    if (endsAfterBy !== null) {
+      const delta = endsAfterBy >= 60
+        ? `${Math.round(endsAfterBy / 60 * 10) / 10} hours`
+        : `${endsAfterBy} minutes`
+      pdf.doc.setFont('helvetica', 'bold')
+      pdf.doc.setFontSize(8)
+      pdf.doc.setTextColor(185, 28, 28)
+      pdf.doc.text(`Day ends at ${latestFmt} — ${delta} AFTER contract end (${contractEndFmt})`, MARGIN + 4, alertY)
+      alertY += 6
+    }
+    if (!hasWarnings && contracted && actualHours !== null) {
+      pdf.doc.setFont('helvetica', 'bold')
+      pdf.doc.setFontSize(8)
+      pdf.doc.setTextColor(21, 128, 61)
+      pdf.doc.text('Schedule fits within contracted hours', MARGIN + 4, alertY)
+    }
+    pdf.y += alertBoxH + 4
   }
-  pdf.gap(2)
 
   // ─── Emergency Contacts ─────────────────────────────────────────────────────
   pdf.header('Emergency Contacts')

@@ -69,10 +69,11 @@ function MapsLink({ href }: { href: string | null }) {
   )
 }
 
-function LocationBlock({ name, address, city, intersection, startTime, finishTime, directions, extras, mapsQuery }: {
+function LocationBlock({ name, address, city, postalCode, intersection, startTime, finishTime, directions, extras, mapsQuery }: {
   name?: string | null
   address?: string | null
   city?: string | null
+  postalCode?: string | null
   intersection?: string | null
   startTime?: string | null
   finishTime?: string | null
@@ -83,17 +84,18 @@ function LocationBlock({ name, address, city, intersection, startTime, finishTim
   const hasContent = name || address || city || startTime || finishTime || directions
   if (!hasContent) return null
   const mapHref = mapsQuery ? mapsUrl(mapsQuery) : mapsUrl([address, city])
+  const cityDisplay = [city, postalCode].filter(Boolean).join(' ')
   return (
     <div className="space-y-1">
       {name && <p className="font-medium text-gray-900">{name}</p>}
       <FieldGrid>
         <Field label="Address" value={address} />
-        <Field label="City" value={city} />
+        <Field label="City" value={cityDisplay || null} />
         <Field label="Nearest Intersection" value={intersection} />
         <Field label="Start Time" value={startTime} />
         <Field label="Finish Time" value={finishTime} />
       </FieldGrid>
-      <Field label="Directions / Notes" value={directions} />
+      {directions && <Field label="Directions / Notes" value={directions} />}
       {extras}
       <MapsLink href={mapHref} />
     </div>
@@ -203,7 +205,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
     }
   }
 
-  const { contracted, contractStartFmt, contractEndFmt, actualHours, earliestFmt, latestFmt, exceedsBy } = calculateHoursValidation(form, contract)
+  const { contracted, contractStartFmt, contractEndFmt, actualHours, earliestFmt, latestFmt, exceedsBy, startsBeforeBy, endsAfterBy } = calculateHoursValidation(form, contract)
 
   // ─── Package badge ────────────────────────────────────────────────────────
   const isPhotoOnly = packageType === 'photo_only'
@@ -249,34 +251,41 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
       {/* ─── Content ───────────────────────────────────────────────────────── */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-        {/* ── Quick Overview ─────────────────────────────────────────────── */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden border-l-4" style={{ borderLeftColor: '#1e3a5f' }}>
-          <div className="px-5 py-4 bg-gray-50 border-b border-gray-200 flex items-center gap-3">
+        {/* ── Section A: CONTRACT ────────────────────────────────────────── */}
+        {(contracted || packageType) && (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden border-l-4" style={{ borderLeftColor: '#1e3a5f' }}>
+            <div className="px-5 py-3 flex items-center gap-3" style={{ backgroundColor: '#1e3a5f' }}>
+              <span className="text-white text-lg">📋</span>
+              <h2 className="text-base font-bold text-white tracking-wide">CONTRACT</h2>
+            </div>
+            <div className="px-5 py-4 space-y-2">
+              {contracted && (
+                <p className="text-sm text-gray-900">
+                  <span className="font-semibold">Coverage:</span>{' '}
+                  {contractStartFmt && contractEndFmt
+                    ? `${contractStartFmt} → ${contractEndFmt} (${contracted} hours)`
+                    : `${contracted} hours`}
+                </p>
+              )}
+              {packageType && (
+                <p className="text-sm text-gray-900">
+                  <span className="font-semibold">Package:</span>{' '}
+                  {packageEmoji} {packageLabel}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Section B: BRIDE'S SCHEDULE ──────────────────────────────────── */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#1e3a5f' }}>
               <Clock className="w-4 h-4 text-white" />
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Quick Overview</h2>
-              <p className="text-xs text-gray-400">Day at a glance</p>
-            </div>
+            <h2 className="text-base font-semibold text-gray-900">BRIDE&apos;S SCHEDULE</h2>
           </div>
-
-          {/* Package type banner */}
-          {packageType && (
-            <div
-              className="px-5 py-3 text-center font-bold text-lg tracking-wide"
-              style={{
-                backgroundColor: isPhotoOnly ? '#f59e0b' : '#1e3a5f',
-                color: isPhotoOnly ? '#000000' : '#ffffff',
-              }}
-            >
-              {packageEmoji} {packageLabel}
-            </div>
-          )}
-
-          {/* Call sheet grid */}
           <div className="divide-y divide-gray-100">
-            {/* Column headers - desktop only */}
             <div className="hidden sm:grid grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,2.5fr)] gap-x-4 px-4 py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
               <div>Time</div>
               <div>Event</div>
@@ -286,36 +295,38 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
               <CallSheetRow key={i} time={row.time} event={row.event} location={row.location} mapHref={row.mapHref} odd={i % 2 === 0} />
             ))}
           </div>
-
-          {/* Hours validation */}
-          {(contracted || actualHours !== null) && (
-            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50/50 space-y-1.5">
-              {contracted && (
-                <p className="text-xs text-gray-500">
-                  <span className="font-medium text-gray-700">As per contract:</span>{' '}
-                  {contractStartFmt && contractEndFmt
-                    ? `${contractStartFmt} → ${contractEndFmt} (${contracted} hours)`
-                    : `${contracted} hours`}
-                </p>
-              )}
-              {actualHours !== null && (
-                <p className="text-xs text-gray-500">
-                  <span className="font-medium text-gray-700">Actual day:</span> {earliestFmt} → {latestFmt} ({actualHours} hours)
-                </p>
-              )}
-              {exceedsBy !== null ? (
-                <div className="flex items-center gap-1.5 mt-1">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                  <span className="text-xs font-semibold text-amber-700">
-                    Day exceeds contract by {exceedsBy} hour{exceedsBy !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              ) : contracted && actualHours !== null ? (
-                <p className="text-xs text-green-600 mt-1">Schedule fits within contract</p>
-              ) : null}
-            </div>
-          )}
         </div>
+
+        {/* ── Section C: SCHEDULE ALERTS ───────────────────────────────────── */}
+        {(startsBeforeBy !== null || endsAfterBy !== null || (contracted && actualHours !== null)) && (
+          <div className={`rounded-xl border overflow-hidden ${
+            startsBeforeBy !== null || endsAfterBy !== null
+              ? 'bg-red-50 border-red-200'
+              : 'bg-green-50 border-green-200'
+          }`}>
+            <div className="px-5 py-3 space-y-2">
+              {startsBeforeBy !== null && (
+                <p className="text-sm font-semibold text-red-700">
+                  ⚠️ Day starts at {earliestFmt} — {startsBeforeBy >= 60
+                    ? `${Math.round(startsBeforeBy / 60 * 10) / 10} hour${Math.round(startsBeforeBy / 60 * 10) / 10 !== 1 ? 's' : ''}`
+                    : `${startsBeforeBy} minutes`} BEFORE contract start ({contractStartFmt})
+                </p>
+              )}
+              {endsAfterBy !== null && (
+                <p className="text-sm font-semibold text-red-700">
+                  ⚠️ Day ends at {latestFmt} — {endsAfterBy >= 60
+                    ? `${Math.round(endsAfterBy / 60 * 10) / 10} hour${Math.round(endsAfterBy / 60 * 10) / 10 !== 1 ? 's' : ''}`
+                    : `${endsAfterBy} minutes`} AFTER contract end ({contractEndFmt})
+                </p>
+              )}
+              {startsBeforeBy === null && endsAfterBy === null && contracted && actualHours !== null && (
+                <p className="text-sm font-semibold text-green-700">
+                  ✅ Schedule fits within contracted hours
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Emergency Contacts */}
         <Section title="Emergency Contacts" icon={Phone}>
@@ -334,6 +345,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
           <LocationBlock
             address={form.groom_address}
             city={form.groom_city}
+            postalCode={form.groom_postal_code}
             intersection={form.groom_intersection}
             startTime={formatTime(form.groom_start_time, 'prep')}
             finishTime={formatTime(form.groom_finish_time, 'prep')}
@@ -348,6 +360,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
           <LocationBlock
             address={form.bride_address}
             city={form.bride_city}
+            postalCode={form.bride_postal_code}
             intersection={form.bride_intersection}
             startTime={formatTime(form.bride_start_time, 'prep')}
             finishTime={formatTime(form.bride_finish_time, 'prep')}
@@ -376,6 +389,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             name={form.ceremony_location_name}
             address={form.ceremony_address}
             city={form.ceremony_city}
+            postalCode={form.ceremony_postal_code}
             intersection={form.ceremony_intersection}
             startTime={formatTime(form.ceremony_start_time, 'ceremony')}
             finishTime={formatTime(form.ceremony_finish_time, 'ceremony')}
@@ -396,6 +410,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             name={form.park_name}
             address={form.park_address}
             city={form.park_city}
+            postalCode={form.park_postal_code}
             intersection={form.park_intersection}
             startTime={formatTime(form.park_start_time, 'photos')}
             finishTime={formatTime(form.park_finish_time, 'photos')}
@@ -412,6 +427,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
               name={form.extra_location_name}
               address={form.extra_address}
               city={form.extra_city}
+              postalCode={form.extra_postal_code}
               intersection={form.extra_intersection}
               startTime={formatTime(form.extra_start_time, 'photos')}
               finishTime={formatTime(form.extra_finish_time, 'photos')}
@@ -428,6 +444,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             name={form.reception_venue_name}
             address={form.reception_address}
             city={form.reception_city}
+            postalCode={form.reception_postal_code}
             intersection={form.reception_intersection}
             startTime={formatTime(form.reception_start_time, 'reception')}
             finishTime={formatTime(form.reception_finish_time, 'reception_end')}

@@ -27,17 +27,17 @@ interface FormData {
   groom_finish_time: string
   groom_address: string
   groom_city: string
+  groom_postal_code: string
   groom_intersection: string
   groom_phone: string
-  groom_directions: string
   // Bride Prep
   bride_start_time: string
   bride_finish_time: string
   bride_address: string
   bride_city: string
+  bride_postal_code: string
   bride_intersection: string
   bride_phone: string
-  bride_directions: string
   // Ceremony
   ceremony_location_name: string
   ceremony_first_look: boolean
@@ -46,8 +46,8 @@ interface FormData {
   ceremony_finish_time: string
   ceremony_address: string
   ceremony_city: string
+  ceremony_postal_code: string
   ceremony_intersection: string
-  ceremony_directions: string
   // Park/Photos
   park_name: string
   park_permit_obtained: boolean
@@ -55,16 +55,16 @@ interface FormData {
   park_finish_time: string
   park_address: string
   park_city: string
+  park_postal_code: string
   park_intersection: string
-  park_directions: string
   // Extra Location
   extra_location_name: string
   extra_start_time: string
   extra_finish_time: string
   extra_address: string
   extra_city: string
+  extra_postal_code: string
   extra_intersection: string
-  extra_directions: string
   extra_location_notes: string
   // First Look Location
   first_look_location_name: string
@@ -77,8 +77,8 @@ interface FormData {
   reception_finish_time: string
   reception_address: string
   reception_city: string
+  reception_postal_code: string
   reception_intersection: string
-  reception_directions: string
   // Drive Times
   drive_time_groom_to_bride: string
   drive_time_bride_to_ceremony: string
@@ -139,19 +139,19 @@ const EMPTY_FORM: FormData = {
   emergency_contact_1_name: '', emergency_contact_1_phone: '',
   emergency_contact_2_name: '', emergency_contact_2_phone: '',
   groom_start_time: '', groom_finish_time: '', groom_address: '', groom_city: '',
-  groom_intersection: '', groom_phone: '', groom_directions: '',
+  groom_postal_code: '', groom_intersection: '', groom_phone: '',
   bride_start_time: '', bride_finish_time: '', bride_address: '', bride_city: '',
-  bride_intersection: '', bride_phone: '', bride_directions: '',
+  bride_postal_code: '', bride_intersection: '', bride_phone: '',
   ceremony_location_name: '', ceremony_first_look: false, ceremony_photo_arrival_time: '',
   ceremony_start_time: '', ceremony_finish_time: '', ceremony_address: '', ceremony_city: '',
-  ceremony_intersection: '', ceremony_directions: '',
+  ceremony_postal_code: '', ceremony_intersection: '',
   park_name: '', park_permit_obtained: false, park_start_time: '', park_finish_time: '',
-  park_address: '', park_city: '', park_intersection: '', park_directions: '',
+  park_address: '', park_city: '', park_postal_code: '', park_intersection: '',
   extra_location_name: '', extra_start_time: '', extra_finish_time: '', extra_address: '',
-  extra_city: '', extra_intersection: '', extra_directions: '', extra_location_notes: '',
+  extra_city: '', extra_postal_code: '', extra_intersection: '', extra_location_notes: '',
   first_look_location_name: '', first_look_time: '', first_look_address: '', first_look_city: '',
   reception_venue_name: '', reception_start_time: '', reception_finish_time: '',
-  reception_address: '', reception_city: '', reception_intersection: '', reception_directions: '',
+  reception_address: '', reception_city: '', reception_postal_code: '', reception_intersection: '',
   drive_time_groom_to_bride: '', drive_time_bride_to_ceremony: '',
   drive_time_ceremony_to_park: '', drive_time_park_to_reception: '',
   drive_time_bride_to_first_look: '', drive_time_first_look_to_park: '',
@@ -293,8 +293,8 @@ function LocationFields({ form, updateField, prefix, showFirstLook, showPermit, 
 }) {
   const addressField = `${prefix}_address` as keyof FormData
   const cityField = `${prefix}_city` as keyof FormData
+  const postalCodeField = `${prefix}_postal_code` as keyof FormData
   const intersectionField = `${prefix}_intersection` as keyof FormData
-  const directionsField = `${prefix}_directions` as keyof FormData
 
   return (
     <div className="space-y-3">
@@ -327,11 +327,11 @@ function LocationFields({ form, updateField, prefix, showFirstLook, showPermit, 
         </div>
       )}
       <TextInput label="Address" value={form[addressField] as string} onChange={v => updateField(addressField, v)} placeholder="Street address" />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <TextInput label="City" value={form[cityField] as string} onChange={v => updateField(cityField, v)} placeholder="City" />
+        <TextInput label="Postal Code" value={form[postalCodeField] as string} onChange={v => updateField(postalCodeField, v)} placeholder="e.g. M5V 2T6" />
         <TextInput label="Nearest Intersection" value={form[intersectionField] as string} onChange={v => updateField(intersectionField, v)} placeholder="Cross streets" />
       </div>
-      <TextInput label="Directions / Notes" value={form[directionsField] as string} onChange={v => updateField(directionsField, v)} placeholder="Parking info, entrance, etc." />
     </div>
   )
 }
@@ -414,16 +414,16 @@ export default function WeddingDayFormPage() {
           groom_finish_time: d.groom_finish_time || '',
           groom_address: d.groom_address || '',
           groom_city: d.groom_city || '',
+          groom_postal_code: d.groom_postal_code || '',
           groom_intersection: d.groom_intersection || '',
           groom_phone: d.groom_phone || '',
-          groom_directions: d.groom_directions || '',
           bride_start_time: d.bride_start_time || '',
           bride_finish_time: d.bride_finish_time || '',
           bride_address: d.bride_address || '',
           bride_city: d.bride_city || '',
+          bride_postal_code: d.bride_postal_code || '',
           bride_intersection: d.bride_intersection || '',
           bride_phone: d.bride_phone || '',
-          bride_directions: d.bride_directions || '',
           ceremony_location_name: d.ceremony_location_name || '',
           ceremony_first_look: d.ceremony_first_look ?? false,
           ceremony_photo_arrival_time: d.ceremony_photo_arrival_time || '',
@@ -431,23 +431,23 @@ export default function WeddingDayFormPage() {
           ceremony_finish_time: d.ceremony_finish_time || '',
           ceremony_address: d.ceremony_address || '',
           ceremony_city: d.ceremony_city || '',
+          ceremony_postal_code: d.ceremony_postal_code || '',
           ceremony_intersection: d.ceremony_intersection || '',
-          ceremony_directions: d.ceremony_directions || '',
           park_name: d.park_name || '',
           park_permit_obtained: d.park_permit_obtained ?? false,
           park_start_time: d.park_start_time || '',
           park_finish_time: d.park_finish_time || '',
           park_address: d.park_address || '',
           park_city: d.park_city || '',
+          park_postal_code: d.park_postal_code || '',
           park_intersection: d.park_intersection || '',
-          park_directions: d.park_directions || '',
           extra_location_name: d.extra_location_name || '',
           extra_start_time: d.extra_start_time || '',
           extra_finish_time: d.extra_finish_time || '',
           extra_address: d.extra_address || '',
           extra_city: d.extra_city || '',
+          extra_postal_code: d.extra_postal_code || '',
           extra_intersection: d.extra_intersection || '',
-          extra_directions: d.extra_directions || '',
           extra_location_notes: d.extra_location_notes || '',
           first_look_location_name: d.first_look_location_name || '',
           first_look_time: d.first_look_time || '',
@@ -458,8 +458,8 @@ export default function WeddingDayFormPage() {
           reception_finish_time: d.reception_finish_time || '',
           reception_address: d.reception_address || '',
           reception_city: d.reception_city || '',
+          reception_postal_code: d.reception_postal_code || '',
           reception_intersection: d.reception_intersection || '',
-          reception_directions: d.reception_directions || '',
           drive_time_groom_to_bride: d.drive_time_groom_to_bride?.toString() || '',
           drive_time_bride_to_ceremony: d.drive_time_bride_to_ceremony?.toString() || '',
           drive_time_ceremony_to_park: d.drive_time_ceremony_to_park?.toString() || '',
@@ -889,6 +889,38 @@ export default function WeddingDayFormPage() {
               </div>
             </div>
 
+            {/* ── Photographer Times (prominent at top) ───────────── */}
+            <div className="bg-card rounded-xl border p-6 shadow-sm border-l-4 border-l-teal-600">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <span>📸</span> Photographer Times
+              </h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">What time should photographers arrive? <span className="text-red-500">*</span></label>
+                  <select
+                    value={form.venue_arrival_time}
+                    onChange={e => updateField('venue_arrival_time', e.target.value)}
+                    required
+                  >
+                    <option value="">Select a time</option>
+                    {Array.from({ length: 33 }, (_, i) => {
+                      const totalMin = 6 * 60 + i * 30
+                      const h = Math.floor(totalMin / 60)
+                      const m = totalMin % 60
+                      const period = h >= 12 ? 'PM' : 'AM'
+                      const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h
+                      const timeLabel = `${h12}:${m.toString().padStart(2, '0')} ${period}`
+                      return <option key={timeLabel} value={timeLabel}>{timeLabel}</option>
+                    })}
+                  </select>
+                </div>
+                <div>
+                  <TextInput label="What time will photographers finish? *" value={form.photo_video_end_time} onChange={v => updateField('photo_video_end_time', v)} placeholder="e.g. 11:00 PM" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">💡 If you need additional hours, please contact Marianna before the wedding day.</p>
+            </div>
+
             {form.has_first_look !== null && (
               <>
                 {/* ── Groom Prep ───────────────────────────────────────── */}
@@ -1137,34 +1169,13 @@ export default function WeddingDayFormPage() {
                     <span>📋</span> Contract Details
                   </h2>
                   <div className="space-y-3">
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <TextInput label="Ceremony Begins At" value={form.ceremony_begins_at} onChange={v => updateField('ceremony_begins_at', v)} placeholder="e.g. 3:00 PM" />
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-1">Hours in Contract</label>
                         <input type="number" value={form.hours_in_contract} onChange={e => updateField('hours_in_contract', e.target.value)} placeholder="e.g. 10" />
                       </div>
-                      <TextInput label="Photo/Video End Time" value={form.photo_video_end_time} onChange={v => updateField('photo_video_end_time', v)} placeholder="e.g. 11:00 PM" />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-1">MUST ARRIVE AT VENUE BY <span className="text-red-500">*</span></label>
-                      <select
-                        value={form.venue_arrival_time}
-                        onChange={e => updateField('venue_arrival_time', e.target.value)}
-                        required
-                      >
-                        <option value="">Select a time</option>
-                        {Array.from({ length: 33 }, (_, i) => {
-                          const totalMin = 6 * 60 + i * 30
-                          const h = Math.floor(totalMin / 60)
-                          const m = totalMin % 60
-                          const period = h >= 12 ? 'PM' : 'AM'
-                          const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h
-                          const timeLabel = `${h12}:${m.toString().padStart(2, '0')} ${period}`
-                          return <option key={timeLabel} value={timeLabel}>{timeLabel}</option>
-                        })}
-                      </select>
-                    </div>
-                    <p className="text-xs text-muted-foreground">💡 If you need additional hours, please contact Marianna before the wedding day.</p>
                   </div>
                 </div>
 
