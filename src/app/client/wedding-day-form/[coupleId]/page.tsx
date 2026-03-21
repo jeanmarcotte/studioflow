@@ -181,7 +181,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
   const weddingCity = (form.reception_city || form.ceremony_city || form.bride_city || '').trim()
 
   // ─── Build call-sheet rows and hours validation using shared utils ────────
-  const scheduleRows = buildScheduleRows(form)
+  const scheduleRows = buildScheduleRows(form, packageType)
   const rows = scheduleRows.map(r => ({
     ...r,
     location: r.location || null,
@@ -250,22 +250,28 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
 
         {/* ── Quick Overview ─────────────────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden border-l-4" style={{ borderLeftColor: '#1e3a5f' }}>
-          <div className="px-5 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#1e3a5f' }}>
-                <Clock className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Quick Overview</h2>
-                <p className="text-xs text-gray-400">Day at a glance</p>
-              </div>
+          <div className="px-5 py-4 bg-gray-50 border-b border-gray-200 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#1e3a5f' }}>
+              <Clock className="w-4 h-4 text-white" />
             </div>
-            {packageType && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: '#1e3a5f' }}>
-                {packageEmoji} {packageLabel}
-              </span>
-            )}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Quick Overview</h2>
+              <p className="text-xs text-gray-400">Day at a glance</p>
+            </div>
           </div>
+
+          {/* Package type banner */}
+          {packageType && (
+            <div
+              className="px-5 py-3 text-center font-bold text-lg tracking-wide"
+              style={{
+                backgroundColor: isPhotoOnly ? '#f59e0b' : '#1e3a5f',
+                color: isPhotoOnly ? '#000000' : '#ffffff',
+              }}
+            >
+              {packageEmoji} {packageLabel}
+            </div>
+          )}
 
           {/* Call sheet grid */}
           <div className="divide-y divide-gray-100">

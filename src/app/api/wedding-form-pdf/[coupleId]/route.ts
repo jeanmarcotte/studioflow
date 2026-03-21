@@ -156,7 +156,7 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
 
   const [{ data: form, error: formError }, { data: couple }] = await Promise.all([
     supabase.from('wedding_day_forms').select('*').eq('couple_id', coupleId).single(),
-    supabase.from('couples').select('couple_name, wedding_date').eq('id', coupleId).single(),
+    supabase.from('couples').select('couple_name, wedding_date, package_type').eq('id', coupleId).single(),
   ])
 
   if (!form || formError) {
@@ -164,6 +164,7 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
   }
 
   const coupleName = couple?.couple_name ?? 'Unknown Couple'
+  const packageType = couple?.package_type ?? null
   const weddingDate = couple?.wedding_date
     ? format(new Date(couple.wedding_date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
     : ''
@@ -210,6 +211,26 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
   // ─── Quick Overview — Day at a Glance ───────────────────────────────────────
   pdf.header('Quick Overview — Day at a Glance')
 
+  // Package type banner
+  if (packageType) {
+    const isPhotoOnly = packageType === 'photo_only'
+    pdf.checkPage(12)
+    if (isPhotoOnly) {
+      pdf.doc.setFillColor(245, 158, 11) // amber
+      pdf.doc.setTextColor(0, 0, 0)
+    } else {
+      pdf.doc.setFillColor(30, 58, 95) // navy
+      pdf.doc.setTextColor(255, 255, 255)
+    }
+    pdf.doc.roundedRect(MARGIN, pdf.y, CONTENT_W, 9, 2, 2, 'F')
+    pdf.doc.setFont('helvetica', 'bold')
+    pdf.doc.setFontSize(11)
+    const bannerText = isPhotoOnly ? 'PHOTO ONLY' : 'PHOTO & VIDEO'
+    const textW = pdf.doc.getTextWidth(bannerText)
+    pdf.doc.text(bannerText, MARGIN + (CONTENT_W - textW) / 2, pdf.y + 6.5)
+    pdf.y += 13
+  }
+
   // Helper to build timeline row in the PDF
   const timelineRow = (label: string, time: string | null, location?: string | null) => {
     if (!time) return
@@ -238,7 +259,7 @@ export async function GET(request: Request, { params }: { params: { coupleId: st
     }
   }
 
-  const scheduleRows = buildScheduleRows(form)
+  const scheduleRows = buildScheduleRows(form, packageType)
   for (const row of scheduleRows) {
     timelineRow(row.event, row.time || null, row.location || null)
   }

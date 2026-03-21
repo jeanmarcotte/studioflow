@@ -91,7 +91,7 @@ export async function sendTeamWeddingDayNotification(data: TeamNotifyData) {
   const packageLabel = isPhotoOnly ? '\u{1F4F7} PHOTO ONLY' : '\u{1F4F7}\u{1F3A5} PHOTO & VIDEO'
 
   // Build schedule
-  const scheduleRows = buildScheduleRows(form as Parameters<typeof buildScheduleRows>[0])
+  const scheduleRows = buildScheduleRows(form as Parameters<typeof buildScheduleRows>[0], packageType)
   const { contracted, actualHours, earliestFmt, latestFmt, exceedsBy } = calculateHoursValidation(
     form as Parameters<typeof calculateHoursValidation>[0]
   )
@@ -149,10 +149,12 @@ export async function sendTeamWeddingDayNotification(data: TeamNotifyData) {
         <p style="margin:0;font-size:14px;opacity:0.85;">submitted their Wedding Day Form</p>
       </div>
 
+      <!-- Package type banner -->
+      <div style="background:${isPhotoOnly ? '#f59e0b' : '#1e3a5f'};color:${isPhotoOnly ? '#000000' : '#ffffff'};padding:14px 28px;text-align:center;font-size:18px;font-weight:700;letter-spacing:0.5px;">${packageLabel}</div>
+
       <div style="padding:24px 28px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
-        <!-- Package + Date + City -->
+        <!-- Date + City -->
         <div style="margin-bottom:20px;">
-          <span style="display:inline-block;background:#1e3a5f;color:white;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:0.3px;">${packageLabel}</span>
           <p style="margin:12px 0 4px;font-size:15px;color:#111827;">\u{1F4C5} ${escHtml(dateFormatted)}</p>
           ${city ? `<p style="margin:4px 0;font-size:14px;color:#6b7280;">\u{1F4CD} ${escHtml(city)}</p>` : ''}
         </div>

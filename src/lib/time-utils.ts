@@ -195,13 +195,14 @@ export function buildScheduleRows(form: {
   reception_start_time?: string | null
   reception_finish_time?: string | null
   reception_venue_name?: string | null
-}): { time: string; event: string; location: string }[] {
+}, packageType?: string | null): { time: string; event: string; location: string }[] {
   const rows: { time: string; event: string; location: string }[] = []
 
   const arrivalFmt = formatTime(form.venue_arrival_time, 'venue_arrival')
   const endFmt = formatTime(form.photo_video_end_time, 'photo_video_end')
   if (arrivalFmt || endFmt) {
-    rows.push({ time: [arrivalFmt, endFmt].filter(Boolean).join(' \u2192 '), event: 'Photo / Video', location: '' })
+    const coverageLabel = packageType === 'photo_only' ? '\u{1F4F7} Photography' : '\u{1F4F7}\u{1F3A5} Photo & Video'
+    rows.push({ time: [arrivalFmt, endFmt].filter(Boolean).join(' \u2192 '), event: coverageLabel, location: '' })
   }
 
   const groomStart = formatTime(form.groom_start_time, 'prep')
