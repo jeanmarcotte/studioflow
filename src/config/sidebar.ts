@@ -133,6 +133,7 @@ export const studioflowClientConfig: SidebarConfig = {
       items: [
         { title: 'New Client Quote', href: '/client/new-quote', icon: FileText },
         { title: 'Frames & Albums', href: '/client/extras-quote', icon: DollarSign },
+        { title: 'Extras', href: '/client/extras', icon: Package },
       ],
     },
   ],
