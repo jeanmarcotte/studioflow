@@ -509,7 +509,7 @@ export default function CouplesPage() {
                       <td className="p-3 whitespace-nowrap">
                         {couple.wedding_date
                           ? format(parseISO(couple.wedding_date), 'MMM d, yyyy')
-                          : <span className="text-muted-foreground/50 text-center block">—</span>
+                          : <span className="text-muted-foreground/40">—</span>
                         }
                       </td>
                       <td className="p-3 text-center">
@@ -519,16 +519,16 @@ export default function CouplesPage() {
                         {formatPackage(couple.package_type)}
                       </td>
                       <td className="p-3 text-muted-foreground truncate" title={couple.reception_venue || undefined}>
-                        {couple.reception_venue || <span className="text-muted-foreground/50 text-center block">—</span>}
+                        {couple.reception_venue || <span className="text-muted-foreground/40">—</span>}
                       </td>
                       <td className="p-3 text-right text-muted-foreground">
-                        {couple.contract_price ? `$${Math.round(Number(couple.contract_price)).toLocaleString()}` : <span className="text-muted-foreground/50 text-center block">—</span>}
+                        {couple.contract_price ? `$${Math.round(Number(couple.contract_price)).toLocaleString()}` : <span className="text-muted-foreground/40">—</span>}
                       </td>
                       <td className="p-3 text-right text-muted-foreground">
-                        {couple.frames_total > 0 ? `$${Math.round(couple.frames_total).toLocaleString()}` : <span className="text-muted-foreground/50 text-center block">—</span>}
+                        {couple.frames_total > 0 ? `$${Math.round(couple.frames_total).toLocaleString()}` : <span className="text-muted-foreground/40">—</span>}
                       </td>
                       <td className="p-3 text-right text-muted-foreground">
-                        {couple.extras_total > 0 ? `$${Math.round(couple.extras_total).toLocaleString()}` : <span className="text-muted-foreground/50 text-center block">—</span>}
+                        {couple.extras_total > 0 ? `$${Math.round(couple.extras_total).toLocaleString()}` : <span className="text-muted-foreground/40">—</span>}
                       </td>
                       <td className="p-3 text-center text-muted-foreground">
                         {couple.payments_count > 0 ? couple.payments_count : <span className="text-muted-foreground/50">—</span>}
