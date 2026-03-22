@@ -1614,18 +1614,13 @@ function QuoteBuilderInner() {
                   {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.name} Includes:
                 </h3>
                 <div className="grid grid-cols-2 gap-1">
-                  {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.features.slice(0, 10).map((feature, i) => (
+                  {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.features.map((feature, i) => (
                     <div key={i} className="flex items-start gap-2 text-xs text-stone-600">
                       <Check className="h-3 w-3 text-emerald-500 mt-0.5 flex-shrink-0" />
                       <span>{feature}</span>
                     </div>
                   ))}
                 </div>
-                {(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.features.length || 0) > 10 && (
-                  <p className="text-xs text-stone-500 mt-2">
-                    + {(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.features.length || 0) - 10} more inclusions
-                  </p>
-                )}
               </div>
             )}
             
