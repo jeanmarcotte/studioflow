@@ -779,8 +779,9 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
 
   const bride = data.brideFirstName || 'Bride'
   const groom = data.groomFirstName || 'Groom'
-  const nowStamp = new Date()
-  const dateStamp = `${nowStamp.getFullYear()}-${String(nowStamp.getMonth() + 1).padStart(2, '0')}-${String(nowStamp.getDate()).padStart(2, '0')}`
-  const prefix = isContract ? 'SIGS_Contract' : 'SIGS_Quote'
-  doc.save(`${prefix}_${bride}_${groom}_${dateStamp}.pdf`)
+  const dateStamp = data.weddingDate || ''
+  const venuePart = data.receptionVenue
+    ? '_' + data.receptionVenue.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')
+    : ''
+  doc.save(`${bride}_${groom}${dateStamp ? '_' + dateStamp : ''}${venuePart}.pdf`)
 }
