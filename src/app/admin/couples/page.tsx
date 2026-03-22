@@ -426,61 +426,61 @@ export default function CouplesPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm" style={{ tableLayout: 'fixed', minWidth: 1100 }}>
             <colgroup>
-              <col style={{ width: '15%' }} />
+              <col style={{ width: '16%' }} />
               <col style={{ width: '12%' }} />
               <col style={{ width: '6%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '14%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '15%' }} />
               <col style={{ width: '9%' }} />
               <col style={{ width: '8%' }} />
               <col style={{ width: '8%' }} />
               <col style={{ width: '6%' }} />
-              <col style={{ width: '9%' }} />
+              <col style={{ width: '11%' }} />
             </colgroup>
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left p-3 font-medium">
+                <th className="p-3 font-medium" style={{ textAlign: 'left' }}>
                   <button onClick={() => handleSort('couple_name')} className="group flex items-center gap-1 hover:text-foreground">
                     Couple <SortIcon field="couple_name" />
                   </button>
                 </th>
-                <th className="text-left p-3 font-medium">
-                  <button onClick={() => handleSort('wedding_date')} className="group flex items-center gap-1 hover:text-foreground whitespace-nowrap">
+                <th className="p-3 font-medium" style={{ textAlign: 'left' }}>
+                  <button onClick={() => handleSort('wedding_date')} className="group flex items-center gap-1 hover:text-foreground" style={{ whiteSpace: 'nowrap' }}>
                     Date <SortIcon field="wedding_date" />
                   </button>
                 </th>
-                <th className="text-center p-3 font-medium">Status</th>
-                <th className="text-left p-3 font-medium">
+                <th className="p-3 font-medium" style={{ textAlign: 'center' }}>Status</th>
+                <th className="p-3 font-medium" style={{ textAlign: 'left' }}>
                   <button onClick={() => handleSort('package_type')} className="group flex items-center gap-1 hover:text-foreground">
                     Package <SortIcon field="package_type" />
                   </button>
                 </th>
-                <th className="text-left p-3 font-medium">
+                <th className="p-3 font-medium" style={{ textAlign: 'left' }}>
                   <button onClick={() => handleSort('reception_venue')} className="group flex items-center gap-1 hover:text-foreground">
                     Venue <SortIcon field="reception_venue" />
                   </button>
                 </th>
-                <th className="text-right p-3 font-medium">
+                <th className="p-3 font-medium" style={{ textAlign: 'right' }}>
                   <button onClick={() => handleSort('contract_price')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Contract <SortIcon field="contract_price" />
                   </button>
                 </th>
-                <th className="text-right p-3 font-medium">
+                <th className="p-3 font-medium" style={{ textAlign: 'right' }}>
                   <button onClick={() => handleSort('frames_total')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Frames <SortIcon field="frames_total" />
                   </button>
                 </th>
-                <th className="text-right p-3 font-medium">
+                <th className="p-3 font-medium" style={{ textAlign: 'right' }}>
                   <button onClick={() => handleSort('extras_total')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Extras <SortIcon field="extras_total" />
                   </button>
                 </th>
-                <th className="text-center p-3 font-medium">
+                <th className="p-3 font-medium" style={{ textAlign: 'center' }}>
                   <button onClick={() => handleSort('payments_count')} className="group flex items-center gap-1 justify-center hover:text-foreground">
                     Pmts <SortIcon field="payments_count" />
                   </button>
                 </th>
-                <th className="text-right p-3 font-medium">
+                <th className="p-3 font-medium" style={{ textAlign: 'right' }}>
                   <button onClick={() => handleSort('balance_owing')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Balance <SortIcon field="balance_owing" />
                   </button>
@@ -490,7 +490,7 @@ export default function CouplesPage() {
             <tbody className="divide-y">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={10} className="p-8 text-muted-foreground" style={{ textAlign: 'center' }}>
                     No couples found matching your filters.
                   </td>
                 </tr>
@@ -503,37 +503,37 @@ export default function CouplesPage() {
                       onClick={() => router.push(`/admin/couples/${couple.id}`)}
                       className="hover:bg-accent/50 cursor-pointer transition-colors"
                     >
-                      <td className="p-3 truncate" title={couple.couple_name}>
+                      <td className="p-3 truncate" title={couple.couple_name} style={{ textAlign: 'left' }}>
                         <span className="font-medium">{couple.couple_name}</span>
                       </td>
-                      <td className="p-3 whitespace-nowrap">
+                      <td className="p-3" style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
                         {couple.wedding_date
                           ? format(parseISO(couple.wedding_date), 'MMM d, yyyy')
                           : <span className="text-muted-foreground/40">—</span>
                         }
                       </td>
-                      <td className="p-3 text-center">
+                      <td className="p-3" style={{ textAlign: 'center' }}>
                         {statusBadge(couple.status)}
                       </td>
-                      <td className="p-3 text-muted-foreground truncate">
+                      <td className="p-3 text-muted-foreground truncate" style={{ textAlign: 'left' }}>
                         {formatPackage(couple.package_type)}
                       </td>
-                      <td className="p-3 text-muted-foreground truncate" title={couple.reception_venue || undefined}>
+                      <td className="p-3 text-muted-foreground truncate" title={couple.reception_venue || undefined} style={{ textAlign: 'left' }}>
                         {couple.reception_venue || <span className="text-muted-foreground/40">—</span>}
                       </td>
-                      <td className="p-3 text-right text-muted-foreground">
+                      <td className="p-3 text-muted-foreground" style={{ textAlign: 'right' }}>
                         {couple.contract_price ? `$${Math.round(Number(couple.contract_price)).toLocaleString()}` : <span className="text-muted-foreground/40">—</span>}
                       </td>
-                      <td className="p-3 text-right text-muted-foreground">
+                      <td className="p-3 text-muted-foreground" style={{ textAlign: 'right' }}>
                         {couple.frames_total > 0 ? `$${Math.round(couple.frames_total).toLocaleString()}` : <span className="text-muted-foreground/40">—</span>}
                       </td>
-                      <td className="p-3 text-right text-muted-foreground">
+                      <td className="p-3 text-muted-foreground" style={{ textAlign: 'right' }}>
                         {couple.extras_total > 0 ? `$${Math.round(couple.extras_total).toLocaleString()}` : <span className="text-muted-foreground/40">—</span>}
                       </td>
-                      <td className="p-3 text-center text-muted-foreground">
+                      <td className="p-3 text-muted-foreground" style={{ textAlign: 'center' }}>
                         {couple.payments_count > 0 ? couple.payments_count : <span className="text-muted-foreground/50">—</span>}
                       </td>
-                      <td className="p-3 text-right font-semibold">
+                      <td className="p-3 font-semibold" style={{ textAlign: 'right' }}>
                         {bal > 0 ? (
                           <span className="text-red-600">${Math.round(bal).toLocaleString()}</span>
                         ) : (
