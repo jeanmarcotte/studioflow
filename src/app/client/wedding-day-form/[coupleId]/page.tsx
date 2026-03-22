@@ -153,7 +153,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
 
   const [{ data: form, error: formError }, { data: couple, error: coupleError }, { data: contract }] = await Promise.all([
     supabase.from('wedding_day_forms').select('*').eq('couple_id', coupleId).single(),
-    supabase.from('couples').select('couple_name, wedding_date, reception_venue, package_type').eq('id', coupleId).single(),
+    supabase.from('couples').select('couple_name, wedding_date, package_type, contracts(reception_venue)').eq('id', coupleId).single(),
     supabase.from('contracts').select('start_time, end_time').eq('couple_id', coupleId).single(),
   ])
 

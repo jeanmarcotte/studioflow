@@ -174,7 +174,7 @@ export default function CoupleDetailPage() {
       <ClientCard
         coupleName={couple.couple_name}
         weddingDate={couple.wedding_date}
-        receptionVenue={couple.reception_venue}
+        receptionVenue={contract?.reception_venue || null}
         ceremonyVenue={contract?.ceremony_location || null}
         leadSource={couple.lead_source}
         bookedDate={couple.booked_date}

@@ -146,7 +146,6 @@ export default function PdfImporter({ onImportComplete, defaultOpen = false }: P
           groom_email: data.groomEmail || null,
           groom_phone: data.groomPhone || null,
           ceremony_venue: data.ceremonyVenue || null,
-          reception_venue: data.receptionVenue || null,
           package_type: data.packageType,
           coverage_hours: data.coverageHours != null ? Math.round(data.coverageHours) : null,
           contract_total: data.total,

@@ -177,7 +177,6 @@ export const findOrCreateCouple = async (coupleInfo: {
       wedding_date: coupleInfo.weddingDate || null,
       wedding_year: weddingYear,
       ceremony_venue: coupleInfo.ceremonyVenue || null,
-      reception_venue: coupleInfo.receptionVenue || null,
       lead_source: coupleInfo.leadSource || null,
       status: 'booked',
     })
