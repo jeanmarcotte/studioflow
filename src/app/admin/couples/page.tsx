@@ -408,46 +408,46 @@ export default function CouplesPage() {
       {/* Table */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="min-w-[970px] text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left p-3 font-medium">
+                <th className="text-left p-3 font-medium" style={{ width: 180 }}>
                   <button onClick={() => handleSort('couple_name')} className="group flex items-center gap-1 hover:text-foreground">
                     Couple <SortIcon field="couple_name" />
                   </button>
                 </th>
-                <th className="text-left p-3 font-medium">
+                <th className="text-left p-3 font-medium" style={{ width: 130 }}>
                   <button onClick={() => handleSort('wedding_date')} className="group flex items-center gap-1 hover:text-foreground">
                     Wedding Date <SortIcon field="wedding_date" />
                   </button>
                 </th>
-                <th className="text-left p-3 font-medium hidden md:table-cell">Status</th>
-                <th className="text-left p-3 font-medium hidden lg:table-cell">
+                <th className="text-center p-3 font-medium hidden md:table-cell" style={{ width: 70 }}>Status</th>
+                <th className="text-left p-3 font-medium hidden lg:table-cell" style={{ width: 100 }}>
                   <button onClick={() => handleSort('package_type')} className="group flex items-center gap-1 hover:text-foreground">
                     Package <SortIcon field="package_type" />
                   </button>
                 </th>
-                <th className="text-left p-3 font-medium hidden lg:table-cell">
+                <th className="text-left p-3 font-medium hidden lg:table-cell" style={{ width: 150 }}>
                   <button onClick={() => handleSort('reception_venue')} className="group flex items-center gap-1 hover:text-foreground">
                     Venue <SortIcon field="reception_venue" />
                   </button>
                 </th>
-                <th className="text-right p-3 font-medium hidden md:table-cell">
+                <th className="text-right p-3 font-medium hidden md:table-cell" style={{ width: 90 }}>
                   <button onClick={() => handleSort('contract_price')} className="group flex items-center gap-1 justify-end hover:text-foreground">
-                    Package Price <SortIcon field="contract_price" />
+                    Contract <SortIcon field="contract_price" />
                   </button>
                 </th>
-                <th className="text-right p-3 font-medium hidden md:table-cell">
+                <th className="text-right p-3 font-medium hidden md:table-cell" style={{ width: 80 }}>
                   <button onClick={() => handleSort('frames_total')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Frames <SortIcon field="frames_total" />
                   </button>
                 </th>
-                <th className="text-right p-3 font-medium hidden md:table-cell">
+                <th className="text-right p-3 font-medium hidden md:table-cell" style={{ width: 80 }}>
                   <button onClick={() => handleSort('extras_total')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Extras <SortIcon field="extras_total" />
                   </button>
                 </th>
-                <th className="text-right p-3 font-medium">
+                <th className="text-right p-3 font-medium" style={{ width: 90 }}>
                   <button onClick={() => handleSort('balance_owing')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Balance <SortIcon field="balance_owing" />
                   </button>
@@ -482,13 +482,13 @@ export default function CouplesPage() {
                           : <span className="text-muted-foreground">TBD</span>
                         }
                       </td>
-                      <td className="p-3 hidden md:table-cell">
+                      <td className="p-3 hidden md:table-cell text-center">
                         {statusBadge(couple.status)}
                       </td>
                       <td className="p-3 hidden lg:table-cell text-muted-foreground">
                         {formatPackage(couple.package_type)}
                       </td>
-                      <td className="p-3 hidden lg:table-cell text-muted-foreground">
+                      <td className="p-3 hidden lg:table-cell text-muted-foreground max-w-[150px] truncate" title={couple.reception_venue || undefined}>
                         {couple.reception_venue || '—'}
                       </td>
                       <td className="p-3 hidden md:table-cell text-right text-muted-foreground">
