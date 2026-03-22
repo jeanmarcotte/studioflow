@@ -71,6 +71,10 @@ const quoteSchema = z.object({
   djName: z.string().optional(),
   plannerName: z.string().optional(),
   
+  // Coverage Hours
+  coverageStartTime: z.string().optional(),
+  coverageEndTime: z.string().optional(),
+
   // Timeline - stored generically, displayed based on firstLook
   firstLook: z.boolean(),
   groomStart: z.string().optional(),
@@ -425,6 +429,8 @@ function QuoteBuilderInner() {
       extraPhotographer: false,
       extraHours: 0,
       engagementLocation: 'mill_pond',
+      coverageStartTime: '',
+      coverageEndTime: '',
       firstLook: false,
       albumType: 'none',
       albumSize: '10x8',
@@ -1140,6 +1146,81 @@ function QuoteBuilderInner() {
               </div>
             </div>
           </div>
+
+          {/* Coverage Hours */}
+          {(() => {
+            // Generate 30-min start time slots: 06:00–14:00
+            const startSlots: string[] = []
+            for (let h = 6; h <= 14; h++) {
+              startSlots.push(`${h.toString().padStart(2, '0')}:00`)
+              if (h < 14) startSlots.push(`${h.toString().padStart(2, '0')}:30`)
+            }
+            // Generate 30-min end time slots: 18:00–02:00 (next day)
+            const endSlots: string[] = []
+            for (let h = 18; h <= 23; h++) {
+              endSlots.push(`${h.toString().padStart(2, '0')}:00`)
+              endSlots.push(`${h.toString().padStart(2, '0')}:30`)
+            }
+            endSlots.push('00:00', '00:30', '01:00', '01:30', '02:00')
+
+            const startVal = watchedValues.coverageStartTime || ''
+            const endVal = watchedValues.coverageEndTime || ''
+
+            // Calculate total hours with midnight crossing
+            let totalHours: number | null = null
+            if (startVal && endVal) {
+              const [sh, sm] = startVal.split(':').map(Number)
+              const [eh, em] = endVal.split(':').map(Number)
+              let startMins = sh * 60 + sm
+              let endMins = eh * 60 + em
+              if (endMins <= startMins) endMins += 1440 // crosses midnight
+              totalHours = Math.round((endMins - startMins) / 60 * 10) / 10
+            }
+
+            const hoursColor = totalHours === null ? '' :
+              totalHours >= 14 ? 'text-red-600 bg-red-50 border-red-200' :
+              totalHours >= 13 ? 'text-amber-600 bg-amber-50 border-amber-200' :
+              'text-emerald-700 bg-emerald-50 border-emerald-200'
+
+            return (
+              <div className="bg-white rounded border border-stone-200 p-6">
+                <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-emerald-600" />
+                  Coverage Hours
+                </h2>
+                <div className="flex items-end gap-6">
+                  <div className="flex-1">
+                    <label className="block text-xs text-stone-500 mb-1">Start Time</label>
+                    <select
+                      value={startVal}
+                      onChange={e => setValue('coverageStartTime', e.target.value)}
+                      className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500"
+                    >
+                      <option value="">—</option>
+                      {startSlots.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs text-stone-500 mb-1">End Time</label>
+                    <select
+                      value={endVal}
+                      onChange={e => setValue('coverageEndTime', e.target.value)}
+                      className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500"
+                    >
+                      <option value="">—</option>
+                      {endSlots.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div className={`flex-1 text-center rounded border px-4 py-2 ${totalHours !== null ? hoursColor : 'bg-stone-50 border-stone-200'}`}>
+                    <div className="text-xs uppercase tracking-wide opacity-70">Total Hours</div>
+                    <div className="text-3xl font-bold leading-tight">
+                      {totalHours !== null ? totalHours : '—'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Timeline - Unified Sortable */}
           <div className="bg-white rounded border border-stone-200 p-6">
@@ -2267,7 +2348,20 @@ function QuoteBuilderInner() {
                       engagement_location: engLabel,
                       service_needs: serviceNeeds,
                       package_name: selectedPkg?.name || '',
-                      coverage_hours: selectedPkg?.hours || 0,
+                      start_time: watchedValues.coverageStartTime || null,
+                      end_time: watchedValues.coverageEndTime || null,
+                      coverage_hours: (() => {
+                        const s = watchedValues.coverageStartTime
+                        const e = watchedValues.coverageEndTime
+                        if (s && e) {
+                          const [sh, sm] = s.split(':').map(Number)
+                          const [eh, em] = e.split(':').map(Number)
+                          let startM = sh * 60 + sm, endM = eh * 60 + em
+                          if (endM <= startM) endM += 1440
+                          return Math.round((endM - startM) / 60 * 10) / 10
+                        }
+                        return selectedPkg?.hours || 0
+                      })(),
                       extra_hours: watchedValues.extraHours || 0,
                       package_price: pricing.basePrice,
                       extra_hours_price: pricing.extraHoursPrice,

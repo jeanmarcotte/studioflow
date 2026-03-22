@@ -33,6 +33,8 @@ export async function POST(request: Request) {
         engagement_location: body.engagement_location || null,
         service_needs: body.service_needs || null,
         package_name: body.package_name || null,
+        start_time: body.start_time || null,
+        end_time: body.end_time || null,
         coverage_hours: body.coverage_hours || null,
         extra_hours: body.extra_hours || null,
         package_price: body.package_price || null,
