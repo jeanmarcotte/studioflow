@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { generateQuotePdf, type QuotePdfData } from '@/lib/generateQuotePdf'
-import { Loader2, FileText, AlertCircle, ArrowLeft, Download } from 'lucide-react'
+import { Loader2, FileText, AlertCircle, ArrowLeft, Download, CheckCircle2 } from 'lucide-react'
 
 // Package definitions matching the quote builder
 const PACKAGES: Record<string, { name: string; price: number; hours: number; features: string[] }> = {
@@ -116,6 +116,8 @@ function ContractGenerateContent() {
   const [error, setError] = useState('')
   const [quote, setQuote] = useState<any>(null)
   const [generating, setGenerating] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   useEffect(() => {
     if (!quoteId) {
@@ -146,6 +148,7 @@ function ContractGenerateContent() {
   const handleGenerate = async () => {
     if (!quote) return
     setGenerating(true)
+    setSaveError('')
 
     try {
       const packageKey = findPackageKey(quote.package_name || '')
@@ -218,7 +221,27 @@ function ContractGenerateContent() {
         contractMode: true,
       }
 
+      // Generate PDF download
       await generateQuotePdf(pdfData)
+
+      // Save contract to database (contracts + contract_installments + update couple + mark quote converted)
+      const saveRes = await fetch('/api/admin/contracts/from-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quote_id: quoteId }),
+      })
+
+      if (!saveRes.ok) {
+        const body = await saveRes.json().catch(() => ({ error: 'Save failed' }))
+        // 409 = already converted, treat as success
+        if (saveRes.status === 409) {
+          setSaved(true)
+        } else {
+          setSaveError(body.error || 'Failed to save contract to database')
+        }
+      } else {
+        setSaved(true)
+      }
     } catch (e) {
       console.error('Contract generation failed:', e)
       setError(e instanceof Error ? e.message : 'Failed to generate contract')
@@ -354,13 +377,18 @@ function ContractGenerateContent() {
       {/* Generate Button */}
       <button
         onClick={handleGenerate}
-        disabled={generating}
+        disabled={generating || saved}
         className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-teal-600 text-white font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors"
       >
         {generating ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
             Generating Contract...
+          </>
+        ) : saved ? (
+          <>
+            <CheckCircle2 className="h-4 w-4" />
+            Contract Saved &amp; Downloaded
           </>
         ) : (
           <>
@@ -370,8 +398,20 @@ function ContractGenerateContent() {
         )}
       </button>
 
+      {saved && (
+        <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-700 text-center mt-3">
+          Contract saved to database, couple marked as booked, and quote marked as converted.
+        </div>
+      )}
+
+      {saveError && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700 text-center mt-3">
+          PDF downloaded but database save failed: {saveError}
+        </div>
+      )}
+
       <p className="text-xs text-muted-foreground text-center mt-3">
-        Generates a 3-page PDF: quote details, pricing &amp; payment schedule, and terms &amp; conditions.
+        Generates a 3-page PDF and saves the contract to the database with all financial data and installments.
       </p>
     </div>
   )
