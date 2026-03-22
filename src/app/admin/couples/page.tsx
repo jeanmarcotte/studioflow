@@ -23,9 +23,10 @@ interface Couple {
   frame_sale_status: string | null
   frames_total: number
   extras_total: number
+  payments_count: number
 }
 
-type SortField = 'couple_name' | 'wedding_date' | 'balance_owing' | 'package_type' | 'reception_venue' | 'contract_price' | 'frames_total' | 'extras_total'
+type SortField = 'couple_name' | 'wedding_date' | 'balance_owing' | 'package_type' | 'reception_venue' | 'contract_price' | 'frames_total' | 'extras_total' | 'payments_count'
 type SortDir = 'asc' | 'desc'
 
 const YEARS = [2027, 2026, 2025]
@@ -66,7 +67,7 @@ export default function CouplesPage() {
 
   useEffect(() => {
     const fetchCouples = async () => {
-      const [couplesRes, framesRes, extrasRes] = await Promise.all([
+      const [couplesRes, framesRes, extrasRes, paymentsRes] = await Promise.all([
         supabase
           .from('couples')
           .select('id, couple_name, wedding_date, wedding_year, package_type, frame_sale_status, balance_owing, status, ceremony_venue, contract_total, contracts(reception_venue, total)')
@@ -77,6 +78,9 @@ export default function CouplesPage() {
         supabase
           .from('client_extras')
           .select('couple_id, total'),
+        supabase
+          .from('payments')
+          .select('couple_id'),
       ])
 
       // Sum frames by couple
@@ -95,6 +99,14 @@ export default function CouplesPage() {
         }
       }
 
+      // Count payments by couple
+      const paymentsCounts: Record<string, number> = {}
+      if (paymentsRes.data) {
+        for (const row of paymentsRes.data) {
+          paymentsCounts[row.couple_id] = (paymentsCounts[row.couple_id] || 0) + 1
+        }
+      }
+
       if (!couplesRes.error && couplesRes.data) {
         setCouples(couplesRes.data.map((row: any) => {
           const contract = Array.isArray(row.contracts) ? row.contracts[0] : row.contracts
@@ -104,6 +116,7 @@ export default function CouplesPage() {
             contract_price: contract?.total != null ? Number(contract.total) : null,
             frames_total: framesSums[row.id] || 0,
             extras_total: extrasSums[row.id] || 0,
+            payments_count: paymentsCounts[row.id] || 0,
           }
         }))
       }
@@ -188,6 +201,9 @@ export default function CouplesPage() {
           break
         case 'extras_total':
           cmp = a.extras_total - b.extras_total
+          break
+        case 'payments_count':
+          cmp = a.payments_count - b.payments_count
           break
       }
       return sortDir === 'asc' ? cmp : -cmp
@@ -408,46 +424,63 @@ export default function CouplesPage() {
       {/* Table */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-[970px] text-sm">
+          <table className="w-full text-sm" style={{ tableLayout: 'fixed', minWidth: 900 }}>
+            <colgroup>
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '9%' }} />
+            </colgroup>
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left p-3 font-medium" style={{ width: 180 }}>
+                <th className="text-left p-3 font-medium">
                   <button onClick={() => handleSort('couple_name')} className="group flex items-center gap-1 hover:text-foreground">
                     Couple <SortIcon field="couple_name" />
                   </button>
                 </th>
-                <th className="text-left p-3 font-medium" style={{ width: 130 }}>
-                  <button onClick={() => handleSort('wedding_date')} className="group flex items-center gap-1 hover:text-foreground">
-                    Wedding Date <SortIcon field="wedding_date" />
+                <th className="text-left p-3 font-medium">
+                  <button onClick={() => handleSort('wedding_date')} className="group flex items-center gap-1 hover:text-foreground whitespace-nowrap">
+                    Date <SortIcon field="wedding_date" />
                   </button>
                 </th>
-                <th className="text-center p-3 font-medium hidden md:table-cell" style={{ width: 70 }}>Status</th>
-                <th className="text-left p-3 font-medium hidden lg:table-cell" style={{ width: 100 }}>
+                <th className="text-center p-3 font-medium">Status</th>
+                <th className="text-left p-3 font-medium">
                   <button onClick={() => handleSort('package_type')} className="group flex items-center gap-1 hover:text-foreground">
                     Package <SortIcon field="package_type" />
                   </button>
                 </th>
-                <th className="text-left p-3 font-medium hidden lg:table-cell" style={{ width: 150 }}>
+                <th className="text-left p-3 font-medium">
                   <button onClick={() => handleSort('reception_venue')} className="group flex items-center gap-1 hover:text-foreground">
                     Venue <SortIcon field="reception_venue" />
                   </button>
                 </th>
-                <th className="text-right p-3 font-medium hidden md:table-cell" style={{ width: 90 }}>
+                <th className="text-right p-3 font-medium">
                   <button onClick={() => handleSort('contract_price')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Contract <SortIcon field="contract_price" />
                   </button>
                 </th>
-                <th className="text-right p-3 font-medium hidden md:table-cell" style={{ width: 80 }}>
+                <th className="text-right p-3 font-medium">
                   <button onClick={() => handleSort('frames_total')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Frames <SortIcon field="frames_total" />
                   </button>
                 </th>
-                <th className="text-right p-3 font-medium hidden md:table-cell" style={{ width: 80 }}>
+                <th className="text-right p-3 font-medium">
                   <button onClick={() => handleSort('extras_total')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Extras <SortIcon field="extras_total" />
                   </button>
                 </th>
-                <th className="text-right p-3 font-medium" style={{ width: 90 }}>
+                <th className="text-center p-3 font-medium">
+                  <button onClick={() => handleSort('payments_count')} className="group flex items-center gap-1 justify-center hover:text-foreground">
+                    Pmts <SortIcon field="payments_count" />
+                  </button>
+                </th>
+                <th className="text-right p-3 font-medium">
                   <button onClick={() => handleSort('balance_owing')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Balance <SortIcon field="balance_owing" />
                   </button>
@@ -457,7 +490,7 @@ export default function CouplesPage() {
             <tbody className="divide-y">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={10} className="p-8 text-center text-muted-foreground">
                     No couples found matching your filters.
                   </td>
                 </tr>
@@ -470,41 +503,41 @@ export default function CouplesPage() {
                       onClick={() => router.push(`/admin/couples/${couple.id}`)}
                       className="hover:bg-accent/50 cursor-pointer transition-colors"
                     >
-                      <td className="p-3">
-                        <div className="font-medium">{couple.couple_name}</div>
-                        <div className="text-xs text-muted-foreground md:hidden">
-                          {couple.wedding_date ? format(parseISO(couple.wedding_date), 'EEE, MMM d, yyyy') : 'TBD'}
-                        </div>
+                      <td className="p-3 truncate" title={couple.couple_name}>
+                        <span className="font-medium">{couple.couple_name}</span>
                       </td>
-                      <td className="p-3 hidden md:table-cell">
+                      <td className="p-3 whitespace-nowrap">
                         {couple.wedding_date
-                          ? format(parseISO(couple.wedding_date), 'EEE, MMM d, yyyy')
-                          : <span className="text-muted-foreground">TBD</span>
+                          ? format(parseISO(couple.wedding_date), 'MMM d, yyyy')
+                          : <span className="text-muted-foreground/50 text-center block">—</span>
                         }
                       </td>
-                      <td className="p-3 hidden md:table-cell text-center">
+                      <td className="p-3 text-center">
                         {statusBadge(couple.status)}
                       </td>
-                      <td className="p-3 hidden lg:table-cell text-muted-foreground">
+                      <td className="p-3 text-muted-foreground truncate">
                         {formatPackage(couple.package_type)}
                       </td>
-                      <td className="p-3 hidden lg:table-cell text-muted-foreground max-w-[150px] truncate" title={couple.reception_venue || undefined}>
-                        {couple.reception_venue || '—'}
+                      <td className="p-3 text-muted-foreground truncate" title={couple.reception_venue || undefined}>
+                        {couple.reception_venue || <span className="text-muted-foreground/50 text-center block">—</span>}
                       </td>
-                      <td className="p-3 hidden md:table-cell text-right text-muted-foreground">
-                        {couple.contract_price ? `$${Math.round(Number(couple.contract_price)).toLocaleString()}` : '—'}
+                      <td className="p-3 text-right text-muted-foreground">
+                        {couple.contract_price ? `$${Math.round(Number(couple.contract_price)).toLocaleString()}` : <span className="text-muted-foreground/50 text-center block">—</span>}
                       </td>
-                      <td className="p-3 hidden md:table-cell text-right text-muted-foreground">
-                        {couple.frames_total > 0 ? `$${Math.round(couple.frames_total).toLocaleString()}` : '—'}
+                      <td className="p-3 text-right text-muted-foreground">
+                        {couple.frames_total > 0 ? `$${Math.round(couple.frames_total).toLocaleString()}` : <span className="text-muted-foreground/50 text-center block">—</span>}
                       </td>
-                      <td className="p-3 hidden md:table-cell text-right text-muted-foreground">
-                        {couple.extras_total > 0 ? `$${Math.round(couple.extras_total).toLocaleString()}` : '—'}
+                      <td className="p-3 text-right text-muted-foreground">
+                        {couple.extras_total > 0 ? `$${Math.round(couple.extras_total).toLocaleString()}` : <span className="text-muted-foreground/50 text-center block">—</span>}
+                      </td>
+                      <td className="p-3 text-center text-muted-foreground">
+                        {couple.payments_count > 0 ? couple.payments_count : <span className="text-muted-foreground/50">—</span>}
                       </td>
                       <td className="p-3 text-right">
                         {bal > 0 ? (
                           <span className="font-medium text-red-600">${Math.round(bal).toLocaleString()}</span>
                         ) : (
-                          <span className="text-muted-foreground">$0</span>
+                          <span className="text-muted-foreground/50">$0</span>
                         )}
                       </td>
                     </tr>
