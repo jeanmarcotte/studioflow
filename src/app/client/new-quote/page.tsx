@@ -396,8 +396,9 @@ export default function NewClientQuotePage() {
 function QuoteBuilderInner() {
   const searchParams = useSearchParams()
   const editCoupleId = searchParams.get('couple_id')
+  const clientQuoteId = searchParams.get('id')
   const [isLoading, setIsLoading] = useState(false)
-  const [loadingQuote, setLoadingQuote] = useState(!!editCoupleId)
+  const [loadingQuote, setLoadingQuote] = useState(!!editCoupleId || !!clientQuoteId)
   const [editingVersion, setEditingVersion] = useState<number | null>(null)
   const [existingLead, setExistingLead] = useState<any>(null)
   const [showOtherLocations, setShowOtherLocations] = useState(false)
@@ -579,6 +580,94 @@ function QuoteBuilderInner() {
     }
     loadQuote()
   }, [editCoupleId, setValue])
+
+  // Restore saved quote when viewing via ?id= (client_quotes table)
+  useEffect(() => {
+    if (!clientQuoteId || editCoupleId) return
+    const loadClientQuote = async () => {
+      setLoadingQuote(true)
+      try {
+        const res = await fetch(`/api/admin/contracts/quote?quote_id=${clientQuoteId}`)
+        if (!res.ok) {
+          console.error('Failed to fetch client quote:', res.status)
+          setLoadingQuote(false)
+          return
+        }
+        const q = await res.json()
+
+        // Map flat client_quotes fields back to form values
+        setValue('brideFirstName', q.bride_first_name || '')
+        setValue('brideLastName', q.bride_last_name || '')
+        setValue('groomFirstName', q.groom_first_name || '')
+        setValue('groomLastName', q.groom_last_name || '')
+        setValue('brideEmail', q.email || '')
+        setValue('bridePhone', q.phone || '')
+        setValue('weddingDate', q.wedding_date || '')
+        setValue('ceremonyVenue', q.ceremony_venue || '')
+        setValue('receptionVenue', q.reception_venue || '')
+        if (q.guest_count) setValue('guestCount', q.guest_count)
+        if (q.bridal_party_count) setValue('bridalPartyCount', q.bridal_party_count)
+        if (q.flower_girl_count) setValue('flowerGirl', q.flower_girl_count)
+        if (q.ring_bearer_count) setValue('ringBearer', q.ring_bearer_count)
+        setValue('firstLook', q.first_look ?? false)
+        if (q.start_time) setValue('coverageStartTime', q.start_time)
+        if (q.end_time) setValue('coverageEndTime', q.end_time)
+        if (q.extra_hours) setValue('extraHours', q.extra_hours)
+        if (q.parent_albums_count) setValue('parentAlbumQty', q.parent_albums_count)
+        if (q.notes) setValue('notes', q.notes)
+        if (q.lead_source) setValue('leadSource', q.lead_source)
+
+        // Reverse-map package name → key
+        if (q.package_name) {
+          const pkgKey = Object.keys(PACKAGES).find(
+            k => PACKAGES[k as keyof typeof PACKAGES].name.toLowerCase() === q.package_name.toLowerCase()
+          ) as QuoteFormData['selectedPackage'] | undefined
+          if (pkgKey) setValue('selectedPackage', pkgKey)
+        }
+
+        // Reverse-map engagement location label → value
+        if (q.engagement_location) {
+          const loc = ENGAGEMENT_LOCATIONS.find(
+            l => l.label.toLowerCase() === q.engagement_location.toLowerCase()
+          )
+          setValue('engagementLocation', loc?.value || q.engagement_location)
+        }
+
+        // Discount
+        if (q.discount_type) {
+          setValue('discountType', q.discount_type)
+          if (q.discount_value) setValue('discountAmount', q.discount_value)
+        }
+
+        // Installments
+        if (Array.isArray(q.installments) && q.installments.length > 0) {
+          setInstallments(q.installments.map((inst: any) => ({
+            label: inst.label || inst.due_description || '',
+            amount: Number(inst.amount) || 0,
+          })))
+        }
+
+        // Parent albums included state
+        if (q.parent_albums_count > 0 && q.parent_albums_price === 0) {
+          setParentAlbumsIncluded('free')
+        } else if (q.parent_albums_count > 0) {
+          setParentAlbumsIncluded('paid')
+        }
+
+        // Prints included state
+        if (q.prints_included === 'free') {
+          setPrintsIncluded('free')
+        } else if (q.prints_included === 'paid') {
+          setPrintsIncluded('paid')
+        }
+      } catch (err) {
+        console.error('Failed to load client quote:', err)
+      } finally {
+        setLoadingQuote(false)
+      }
+    }
+    loadClientQuote()
+  }, [clientQuoteId, editCoupleId, setValue])
 
   // Check for existing BridalFlow lead
   useEffect(() => {
