@@ -41,7 +41,7 @@ const ENG_STATES = [
 ]
 
 const ENG_SORT_ORDER: Record<string, number> = {
-  quoted: 0, shot: 1, declined: 2, no_sale: 3, pending: 4, sold: 5,
+  quoted: 0, shot: 1, no_sale: 2, declined: 3, pending: 4, sold: 5,
 }
 
 function formatPackage(pkg: string | null): string {
