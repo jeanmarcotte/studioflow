@@ -21,9 +21,11 @@ interface Couple {
   ceremony_venue: string | null
   contract_total: number | null
   frame_sale_status: string | null
+  frames_total: number
+  extras_total: number
 }
 
-type SortField = 'couple_name' | 'wedding_date' | 'balance_owing' | 'package_type' | 'reception_venue' | 'contract_price'
+type SortField = 'couple_name' | 'wedding_date' | 'balance_owing' | 'package_type' | 'reception_venue' | 'contract_price' | 'frames_total' | 'extras_total'
 type SortDir = 'asc' | 'desc'
 
 const YEARS = [2027, 2026, 2025]
@@ -64,18 +66,44 @@ export default function CouplesPage() {
 
   useEffect(() => {
     const fetchCouples = async () => {
-      const { data, error } = await supabase
-        .from('couples')
-        .select('id, couple_name, wedding_date, wedding_year, package_type, frame_sale_status, balance_owing, status, ceremony_venue, contract_total, contracts(reception_venue, total)')
-        .order('wedding_date', { ascending: true })
+      const [couplesRes, framesRes, extrasRes] = await Promise.all([
+        supabase
+          .from('couples')
+          .select('id, couple_name, wedding_date, wedding_year, package_type, frame_sale_status, balance_owing, status, ceremony_venue, contract_total, contracts(reception_venue, total)')
+          .order('wedding_date', { ascending: true }),
+        supabase
+          .from('extras_orders')
+          .select('couple_id, total'),
+        supabase
+          .from('client_extras')
+          .select('couple_id, total'),
+      ])
 
-      if (!error && data) {
-        setCouples(data.map((row: any) => {
+      // Sum frames by couple
+      const framesSums: Record<string, number> = {}
+      if (framesRes.data) {
+        for (const row of framesRes.data) {
+          framesSums[row.couple_id] = (framesSums[row.couple_id] || 0) + (Number(row.total) || 0)
+        }
+      }
+
+      // Sum extras by couple
+      const extrasSums: Record<string, number> = {}
+      if (extrasRes.data) {
+        for (const row of extrasRes.data) {
+          extrasSums[row.couple_id] = (extrasSums[row.couple_id] || 0) + (Number(row.total) || 0)
+        }
+      }
+
+      if (!couplesRes.error && couplesRes.data) {
+        setCouples(couplesRes.data.map((row: any) => {
           const contract = Array.isArray(row.contracts) ? row.contracts[0] : row.contracts
           return {
             ...row,
             reception_venue: contract?.reception_venue || null,
             contract_price: contract?.total != null ? Number(contract.total) : null,
+            frames_total: framesSums[row.id] || 0,
+            extras_total: extrasSums[row.id] || 0,
           }
         }))
       }
@@ -154,6 +182,12 @@ export default function CouplesPage() {
           break
         case 'contract_price':
           cmp = (Number(a.contract_price) || 0) - (Number(b.contract_price) || 0)
+          break
+        case 'frames_total':
+          cmp = a.frames_total - b.frames_total
+          break
+        case 'extras_total':
+          cmp = a.extras_total - b.extras_total
           break
       }
       return sortDir === 'asc' ? cmp : -cmp
@@ -403,6 +437,16 @@ export default function CouplesPage() {
                     Package Price <SortIcon field="contract_price" />
                   </button>
                 </th>
+                <th className="text-right p-3 font-medium hidden md:table-cell">
+                  <button onClick={() => handleSort('frames_total')} className="group flex items-center gap-1 justify-end hover:text-foreground">
+                    Frames <SortIcon field="frames_total" />
+                  </button>
+                </th>
+                <th className="text-right p-3 font-medium hidden md:table-cell">
+                  <button onClick={() => handleSort('extras_total')} className="group flex items-center gap-1 justify-end hover:text-foreground">
+                    Extras <SortIcon field="extras_total" />
+                  </button>
+                </th>
                 <th className="text-right p-3 font-medium">
                   <button onClick={() => handleSort('balance_owing')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Balance <SortIcon field="balance_owing" />
@@ -413,7 +457,7 @@ export default function CouplesPage() {
             <tbody className="divide-y">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     No couples found matching your filters.
                   </td>
                 </tr>
@@ -448,11 +492,17 @@ export default function CouplesPage() {
                         {couple.reception_venue || '—'}
                       </td>
                       <td className="p-3 hidden md:table-cell text-right text-muted-foreground">
-                        {couple.contract_price ? `$${Number(couple.contract_price).toLocaleString()}` : '—'}
+                        {couple.contract_price ? `$${Math.round(Number(couple.contract_price)).toLocaleString()}` : '—'}
+                      </td>
+                      <td className="p-3 hidden md:table-cell text-right text-muted-foreground">
+                        {couple.frames_total > 0 ? `$${Math.round(couple.frames_total).toLocaleString()}` : '—'}
+                      </td>
+                      <td className="p-3 hidden md:table-cell text-right text-muted-foreground">
+                        {couple.extras_total > 0 ? `$${Math.round(couple.extras_total).toLocaleString()}` : '—'}
                       </td>
                       <td className="p-3 text-right">
                         {bal > 0 ? (
-                          <span className="font-medium text-red-600">${bal.toLocaleString()}</span>
+                          <span className="font-medium text-red-600">${Math.round(bal).toLocaleString()}</span>
                         ) : (
                           <span className="text-muted-foreground">$0</span>
                         )}
