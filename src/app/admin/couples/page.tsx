@@ -424,7 +424,7 @@ export default function CouplesPage() {
       {/* Table */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm" style={{ tableLayout: 'fixed', minWidth: 900 }}>
+          <table className="w-full text-sm" style={{ tableLayout: 'fixed', minWidth: 1100 }}>
             <colgroup>
               <col style={{ width: '15%' }} />
               <col style={{ width: '12%' }} />
@@ -533,11 +533,11 @@ export default function CouplesPage() {
                       <td className="p-3 text-center text-muted-foreground">
                         {couple.payments_count > 0 ? couple.payments_count : <span className="text-muted-foreground/50">—</span>}
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-3 text-right font-semibold">
                         {bal > 0 ? (
-                          <span className="font-medium text-red-600">${Math.round(bal).toLocaleString()}</span>
+                          <span className="text-red-600">${Math.round(bal).toLocaleString()}</span>
                         ) : (
-                          <span className="text-muted-foreground/50">$0</span>
+                          <span className="text-muted-foreground/50 font-normal">$0</span>
                         )}
                       </td>
                     </tr>
