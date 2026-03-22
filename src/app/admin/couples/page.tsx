@@ -25,7 +25,7 @@ interface Couple {
 type SortField = 'couple_name' | 'wedding_date' | 'balance_owing' | 'package_type' | 'photographer'
 type SortDir = 'asc' | 'desc'
 
-const YEARS = [2026, 2027, 2025, 2024]
+const YEARS = [2027, 2026, 2025]
 const STATUSES = [
   { value: 'all', label: 'All Statuses' },
   { value: 'booked', label: 'Booked' },
@@ -67,6 +67,7 @@ export default function CouplesPage() {
   const [search, setSearch] = useState('')
   const [yearFilter, setYearFilter] = useState<number | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [packageFilter, setPackageFilter] = useState<string>('all')
   const [sortField, setSortField] = useState<SortField>('wedding_date')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [refreshKey, setRefreshKey] = useState(0)
@@ -119,6 +120,11 @@ export default function CouplesPage() {
       result = result.filter(c => c.status === statusFilter)
     }
 
+    // Package filter
+    if (packageFilter !== 'all') {
+      result = result.filter(c => c.package_type === packageFilter)
+    }
+
     // Sort
     const yearPriority = (date: string | null) => {
       if (!date) return 99
@@ -155,7 +161,7 @@ export default function CouplesPage() {
     })
 
     return result
-  }, [couples, search, yearFilter, statusFilter, sortField, sortDir])
+  }, [couples, search, yearFilter, statusFilter, packageFilter, sortField, sortDir])
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30" />
@@ -250,8 +256,12 @@ export default function CouplesPage() {
           </div>
           <div className="space-y-1.5">
             {([2025, 2026, 2027] as const).map(yr => (
-              <div key={yr} className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">{yr}</span>
+              <div
+                key={yr}
+                onClick={() => setYearFilter(yearFilter === yr ? 'all' : yr)}
+                className={`flex items-center justify-between rounded px-2 py-0.5 -mx-2 cursor-pointer transition-colors ${yearFilter === yr ? 'bg-blue-100 text-blue-800' : 'hover:bg-muted'}`}
+              >
+                <span className="text-sm">{yr}</span>
                 <span className="text-sm font-semibold">{stats.byYear[yr]}</span>
               </div>
             ))}
@@ -265,12 +275,18 @@ export default function CouplesPage() {
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Package Type</h3>
           </div>
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Photo Only</span>
+            <div
+              onClick={() => setPackageFilter(packageFilter === 'photo_only' ? 'all' : 'photo_only')}
+              className={`flex items-center justify-between rounded px-2 py-0.5 -mx-2 cursor-pointer transition-colors ${packageFilter === 'photo_only' ? 'bg-emerald-100 text-emerald-800' : 'hover:bg-muted'}`}
+            >
+              <span className="text-sm">Photo Only</span>
               <span className="text-sm font-semibold">{stats.byPackage.photo_only}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Photo + Video</span>
+            <div
+              onClick={() => setPackageFilter(packageFilter === 'photo_video' ? 'all' : 'photo_video')}
+              className={`flex items-center justify-between rounded px-2 py-0.5 -mx-2 cursor-pointer transition-colors ${packageFilter === 'photo_video' ? 'bg-emerald-100 text-emerald-800' : 'hover:bg-muted'}`}
+            >
+              <span className="text-sm">Photo + Video</span>
               <span className="text-sm font-semibold">{stats.byPackage.photo_video}</span>
             </div>
           </div>
@@ -335,6 +351,17 @@ export default function CouplesPage() {
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
         </select>
+
+        {/* Package filter */}
+        <select
+          value={packageFilter}
+          onChange={(e) => setPackageFilter(e.target.value)}
+          className="!w-auto"
+        >
+          <option value="all">All Packages</option>
+          <option value="photo_only">Photo Only</option>
+          <option value="photo_video">Photo + Video</option>
+        </select>
       </div>
 
       {/* Results count */}
@@ -342,6 +369,7 @@ export default function CouplesPage() {
         Showing {filtered.length} of {couples.length} couples
         {yearFilter !== 'all' && ` — ${yearFilter}`}
         {statusFilter !== 'all' && ` — ${statusFilter}`}
+        {packageFilter !== 'all' && ` — ${formatPackage(packageFilter)}`}
       </div>
 
       {/* Table */}
