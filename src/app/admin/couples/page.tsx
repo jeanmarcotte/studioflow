@@ -14,15 +14,16 @@ interface Couple {
   wedding_date: string | null
   wedding_year: number | null
   package_type: string | null
-  photographer: string | null
-  frame_sale_status: string | null
+  reception_venue: string | null
+  contract_price: number | null
   balance_owing: number | null
   status: string | null
   ceremony_venue: string | null
   contract_total: number | null
+  frame_sale_status: string | null
 }
 
-type SortField = 'couple_name' | 'wedding_date' | 'balance_owing' | 'package_type' | 'photographer'
+type SortField = 'couple_name' | 'wedding_date' | 'balance_owing' | 'package_type' | 'reception_venue' | 'contract_price'
 type SortDir = 'asc' | 'desc'
 
 const YEARS = [2027, 2026, 2025]
@@ -37,18 +38,6 @@ function formatPackage(pkg: string | null): string {
   if (pkg === 'photo_only') return 'Photo Only'
   if (pkg === 'photo_video') return 'Photo + Video'
   return pkg
-}
-
-function frameBadge(status: string | null) {
-  if (!status) return <span className="text-muted-foreground text-xs">—</span>
-  const s = status.toUpperCase()
-  if (s === 'BOUGHT')
-    return <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-medium">Bought</span>
-  if (s === 'NO FRAME SALE')
-    return <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-600 px-2 py-0.5 text-xs font-medium">No Sale</span>
-  if (s.includes('NEED TO SHOOT'))
-    return <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-medium">Needs Eng.</span>
-  return <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-600 px-2 py-0.5 text-xs font-medium">{status}</span>
 }
 
 function statusBadge(status: string | null) {
@@ -77,11 +66,18 @@ export default function CouplesPage() {
     const fetchCouples = async () => {
       const { data, error } = await supabase
         .from('couples')
-        .select('id, couple_name, wedding_date, wedding_year, package_type, photographer, frame_sale_status, balance_owing, status, ceremony_venue, contract_total')
+        .select('id, couple_name, wedding_date, wedding_year, package_type, frame_sale_status, balance_owing, status, ceremony_venue, contract_total, contracts(reception_venue, total)')
         .order('wedding_date', { ascending: true })
 
       if (!error && data) {
-        setCouples(data)
+        setCouples(data.map((row: any) => {
+          const contract = Array.isArray(row.contracts) ? row.contracts[0] : row.contracts
+          return {
+            ...row,
+            reception_venue: contract?.reception_venue || null,
+            contract_price: contract?.total != null ? Number(contract.total) : null,
+          }
+        }))
       }
       setLoading(false)
     }
@@ -106,7 +102,7 @@ export default function CouplesPage() {
       result = result.filter(c =>
         c.couple_name.toLowerCase().includes(q) ||
         c.ceremony_venue?.toLowerCase().includes(q) ||
-        c.photographer?.toLowerCase().includes(q)
+        c.reception_venue?.toLowerCase().includes(q)
       )
     }
 
@@ -153,8 +149,11 @@ export default function CouplesPage() {
         case 'package_type':
           cmp = (a.package_type || '').localeCompare(b.package_type || '')
           break
-        case 'photographer':
-          cmp = (a.photographer || '').localeCompare(b.photographer || '')
+        case 'reception_venue':
+          cmp = (a.reception_venue || '').localeCompare(b.reception_venue || '')
+          break
+        case 'contract_price':
+          cmp = (Number(a.contract_price) || 0) - (Number(b.contract_price) || 0)
           break
       }
       return sortDir === 'asc' ? cmp : -cmp
@@ -322,7 +321,7 @@ export default function CouplesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search by name, venue, photographer..."
+            placeholder="Search by name or venue..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 !w-full"
@@ -395,11 +394,15 @@ export default function CouplesPage() {
                   </button>
                 </th>
                 <th className="text-left p-3 font-medium hidden lg:table-cell">
-                  <button onClick={() => handleSort('photographer')} className="group flex items-center gap-1 hover:text-foreground">
-                    Photographer <SortIcon field="photographer" />
+                  <button onClick={() => handleSort('reception_venue')} className="group flex items-center gap-1 hover:text-foreground">
+                    Venue <SortIcon field="reception_venue" />
                   </button>
                 </th>
-                <th className="text-left p-3 font-medium hidden md:table-cell">Frames</th>
+                <th className="text-right p-3 font-medium hidden md:table-cell">
+                  <button onClick={() => handleSort('contract_price')} className="group flex items-center gap-1 justify-end hover:text-foreground">
+                    Package Price <SortIcon field="contract_price" />
+                  </button>
+                </th>
                 <th className="text-right p-3 font-medium">
                   <button onClick={() => handleSort('balance_owing')} className="group flex items-center gap-1 justify-end hover:text-foreground">
                     Balance <SortIcon field="balance_owing" />
@@ -442,10 +445,10 @@ export default function CouplesPage() {
                         {formatPackage(couple.package_type)}
                       </td>
                       <td className="p-3 hidden lg:table-cell text-muted-foreground">
-                        {couple.photographer || '—'}
+                        {couple.reception_venue || '—'}
                       </td>
-                      <td className="p-3 hidden md:table-cell">
-                        {frameBadge(couple.frame_sale_status)}
+                      <td className="p-3 hidden md:table-cell text-right text-muted-foreground">
+                        {couple.contract_price ? `$${Number(couple.contract_price).toLocaleString()}` : '—'}
                       </td>
                       <td className="p-3 text-right">
                         {bal > 0 ? (
