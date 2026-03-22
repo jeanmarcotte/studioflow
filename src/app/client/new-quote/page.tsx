@@ -93,7 +93,7 @@ const quoteSchema = z.object({
   receptionEnd: z.string().optional(),
   
   // Package
-  selectedPackage: z.enum(['exclusively_photo', 'package_c', 'package_b', 'package_a']),
+  selectedPackage: z.enum(['bella', 'eleganza', 'silver', 'gold', 'platinum', 'diamond']),
   extraPhotographer: z.boolean(),
   extraHours: z.number().min(0).max(6),
   
@@ -126,9 +126,9 @@ type QuoteFormData = z.infer<typeof quoteSchema>
 // PRICING CONFIGURATION - SIGS Price List Oct 2025
 // ============================================================
 const PACKAGES = {
-  exclusively_photo: {
-    name: 'Exclusively Photography',
-    price: 5350,
+  bella: {
+    name: 'Bella',
+    price: 5300,
     hours: 8,
     type: 'photo_only',
     photographers: 2,
@@ -137,16 +137,43 @@ const PACKAGES = {
       'Up to 8 hours of coverage',
       '2 Professional Photographers',
       'Drone Photography',
+      'Drone Video Footage',
       'Engagement Photo session (~50 digital photos w/ watermark)',
       'Professional retouching and colour correction',
       'Photo Sneak Peeks',
       'Engagement & Wedding personalized online photo gallery',
       'Online proofing for your final approval',
       'Digital Download of ALL edited wedding photos NO WATERMARK',
+      '1 × 16x20 Wedding Portrait',
     ]
   },
-  package_c: {
-    name: 'Photography & Video Package C',
+  eleganza: {
+    name: 'Eleganza',
+    price: 8800,
+    hours: 12,
+    type: 'photo_only',
+    photographers: 3,
+    videographers: 0,
+    features: [
+      'Up to 12 hours of coverage',
+      '3 Professional Photographers',
+      'Drone Photography',
+      'Engagement Photo session (~50 digital photos w/ watermark)',
+      'Engagement Shoot Slideshow Presentation',
+      'Professional retouching and colour correction',
+      'Photo Sneak Peeks',
+      'Engagement & Wedding personalized online photo gallery',
+      'Online proofing for your final approval',
+      'Digital Download of ALL edited wedding photos NO WATERMARK',
+      '1 × 24x30 Wedding Portrait',
+      '1 × 16x20 Wedding Portrait',
+      '1 × 28×11 Premium Layflat Album — Acrylic/Leather cover, 15 pages',
+      '2 × 10x8 Parent Albums — Linen cover, magazine paper',
+      '*Additional photographers available upon request',
+    ]
+  },
+  silver: {
+    name: 'Silver',
     price: 6400,
     hours: 8,
     type: 'photo_video',
@@ -170,11 +197,13 @@ const PACKAGES = {
       'Multi-camera shooting at the ceremony and venue',
       'Digital Audio Recorder',
       'USB with Wedding Photos & Video',
+      '2 × 11x14 Parent Portraits',
+      '1 × 16x20 Wedding Portrait',
     ]
   },
-  package_b: {
-    name: 'Photography & Video Package B',
-    price: 7000,
+  gold: {
+    name: 'Gold',
+    price: 7400,
     hours: 10,
     type: 'photo_video',
     photographers: 2,
@@ -198,11 +227,13 @@ const PACKAGES = {
       'Multi-camera shooting at the ceremony and venue',
       'Digital Audio Recorder',
       'USB with Wedding Photos & Video',
+      '2 × 11x14 Parent Portraits',
+      '1 × 24x30 Wedding Portrait',
     ]
   },
-  package_a: {
-    name: 'Photography & Video Package A',
-    price: 8000,
+  platinum: {
+    name: 'Platinum',
+    price: 8300,
     hours: 12,
     type: 'photo_video',
     photographers: 2,
@@ -226,7 +257,41 @@ const PACKAGES = {
       'Multi-camera shooting at the ceremony and venue',
       'Digital Audio Recorder',
       'USB with Wedding Photos & Video',
-      '*additional photographers/videographers available upon request',
+      '2 × 16x20 Parent Portraits',
+      '1 × 24x30 Wedding Portrait',
+      '*Additional photographers/videographers available upon request',
+    ]
+  },
+  diamond: {
+    name: 'Diamond',
+    price: 9500,
+    hours: 12,
+    type: 'photo_video',
+    photographers: 2,
+    videographers: 1,
+    features: [
+      'Up to 12 hours of coverage',
+      '2 Professional Photographers',
+      '1 Professional Videographer',
+      'Drone Photography & Video Footage',
+      'Engagement Photo session (~50 digital photos w/ watermark)',
+      'Engagement Shoot Slideshow Presentation',
+      'Professional retouching and colour correction',
+      'Photo Sneak Peeks',
+      'Engagement & Wedding personalized online photo gallery',
+      'Online proofing for your final approval',
+      'Digital Download of ALL edited wedding photos NO WATERMARK',
+      'Digital Download edited 2 hr story video',
+      '8-12 min Highlight Reel',
+      'Fun clips for Instagram',
+      'Proof Video (preview video before final copy)',
+      'Multi-camera shooting at the ceremony and venue',
+      'Digital Audio Recorder',
+      'USB with Wedding Photos & Video',
+      '1 × 24x30 Wedding Portrait',
+      '2 × 16x20 Parent Portraits',
+      '1 × 28×11 Premium Layflat Album — Acrylic/Leather cover, 15 pages',
+      '*Additional photographers/videographers available upon request',
     ]
   },
 }
@@ -425,7 +490,7 @@ function QuoteBuilderInner() {
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<QuoteFormData>({
     resolver: zodResolver(quoteSchema),
     defaultValues: {
-      selectedPackage: 'exclusively_photo',
+      selectedPackage: 'bella',
       extraPhotographer: false,
       extraHours: 0,
       engagementLocation: 'mill_pond',
@@ -1541,70 +1606,52 @@ function QuoteBuilderInner() {
               Package Selection
             </h2>
             
+            {/* Photo Only */}
+            <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Photo Only</p>
+            <div className="grid grid-cols-2 gap-4 mb-5">
+              {(['bella', 'eleganza'] as const).map(key => {
+                const pkg = PACKAGES[key]
+                const sel = watchedValues.selectedPackage === key
+                const teamLabel = `${pkg.photographers}P`
+                return (
+                  <label key={key} className={`relative flex flex-col p-4 border-2 rounded cursor-pointer transition-all ${sel ? 'border-stone-800 bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                    <input type="radio" {...register('selectedPackage')} value={key} className="sr-only" />
+                    <div className="flex items-center gap-3 mb-2">
+                      <Camera className={`h-6 w-6 ${sel ? 'text-stone-800' : 'text-stone-400'}`} />
+                      <div>
+                        <div className="font-semibold text-stone-800">{pkg.name}</div>
+                        <div className="text-xs text-stone-500">Photo Only · {pkg.hours} hrs · {teamLabel}</div>
+                      </div>
+                    </div>
+                    <div className="text-2xl font-bold text-stone-800 mt-auto">${pkg.price.toLocaleString()}</div>
+                    {sel && <Check className="absolute top-3 right-3 h-5 w-5 text-stone-800" />}
+                  </label>
+                )
+              })}
+            </div>
+
+            {/* Photo + Video */}
+            <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Photo + Video</p>
             <div className="grid grid-cols-2 gap-4">
-              {/* Exclusively Photography */}
-              <label className={`relative flex flex-col p-4 border-2 rounded cursor-pointer transition-all ${
-                watchedValues.selectedPackage === 'exclusively_photo' ? 'border-stone-800 bg-stone-50' : 'border-stone-200 hover:border-stone-300'
-              }`}>
-                <input type="radio" {...register('selectedPackage')} value="exclusively_photo" className="sr-only" />
-                <div className="flex items-center gap-3 mb-2">
-                  <Camera className={`h-6 w-6 ${watchedValues.selectedPackage === 'exclusively_photo' ? 'text-stone-800' : 'text-stone-400'}`} />
-                  <div>
-                    <div className="font-semibold text-stone-800">Exclusively Photography</div>
-                    <div className="text-xs text-stone-500">PHOTO ONLY • 8 hours • 2 Photographers</div>
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-stone-800 mt-auto">$5,350</div>
-                {watchedValues.selectedPackage === 'exclusively_photo' && <Check className="absolute top-3 right-3 h-5 w-5 text-stone-800" />}
-              </label>
-              
-              {/* Package C */}
-              <label className={`relative flex flex-col p-4 border-2 rounded cursor-pointer transition-all ${
-                watchedValues.selectedPackage === 'package_c' ? 'border-stone-800 bg-stone-50' : 'border-stone-200 hover:border-stone-300'
-              }`}>
-                <input type="radio" {...register('selectedPackage')} value="package_c" className="sr-only" />
-                <div className="flex items-center gap-3 mb-2">
-                  <Video className={`h-6 w-6 ${watchedValues.selectedPackage === 'package_c' ? 'text-stone-800' : 'text-stone-400'}`} />
-                  <div>
-                    <div className="font-semibold text-stone-800">Package C</div>
-                    <div className="text-xs text-stone-500">Photo + Video • 8 hours • 1+1</div>
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-stone-800 mt-auto">$6,400</div>
-                {watchedValues.selectedPackage === 'package_c' && <Check className="absolute top-3 right-3 h-5 w-5 text-stone-800" />}
-              </label>
-              
-              {/* Package B */}
-              <label className={`relative flex flex-col p-4 border-2 rounded cursor-pointer transition-all ${
-                watchedValues.selectedPackage === 'package_b' ? 'border-stone-800 bg-stone-50' : 'border-stone-200 hover:border-stone-300'
-              }`}>
-                <input type="radio" {...register('selectedPackage')} value="package_b" className="sr-only" />
-                <div className="flex items-center gap-3 mb-2">
-                  <Video className={`h-6 w-6 ${watchedValues.selectedPackage === 'package_b' ? 'text-stone-800' : 'text-stone-400'}`} />
-                  <div>
-                    <div className="font-semibold text-stone-800">Package B</div>
-                    <div className="text-xs text-stone-500">Photo + Video • 10 hours • 2+1</div>
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-stone-800 mt-auto">$7,000</div>
-                {watchedValues.selectedPackage === 'package_b' && <Check className="absolute top-3 right-3 h-5 w-5 text-stone-800" />}
-              </label>
-              
-              {/* Package A */}
-              <label className={`relative flex flex-col p-4 border-2 rounded cursor-pointer transition-all ${
-                watchedValues.selectedPackage === 'package_a' ? 'border-stone-800 bg-stone-50' : 'border-stone-200 hover:border-stone-300'
-              }`}>
-                <input type="radio" {...register('selectedPackage')} value="package_a" className="sr-only" />
-                <div className="flex items-center gap-3 mb-2">
-                  <Video className={`h-6 w-6 ${watchedValues.selectedPackage === 'package_a' ? 'text-stone-800' : 'text-stone-400'}`} />
-                  <div>
-                    <div className="font-semibold text-stone-800">Package A</div>
-                    <div className="text-xs text-stone-500">Photo + Video • 12 hours • 2+1</div>
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-stone-800 mt-auto">$8,000</div>
-                {watchedValues.selectedPackage === 'package_a' && <Check className="absolute top-3 right-3 h-5 w-5 text-stone-800" />}
-              </label>
+              {(['silver', 'gold', 'platinum', 'diamond'] as const).map(key => {
+                const pkg = PACKAGES[key]
+                const sel = watchedValues.selectedPackage === key
+                const teamLabel = `${pkg.photographers}P+${pkg.videographers}V`
+                return (
+                  <label key={key} className={`relative flex flex-col p-4 border-2 rounded cursor-pointer transition-all ${sel ? 'border-stone-800 bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                    <input type="radio" {...register('selectedPackage')} value={key} className="sr-only" />
+                    <div className="flex items-center gap-3 mb-2">
+                      <Video className={`h-6 w-6 ${sel ? 'text-stone-800' : 'text-stone-400'}`} />
+                      <div>
+                        <div className="font-semibold text-stone-800">{pkg.name}</div>
+                        <div className="text-xs text-stone-500">Photo + Video · {pkg.hours} hrs · {teamLabel}</div>
+                      </div>
+                    </div>
+                    <div className="text-2xl font-bold text-stone-800 mt-auto">${pkg.price.toLocaleString()}</div>
+                    {sel && <Check className="absolute top-3 right-3 h-5 w-5 text-stone-800" />}
+                  </label>
+                )
+              })}
             </div>
             
             {/* Package Details */}
@@ -1860,7 +1907,7 @@ function QuoteBuilderInner() {
           </div>
 
           {/* Work Included - Video */}
-          {watchedValues.selectedPackage !== 'exclusively_photo' && (
+          {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.type === 'photo_video' && (
             <div className="bg-white rounded border border-stone-200 p-6">
               <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide mb-4 flex items-center gap-2">
                 <Video className="h-4 w-4 text-indigo-500" />
@@ -2318,7 +2365,8 @@ function QuoteBuilderInner() {
                   .filter((t): t is NonNullable<typeof t> => t !== null)
 
                 // Determine service_needs from package
-                const serviceNeeds = watchedValues.selectedPackage === 'exclusively_photo' ? 'photo_only' : 'photo_video'
+                const selectedPkgData = PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]
+                const serviceNeeds = selectedPkgData?.type === 'photo_only' ? 'photo_only' : 'photo_video'
 
                 // Save quote to database
                 try {
