@@ -440,48 +440,48 @@ export default function CouplesPage() {
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="p-3 font-medium" style={{ textAlign: 'left' }}>
-                  <button onClick={() => handleSort('couple_name')} className="group flex items-center gap-1 hover:text-foreground">
+                  <button onClick={() => handleSort('couple_name')} className="w-full group flex items-center gap-1 hover:text-foreground">
                     Couple <SortIcon field="couple_name" />
                   </button>
                 </th>
                 <th className="p-3 font-medium" style={{ textAlign: 'left' }}>
-                  <button onClick={() => handleSort('wedding_date')} className="group flex items-center gap-1 hover:text-foreground" style={{ whiteSpace: 'nowrap' }}>
+                  <button onClick={() => handleSort('wedding_date')} className="w-full group flex items-center gap-1 hover:text-foreground" style={{ whiteSpace: 'nowrap' }}>
                     Date <SortIcon field="wedding_date" />
                   </button>
                 </th>
                 <th className="p-3 font-medium" style={{ textAlign: 'center' }}>Status</th>
                 <th className="p-3 font-medium" style={{ textAlign: 'left' }}>
-                  <button onClick={() => handleSort('package_type')} className="group flex items-center gap-1 hover:text-foreground">
+                  <button onClick={() => handleSort('package_type')} className="w-full group flex items-center gap-1 hover:text-foreground">
                     Package <SortIcon field="package_type" />
                   </button>
                 </th>
                 <th className="p-3 font-medium" style={{ textAlign: 'left' }}>
-                  <button onClick={() => handleSort('reception_venue')} className="group flex items-center gap-1 hover:text-foreground">
+                  <button onClick={() => handleSort('reception_venue')} className="w-full group flex items-center gap-1 hover:text-foreground">
                     Venue <SortIcon field="reception_venue" />
                   </button>
                 </th>
                 <th className="p-3 font-medium" style={{ textAlign: 'right' }}>
-                  <button onClick={() => handleSort('contract_price')} className="group flex items-center gap-1 justify-end hover:text-foreground">
+                  <button onClick={() => handleSort('contract_price')} className="w-full group flex items-center gap-1 justify-end hover:text-foreground">
                     Contract <SortIcon field="contract_price" />
                   </button>
                 </th>
                 <th className="p-3 font-medium" style={{ textAlign: 'right' }}>
-                  <button onClick={() => handleSort('frames_total')} className="group flex items-center gap-1 justify-end hover:text-foreground">
+                  <button onClick={() => handleSort('frames_total')} className="w-full group flex items-center gap-1 justify-end hover:text-foreground">
                     Frames <SortIcon field="frames_total" />
                   </button>
                 </th>
                 <th className="p-3 font-medium" style={{ textAlign: 'right' }}>
-                  <button onClick={() => handleSort('extras_total')} className="group flex items-center gap-1 justify-end hover:text-foreground">
+                  <button onClick={() => handleSort('extras_total')} className="w-full group flex items-center gap-1 justify-end hover:text-foreground">
                     Extras <SortIcon field="extras_total" />
                   </button>
                 </th>
                 <th className="p-3 font-medium" style={{ textAlign: 'center' }}>
-                  <button onClick={() => handleSort('payments_count')} className="group flex items-center gap-1 justify-center hover:text-foreground">
+                  <button onClick={() => handleSort('payments_count')} className="w-full group flex items-center gap-1 justify-center hover:text-foreground">
                     Pmts <SortIcon field="payments_count" />
                   </button>
                 </th>
                 <th className="p-3 font-medium" style={{ textAlign: 'right' }}>
-                  <button onClick={() => handleSort('balance_owing')} className="group flex items-center gap-1 justify-end hover:text-foreground">
+                  <button onClick={() => handleSort('balance_owing')} className="w-full group flex items-center gap-1 justify-end hover:text-foreground">
                     Balance <SortIcon field="balance_owing" />
                   </button>
                 </th>
