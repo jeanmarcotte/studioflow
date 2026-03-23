@@ -206,11 +206,6 @@ export default function CoupleDetailPage() {
         extrasOrders={extrasOrders}
       />
 
-      <ClientJourney
-        milestones={milestones}
-        weddingDate={couple.wedding_date}
-      />
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <TeamSection
           assignment={assignment}
@@ -223,6 +218,11 @@ export default function CoupleDetailPage() {
           hasSocialMediaRestriction={hasSocialMediaRestriction}
         />
       </div>
+
+      <ClientJourney
+        milestones={milestones}
+        weddingDate={couple.wedding_date}
+      />
 
       <FormsBox
         dayFormApproved={milestones?.m15_day_form_approved || false}

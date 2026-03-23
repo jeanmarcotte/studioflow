@@ -48,27 +48,21 @@ const MILESTONE_CONFIG = [
 ];
 
 export function ClientJourney({ milestones, weddingDate }: ClientJourneyProps) {
-  if (!milestones) {
-    return (
-      <div className="bg-white rounded-xl border border-slate-200 p-5 mb-4">
-        <p className="text-slate-500 text-sm">No milestone data available</p>
-      </div>
-    );
-  }
+  const ms = milestones || {};
 
   const today = new Date();
   const wedding = weddingDate ? new Date(weddingDate) : null;
   const isPreWedding = wedding ? wedding > today : false;
 
   // Calculate stats
-  const completed = MILESTONE_CONFIG.filter(m => milestones[m.key] === true).length;
+  const completed = MILESTONE_CONFIG.filter(m => ms[m.key] === true).length;
   const total = MILESTONE_CONFIG.length;
   const pending = total - completed;
   const percentage = Math.round((completed / total) * 100);
 
   // Count urgent items (pre-wedding milestones not done when wedding is within 14 days)
   const urgentCount = MILESTONE_CONFIG.filter(m =>
-    m.urgent && !milestones[m.key] && isPreWedding && wedding && (wedding.getTime() - today.getTime()) < 14 * 24 * 60 * 60 * 1000
+    m.urgent && !ms[m.key] && isPreWedding && wedding && (wedding.getTime() - today.getTime()) < 14 * 24 * 60 * 60 * 1000
   ).length;
 
   // Group milestones by section
@@ -108,7 +102,7 @@ export function ClientJourney({ milestones, weddingDate }: ClientJourneyProps) {
             </h4>
             <div className="grid grid-cols-8 gap-2">
               {sectionMilestones.map(milestone => {
-                const isDone = milestones[milestone.key] === true;
+                const isDone = ms[milestone.key] === true;
                 const isUrgent = milestone.urgent && !isDone && isPreWedding && wedding && (wedding.getTime() - today.getTime()) < 14 * 24 * 60 * 60 * 1000;
                 const isFinalComplete = milestone.isComplete && isDone;
 
