@@ -65,7 +65,7 @@ export function TeamSection({ assignment, contract }: TeamSectionProps) {
 
       {/* ── Contract spec ─────────────────────────────────── */}
       <div style={{
-        fontSize: '0.75rem', color: T.textSecondary, borderTop: `1px solid ${T.border}`,
+        fontSize: '0.8125rem', color: T.textSecondary, borderTop: `1px solid ${T.border}`,
         paddingTop: '0.75rem',
       }}>
         Contract specifies {nP} photographer{nP !== 1 ? 's' : ''}

@@ -66,7 +66,7 @@ export const T = {
 /* ── Shared style fragments ─────────────────────────────── */
 
 export const sectionLabel: React.CSSProperties = {
-  fontSize: '0.6875rem',
+  fontSize: '1rem',
   fontWeight: 600,
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
@@ -74,7 +74,7 @@ export const sectionLabel: React.CSSProperties = {
 };
 
 export const fieldLabel: React.CSSProperties = {
-  fontSize: '0.6875rem',
+  fontSize: '0.75rem',
   fontWeight: 500,
   letterSpacing: '0.03em',
   textTransform: 'uppercase',
@@ -94,7 +94,7 @@ export const pillBase: React.CSSProperties = {
   alignItems: 'center',
   padding: '0.1875rem 0.625rem',
   borderRadius: '9999px',
-  fontSize: '0.6875rem',
+  fontSize: '0.75rem',
   fontWeight: 500,
   letterSpacing: '0.02em',
 };

@@ -9,17 +9,17 @@ const display = DM_Serif_Display({ weight: '400', subsets: ['latin'], display: '
 /* ── sub-components ─────────────────────────────────────── */
 
 function SectionLabel({ children }: { children: string }) {
-  return <div style={{ ...sectionLabel, marginBottom: '0.75rem' }}>{children}</div>;
+  return <div style={{ ...sectionLabel, fontSize: '0.75rem', marginBottom: '0.75rem' }}>{children}</div>;
 }
 
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
     <div style={{ marginBottom: '0.5rem' }}>
-      <div style={fieldLabel}>{label}</div>
+      <div style={{ ...fieldLabel, fontSize: '0.8125rem' }}>{label}</div>
       {value ? (
-        <div style={{ fontSize: '0.8125rem', color: T.text, marginTop: '1px' }}>{value}</div>
+        <div style={{ fontSize: '0.875rem', color: T.text, marginTop: '1px' }}>{value}</div>
       ) : (
-        <div style={{ fontSize: '0.8125rem', color: T.textMuted, fontStyle: 'italic', marginTop: '1px' }}>Not specified</div>
+        <div style={{ fontSize: '0.875rem', color: T.textMuted, fontStyle: 'italic', marginTop: '1px' }}>Not specified</div>
       )}
     </div>
   );
@@ -133,7 +133,7 @@ export function ClientCard({ couple, contract, extrasOrders }: ClientCardProps) 
           </span>
         </div>
         {meta.length > 0 && (
-          <div style={{ fontSize: '0.75rem', color: T.textSecondary }}>{meta.join(' · ')}</div>
+          <div style={{ fontSize: '0.8125rem', color: T.textSecondary }}>{meta.join(' · ')}</div>
         )}
       </div>
     </div>

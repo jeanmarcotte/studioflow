@@ -22,7 +22,7 @@ function MetricCard({ label, amount, bg = T.cardBg, labelColor, amountColor = T.
     }}>
       <div style={{ ...fieldLabel, color: labelColor, marginBottom: '0.375rem' }}>{label}</div>
       <div style={{
-        fontSize: '1.125rem', fontWeight: 600, color: amountColor,
+        fontSize: '1.25rem', fontWeight: 600, color: amountColor,
         textAlign: 'right', fontVariantNumeric: 'tabular-nums',
       }}>
         {fmt.format(amount)}

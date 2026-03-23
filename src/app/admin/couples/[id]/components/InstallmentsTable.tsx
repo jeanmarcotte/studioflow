@@ -34,7 +34,7 @@ export function InstallmentsTable({ installments, totalPaid }: InstallmentsTable
     return (
       <div style={card}>
         <div style={{ ...sectionLabel, marginBottom: '1rem' }}>Original Contract Installments</div>
-        <div style={{ fontSize: '0.8125rem', color: T.textMuted, fontStyle: 'italic' }}>
+        <div style={{ fontSize: '0.875rem', color: T.textMuted, fontStyle: 'italic' }}>
           No installments recorded
         </div>
       </div>
@@ -79,16 +79,16 @@ export function InstallmentsTable({ installments, totalPaid }: InstallmentsTable
 
             return (
               <tr key={inst.id || idx}>
-                <td style={{ padding: '0.75rem', color: T.textSecondary, fontSize: '0.8125rem', background: rowBg }}>
+                <td style={{ padding: '0.75rem', color: T.textSecondary, fontSize: '0.875rem', background: rowBg }}>
                   {inst.installment_number}
                 </td>
-                <td style={{ padding: '0.75rem', fontSize: '0.8125rem', fontWeight: 500, color: T.text, background: rowBg }}>
+                <td style={{ padding: '0.75rem', fontSize: '0.875rem', fontWeight: 500, color: T.text, background: rowBg }}>
                   {inst.due_description}
                 </td>
-                <td style={{ padding: '0.75rem', fontSize: '0.8125rem', color: T.textSecondary, background: rowBg }}>
+                <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: T.textSecondary, background: rowBg }}>
                   {dueDate ? format(dueDate, 'MMM d, yyyy') : '—'}
                 </td>
-                <td style={{ padding: '0.75rem', fontSize: '0.8125rem', color: T.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums', background: rowBg }}>
+                <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: T.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums', background: rowBg }}>
                   {fmt.format(amount)}
                 </td>
                 <td style={{ padding: '0.75rem', textAlign: 'center', background: rowBg }}>
