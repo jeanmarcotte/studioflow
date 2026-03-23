@@ -12,6 +12,7 @@ import { FinancialSummary } from './components/FinancialSummary';
 import { InstallmentsTable } from './components/InstallmentsTable';
 import { AdditionalPurchases } from './components/AdditionalPurchases';
 import { BalanceSheet } from './components/BalanceSheet';
+import { DocumentsSection } from './components/DocumentsSection';
 import {
   ClientJourney,
   NotesSection,
@@ -292,6 +293,12 @@ export default function CoupleDetailPage() {
           isArchived={milestones?.m35_archived || false}
         />
       )}
+
+      <DocumentsSection
+        contract={contract}
+        extrasOrders={rawExtrasOrders}
+        clientExtras={clientExtras}
+      />
 
     </div>
   );
