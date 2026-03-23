@@ -2457,60 +2457,72 @@ function QuoteBuilderInner() {
                 const selectedPkgData = PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]
                 const serviceNeeds = selectedPkgData?.type === 'photo_only' ? 'photo_only' : 'photo_video'
 
-                // Save quote to database
+                // Save quote to database (update existing or insert new)
                 try {
-                  await fetch('/api/client/quotes', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      bride_first_name: watchedValues.brideFirstName || '',
-                      bride_last_name: watchedValues.brideLastName || '',
-                      groom_first_name: watchedValues.groomFirstName || '',
-                      groom_last_name: watchedValues.groomLastName || '',
-                      email: watchedValues.brideEmail || watchedValues.groomEmail || '',
-                      phone: watchedValues.bridePhone || watchedValues.groomPhone || '',
-                      wedding_date: watchedValues.weddingDate || null,
-                      ceremony_venue: watchedValues.ceremonyVenue || '',
-                      reception_venue: watchedValues.receptionVenue || '',
-                      guest_count: watchedValues.guestCount || null,
-                      bridal_party_count: watchedValues.bridalPartyCount || null,
-                      flower_girl_count: watchedValues.flowerGirl || null,
-                      ring_bearer_count: watchedValues.ringBearer || null,
-                      first_look: watchedValues.firstLook,
-                      engagement_location: engLabel,
-                      service_needs: serviceNeeds,
-                      package_name: selectedPkg?.name || '',
-                      start_time: watchedValues.coverageStartTime || null,
-                      end_time: watchedValues.coverageEndTime || null,
-                      coverage_hours: (() => {
-                        const s = watchedValues.coverageStartTime
-                        const e = watchedValues.coverageEndTime
-                        if (s && e) {
-                          const [sh, sm] = s.split(':').map(Number)
-                          const [eh, em] = e.split(':').map(Number)
-                          let startM = sh * 60 + sm, endM = eh * 60 + em
-                          if (endM <= startM) endM += 1440
-                          return Math.round((endM - startM) / 60 * 10) / 10
-                        }
-                        return selectedPkg?.hours || 0
-                      })(),
-                      extra_hours: watchedValues.extraHours || 0,
-                      package_price: pricing.basePrice,
-                      extra_hours_price: pricing.extraHoursPrice,
-                      parent_albums_count: watchedValues.parentAlbumQty || 0,
-                      parent_albums_price: pricing.parentAlbumsPrice,
-                      prints_included: printsIncluded || null,
-                      discount_type: watchedValues.discountType === 'none' ? null : watchedValues.discountType,
-                      discount_value: watchedValues.discountAmount || null,
-                      discount_amount: pricing.discount,
-                      subtotal: pricing.subtotal,
-                      hst_amount: pricing.hst,
-                      total: pricing.total,
-                      installments,
-                      timeline,
-                      notes: watchedValues.notes || null,
-                    }),
-                  })
+                  const quotePayload = {
+                    bride_first_name: watchedValues.brideFirstName || '',
+                    bride_last_name: watchedValues.brideLastName || '',
+                    groom_first_name: watchedValues.groomFirstName || '',
+                    groom_last_name: watchedValues.groomLastName || '',
+                    email: watchedValues.brideEmail || watchedValues.groomEmail || '',
+                    phone: watchedValues.bridePhone || watchedValues.groomPhone || '',
+                    wedding_date: watchedValues.weddingDate || null,
+                    ceremony_venue: watchedValues.ceremonyVenue || '',
+                    reception_venue: watchedValues.receptionVenue || '',
+                    guest_count: watchedValues.guestCount || null,
+                    bridal_party_count: watchedValues.bridalPartyCount || null,
+                    flower_girl_count: watchedValues.flowerGirl || null,
+                    ring_bearer_count: watchedValues.ringBearer || null,
+                    first_look: watchedValues.firstLook,
+                    engagement_location: engLabel,
+                    service_needs: serviceNeeds,
+                    package_name: selectedPkg?.name || '',
+                    start_time: watchedValues.coverageStartTime || null,
+                    end_time: watchedValues.coverageEndTime || null,
+                    coverage_hours: (() => {
+                      const s = watchedValues.coverageStartTime
+                      const e = watchedValues.coverageEndTime
+                      if (s && e) {
+                        const [sh, sm] = s.split(':').map(Number)
+                        const [eh, em] = e.split(':').map(Number)
+                        let startM = sh * 60 + sm, endM = eh * 60 + em
+                        if (endM <= startM) endM += 1440
+                        return Math.round((endM - startM) / 60 * 10) / 10
+                      }
+                      return selectedPkg?.hours || 0
+                    })(),
+                    extra_hours: watchedValues.extraHours || 0,
+                    package_price: pricing.basePrice,
+                    extra_hours_price: pricing.extraHoursPrice,
+                    parent_albums_count: watchedValues.parentAlbumQty || 0,
+                    parent_albums_price: pricing.parentAlbumsPrice,
+                    prints_included: printsIncluded || null,
+                    discount_type: watchedValues.discountType === 'none' ? null : watchedValues.discountType,
+                    discount_value: watchedValues.discountAmount || null,
+                    discount_amount: pricing.discount,
+                    subtotal: pricing.subtotal,
+                    hst_amount: pricing.hst,
+                    total: pricing.total,
+                    installments,
+                    timeline,
+                    notes: watchedValues.notes || null,
+                  }
+
+                  if (clientQuoteId) {
+                    // Update existing client_quotes record
+                    await fetch('/api/client/quotes', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ id: clientQuoteId, ...quotePayload }),
+                    })
+                  } else {
+                    // Insert new client_quotes record
+                    await fetch('/api/client/quotes', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(quotePayload),
+                    })
+                  }
                 } catch (err) {
                   console.error('[Download PDF] Failed to save quote:', err)
                 }
