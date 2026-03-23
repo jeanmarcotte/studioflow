@@ -373,15 +373,26 @@ export default function TeamSchedulePage() {
       )
     }
 
+    const today = new Date().toISOString().split('T')[0]
+
     result.sort((a, b) => {
+      const aCompleted = a.wedding_date < today ? 1 : 0
+      const bCompleted = b.wedding_date < today ? 1 : 0
+
+      // Upcoming always before completed
+      if (aCompleted !== bCompleted) return aCompleted - bCompleted
+
       let cmp = 0
       const crewCount = (r: Assignment) => r.num_photographers + r.num_videographers
       const dayIndex = (r: Assignment) => new Date(r.wedding_date + 'T12:00:00').getDay()
       const statusOrder: Record<string, number> = { confirmed: 0, pending: 1, missing_crew: 2 }
       switch (sortField) {
         case 'wedding_date':
-          cmp = a.wedding_date.localeCompare(b.wedding_date)
-          break
+          // Upcoming: nearest first (ASC), Completed: most recent first (DESC)
+          cmp = aCompleted
+            ? b.wedding_date.localeCompare(a.wedding_date)
+            : a.wedding_date.localeCompare(b.wedding_date)
+          return cmp // ignore sortDir flip for date — the split logic is the primary sort
         case 'day':
           cmp = dayIndex(a) - dayIndex(b)
           break
@@ -464,13 +475,18 @@ export default function TeamSchedulePage() {
   // ── Row styling ────────────────────────────────────────────────
 
   function getRowClasses(a: Assignment) {
+    const today = new Date().toISOString().split('T')[0]
+    const isCompleted = a.wedding_date < today
     const isDouble = isDoubleWedding(a.wedding_date, assignments)
     const isBackToBack = backToBackDates.has(a.wedding_date)
     const isMissing = a.status === 'missing_crew'
 
-    if (isMissing) return 'bg-red-50 hover:bg-red-100/70 border-l-2 border-l-red-400 transition-colors'
-    if (isDouble) return 'bg-orange-50/60 hover:bg-orange-50 border-l-2 border-l-orange-400 transition-colors'
-    if (isBackToBack) return 'bg-amber-50/50 hover:bg-amber-50 border-l-2 border-l-amber-400 transition-colors'
+    const fade = isCompleted ? ' opacity-50' : ''
+
+    if (isMissing) return 'bg-red-50 hover:bg-red-100/70 border-l-2 border-l-red-400 transition-colors' + fade
+    if (isDouble) return 'bg-orange-50/60 hover:bg-orange-50 border-l-2 border-l-orange-400 transition-colors' + fade
+    if (isBackToBack) return 'bg-amber-50/50 hover:bg-amber-50 border-l-2 border-l-amber-400 transition-colors' + fade
+    if (isCompleted) return 'bg-muted/30 hover:bg-muted/50 transition-colors opacity-50'
     return 'hover:bg-accent/50 transition-colors'
   }
 
