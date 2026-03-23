@@ -234,8 +234,8 @@ export default function CoupleDetailPage() {
 
       <FinancialSummary
         contractTotal={contractTotal}
-        framesTotal={framesTotal}
-        extrasTotal={otherExtrasTotal}
+        framesTotal={rawFramesTotal}
+        extrasTotal={rawClientExtrasTotal}
         totalPaid={totalPaid}
       />
 
