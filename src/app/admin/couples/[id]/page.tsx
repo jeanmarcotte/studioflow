@@ -8,6 +8,7 @@ import Link from 'next/link';
 
 import { ClientCard } from './components/ClientCard';
 import { TeamSection } from './components/TeamSection';
+import { FinancialSummary } from './components/FinancialSummary';
 import {
   ClientJourney,
   NotesSection,
@@ -152,6 +153,11 @@ export default function CoupleDetailPage() {
   const balance = parseFloat(couple.balance_owing || '0');
   const grandTotal = contractTotal + extrasTotal;
 
+  const framesTotal = extrasOrders
+    .filter(e => e.order_type === 'frames_albums')
+    .reduce((sum: number, e: any) => sum + parseFloat(e.total || '0'), 0);
+  const otherExtrasTotal = Math.max(0, extrasTotal - framesTotal);
+
   const framesAlbums = extrasOrders.find(e => e.order_type === 'frames_albums') || null;
   const postWedding = extrasOrders.find(e => e.order_type === 'post_wedding_extras') || null;
 
@@ -201,6 +207,13 @@ export default function CoupleDetailPage() {
         videoOrderIn={milestones?.m25_video_order_in || false}
         packageType={couple.package_type || 'photo_video'}
         coupleId={coupleId}
+      />
+
+      <FinancialSummary
+        contractTotal={contractTotal}
+        framesTotal={framesTotal}
+        extrasTotal={otherExtrasTotal}
+        totalPaid={totalPaid}
       />
 
       <FinancialLedger
