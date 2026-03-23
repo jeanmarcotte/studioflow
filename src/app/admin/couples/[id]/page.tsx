@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { ClientCard } from './components/ClientCard';
 import { TeamSection } from './components/TeamSection';
 import { FinancialSummary } from './components/FinancialSummary';
+import { InstallmentsTable } from './components/InstallmentsTable';
 import {
   ClientJourney,
   NotesSection,
@@ -213,6 +214,11 @@ export default function CoupleDetailPage() {
         contractTotal={contractTotal}
         framesTotal={framesTotal}
         extrasTotal={otherExtrasTotal}
+        totalPaid={totalPaid}
+      />
+
+      <InstallmentsTable
+        installments={installments}
         totalPaid={totalPaid}
       />
 
