@@ -45,7 +45,7 @@ export function AdditionalPurchases({ extrasOrders, clientExtras }: AdditionalPu
       id: o.id,
       date: o.order_date || o.created_at || null,
       item: o.notes?.replace(/^Inclusions:\s*/, '') || 'Frames & Albums Order',
-      amount: parseFloat(o.total || '0'),
+      amount: parseFloat(o.extras_sale_amount || '0'),
       type: 'frames' as const,
     })),
     ...clientExtras.map((e: any) => ({
