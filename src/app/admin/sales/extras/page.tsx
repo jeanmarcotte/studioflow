@@ -3,86 +3,147 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ShoppingBag, DollarSign, ChevronUp, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { format, parseISO } from 'date-fns'
 
-interface InvoiceRow {
+// ── Interfaces ──────────────────────────────────────────────────────────────
+
+interface ExtrasRow {
   id: string
-  couple_name: string
-  wedding_date: string
-  year: number
-  items: Array<{ description: string; amount: string; taxMode: string; beforeTax: number; hst: number; total: number }>
-  subtotal: number
-  total_hst: number
-  discount_amt: number
-  discount_type: string
-  discount: number
-  grand_total: number
-  payment_method: string | null
+  couple_id: string
+  item_type: string
+  description: string | null
+  quantity: number | null
+  unit_price: number | null
+  subtotal: number | null
+  hst: number | null
+  total: number | null
+  discount_type: string | null
+  discount_value: number | null
   payment_note: string | null
-  invoice_notes: string | null
-  created_date: string
-  created_at: string
+  status: string | null
+  paid_date: string | null
+  invoice_date: string | null
+  couple_name: string
+  wedding_date: string | null
+  wedding_year: number | null
 }
 
-type SortField = 'created_date' | 'couple_name' | 'items' | 'grand_total' | 'discount_amt' | 'payment_method' | 'payment_note'
+type SortField = 'invoice_date' | 'couple_name' | 'item_type' | 'description' | 'total' | 'discount_value' | 'status' | 'payment_note'
 type SortDir = 'asc' | 'desc'
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmtMoney(n: number): string {
   return '$' + n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-function itemsSummary(items: InvoiceRow['items']): string {
-  return items
-    .filter(it => it.description)
-    .map(it => it.description.trim())
-    .join(', ')
+function fmtDate(dateStr: string | null): string {
+  if (!dateStr) return '—'
+  try {
+    return format(parseISO(dateStr), 'MMM d, yyyy')
+  } catch {
+    return dateStr
+  }
 }
 
+function statusBadge(status: string | null) {
+  switch (status) {
+    case 'paid':
+      return <span className="inline-flex items-center rounded-full bg-green-50 text-green-600 px-2 py-0.5 text-xs font-medium">Paid</span>
+    case 'sent':
+      return <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-600 px-2 py-0.5 text-xs font-medium">Sent</span>
+    case 'pending':
+      return <span className="inline-flex items-center rounded-full bg-amber-50 text-amber-600 px-2 py-0.5 text-xs font-medium">Pending</span>
+    case 'cancelled':
+      return <span className="inline-flex items-center rounded-full bg-red-50 text-red-600 px-2 py-0.5 text-xs font-medium line-through">Cancelled</span>
+    default:
+      return <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-500 px-2 py-0.5 text-xs font-medium">{status || '—'}</span>
+  }
+}
+
+// ── Main Component ──────────────────────────────────────────────────────────
+
 export default function ExtrasSalesPage() {
-  const [invoices, setInvoices] = useState<InvoiceRow[]>([])
+  const [rows, setRows] = useState<ExtrasRow[]>([])
   const [loading, setLoading] = useState(true)
   const [yearFilter, setYearFilter] = useState<string>('all')
-  const [sortField, setSortField] = useState<SortField>('created_date')
+  const [sortField, setSortField] = useState<SortField>('invoice_date')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   useEffect(() => {
-    supabase
-      .from('extras_invoices')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (error) console.error('Failed to load extras invoices:', error)
-        setInvoices(
-          (data || []).map(r => ({
-            ...r,
-            subtotal: Number(r.subtotal),
-            total_hst: Number(r.total_hst),
-            discount_amt: Number(r.discount_amt),
-            discount: Number(r.discount),
-            grand_total: Number(r.grand_total),
-          })) as InvoiceRow[]
+    const fetchData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('client_extras')
+          .select('id, couple_id, item_type, description, quantity, unit_price, subtotal, hst, total, discount_type, discount_value, payment_note, status, paid_date, invoice_date, couples(couple_name, wedding_date, wedding_year)')
+          .order('invoice_date', { ascending: false })
+
+        if (error) {
+          console.error('[ExtrasSalesPage] fetch error:', error)
+          setLoading(false)
+          return
+        }
+
+        setRows(
+          (data || []).map((r: any) => ({
+            id: r.id,
+            couple_id: r.couple_id,
+            item_type: r.item_type || '',
+            description: r.description,
+            quantity: r.quantity != null ? Number(r.quantity) : null,
+            unit_price: r.unit_price != null ? Number(r.unit_price) : null,
+            subtotal: r.subtotal != null ? Number(r.subtotal) : null,
+            hst: r.hst != null ? Number(r.hst) : null,
+            total: r.total != null ? Number(r.total) : null,
+            discount_type: r.discount_type,
+            discount_value: r.discount_value != null ? Number(r.discount_value) : null,
+            payment_note: r.payment_note,
+            status: r.status,
+            paid_date: r.paid_date,
+            invoice_date: r.invoice_date,
+            couple_name: r.couples?.couple_name || '—',
+            wedding_date: r.couples?.wedding_date || null,
+            wedding_year: r.couples?.wedding_year || null,
+          }))
         )
         setLoading(false)
-      })
+      } catch (err) {
+        console.error('[ExtrasSalesPage] error:', err)
+        setLoading(false)
+      }
+    }
+    fetchData()
   }, [])
 
+  // Year filter
   const filtered = useMemo(() => {
-    if (yearFilter === 'all') return invoices
-    return invoices.filter(r => r.year === parseInt(yearFilter))
-  }, [invoices, yearFilter])
+    if (yearFilter === 'all') return rows
+    return rows.filter(r => r.wedding_year === parseInt(yearFilter))
+  }, [rows, yearFilter])
 
+  const years = useMemo(() => {
+    const set = new Set(rows.map(r => r.wedding_year).filter(Boolean) as number[])
+    return Array.from(set).sort((a, b) => b - a)
+  }, [rows])
+
+  // Stats
   const stats = useMemo(() => {
-    const numSales = filtered.length
-    const totalRevenue = filtered.reduce((sum, r) => sum + r.grand_total, 0)
-    const totalDiscount = filtered.reduce((sum, r) => sum + r.discount_amt, 0)
+    const active = filtered.filter(r => r.status !== 'cancelled')
+    const numSales = active.length
+    const totalRevenue = active.reduce((sum, r) => sum + (r.total || 0), 0)
+    const totalDiscount = active.reduce((sum, r) => {
+      if (!r.discount_value) return sum
+      if (r.discount_type === 'percent') {
+        // For percent discounts, calculate the dollar amount from subtotal
+        return sum + ((r.subtotal || 0) * r.discount_value / 100)
+      }
+      return sum + r.discount_value
+    }, 0)
     const avgSale = numSales > 0 ? totalRevenue / numSales : 0
     return { numSales, totalRevenue, totalDiscount, avgSale }
   }, [filtered])
 
-  const years = useMemo(() => {
-    const set = new Set(invoices.map(r => r.year))
-    return Array.from(set).sort((a, b) => b - a)
-  }, [invoices])
-
+  // Sort
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -93,23 +154,25 @@ export default function ExtrasSalesPage() {
   }
 
   const sorted = useMemo(() => {
-    const rows = [...filtered]
-    rows.sort((a, b) => {
+    const list = [...filtered]
+    list.sort((a, b) => {
       let cmp = 0
       switch (sortField) {
-        case 'created_date': cmp = (a.created_date || '').localeCompare(b.created_date || ''); break
+        case 'invoice_date': cmp = (a.invoice_date || '').localeCompare(b.invoice_date || ''); break
         case 'couple_name': cmp = a.couple_name.localeCompare(b.couple_name); break
-        case 'items': cmp = itemsSummary(a.items).localeCompare(itemsSummary(b.items)); break
-        case 'grand_total': cmp = a.grand_total - b.grand_total; break
-        case 'discount_amt': cmp = a.discount_amt - b.discount_amt; break
-        case 'payment_method': cmp = (a.payment_method || '').localeCompare(b.payment_method || ''); break
+        case 'item_type': cmp = a.item_type.localeCompare(b.item_type); break
+        case 'description': cmp = (a.description || '').localeCompare(b.description || ''); break
+        case 'total': cmp = (a.total || 0) - (b.total || 0); break
+        case 'discount_value': cmp = (a.discount_value || 0) - (b.discount_value || 0); break
+        case 'status': cmp = (a.status || '').localeCompare(b.status || ''); break
         case 'payment_note': cmp = (a.payment_note || '').localeCompare(b.payment_note || ''); break
       }
       return sortDir === 'asc' ? cmp : -cmp
     })
-    return rows
+    return list
   }, [filtered, sortField, sortDir])
 
+  // Sort header component
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30" />
     return sortDir === 'asc'
@@ -117,9 +180,12 @@ export default function ExtrasSalesPage() {
       : <ChevronDown className="h-3 w-3" />
   }
 
-  const SortHeader = ({ field, label, className }: { field: SortField; label: string; className?: string }) => (
-    <th className={`p-3 font-medium ${className || ''}`}>
-      <button onClick={() => handleSort(field)} className="group flex items-center gap-1 hover:text-foreground">
+  const SortHeader = ({ field, label, align }: { field: SortField; label: string; align?: 'right' | 'center' }) => (
+    <th className="p-3 font-medium" style={{ textAlign: align || 'left' }}>
+      <button
+        onClick={() => handleSort(field)}
+        className={`group flex items-center gap-1 hover:text-foreground ${align === 'right' ? 'ml-auto' : ''}`}
+      >
         {label} <SortIcon field={field} />
       </button>
     </th>
@@ -139,7 +205,7 @@ export default function ExtrasSalesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Extras Sales</h1>
-          <p className="text-muted-foreground">Frames, albums & add-on invoices</p>
+          <p className="text-muted-foreground">Post-contract add-ons & extras</p>
         </div>
         <div className="flex items-center gap-3">
           <a
@@ -202,52 +268,54 @@ export default function ExtrasSalesPage() {
         </div>
       </div>
 
-      {/* Invoices Table */}
+      {/* Table */}
       <div>
         <h2 className="text-lg font-semibold mb-3">Invoices</h2>
         <div className="rounded-xl border bg-card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" style={{ minWidth: 1000 }}>
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <SortHeader field="created_date" label="Date" className="text-left" />
-                  <SortHeader field="couple_name" label="Couple" className="text-left" />
-                  <SortHeader field="items" label="Items Sold" className="text-left" />
-                  <SortHeader field="grand_total" label="Total" className="text-right" />
-                  <SortHeader field="discount_amt" label="Discount" className="text-right" />
-                  <SortHeader field="payment_method" label="Payment" className="text-left hidden lg:table-cell" />
-                  <SortHeader field="payment_note" label="Notes" className="text-left hidden xl:table-cell" />
+                  <SortHeader field="invoice_date" label="Date" />
+                  <SortHeader field="couple_name" label="Couple" />
+                  <SortHeader field="item_type" label="Item Type" />
+                  <SortHeader field="description" label="Description" />
+                  <SortHeader field="total" label="Total" align="right" />
+                  <SortHeader field="discount_value" label="Discount" align="right" />
+                  <SortHeader field="status" label="Status" />
+                  <SortHeader field="payment_note" label="Notes" />
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {sorted.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
                       <ShoppingBag className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      No extras invoices found{yearFilter !== 'all' ? ` for ${yearFilter}` : ''}.
+                      No extras found{yearFilter !== 'all' ? ` for ${yearFilter}` : ''}.
                     </td>
                   </tr>
                 ) : (
                   sorted.map(row => (
                     <tr key={row.id} className="hover:bg-accent/50 transition-colors">
-                      <td className="p-3 whitespace-nowrap">{row.created_date}</td>
-                      <td className="p-3 font-medium">{row.couple_name}</td>
-                      <td className="p-3 text-muted-foreground max-w-xs truncate" title={itemsSummary(row.items)}>
-                        {itemsSummary(row.items) || '—'}
+                      <td className="p-3 whitespace-nowrap" style={{ textAlign: 'left' }}>{fmtDate(row.invoice_date)}</td>
+                      <td className="p-3 font-medium" style={{ textAlign: 'left' }}>{row.couple_name}</td>
+                      <td className="p-3 text-muted-foreground" style={{ textAlign: 'left' }}>{row.item_type || '—'}</td>
+                      <td className="p-3 text-muted-foreground max-w-xs truncate" style={{ textAlign: 'left' }} title={row.description || ''}>
+                        {row.description || '—'}
                       </td>
-                      <td className="p-3 text-right">
-                        <span className="font-medium">{fmtMoney(row.grand_total)}</span>
+                      <td className="p-3 font-medium" style={{ textAlign: 'right' }}>
+                        {row.total != null ? fmtMoney(row.total) : '—'}
                       </td>
-                      <td className="p-3 text-right text-muted-foreground">
-                        {row.discount_amt > 0
-                          ? `−${fmtMoney(row.discount_amt)}${row.discount_type === 'percent' ? ` (${row.discount}%)` : ''}`
+                      <td className="p-3 text-muted-foreground" style={{ textAlign: 'right' }}>
+                        {row.discount_value && row.discount_value > 0
+                          ? `−${row.discount_type === 'percent' ? `${row.discount_value}%` : fmtMoney(row.discount_value)}`
                           : '—'
                         }
                       </td>
-                      <td className="p-3 hidden lg:table-cell text-muted-foreground">
-                        {row.payment_method || '—'}
+                      <td className="p-3" style={{ textAlign: 'left' }}>
+                        {statusBadge(row.status)}
                       </td>
-                      <td className="p-3 hidden xl:table-cell text-muted-foreground max-w-xs truncate" title={row.payment_note || ''}>
+                      <td className="p-3 text-muted-foreground max-w-xs truncate" style={{ textAlign: 'left' }} title={row.payment_note || ''}>
                         {row.payment_note || '—'}
                       </td>
                     </tr>
@@ -257,15 +325,14 @@ export default function ExtrasSalesPage() {
               {sorted.length > 0 && (
                 <tfoot>
                   <tr className="border-t-2 bg-muted/30 font-semibold">
-                    <td className="p-3" colSpan={3}>
-                      Total ({filtered.length} invoice{filtered.length !== 1 ? 's' : ''})
+                    <td className="p-3" style={{ textAlign: 'left' }} colSpan={4}>
+                      Total ({filtered.filter(r => r.status !== 'cancelled').length} item{filtered.filter(r => r.status !== 'cancelled').length !== 1 ? 's' : ''})
                     </td>
-                    <td className="p-3 text-right">{fmtMoney(stats.totalRevenue)}</td>
-                    <td className="p-3 text-right text-red-600">
+                    <td className="p-3 text-green-600" style={{ textAlign: 'right' }}>{fmtMoney(stats.totalRevenue)}</td>
+                    <td className="p-3 text-red-600" style={{ textAlign: 'right' }}>
                       {stats.totalDiscount > 0 ? `−${fmtMoney(stats.totalDiscount)}` : '—'}
                     </td>
-                    <td className="p-3 hidden lg:table-cell" />
-                    <td className="p-3 hidden xl:table-cell" />
+                    <td className="p-3" colSpan={2}></td>
                   </tr>
                 </tfoot>
               )}
