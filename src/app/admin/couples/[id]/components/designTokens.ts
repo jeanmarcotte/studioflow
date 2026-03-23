@@ -1,25 +1,25 @@
 /* ══════════════════════════════════════════════════════════
    StudioFlow Design Tokens — Couple Detail Page
-   Base: Teal accent + Warm beige neutrals
+   Base: TEAL-DOMINANT — every surface teal-tinted
    ══════════════════════════════════════════════════════════ */
 
 export const colors = {
   primary: {
-    50:  '#f0f9f6',
-    100: '#d4ece5',
-    200: '#9fd4c6',
-    500: '#3a9a88',
-    700: '#267366',
-    900: '#184d44',
+    50:  '#f0fdfa',
+    100: '#ccfbf1',
+    200: '#99f6e4',
+    500: '#14b8a6',
+    700: '#0f766e',
+    900: '#134e4a',
   },
   neutral: {
-    50:  '#faf8f6',
-    100: '#f0eeeb',
-    200: '#e0dcd7',
-    300: '#c8c2ba',
-    500: '#8a837a',
-    700: '#4d4740',
-    900: '#2a2622',
+    50:  '#f0fdfa',
+    100: '#e6f5f2',
+    200: '#b2dfdb',
+    300: '#80cbc4',
+    500: '#4a8c85',
+    700: '#2c5e58',
+    900: '#1a3a38',
   },
   success: {
     50:  '#f2f8f2',
@@ -45,14 +45,14 @@ export const T = {
   accentLight:   colors.primary[50],
 
   /* Backgrounds */
-  pageBg:    colors.neutral[50],
-  cardBg:    '#ffffff',
-  cardBgAlt: colors.neutral[100],
-  rowAlt:    colors.neutral[50],
+  pageBg:    colors.primary[50],
+  cardBg:    '#f0fdfa',
+  cardBgAlt: '#e0f2f1',
+  rowAlt:    '#e6f7f4',
 
   /* Borders */
-  border:      colors.neutral[200],
-  borderLight: colors.neutral[100],
+  border:      '#b2dfdb',
+  borderLight: '#ccfbf1',
 
   /* Semantic */
   successBg:     colors.success[50],
@@ -66,11 +66,15 @@ export const T = {
 /* ── Shared style fragments ─────────────────────────────── */
 
 export const sectionLabel: React.CSSProperties = {
-  fontSize: '1rem',
+  fontSize: '0.875rem',
   fontWeight: 600,
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
-  color: T.textSecondary,
+  color: '#ffffff',
+  background: colors.primary[700],
+  padding: '0.5rem 1rem',
+  borderRadius: '8px',
+  display: 'inline-block',
 };
 
 export const fieldLabel: React.CSSProperties = {
@@ -78,7 +82,7 @@ export const fieldLabel: React.CSSProperties = {
   fontWeight: 500,
   letterSpacing: '0.03em',
   textTransform: 'uppercase',
-  color: T.textSecondary,
+  color: colors.primary[700],
 };
 
 export const card: React.CSSProperties = {
@@ -100,8 +104,8 @@ export const pillBase: React.CSSProperties = {
 };
 
 export const badge = {
-  default: { bg: colors.neutral[100], fg: colors.neutral[700], bd: colors.neutral[200] },
-  accent:  { bg: colors.primary[50],  fg: colors.primary[700],  bd: colors.primary[100] },
+  default: { bg: colors.primary[100], fg: colors.primary[900], bd: colors.primary[200] },
+  accent:  { bg: colors.primary[200], fg: colors.primary[900], bd: '#5eead4' },
   success: { bg: colors.success[50],  fg: colors.success[700],  bd: colors.success[100] },
   warning: { bg: colors.warning[50],  fg: colors.warning[700],  bd: colors.warning[100] },
 } as const;

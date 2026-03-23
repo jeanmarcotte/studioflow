@@ -9,7 +9,7 @@ const display = DM_Serif_Display({ weight: '400', subsets: ['latin'], display: '
 /* ── sub-components ─────────────────────────────────────── */
 
 function SectionLabel({ children }: { children: string }) {
-  return <div style={{ ...sectionLabel, fontSize: '0.75rem', marginBottom: '0.75rem' }}>{children}</div>;
+  return <div style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: T.accentDark, marginBottom: '0.75rem' }}>{children}</div>;
 }
 
 function Field({ label, value }: { label: string; value?: string | null }) {

@@ -64,7 +64,7 @@ export function AdditionalPurchases({ extrasOrders, clientExtras }: AdditionalPu
   if (!rows.length) {
     return (
       <div style={{ ...card, marginTop: '0.5rem' }}>
-        <div style={{ ...sectionLabel, marginBottom: '1rem', borderLeft: `3px solid ${T.accent}`, paddingLeft: '0.75rem' }}>
+        <div style={{ ...sectionLabel, marginBottom: '1rem' }}>
           Additional Purchases
         </div>
         <div style={{ fontSize: '0.875rem', color: T.textMuted, fontStyle: 'italic' }}>
@@ -80,10 +80,10 @@ export function AdditionalPurchases({ extrasOrders, clientExtras }: AdditionalPu
     <div style={{ ...card, overflow: 'hidden', marginTop: '0.5rem' }}>
       {/* ── Header ────────────────────────────────────────── */}
       <div style={{ marginBottom: '1rem' }}>
-        <div style={{ ...sectionLabel, borderLeft: `3px solid ${T.accent}`, paddingLeft: '0.75rem' }}>
+        <div style={sectionLabel}>
           Additional Purchases
         </div>
-        <div style={{ fontSize: '0.8125rem', color: T.textSecondary, marginTop: '0.25rem', paddingLeft: 'calc(3px + 0.75rem)' }}>
+        <div style={{ fontSize: '0.8125rem', color: T.textSecondary, marginTop: '0.5rem' }}>
           Frames, albums, and extras added after original contract
         </div>
       </div>

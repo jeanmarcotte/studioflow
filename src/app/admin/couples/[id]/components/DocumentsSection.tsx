@@ -74,7 +74,7 @@ export function DocumentsSection({ contract, extrasOrders, clientExtras }: Docum
 
   return (
     <div style={{ ...card, marginTop: '0.5rem' }}>
-      <div style={{ ...sectionLabel, marginBottom: '1.25rem', borderLeft: `3px solid ${T.accent}`, paddingLeft: '0.75rem' }}>
+      <div style={{ ...sectionLabel, marginBottom: '1.25rem' }}>
         Documents
       </div>
 

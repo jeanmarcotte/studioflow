@@ -55,7 +55,7 @@ export function BalanceSheet({ payments, contractInstallments, contractTotal, fr
   if (!payments.length && !unpaidInstallments.length) {
     return (
       <div style={{ ...card, marginTop: '0.5rem' }}>
-        <div style={{ ...sectionLabel, marginBottom: '1rem', borderLeft: `3px solid ${T.accent}`, paddingLeft: '0.75rem' }}>
+        <div style={{ ...sectionLabel, marginBottom: '1rem' }}>
           Balance Sheet
         </div>
         <div style={{ fontSize: '0.875rem', color: T.textMuted, fontStyle: 'italic' }}>
@@ -69,10 +69,10 @@ export function BalanceSheet({ payments, contractInstallments, contractTotal, fr
     <div style={{ ...card, overflow: 'hidden', marginTop: '0.5rem' }}>
       {/* ── Header ────────────────────────────────────────── */}
       <div style={{ marginBottom: '1rem' }}>
-        <div style={{ ...sectionLabel, borderLeft: `3px solid ${T.accent}`, paddingLeft: '0.75rem' }}>
+        <div style={sectionLabel}>
           Balance Sheet
         </div>
-        <div style={{ fontSize: '0.8125rem', color: T.textSecondary, marginTop: '0.25rem', paddingLeft: 'calc(3px + 0.75rem)' }}>
+        <div style={{ fontSize: '0.8125rem', color: T.textSecondary, marginTop: '0.5rem' }}>
           All payments and outstanding installments
         </div>
       </div>
