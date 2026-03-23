@@ -26,11 +26,11 @@ import {
   Wallet,
   GraduationCap,
   Send,
-  PackageCheck,
   FileCheck,
   CheckCircle2,
   ListChecks,
   Wrench,
+  Archive,
 } from 'lucide-react'
 
 export interface SidebarItem {
@@ -74,16 +74,6 @@ export const studioflowAdminConfig: SidebarConfig = {
     {
       items: [
         {
-          title: 'Production',
-          icon: Package,
-          children: [
-            { title: 'Photo Editing', href: '/admin/production/photo', icon: Camera },
-            { title: 'Video Editing', href: '/admin/production/video', icon: Video },
-            { title: 'Add Editing Job', href: '/admin/production/editing/new', icon: Scissors },
-            { title: 'Equipment Inventory', href: '/admin/production/equipment', icon: Wrench },
-          ],
-        },
-        {
           title: 'Marketing',
           icon: BarChart3,
           children: [
@@ -101,7 +91,43 @@ export const studioflowAdminConfig: SidebarConfig = {
           ],
         },
         {
-          title: 'Client Portal',
+          title: 'Production',
+          icon: Package,
+          children: [
+            { title: 'Photo Editing', href: '/admin/production/photo', icon: Camera },
+            { title: 'Video Editing', href: '/admin/production/video', icon: Video },
+            { title: 'Add Editing Job', href: '/admin/production/editing/new', icon: Scissors },
+            { title: 'Archive', href: '/admin/production/archive', icon: Archive },
+          ],
+        },
+        {
+          title: 'Wedding Day',
+          icon: CalendarCheck,
+          children: [
+            { title: 'Crew Call Sheet', href: '/admin/wedding-day/crew-confirm', icon: Send },
+            { title: 'Equipment', href: '/admin/wedding-day/equipment', icon: Wrench },
+            { title: 'Wedding Day Forms', href: '/admin/wedding-day/forms', icon: FileCheck },
+            { title: 'Coordination', href: '/admin/wedding-day/coordination', icon: CheckCircle2 },
+            { title: 'Prep Checklist', href: '/admin/wedding-day/checklist', icon: ListChecks },
+          ],
+        },
+      ],
+    },
+    {
+      items: [
+        {
+          title: 'Team Hub',
+          icon: UsersRound,
+          children: [
+            { title: 'Members', href: '/admin/team/members', icon: UserPlus },
+            { title: 'Work Schedule', href: '/admin/team/schedule', icon: CalendarDays },
+            { title: 'Team Notes', href: '/admin/team/notes', icon: StickyNote },
+            { title: 'Payments', href: '/admin/team/payments', icon: Wallet },
+            { title: 'Training', href: '/admin/team/training', icon: GraduationCap },
+          ],
+        },
+        {
+          title: 'Client Forms',
           icon: FileText,
           children: [
             { title: 'New Client Quote', href: '/admin/client/new-quote', icon: FileText },
@@ -110,10 +136,6 @@ export const studioflowAdminConfig: SidebarConfig = {
             { title: 'Wedding Day Form', href: '/client/wedding-day-form', icon: ClipboardList },
           ],
         },
-      ],
-    },
-    {
-      items: [
         {
           title: 'Finance',
           icon: DollarSign,
@@ -122,28 +144,6 @@ export const studioflowAdminConfig: SidebarConfig = {
             { title: 'Accounts', href: '/admin/finance/accounts', icon: CreditCard },
             { title: 'Upcoming', href: '/admin/finance/upcoming', icon: Clock },
             { title: 'Upload Payments', href: '/admin/finance/upload', icon: Upload },
-          ],
-        },
-        {
-          title: 'Team Hub',
-          icon: UsersRound,
-          children: [
-            { title: 'Work Schedule', href: '/admin/team/schedule', icon: CalendarDays },
-            { title: 'Team Notes', href: '/admin/team/notes', icon: StickyNote },
-            { title: 'Team Members', href: '/admin/team/members', icon: UserPlus },
-            { title: 'Team Payments', href: '/admin/team/payments', icon: Wallet },
-            { title: 'Training & Education', href: '/admin/team/training', icon: GraduationCap },
-          ],
-        },
-        {
-          title: 'Wedding Day',
-          icon: CalendarCheck,
-          children: [
-            { title: 'Crew Call Sheet', href: '/admin/wedding-day/crew-confirm', icon: Send },
-            { title: 'Equipment Packing', href: '/admin/wedding-day/packing', icon: PackageCheck },
-            { title: 'Wedding Day Forms', href: '/admin/wedding-day/forms', icon: FileCheck },
-            { title: 'Coordination', href: '/admin/wedding-day/coordination', icon: CheckCircle2 },
-            { title: 'Prep Checklist', href: '/admin/wedding-day/checklist', icon: ListChecks },
           ],
         },
         { title: 'Settings', href: '/admin/settings', icon: Settings },
