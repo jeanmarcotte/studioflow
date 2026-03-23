@@ -25,12 +25,8 @@ interface ExtrasOrder {
   album_cover: string | null
   collage_size: string | null
   collage_type: string | null
-  collage_frame_color: string | null
-  signing_book: boolean | null
   wedding_frame_size: string | null
-  wedding_frame_style: string | null
   eng_portrait_size: string | null
-  extras_sale_amount: number | null
 }
 
 interface ClientExtra {
@@ -107,31 +103,34 @@ function formatPackage(pkg: string | null): string {
 }
 
 // Extract detail from extras_order — use individual columns first, fallback to items JSONB
+function safeItems(o: ExtrasOrder | null): any[] {
+  if (!o || !o.items) return []
+  if (Array.isArray(o.items)) return o.items
+  // Handle double-encoded JSON string
+  if (typeof o.items === 'string') {
+    try { const parsed = JSON.parse(o.items); return Array.isArray(parsed) ? parsed : [] } catch { return [] }
+  }
+  return []
+}
+
 function getCollageDisplay(o: ExtrasOrder | null): string {
   if (!o) return '\u2014'
   if (o.collage_size) {
     const parts = [o.collage_size]
     if (o.collage_type) parts.push(o.collage_type)
-    if (o.collage_frame_color) parts.push(o.collage_frame_color)
     return parts.join(' ')
   }
-  // Fallback: search items JSONB
-  if (o.items) {
-    const item = o.items.find((i: any) => /collage/i.test(i.name || i.description || ''))
-    if (item) return item.description || item.name || '\u2014'
-  }
+  const items = safeItems(o)
+  const item = items.find((i: any) => /collage/i.test(i.name || i.description || ''))
+  if (item) return item.description || item.name || '\u2014'
   return '\u2014'
 }
 
 function getSignBookDisplay(o: ExtrasOrder | null): string {
   if (!o) return '\u2014'
-  if (o.signing_book === true) return '\u2713'
-  if (o.signing_book === false) return '\u2014'
-  // Fallback: search items JSONB
-  if (o.items) {
-    const item = o.items.find((i: any) => /sign/i.test(i.name || i.description || ''))
-    if (item) return '\u2713'
-  }
+  const items = safeItems(o)
+  const item = items.find((i: any) => /sign/i.test(i.name || i.description || ''))
+  if (item) return '\u2713'
   return '\u2014'
 }
 
@@ -142,30 +141,26 @@ function getAlbumDisplay(o: ExtrasOrder | null): string {
     if (o.album_cover) parts.push(o.album_cover)
     return parts.join(' ')
   }
-  if (o.items) {
-    const item = o.items.find((i: any) => /album/i.test(i.name || i.description || ''))
-    if (item) return item.description || item.name || '\u2014'
-  }
+  const items = safeItems(o)
+  const item = items.find((i: any) => /album/i.test(i.name || i.description || ''))
+  if (item) return item.description || item.name || '\u2014'
   return '\u2014'
 }
 
 function getWedFrameDisplay(o: ExtrasOrder | null): string {
   if (!o) return '\u2014'
   if (o.wedding_frame_size) {
-    const parts = [o.wedding_frame_size]
-    if (o.wedding_frame_style) parts.push(o.wedding_frame_style)
-    return parts.join(' ')
+    return o.wedding_frame_size
   }
-  if (o.items) {
-    const item = o.items.find((i: any) => /frame|portrait/i.test(i.name || i.description || ''))
-    if (item) return item.description || item.name || '\u2014'
-  }
+  const items = safeItems(o)
+  const item = items.find((i: any) => /frame|portrait/i.test(i.name || i.description || ''))
+  if (item) return item.description || item.name || '\u2014'
   return '\u2014'
 }
 
 function getSaleAmount(o: ExtrasOrder | null): number {
   if (!o) return 0
-  return o.extras_sale_amount || o.total || 0
+  return o.total || 0
 }
 
 // ── Collapsible Section ─────────────────────────────────────────────────────
@@ -208,6 +203,7 @@ export default function FramesAlbumsPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      try {
       const [couplesRes, extrasRes, clientExtrasRes, milestonesRes] = await Promise.all([
         supabase
           .from('couples')
@@ -216,7 +212,7 @@ export default function FramesAlbumsPage() {
           .order('wedding_date', { ascending: true }),
         supabase
           .from('extras_orders')
-          .select('*'),
+          .select('couple_id, total, status, items, album_qty, album_cover, collage_size, collage_type, wedding_frame_size, eng_portrait_size'),
         supabase
           .from('client_extras')
           .select('couple_id, item_type, total'),
@@ -278,6 +274,10 @@ export default function FramesAlbumsPage() {
         })))
       }
       setLoading(false)
+      } catch (err) {
+        console.error('[FramesAlbumsPage] fetch error:', err)
+        setLoading(false)
+      }
     }
     fetchData()
   }, [])
