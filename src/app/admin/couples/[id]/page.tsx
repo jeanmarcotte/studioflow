@@ -6,8 +6,8 @@ import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
+import { ClientCard } from './components/ClientCard';
 import {
-  ClientCard,
   ClientJourney,
   TeamSection,
   NotesSection,
@@ -172,18 +172,9 @@ export default function CoupleDetailPage() {
       </Link>
 
       <ClientCard
-        coupleName={couple.couple_name}
-        weddingDate={couple.wedding_date}
-        receptionVenue={contract?.reception_venue || null}
-        ceremonyVenue={contract?.ceremony_location || null}
-        leadSource={couple.lead_source}
-        bookedDate={couple.booked_date}
-        signedDate={contract?.signed_date || null}
-        packageType={couple.package_type || 'photo_video'}
-        hasExtras={extrasOrders.length > 0}
-        balance={balance}
-        isArchived={milestones?.m35_archived || false}
-        isComplete={milestones?.m36_complete || false}
+        couple={couple}
+        contract={contract}
+        extrasOrders={extrasOrders}
       />
 
       <ClientJourney

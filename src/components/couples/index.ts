@@ -1,4 +1,3 @@
-export { ClientCard, type ClientCardProps } from './ClientCard';
 export { ClientJourney } from './ClientJourney';
 export { TeamSection, type TeamSectionProps } from './TeamSection';
 export { NotesSection, type NotesSectionProps } from './NotesSection';
