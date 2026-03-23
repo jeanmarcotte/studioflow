@@ -10,6 +10,7 @@ import { ClientCard } from './components/ClientCard';
 import { TeamSection } from './components/TeamSection';
 import { FinancialSummary } from './components/FinancialSummary';
 import { InstallmentsTable } from './components/InstallmentsTable';
+import { AdditionalPurchases } from './components/AdditionalPurchases';
 import {
   ClientJourney,
   NotesSection,
@@ -32,6 +33,8 @@ export default function CoupleDetailPage() {
   const [installments, setInstallments] = useState<any[]>([]);
   const [extrasOrders, setExtrasOrders] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [rawExtrasOrders, setRawExtrasOrders] = useState<any[]>([]);
+  const [clientExtras, setClientExtras] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -116,6 +119,20 @@ export default function CoupleDetailPage() {
           .eq('couple_id', coupleId)
           .order('invoice_date');
         setInvoices(invoicesData || []);
+
+        const { data: rawExtrasData } = await supabase
+          .from('extras_orders')
+          .select('*')
+          .eq('couple_id', coupleId)
+          .order('order_date');
+        setRawExtrasOrders(rawExtrasData || []);
+
+        const { data: clientExtrasData } = await supabase
+          .from('client_extras')
+          .select('*')
+          .eq('couple_id', coupleId)
+          .order('invoice_date');
+        setClientExtras(clientExtrasData || []);
 
       } catch (error) {
         console.error('Error fetching couple data:', error);
@@ -218,6 +235,11 @@ export default function CoupleDetailPage() {
       <InstallmentsTable
         installments={installments}
         totalPaid={totalPaid}
+      />
+
+      <AdditionalPurchases
+        extrasOrders={rawExtrasOrders}
+        clientExtras={clientExtras}
       />
 
       <ExtrasSection
