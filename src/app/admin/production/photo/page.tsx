@@ -16,6 +16,8 @@ interface Job {
   job_type: string
   category: string
   photos_taken: number | null
+  edited_so_far: number | null
+  total_proofs: number | null
   vendor: string | null
   status: string
   due_date: string | null
@@ -56,6 +58,8 @@ const VENDOR_LABELS: Record<string, string> = {
   cci: 'CCI',
   uaf: 'UAF',
   best_canvas: 'Best Canvas',
+  best: 'Best',
+  custom: 'Custom',
   in_house: 'In-house',
 }
 
@@ -63,7 +67,19 @@ const VENDOR_COLORS: Record<string, string> = {
   cci: 'bg-blue-100 text-blue-700',
   uaf: 'bg-purple-100 text-purple-700',
   best_canvas: 'bg-amber-100 text-amber-700',
+  best: 'bg-amber-100 text-amber-700',
+  custom: 'bg-slate-100 text-slate-700',
   in_house: 'bg-green-100 text-green-700',
+}
+
+// Normalize vendor values (handles lowercase with hyphens like "in-house")
+const getVendorInfo = (vendor: string | null) => {
+  if (!vendor) return { label: '—', color: '' }
+  const normalized = vendor.toLowerCase().replace(/-/g, '_')
+  return {
+    label: VENDOR_LABELS[normalized] || VENDOR_LABELS[vendor] || vendor,
+    color: VENDOR_COLORS[normalized] || VENDOR_COLORS[vendor] || 'bg-gray-100 text-gray-700',
+  }
 }
 
 const LANES = [
@@ -125,6 +141,12 @@ export default function PhotoProductionPage() {
   const [editedSoFar, setEditedSoFar] = useState(0)
   const [totalPhotos, setTotalPhotos] = useState(0)
 
+  // YTD data (all jobs including completed)
+  const [ytdData, setYtdData] = useState<{ photos_taken: number; edited_so_far: number; total_proofs: number }>({ photos_taken: 0, edited_so_far: 0, total_proofs: 0 })
+
+  // Save tracking for green flash
+  const [savedFields, setSavedFields] = useState<Set<string>>(new Set())
+
   // Sidebar popup
   const [popupStatus, setPopupStatus] = useState<string | null>(null)
 
@@ -162,10 +184,10 @@ export default function PhotoProductionPage() {
         supabase
           .from('jobs')
           .select('reedit_count'),
-        // Photos progress (all jobs including completed for true progress)
+        // Photos progress (all jobs including completed for true progress + YTD)
         supabase
           .from('jobs')
-          .select('edited_so_far, photos_taken'),
+          .select('edited_so_far, photos_taken, total_proofs'),
       ])
 
       // Build couple lookup map
@@ -199,9 +221,11 @@ export default function PhotoProductionPage() {
       if (!photosRes.error && photosRes.data) {
         const edited = photosRes.data.reduce((sum, r: any) => sum + (r.edited_so_far || 0), 0)
         const taken = photosRes.data.reduce((sum, r: any) => sum + (r.photos_taken || 0), 0)
-        console.log('[Photo Stats] photos:', edited, 'of', taken)
+        const proofs = photosRes.data.reduce((sum, r: any) => sum + (r.total_proofs || 0), 0)
+        console.log('[Photo Stats] photos:', edited, 'of', taken, 'proofs:', proofs)
         setEditedSoFar(edited)
         setTotalPhotos(taken)
+        setYtdData({ photos_taken: taken, edited_so_far: edited, total_proofs: proofs })
       }
 
       setLoading(false)
@@ -229,6 +253,35 @@ export default function PhotoProductionPage() {
 
     if (!error) {
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j))
+    }
+  }
+
+  // ── Field update (auto-save on blur) ─────────────────────────
+
+  const updateJobField = async (jobId: string, field: string, value: number) => {
+    // Optimistic local update
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, [field]: value } : j))
+
+    try {
+      const res = await fetch(`/api/admin/jobs/${jobId}/update`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      })
+
+      if (res.ok) {
+        const fieldKey = `${jobId}_${field}`
+        setSavedFields(prev => new Set(prev).add(fieldKey))
+        setTimeout(() => {
+          setSavedFields(prev => {
+            const next = new Set(prev)
+            next.delete(fieldKey)
+            return next
+          })
+        }, 500)
+      }
+    } catch (err) {
+      console.error('[updateJobField] Error:', err)
     }
   }
 
@@ -296,6 +349,36 @@ export default function PhotoProductionPage() {
     readyToOrderCount: jobs.filter(j => j.status === 'ready_to_order').length,
     photosPercent: totalPhotos > 0 ? Math.round((editedSoFar / totalPhotos) * 100) : 0,
   }), [jobs, editedSoFar, totalPhotos])
+
+  // ── Currently Editing data ───────────────────────────────────
+
+  const inProgressJobs = useMemo(() => filteredJobs.filter(j => j.status === 'in_progress'), [filteredJobs])
+
+  const asapTotals = useMemo(() => {
+    const pt = inProgressJobs.reduce((s, j) => s + (j.photos_taken || 0), 0)
+    const esf = inProgressJobs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
+    const tp = inProgressJobs.reduce((s, j) => s + (j.total_proofs || 0), 0)
+    const remaining = pt - esf
+    const deleted = esf - tp
+    return {
+      photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
+      pctDeleted: esf > 0 ? ((deleted / esf) * 100).toFixed(1) : '0.0',
+      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : '0.0',
+    }
+  }, [inProgressJobs])
+
+  const ytdTotals = useMemo(() => {
+    const pt = ytdData.photos_taken
+    const esf = ytdData.edited_so_far
+    const tp = ytdData.total_proofs
+    const remaining = pt - esf
+    const deleted = esf - tp
+    return {
+      photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
+      pctDeleted: esf > 0 ? ((deleted / esf) * 100).toFixed(1) : '0.0',
+      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : '0.0',
+    }
+  }, [ytdData])
 
   const getPopupJobs = (key: string): Job[] => {
     switch (key) {
@@ -457,12 +540,166 @@ export default function PhotoProductionPage() {
             </select>
           </div>
 
+          {/* Currently Editing Section */}
+          <div className="rounded-xl border bg-card mb-4">
+            <button
+              onClick={() => toggleLane('in_progress')}
+              className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                {collapsedLanes.has('in_progress')
+                  ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                }
+                <span className="font-semibold text-sm">Currently Editing</span>
+                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-blue-100 text-blue-700">
+                  {inProgressJobs.length}
+                </span>
+              </div>
+            </button>
+
+            {!collapsedLanes.has('in_progress') && (
+              <div className="border-t overflow-x-auto">
+                <table className="w-full text-sm min-w-[1100px]">
+                  <thead>
+                    <tr className="bg-muted/30 border-b">
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground min-w-[180px]">Couple</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground min-w-[130px]">Job</th>
+                      <th className="text-right px-2 py-2 text-xs font-medium text-muted-foreground w-[90px]">Photos Taken</th>
+                      <th className="text-right px-2 py-2 text-xs font-medium text-muted-foreground w-[90px]">Edited So Far</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground w-[80px]">Remaining</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground w-[70px]">Deleted</th>
+                      <th className="text-right px-2 py-2 text-xs font-medium text-muted-foreground w-[90px]">Total Proofs</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground w-[80px]">% Deleted</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground w-[90px]">% Completed</th>
+                      <th className="text-left px-2 py-2 text-xs font-medium text-muted-foreground w-[150px]">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inProgressJobs.map(job => {
+                      const pt = job.photos_taken || 0
+                      const esf = job.edited_so_far || 0
+                      const tp = job.total_proofs || 0
+                      const remaining = pt - esf
+                      const deleted = esf - tp
+                      const pctDeleted = esf > 0 ? ((deleted / esf) * 100).toFixed(1) : '0.0'
+                      const pctCompleted = pt > 0 ? ((esf / pt) * 100).toFixed(1) : '0.0'
+
+                      return (
+                        <tr key={job.id} className="border-b hover:bg-accent/20 transition-colors">
+                          <td className="px-3 py-2">
+                            <div className="font-medium text-sm">{job.couples?.couple_name || 'Unknown'}</div>
+                            {job.couples?.wedding_date && (
+                              <div className="text-[11px] text-muted-foreground">
+                                {format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground">
+                            {JOB_TYPE_LABELS[job.job_type] || job.job_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </td>
+                          <td className="px-1 py-1 text-right">
+                            <input
+                              key={`pt_${job.id}_${job.photos_taken}`}
+                              type="text"
+                              defaultValue={job.photos_taken ?? ''}
+                              onBlur={(e) => {
+                                const val = parseInt(e.target.value.replace(/,/g, '')) || 0
+                                if (val !== (job.photos_taken || 0)) updateJobField(job.id, 'photos_taken', val)
+                              }}
+                              className={`w-[80px] text-right text-sm border rounded px-2 py-1 outline-none transition-all duration-300 focus:border-stone-400 ${savedFields.has(`${job.id}_photos_taken`) ? 'bg-green-100' : 'bg-white'}`}
+                            />
+                          </td>
+                          <td className="px-1 py-1 text-right">
+                            <input
+                              key={`esf_${job.id}_${job.edited_so_far}`}
+                              type="text"
+                              defaultValue={job.edited_so_far ?? ''}
+                              onBlur={(e) => {
+                                const val = parseInt(e.target.value.replace(/,/g, '')) || 0
+                                if (val !== (job.edited_so_far || 0)) updateJobField(job.id, 'edited_so_far', val)
+                              }}
+                              className={`w-[80px] text-right text-sm border rounded px-2 py-1 outline-none transition-all duration-300 focus:border-stone-400 ${savedFields.has(`${job.id}_edited_so_far`) ? 'bg-green-100' : 'bg-white'}`}
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-500">{remaining.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right text-gray-500">{tp > 0 ? deleted.toLocaleString() : '—'}</td>
+                          <td className="px-1 py-1 text-right">
+                            <input
+                              key={`tp_${job.id}_${job.total_proofs}`}
+                              type="text"
+                              defaultValue={job.total_proofs ?? ''}
+                              onBlur={(e) => {
+                                const val = parseInt(e.target.value.replace(/,/g, '')) || 0
+                                if (val !== (job.total_proofs || 0)) updateJobField(job.id, 'total_proofs', val)
+                              }}
+                              className={`w-[80px] text-right text-sm border rounded px-2 py-1 outline-none transition-all duration-300 focus:border-stone-400 ${savedFields.has(`${job.id}_total_proofs`) ? 'bg-green-100' : 'bg-white'}`}
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-500">{pctDeleted}%</td>
+                          <td className="px-3 py-2 text-right text-gray-500">{pctCompleted}%</td>
+                          <td className="px-2 py-1">
+                            <select
+                              value={job.status}
+                              onChange={(e) => updateStatus(job.id, e.target.value)}
+                              className="text-xs rounded-lg border border-input bg-background px-2 py-1.5 outline-none transition-colors focus:border-stone-400 cursor-pointer"
+                            >
+                              {STATUS_OPTIONS.map(s => (
+                                <option key={s.value} value={s.value}>{s.label}</option>
+                              ))}
+                            </select>
+                          </td>
+                        </tr>
+                      )
+                    })}
+
+                    {inProgressJobs.length === 0 && (
+                      <tr>
+                        <td colSpan={10} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                          No jobs currently being edited
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* Currently Due ASAP Summary */}
+                    <tr className="bg-gray-100 border-t-2 border-gray-300">
+                      <td className="px-3 py-2 font-bold text-sm">Currently Due ASAP</td>
+                      <td></td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.photosTaken.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.editedSoFar.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.remaining.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.totalProofs > 0 ? asapTotals.deleted.toLocaleString() : '—'}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.totalProofs.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.pctDeleted}%</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.pctCompleted}%</td>
+                      <td></td>
+                    </tr>
+
+                    {/* Year to Date Summary */}
+                    <tr className="bg-red-600 text-white font-bold" style={{ fontSize: '15px' }}>
+                      <td className="px-3 py-2.5 font-bold rounded-bl-xl">Year to Date</td>
+                      <td></td>
+                      <td className="px-3 py-2.5 text-right">{ytdTotals.photosTaken.toLocaleString()}</td>
+                      <td className="px-3 py-2.5 text-right">{ytdTotals.editedSoFar.toLocaleString()}</td>
+                      <td className="px-3 py-2.5 text-right">{ytdTotals.remaining.toLocaleString()}</td>
+                      <td className="px-3 py-2.5 text-right">{ytdTotals.totalProofs > 0 ? ytdTotals.deleted.toLocaleString() : '—'}</td>
+                      <td className="px-3 py-2.5 text-right">{ytdTotals.totalProofs.toLocaleString()}</td>
+                      <td className="px-3 py-2.5 text-right">{ytdTotals.pctDeleted}%</td>
+                      <td className="px-3 py-2.5 text-right">{ytdTotals.pctCompleted}%</td>
+                      <td className="rounded-br-xl"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           {/* Lanes */}
           <div className="space-y-4">
-            {laneData.map(lane => {
+            {laneData.filter(lane => lane.key !== 'in_progress').map(lane => {
               const laneCount = lane.jobs.length
 
-              if (laneCount === 0 && lane.key !== 'not_started' && lane.key !== 'in_progress') return null
+              if (laneCount === 0 && lane.key !== 'not_started') return null
 
               const isCollapsed = collapsedLanes.has(lane.key)
 
@@ -533,8 +770,8 @@ export default function PhotoProductionPage() {
                           {/* Vendor */}
                           <div>
                             {job.vendor ? (
-                              <span className={`text-[11px] rounded-full px-2 py-0.5 font-medium ${VENDOR_COLORS[job.vendor] || 'bg-gray-100 text-gray-700'}`}>
-                                {VENDOR_LABELS[job.vendor] || job.vendor}
+                              <span className={`text-[11px] rounded-full px-2 py-0.5 font-medium ${getVendorInfo(job.vendor).color}`}>
+                                {getVendorInfo(job.vendor).label}
                               </span>
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>
