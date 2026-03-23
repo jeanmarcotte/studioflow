@@ -7,9 +7,9 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 import { ClientCard } from './components/ClientCard';
+import { TeamSection } from './components/TeamSection';
 import {
   ClientJourney,
-  TeamSection,
   NotesSection,
   FormsBox,
   FinancialLedger,
@@ -184,12 +184,8 @@ export default function CoupleDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <TeamSection
-          photo1={assignment?.photo_1 || contract?.photographer || null}
-          photo2={assignment?.photo_2 || null}
-          video1={assignment?.video_1 || contract?.videographer || null}
-          assignmentStatus={assignment?.status || null}
-          numPhotographers={contract?.num_photographers || 1}
-          numVideographers={contract?.num_videographers || 0}
+          assignment={assignment}
+          contract={contract}
         />
         <NotesSection
           coupleNotes={couple.notes}

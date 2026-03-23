@@ -1,5 +1,4 @@
 export { ClientJourney } from './ClientJourney';
-export { TeamSection, type TeamSectionProps } from './TeamSection';
 export { NotesSection, type NotesSectionProps } from './NotesSection';
 export { FormsBox, type FormsBoxProps } from './FormsBox';
 export { FinancialLedger, type FinancialLedgerProps, type Payment, type Installment } from './FinancialLedger';
