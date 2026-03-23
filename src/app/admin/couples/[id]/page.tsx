@@ -57,12 +57,12 @@ export default function CoupleDetailPage() {
           .single();
         setContract(contractData);
 
-        const { data: milestoneData } = await supabase
+        const { data: milestoneRows } = await supabase
           .from('couple_milestones')
           .select('*')
           .eq('couple_id', coupleId)
-          .single();
-        setMilestones(milestoneData);
+          .limit(1);
+        setMilestones(milestoneRows?.[0] ?? null);
 
         const { data: assignmentData } = await supabase
           .from('wedding_assignments')
