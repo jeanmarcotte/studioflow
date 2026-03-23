@@ -11,6 +11,7 @@ import { TeamSection } from './components/TeamSection';
 import { FinancialSummary } from './components/FinancialSummary';
 import { InstallmentsTable } from './components/InstallmentsTable';
 import { AdditionalPurchases } from './components/AdditionalPurchases';
+import { BalanceSheet } from './components/BalanceSheet';
 import {
   ClientJourney,
   NotesSection,
@@ -174,6 +175,11 @@ export default function CoupleDetailPage() {
     .reduce((sum: number, e: any) => sum + parseFloat(e.total || '0'), 0);
   const otherExtrasTotal = Math.max(0, extrasTotal - framesTotal);
 
+  const rawFramesTotal = rawExtrasOrders
+    .reduce((sum: number, o: any) => sum + parseFloat(o.extras_sale_amount || '0'), 0);
+  const rawClientExtrasTotal = clientExtras
+    .reduce((sum: number, e: any) => sum + parseFloat(e.total || '0'), 0);
+
   const framesAlbums = extrasOrders.find(e => e.order_type === 'frames_albums') || null;
   const postWedding = extrasOrders.find(e => e.order_type === 'post_wedding_extras') || null;
 
@@ -240,6 +246,14 @@ export default function CoupleDetailPage() {
       <AdditionalPurchases
         extrasOrders={rawExtrasOrders}
         clientExtras={clientExtras}
+      />
+
+      <BalanceSheet
+        payments={payments}
+        contractInstallments={installments}
+        contractTotal={contractTotal}
+        framesTotal={rawFramesTotal}
+        extrasTotal={rawClientExtrasTotal}
       />
 
       <ExtrasSection
