@@ -14,10 +14,8 @@ import {
   ClientJourney,
   NotesSection,
   FormsBox,
-  FinancialLedger,
   ExtrasSection,
   ContractPackage,
-  FooterSummary,
 } from '@/components/couples';
 
 export default function CoupleDetailPage() {
@@ -169,7 +167,7 @@ export default function CoupleDetailPage() {
     .map(e => e.notes as string);
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div style={{ padding: '1.5rem', maxWidth: '100%' }}>
       <Link
         href="/admin/couples"
         className="inline-flex items-center gap-2 text-slate-500 hover:text-teal-600 mb-4 text-sm"
@@ -222,17 +220,6 @@ export default function CoupleDetailPage() {
         totalPaid={totalPaid}
       />
 
-      <FinancialLedger
-        contractTotal={contractTotal}
-        extrasTotal={extrasTotal}
-        totalPaid={totalPaid}
-        balance={balance}
-        payments={payments}
-        installments={installments}
-        extrasOrders={extrasOrders}
-        contractSignedDate={contract?.signed_date || null}
-      />
-
       <ExtrasSection
         framesAlbums={framesAlbums}
         postWedding={postWedding}
@@ -270,13 +257,6 @@ export default function CoupleDetailPage() {
         />
       )}
 
-      <FooterSummary
-        contractTotal={contractTotal}
-        extrasTotal={extrasTotal}
-        grandTotal={grandTotal}
-        totalPaid={totalPaid}
-        balance={balance}
-      />
     </div>
   );
 }

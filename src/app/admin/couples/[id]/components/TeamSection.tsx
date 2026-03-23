@@ -1,12 +1,6 @@
 'use client';
 
-/* ── design tokens (match ClientCard) ───────────────────── */
-
-const T = {
-  text: '#1e293b',
-  muted: '#94a3b8',
-  border: '#e2e8f0',
-} as const;
+import { T, card, sectionLabel, fieldLabel, pillBase, badge } from './designTokens';
 
 /* ── sub-components ─────────────────────────────────────── */
 
@@ -17,19 +11,14 @@ function RoleCard({ role, name }: { role: string; name: string | null }) {
       flex: '1 1 0', minWidth: '140px',
       padding: '1rem 1.25rem', borderRadius: '10px',
       border: `1px solid ${T.border}`,
-      background: assigned ? '#fff' : '#f8fafc',
+      background: assigned ? T.cardBg : T.cardBgAlt,
       opacity: assigned ? 1 : 0.65,
     }}>
-      <div style={{
-        fontSize: '0.6875rem', fontWeight: 500, letterSpacing: '0.03em',
-        textTransform: 'uppercase', color: T.muted, marginBottom: '0.25rem',
-      }}>
-        {role}
-      </div>
+      <div style={{ ...fieldLabel, marginBottom: '0.25rem' }}>{role}</div>
       {assigned ? (
         <div style={{ fontSize: '0.875rem', fontWeight: 500, color: T.text }}>{name}</div>
       ) : (
-        <div style={{ fontSize: '0.875rem', color: T.muted, fontStyle: 'italic' }}>Not assigned</div>
+        <div style={{ fontSize: '0.875rem', color: T.textMuted, fontStyle: 'italic' }}>Not assigned</div>
       )}
     </div>
   );
@@ -52,24 +41,15 @@ export function TeamSection({ assignment, contract }: TeamSectionProps) {
   const nV = contract?.num_videographers || 0;
 
   return (
-    <div style={{
-      background: '#fff', border: `1px solid ${T.border}`, borderRadius: '16px',
-      padding: '1.5rem 1.75rem', marginBottom: '1.25rem',
-    }}>
+    <div style={card}>
       {/* ── Header ────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-        <div style={{
-          fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.06em',
-          textTransform: 'uppercase', color: T.muted,
-        }}>
-          Team
-        </div>
+        <div style={sectionLabel}>Team</div>
         {status === 'confirmed' && (
           <span style={{
-            display: 'inline-flex', alignItems: 'center', padding: '0.1875rem 0.625rem',
-            borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 500,
-            letterSpacing: '0.02em', backgroundColor: '#f0fdf4',
-            color: '#166534', border: '1px solid #bbf7d0',
+            ...pillBase,
+            backgroundColor: badge.success.bg, color: badge.success.fg,
+            border: `1px solid ${badge.success.bd}`,
           }}>
             Confirmed
           </span>
@@ -85,7 +65,7 @@ export function TeamSection({ assignment, contract }: TeamSectionProps) {
 
       {/* ── Contract spec ─────────────────────────────────── */}
       <div style={{
-        fontSize: '0.75rem', color: T.muted, borderTop: `1px solid ${T.border}`,
+        fontSize: '0.75rem', color: T.textSecondary, borderTop: `1px solid ${T.border}`,
         paddingTop: '0.75rem',
       }}>
         Contract specifies {nP} photographer{nP !== 1 ? 's' : ''}

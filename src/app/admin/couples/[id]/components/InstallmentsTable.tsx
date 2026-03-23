@@ -1,45 +1,25 @@
 'use client';
 
 import { format } from 'date-fns';
+import { T, card, sectionLabel, fieldLabel, pillBase, badge, fmt } from './designTokens';
 
-/* ── design tokens (match ClientCard) ───────────────────── */
-
-const T = {
-  text: '#1e293b',
-  muted: '#94a3b8',
-  border: '#e2e8f0',
-} as const;
-
-const fmt = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' });
-
-/* ── badge styles ───────────────────────────────────────── */
-
-const BADGE = {
-  paid:    { bg: '#f0fdf4', fg: '#166534', bd: '#bbf7d0' },
-  overdue: { bg: '#fff7ed', fg: '#9a3412', bd: '#fed7aa' },
-  pending: { bg: '#f1f5f9', fg: '#475569', bd: '#e2e8f0' },
-} as const;
+/* ── sub-components ─────────────────────────────────────── */
 
 function StatusPill({ status }: { status: 'paid' | 'overdue' | 'pending' }) {
-  const c = BADGE[status];
+  const map = { paid: badge.success, overdue: badge.warning, pending: badge.default } as const;
+  const c = map[status];
   const label = status === 'paid' ? 'Paid' : status === 'overdue' ? 'Overdue' : 'Due';
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', padding: '0.1875rem 0.625rem',
-      borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 500,
-      backgroundColor: c.bg, color: c.fg, border: `1px solid ${c.bd}`,
-    }}>
+    <span style={{ ...pillBase, backgroundColor: c.bg, color: c.fg, border: `1px solid ${c.bd}` }}>
       {label}
     </span>
   );
 }
 
-/* ── table header cell ──────────────────────────────────── */
-
 const thStyle: React.CSSProperties = {
-  fontSize: '0.6875rem', fontWeight: 500, letterSpacing: '0.03em',
-  textTransform: 'uppercase', color: T.muted,
-  padding: '0.625rem 0.75rem', borderBottom: `1px solid ${T.border}`,
+  ...fieldLabel,
+  padding: '0.625rem 0.75rem',
+  borderBottom: `1px solid ${T.border}`,
 };
 
 /* ── main component ─────────────────────────────────────── */
@@ -52,17 +32,9 @@ export interface InstallmentsTableProps {
 export function InstallmentsTable({ installments, totalPaid }: InstallmentsTableProps) {
   if (!installments.length) {
     return (
-      <div style={{
-        background: '#fff', border: `1px solid ${T.border}`, borderRadius: '16px',
-        padding: '1.5rem 1.75rem', marginBottom: '1.25rem',
-      }}>
-        <div style={{
-          fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.06em',
-          textTransform: 'uppercase', color: T.muted, marginBottom: '1rem',
-        }}>
-          Original Contract Installments
-        </div>
-        <div style={{ fontSize: '0.8125rem', color: T.muted, fontStyle: 'italic' }}>
+      <div style={card}>
+        <div style={{ ...sectionLabel, marginBottom: '1rem' }}>Original Contract Installments</div>
+        <div style={{ fontSize: '0.8125rem', color: T.textMuted, fontStyle: 'italic' }}>
           No installments recorded
         </div>
       </div>
@@ -70,19 +42,11 @@ export function InstallmentsTable({ installments, totalPaid }: InstallmentsTable
   }
 
   return (
-    <div style={{
-      background: '#fff', border: `1px solid ${T.border}`, borderRadius: '16px',
-      padding: '1.5rem 1.75rem', marginBottom: '1.25rem', overflow: 'hidden',
-    }}>
+    <div style={{ ...card, overflow: 'hidden' }}>
       {/* ── Header ────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-        <div style={{
-          fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.06em',
-          textTransform: 'uppercase', color: T.muted,
-        }}>
-          Original Contract Installments
-        </div>
-        <div style={{ fontSize: '0.75rem', color: T.muted }}>
+        <div style={sectionLabel}>Original Contract Installments</div>
+        <div style={{ fontSize: '0.75rem', color: T.textSecondary }}>
           {installments.length} installment{installments.length !== 1 ? 's' : ''}
         </div>
       </div>
@@ -105,24 +69,23 @@ export function InstallmentsTable({ installments, totalPaid }: InstallmentsTable
             const today = new Date();
             const isOverdue = dueDate ? dueDate < today : false;
 
-            // Cumulative paid logic (preserved from existing FinancialLedger)
             const cumulative = installments
               .filter((i: any) => i.installment_number <= inst.installment_number)
               .reduce((sum: number, i: any) => sum + parseFloat(i.amount), 0);
             const isPaid = totalPaid >= cumulative - 0.05;
 
             const status: 'paid' | 'overdue' | 'pending' = isPaid ? 'paid' : isOverdue ? 'overdue' : 'pending';
-            const rowBg = idx % 2 === 1 ? '#fafbfc' : 'transparent';
+            const rowBg = idx % 2 === 1 ? T.rowAlt : 'transparent';
 
             return (
               <tr key={inst.id || idx}>
-                <td style={{ padding: '0.75rem', color: T.muted, fontSize: '0.8125rem', background: rowBg }}>
+                <td style={{ padding: '0.75rem', color: T.textSecondary, fontSize: '0.8125rem', background: rowBg }}>
                   {inst.installment_number}
                 </td>
                 <td style={{ padding: '0.75rem', fontSize: '0.8125rem', fontWeight: 500, color: T.text, background: rowBg }}>
                   {inst.due_description}
                 </td>
-                <td style={{ padding: '0.75rem', fontSize: '0.8125rem', color: T.muted, background: rowBg }}>
+                <td style={{ padding: '0.75rem', fontSize: '0.8125rem', color: T.textSecondary, background: rowBg }}>
                   {dueDate ? format(dueDate, 'MMM d, yyyy') : '—'}
                 </td>
                 <td style={{ padding: '0.75rem', fontSize: '0.8125rem', color: T.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums', background: rowBg }}>

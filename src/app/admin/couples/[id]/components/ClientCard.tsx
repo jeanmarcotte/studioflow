@@ -2,52 +2,33 @@
 
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { DM_Serif_Display } from 'next/font/google';
+import { T, card, sectionLabel, fieldLabel, pillBase, badge } from './designTokens';
 
 const display = DM_Serif_Display({ weight: '400', subsets: ['latin'], display: 'swap' });
-
-/* ── design tokens ──────────────────────────────────────── */
-
-const T = {
-  text: '#1e293b',
-  muted: '#94a3b8',
-  border: '#e2e8f0',
-  sectionLabel: { fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: '0.75rem' },
-} as const;
 
 /* ── sub-components ─────────────────────────────────────── */
 
 function SectionLabel({ children }: { children: string }) {
-  return <div style={{ ...T.sectionLabel, color: T.muted }}>{children}</div>;
+  return <div style={{ ...sectionLabel, marginBottom: '0.75rem' }}>{children}</div>;
 }
 
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
     <div style={{ marginBottom: '0.5rem' }}>
-      <div style={{ fontSize: '0.6875rem', fontWeight: 500, letterSpacing: '0.03em', textTransform: 'uppercase', color: T.muted }}>{label}</div>
+      <div style={fieldLabel}>{label}</div>
       {value ? (
         <div style={{ fontSize: '0.8125rem', color: T.text, marginTop: '1px' }}>{value}</div>
       ) : (
-        <div style={{ fontSize: '0.8125rem', color: T.muted, fontStyle: 'italic', marginTop: '1px' }}>Not specified</div>
+        <div style={{ fontSize: '0.8125rem', color: T.textMuted, fontStyle: 'italic', marginTop: '1px' }}>Not specified</div>
       )}
     </div>
   );
 }
 
-const BADGE: Record<string, { bg: string; fg: string; bd: string }> = {
-  default: { bg: '#f1f5f9', fg: '#475569', bd: '#e2e8f0' },
-  indigo:  { bg: '#eef2ff', fg: '#4338ca', bd: '#e0e7ff' },
-  warm:    { bg: '#fefce8', fg: '#854d0e', bd: '#fef08a' },
-  sage:    { bg: '#f0fdf4', fg: '#166534', bd: '#bbf7d0' },
-};
-
-function Badge({ children, v = 'default' }: { children: React.ReactNode; v?: keyof typeof BADGE }) {
-  const c = BADGE[v];
+function Badge({ children, v = 'default' }: { children: React.ReactNode; v?: keyof typeof badge }) {
+  const c = badge[v];
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', padding: '0.1875rem 0.625rem',
-      borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 500, letterSpacing: '0.02em',
-      backgroundColor: c.bg, color: c.fg, border: `1px solid ${c.bd}`,
-    }}>
+    <span style={{ ...pillBase, backgroundColor: c.bg, color: c.fg, border: `1px solid ${c.bd}` }}>
       {children}
     </span>
   );
@@ -74,7 +55,6 @@ export function ClientCard({ couple, contract, extrasOrders }: ClientCardProps) 
   const nP = contract?.num_photographers || 1;
   const nV = contract?.num_videographers || 0;
 
-  // Coverage hours
   let coverage: string | null = null;
   if (contract?.start_time && contract?.end_time) {
     const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
@@ -98,10 +78,7 @@ export function ClientCard({ couple, contract, extrasOrders }: ClientCardProps) 
   if (bookedStr) meta.push(`Booked ${bookedStr}`);
 
   return (
-    <div style={{
-      background: '#fff', border: `1px solid ${T.border}`, borderRadius: '16px',
-      padding: '2rem 2.25rem', marginBottom: '1.25rem',
-    }}>
+    <div style={{ ...card, padding: '2rem 2.25rem' }}>
       {/* ── Name ──────────────────────────────────────────── */}
       <h1 className={display.className} style={{
         fontSize: '1.75rem', fontWeight: 400, color: T.text,
@@ -141,22 +118,22 @@ export function ClientCard({ couple, contract, extrasOrders }: ClientCardProps) 
 
       {/* ── Badges ────────────────────────────────────────── */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.25rem' }}>
-        <Badge v="indigo">{status}</Badge>
+        <Badge v="accent">{status}</Badge>
         <Badge>{nV > 0 ? 'Photo + Video' : 'Photo Only'}</Badge>
-        <Badge v="sage">{isPast ? 'Post-Wedding' : 'Pre-Wedding'}</Badge>
-        {extrasOrders.length > 0 && <Badge v="warm">Extras Purchased</Badge>}
+        <Badge v="success">{isPast ? 'Post-Wedding' : 'Pre-Wedding'}</Badge>
+        {extrasOrders.length > 0 && <Badge v="warning">Extras Purchased</Badge>}
       </div>
 
       {/* ── Subtext ───────────────────────────────────────── */}
       <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: '0.875rem' }}>
         <div style={{ fontSize: '0.8125rem', color: T.text, marginBottom: '0.25rem' }}>
           {weddingStr}
-          <span style={{ color: T.muted, marginLeft: '0.75rem' }}>
+          <span style={{ color: T.textSecondary, marginLeft: '0.75rem' }}>
             {isPast ? `${Math.abs(daysUntil)} days since wedding` : `${daysUntil} days until wedding`}
           </span>
         </div>
         {meta.length > 0 && (
-          <div style={{ fontSize: '0.75rem', color: T.muted }}>{meta.join(' · ')}</div>
+          <div style={{ fontSize: '0.75rem', color: T.textSecondary }}>{meta.join(' · ')}</div>
         )}
       </div>
     </div>
