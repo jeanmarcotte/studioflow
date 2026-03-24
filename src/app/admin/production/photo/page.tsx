@@ -148,13 +148,17 @@ export default function PhotoProductionPage() {
   // Sidebar popup
   const [popupStatus, setPopupStatus] = useState<string | null>(null)
 
+  // Cemetery (completed & picked up)
+  const [cemeteryJobs, setCemeteryJobs] = useState<Job[]>([])
+  const [cemeteryOpen, setCemeteryOpen] = useState(false)
+
   // ── Fetch ─────────────────────────────────────────────────────
 
   useEffect(() => {
     const fetchAll = async () => {
       const today = new Date().toISOString().split('T')[0]
 
-      const [jobsRes, couplesRes, completedRes, waitingRes, reeditRes, photosRes] = await Promise.all([
+      const [jobsRes, couplesRes, completedRes, waitingRes, reeditRes, photosRes, cemeteryRes] = await Promise.all([
         // Active jobs — exclude completed & picked_up
         supabase
           .from('jobs')
@@ -186,6 +190,12 @@ export default function PhotoProductionPage() {
         supabase
           .from('jobs')
           .select('edited_so_far, photos_taken, total_proofs'),
+        // Cemetery — completed & picked up jobs
+        supabase
+          .from('jobs')
+          .select('*')
+          .in('status', ['completed', 'picked_up'])
+          .order('created_at', { ascending: false }),
       ])
 
       // Build couple lookup map
@@ -224,6 +234,20 @@ export default function PhotoProductionPage() {
         setEditedSoFar(edited)
         setTotalPhotos(taken)
         setYtdData({ photos_taken: taken, edited_so_far: edited, total_proofs: proofs })
+      }
+
+      // Cemetery jobs
+      if (!cemeteryRes.error && cemeteryRes.data) {
+        const enrichedCemetery = (cemeteryRes.data as any[]).map(j => ({
+          ...j,
+          couples: coupleMap.get(j.couple_id) || null,
+        }))
+        enrichedCemetery.sort((a: any, b: any) => {
+          const dateA = a.couples?.wedding_date || '0000'
+          const dateB = b.couples?.wedding_date || '0000'
+          return dateB.localeCompare(dateA)
+        })
+        setCemeteryJobs(enrichedCemetery as Job[])
       }
 
       setLoading(false)
@@ -785,6 +809,87 @@ export default function PhotoProductionPage() {
                 </div>
               )
             })}
+          </div>
+
+          {/* 🪦 Cemetery — Completed & Picked Up */}
+          <div className="mt-6 rounded-xl border border-gray-200 bg-card">
+            <button
+              onClick={() => setCemeteryOpen(!cemeteryOpen)}
+              className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                {cemeteryOpen
+                  ? <ChevronDown className="h-4 w-4 text-gray-400" />
+                  : <ChevronRight className="h-4 w-4 text-gray-400" />
+                }
+                <span className="font-semibold text-sm text-gray-400">🪦 Cemetery — Completed & Picked Up</span>
+                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-gray-100 text-gray-500">
+                  {cemeteryJobs.length}
+                </span>
+              </div>
+            </button>
+
+            {cemeteryOpen && cemeteryJobs.length > 0 && (
+              <div className="border-t overflow-x-auto">
+                <table className="w-full text-sm min-w-[1000px]">
+                  <thead>
+                    <tr className="bg-gray-50 border-b">
+                      <th className="text-left px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Couple</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Job Type</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Photos Taken</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Edited So Far</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Total Proofs</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Deleted</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">% Deleted</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Vendor</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cemeteryJobs.map((job, i) => {
+                      const pt = job.photos_taken || 0
+                      const tp = job.total_proofs || 0
+                      const deleted = tp > 0 && pt > tp ? pt - tp : 0
+                      const pctDeleted = deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null
+                      const vendorInfo = getVendorInfo(job.vendor)
+
+                      return (
+                        <tr key={job.id} className={`border-b border-gray-100 ${i % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
+                          <td className="px-3 py-2">
+                            <div className="font-medium text-sm text-gray-500">{job.couples?.couple_name || 'Unknown'}</div>
+                            {job.couples?.wedding_date && (
+                              <div className="text-[11px] text-gray-400">
+                                {format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-gray-400">
+                            {JOB_TYPE_LABELS[job.job_type] || job.job_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-400">{pt > 0 ? pt.toLocaleString() : '—'}</td>
+                          <td className="px-3 py-2 text-right text-gray-400">{(job.edited_so_far || 0) > 0 ? (job.edited_so_far || 0).toLocaleString() : '—'}</td>
+                          <td className="px-3 py-2 text-right text-gray-400">{tp > 0 ? tp.toLocaleString() : '—'}</td>
+                          <td className="px-3 py-2 text-right text-gray-400">{deleted > 0 ? deleted.toLocaleString() : '—'}</td>
+                          <td className="px-3 py-2 text-right text-gray-400">{pctDeleted !== null ? `${pctDeleted}%` : '—'}</td>
+                          <td className="px-3 py-2 text-gray-400">{vendorInfo.label}</td>
+                          <td className="px-3 py-2">
+                            <span className="text-xs text-gray-400 italic">
+                              {job.status === 'picked_up' ? 'Picked Up' : 'Completed'}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {cemeteryOpen && cemeteryJobs.length === 0 && (
+              <div className="border-t px-4 py-6 text-center text-sm text-gray-400">
+                No completed jobs
+              </div>
+            )}
           </div>
         </div>
 

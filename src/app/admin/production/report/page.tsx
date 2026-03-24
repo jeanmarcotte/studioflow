@@ -25,6 +25,7 @@ interface PhotoJob {
   notes: string | null
   created_at: string
   updated_at: string
+  completed_date: string | null
   couples?: { couple_name: string; wedding_date: string | null } | null
 }
 
@@ -42,6 +43,8 @@ interface VideoJob {
   bride_done: boolean
   proxies_run: boolean
   video_form: boolean
+  completed_date: string | null
+  updated_at: string
   created_at: string
   couples?: { couple_name: string; id: string; wedding_date: string | null } | null
 }
@@ -66,7 +69,7 @@ function formatJobType(type: string): string {
     bg_portrait_print: 'B&G Portrait Print',
     parent_album: 'Parent Album', parent_portrait_print: 'Parent Portrait Print',
     parent_portrait_canvas: 'Parent Portrait Canvas',
-    BEST_PRINT: 'Best Canvas Print',
+    BEST_PRINT: 'Best Canvas Print', TYC: 'Thank You Cards',
     tyc: 'Thank You Cards', hires_wedding: 'Hi-Res Wedding',
     eng_collage: 'Engagement Collage', eng_signing_book: 'Engagement Signing Book',
     eng_album: 'Engagement Album', eng_prints: 'Engagement Prints',
@@ -105,10 +108,15 @@ function daysSince(dateStr: string | null): number {
 }
 
 function safeDeleted(pt: number, tp: number): number {
-  return tp > 0 ? pt - tp : 0
+  if (tp <= 0 || pt <= 0 || pt <= tp) return 0
+  return pt - tp
 }
 
-// ── Photo pipeline section config ────────────────────────────────
+function isProofsJob(jobType: string): boolean {
+  return jobType.toLowerCase().includes('proofs')
+}
+
+// ── Config ──────────────────────────────────────────────────────
 
 const PHOTO_PIPELINE = [
   { status: 'waiting_approval', label: 'Waiting for Bride', color: '#d97706' },
@@ -129,17 +137,29 @@ const SEGMENT_FIELDS = [
   { field: 'prereception_done', label: 'Pre' },
 ] as const
 
+// Deliverable groupings — map job_types to display labels
+const DELIVERABLE_MAP: Record<string, string> = {
+  wedding_proofs: 'Wedding Proofs', WED_PROOFS: 'Wedding Proofs',
+  eng_proofs: 'Engagement Proofs', ENG_PROOFS: 'Engagement Proofs',
+  WED_PACKAGE: 'Wedding Package',
+  parent_album: 'Parent Album', PARENT_BOOK: 'Parent Album',
+  WED_ALBUM: 'Wedding Album',
+  bg_album: 'B&G Album',
+  BEST_PRINT: 'Best Canvas Print',
+  ENG_COLLAGE: 'Engagement Collage', eng_collage: 'Engagement Collage',
+  WED_FRAMES: 'Wedding Frames',
+  WED_PORTRAIT: 'Wedding Portrait', WED_PORTRAITS: 'Wedding Portrait',
+  TYC: 'Thank You Cards', tyc: 'Thank You Cards',
+}
+
 // ══════════════════════════════════════════════════════════════════
 // PAGE
 // ══════════════════════════════════════════════════════════════════
 
 export default function ProductionReportPage() {
-  const [photoJobs, setPhotoJobs] = useState<PhotoJob[]>([])
+  const [allPhotoJobs, setAllPhotoJobs] = useState<PhotoJob[]>([])
   const [videoJobs, setVideoJobs] = useState<VideoJob[]>([])
-  const [photoCompletedCount, setPhotoCompletedCount] = useState(0)
   const [waitingOrderCouples, setWaitingOrderCouples] = useState<WaitingOrderCouple[]>([])
-  const [ytdPhoto, setYtdPhoto] = useState({ photos_taken: 0, edited_so_far: 0, total_proofs: 0 })
-  const [reeditYtdCount, setReeditYtdCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   // ── Fetch ─────────────────────────────────────────────────────
@@ -148,51 +168,32 @@ export default function ProductionReportPage() {
     const fetchAll = async () => {
       const today = new Date().toISOString().split('T')[0]
 
-      const [activePhotoRes, couplesRes, completedPhotoRes, waitingRes, videoRes, reeditRes, photosRes] = await Promise.all([
-        supabase.from('jobs').select('*').neq('status', 'completed').neq('status', 'picked_up').order('created_at', { ascending: false }),
+      const [allPhotosRes, couplesRes, waitingRes, videoRes] = await Promise.all([
+        supabase.from('jobs').select('*').order('created_at', { ascending: false }),
         supabase.from('couples').select('id, couple_name, wedding_date'),
-        supabase.from('jobs').select('id', { count: 'exact', head: true }).in('status', ['completed', 'picked_up']),
         supabase.from('couples')
           .select('id, couple_name, wedding_date, couple_milestones!inner(m24_photo_order_in)')
           .lt('wedding_date', today).eq('couple_milestones.m24_photo_order_in', false)
           .order('wedding_date', { ascending: true }),
-        supabase.from('video_jobs').select('*, couples(id, couple_name, wedding_date)').order('sort_order', { ascending: true, nullsFirst: false }),
-        supabase.from('jobs').select('reedit_count'),
-        supabase.from('jobs').select('edited_so_far, photos_taken, total_proofs'),
+        supabase.from('video_jobs').select('*, couples(id, couple_name, wedding_date)')
+          .order('sort_order', { ascending: true, nullsFirst: false }),
       ])
 
-      // Build couple lookup
       const coupleMap = new Map<string, { couple_name: string; wedding_date: string | null }>()
       if (couplesRes.data) {
         couplesRes.data.forEach((c: any) => coupleMap.set(c.id, { couple_name: c.couple_name, wedding_date: c.wedding_date }))
       }
 
-      if (!activePhotoRes.error && activePhotoRes.data) {
-        const enriched = (activePhotoRes.data as any[]).map(j => ({ ...j, couples: coupleMap.get(j.couple_id) || null }))
-        setPhotoJobs(enriched as PhotoJob[])
+      if (!allPhotosRes.error && allPhotosRes.data) {
+        const enriched = (allPhotosRes.data as any[]).map(j => ({ ...j, couples: coupleMap.get(j.couple_id) || null }))
+        setAllPhotoJobs(enriched as PhotoJob[])
       }
-
-      setPhotoCompletedCount(completedPhotoRes.count ?? 0)
-
       if (!waitingRes.error && waitingRes.data) {
         setWaitingOrderCouples(waitingRes.data as unknown as WaitingOrderCouple[])
       }
-
       if (!videoRes.error && videoRes.data) {
         setVideoJobs(videoRes.data as VideoJob[])
       }
-
-      if (!reeditRes.error && reeditRes.data) {
-        setReeditYtdCount(reeditRes.data.reduce((sum, r: any) => sum + (r.reedit_count || 0), 0))
-      }
-
-      if (!photosRes.error && photosRes.data) {
-        const edited = photosRes.data.reduce((s, r: any) => s + (r.edited_so_far || 0), 0)
-        const taken = photosRes.data.reduce((s, r: any) => s + (r.photos_taken || 0), 0)
-        const proofs = photosRes.data.reduce((s, r: any) => s + (r.total_proofs || 0), 0)
-        setYtdPhoto({ photos_taken: taken, edited_so_far: edited, total_proofs: proofs })
-      }
-
       setLoading(false)
     }
     fetchAll()
@@ -207,30 +208,123 @@ export default function ProductionReportPage() {
     return `${d} at ${t}`
   }, [])
 
-  const inProgressPhoto = useMemo(() => photoJobs.filter(j => j.status === 'in_progress'), [photoJobs])
+  // ── Executive Summary: 2025/2026 Season Split ─────────────────
+
+  const photo2025 = useMemo(() => {
+    const all = allPhotoJobs.filter(j => {
+      const wd = j.couples?.wedding_date
+      return wd && wd >= '2025-01-01' && wd < '2026-01-01'
+    })
+    const done = all.filter(j => ['completed', 'picked_up'].includes(j.status))
+    return { total: all.length, completed: done.length, remaining: all.length - done.length }
+  }, [allPhotoJobs])
+
+  const photo2026 = useMemo(() => {
+    const all = allPhotoJobs.filter(j => {
+      const wd = j.couples?.wedding_date
+      return wd && wd >= '2026-01-01'
+    })
+    const done = all.filter(j => ['completed', 'picked_up'].includes(j.status))
+    return { total: all.length, completed: done.length, remaining: all.length - done.length }
+  }, [allPhotoJobs])
+
+  const video2025 = useMemo(() => {
+    const all = videoJobs.filter(v => {
+      const wd = v.couples?.wedding_date
+      return wd && wd >= '2025-01-01' && wd < '2026-01-01'
+    })
+    const done = all.filter(v => v.status === 'complete')
+    return { total: all.length, completed: done.length, remaining: all.length - done.length }
+  }, [videoJobs])
+
+  const video2026 = useMemo(() => {
+    const all = videoJobs.filter(v => {
+      const wd = v.couples?.wedding_date
+      return wd && wd >= '2026-01-01'
+    })
+    const done = all.filter(v => v.status === 'complete')
+    return { total: all.length, completed: done.length, remaining: all.length - done.length }
+  }, [videoJobs])
+
+  // ── Deliverables Produced (2026) ──────────────────────────────
+
+  const photoDeliverables = useMemo(() => {
+    const statusGroups = ['completed', 'picked_up', 'at_lab', 'at_studio', 'ready_to_reedit', 'reediting'] as const
+    type StatusGroup = 'done' | 'at_lab' | 'at_studio' | 're_edit'
+
+    const result: Record<string, Record<StatusGroup, number>> = {}
+
+    for (const job of allPhotoJobs) {
+      if (!statusGroups.includes(job.status as any)) continue
+      const label = DELIVERABLE_MAP[job.job_type] || formatJobType(job.job_type)
+      if (!result[label]) result[label] = { done: 0, at_lab: 0, at_studio: 0, re_edit: 0 }
+
+      if (job.status === 'completed' || job.status === 'picked_up') result[label].done++
+      else if (job.status === 'at_lab') result[label].at_lab++
+      else if (job.status === 'at_studio') result[label].at_studio++
+      else if (job.status === 'ready_to_reedit' || job.status === 'reediting') result[label].re_edit++
+    }
+
+    return Object.entries(result)
+      .filter(([, counts]) => counts.done + counts.at_lab + counts.at_studio + counts.re_edit > 0)
+      .sort((a, b) => (b[1].done + b[1].at_lab + b[1].at_studio + b[1].re_edit) - (a[1].done + a[1].at_lab + a[1].at_studio + a[1].re_edit))
+  }, [allPhotoJobs])
+
+  const videoDeliverables = useMemo(() => {
+    return videoJobs
+      .filter(v => v.status === 'complete')
+      .sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''))
+  }, [videoJobs])
+
+  const videoDeliverablesByType = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const v of videoDeliverables) {
+      const label = formatVideoJobType(v.job_type)
+      counts[label] = (counts[label] || 0) + 1
+    }
+    return counts
+  }, [videoDeliverables])
+
+  // ── Photo Production: Currently Editing (proofs only) ─────────
+
+  const activePhotoJobs = useMemo(() =>
+    allPhotoJobs.filter(j => !['completed', 'picked_up'].includes(j.status)),
+  [allPhotoJobs])
+
+  const editingProofs = useMemo(() =>
+    activePhotoJobs.filter(j => j.status === 'in_progress' && isProofsJob(j.job_type)),
+  [activePhotoJobs])
 
   const asapTotals = useMemo(() => {
-    const pt = inProgressPhoto.reduce((s, j) => s + (j.photos_taken || 0), 0)
-    const esf = inProgressPhoto.reduce((s, j) => s + (j.edited_so_far || 0), 0)
-    const tp = inProgressPhoto.reduce((s, j) => s + (j.total_proofs || 0), 0)
+    const pt = editingProofs.reduce((s, j) => s + (j.photos_taken || 0), 0)
+    const esf = editingProofs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
+    const tp = editingProofs.reduce((s, j) => s + (j.total_proofs || 0), 0)
     const deleted = safeDeleted(pt, tp)
-    return { pt, esf, tp, remaining: pt - esf, deleted,
+    return {
+      pt, esf, tp, remaining: pt - esf, deleted,
       pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
-      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null }
-  }, [inProgressPhoto])
+      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null,
+    }
+  }, [editingProofs])
 
   const ytdTotals = useMemo(() => {
-    const { photos_taken: pt, edited_so_far: esf, total_proofs: tp } = ytdPhoto
+    const proofsJobs = allPhotoJobs.filter(j => isProofsJob(j.job_type))
+    const pt = proofsJobs.reduce((s, j) => s + (j.photos_taken || 0), 0)
+    const esf = proofsJobs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
+    const tp = proofsJobs.reduce((s, j) => s + (j.total_proofs || 0), 0)
     const deleted = safeDeleted(pt, tp)
-    return { pt, esf, tp, remaining: pt - esf, deleted,
+    return {
+      pt, esf, tp, remaining: pt - esf, deleted,
       pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
-      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null }
-  }, [ytdPhoto])
+      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null,
+    }
+  }, [allPhotoJobs])
 
-  const photosPercent = ytdPhoto.photos_taken > 0 ? Math.round((ytdPhoto.edited_so_far / ytdPhoto.photos_taken) * 100) : 0
+  // ── Video by Status ───────────────────────────────────────────
 
   const videoByStatus = useMemo(() => ({
     in_progress: videoJobs.filter(v => v.status === 'in_progress'),
+    waiting_for_bride: videoJobs.filter(v => v.status === 'waiting_for_bride'),
     not_started: videoJobs.filter(v => v.status === 'not_started'),
     waiting_on_recap: videoJobs.filter(v => v.status === 'waiting_on_recap'),
     complete: videoJobs.filter(v => v.status === 'complete'),
@@ -258,6 +352,7 @@ export default function ProductionReportPage() {
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .report-page { background: white !important; padding: 0 !important; }
           .report-header { border-radius: 0 !important; margin: 0 !important; }
+          section { break-inside: avoid; }
         }
       `}</style>
 
@@ -278,36 +373,139 @@ export default function ProductionReportPage() {
       <div className="report-page max-w-[1200px] mx-auto px-8 py-8">
 
         {/* ═══ EXECUTIVE SUMMARY ═══ */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          {/* Photo Active / Completed */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <p className="text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide mb-2">Photo Jobs</p>
-            <p className="text-3xl font-bold">{photoJobs.length}</p>
-            <p className="text-sm text-gray-500 mt-1">{photoCompletedCount} completed</p>
-          </div>
-          {/* Video Active / Completed */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <p className="text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide mb-2">Video Jobs</p>
-            <p className="text-3xl font-bold">{videoByStatus.all_active.length}</p>
-            <p className="text-sm text-gray-500 mt-1">{videoByStatus.complete.length} completed</p>
-          </div>
-          {/* Photos Edited */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <p className="text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide mb-2">Photos Edited</p>
-            <p className="text-3xl font-bold">{photosPercent}%</p>
-            <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${photosPercent}%` }} />
+        <section className="mb-10">
+          {/* 2025 Season */}
+          <div className="mb-3">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">2025 Season</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">📷</span>
+                  <p className="text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide">Photo 2025</p>
+                </div>
+                <p className="text-2xl font-bold">{photo2025.total} <span className="text-sm font-normal text-gray-400">total jobs</span></p>
+                <p className="text-sm text-gray-500 mt-1">{photo2025.completed} completed / picked up</p>
+                {photo2025.remaining > 0 && (
+                  <p className="text-sm font-semibold text-amber-600 mt-1">{photo2025.remaining} remaining in pipeline</p>
+                )}
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">🎬</span>
+                  <p className="text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide">Video 2025</p>
+                </div>
+                <p className="text-2xl font-bold">{video2025.total} <span className="text-sm font-normal text-gray-400">total jobs</span></p>
+                <p className="text-sm text-gray-500 mt-1">{video2025.completed} completed</p>
+                {video2025.remaining > 0 && (
+                  <p className="text-sm font-semibold text-amber-600 mt-1">{video2025.remaining} remaining</p>
+                )}
+              </div>
             </div>
-            <p className="text-xs text-gray-500 mt-1">{ytdPhoto.edited_so_far.toLocaleString()} of {ytdPhoto.photos_taken.toLocaleString()}</p>
           </div>
-          {/* Video Breakdown */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <p className="text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide mb-2">Video Status</p>
-            <div className="space-y-1 text-sm">
-              <p><span className="font-bold">{videoByStatus.in_progress.length}</span> <span className="text-gray-500">In Progress</span></p>
-              <p><span className="font-bold">{videoByStatus.not_started.length}</span> <span className="text-gray-500">Not Started</span></p>
-              <p><span className="font-bold">{videoByStatus.waiting_on_recap.length}</span> <span className="text-gray-500">Waiting on Recap</span></p>
+
+          {/* 2026 Season */}
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">2026 Season</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">📷</span>
+                  <p className="text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide">Photo 2026</p>
+                </div>
+                <p className="text-2xl font-bold">{photo2026.total} <span className="text-sm font-normal text-gray-400">total jobs</span></p>
+                <p className="text-sm text-gray-500 mt-1">{photo2026.completed} completed / picked up</p>
+                {photo2026.remaining > 0 && (
+                  <p className="text-sm font-semibold text-amber-600 mt-1">{photo2026.remaining} remaining in pipeline</p>
+                )}
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">🎬</span>
+                  <p className="text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide">Video 2026</p>
+                </div>
+                <p className="text-2xl font-bold">{video2026.total} <span className="text-sm font-normal text-gray-400">total jobs</span></p>
+                <p className="text-sm text-gray-500 mt-1">{video2026.completed} completed</p>
+                {video2026.remaining > 0 && (
+                  <p className="text-sm font-semibold text-amber-600 mt-1">{video2026.remaining} remaining</p>
+                )}
+              </div>
             </div>
+          </div>
+        </section>
+
+        {/* ═══ DELIVERABLES PRODUCED ═══ */}
+        <section className="mb-12">
+          <div className="bg-[#0d4f4f] text-white rounded-lg px-5 py-3 mb-5 flex items-center gap-3">
+            <span className="text-xl">📊</span>
+            <h2 className={`${playfair.className} text-xl font-bold`}>Deliverables Produced</h2>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Photo Deliverables */}
+            {photoDeliverables.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+                  <h3 className="font-bold text-sm text-[#0d4f4f]">📷 Photo Deliverables</h3>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[#0d4f4f]/5">
+                      <th className="text-left px-3 py-2.5 text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide">Deliverable</th>
+                      <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide">Done</th>
+                      <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide">At Lab</th>
+                      <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide">At Studio</th>
+                      <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide">Re-edit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {photoDeliverables.map(([label, counts], i) => (
+                      <tr key={label} className={i % 2 === 1 ? 'bg-[#faf8f5]' : ''}>
+                        <td className="px-3 py-2 font-medium">{label}</td>
+                        <td className="px-3 py-2 text-right">{counts.done > 0 ? counts.done : '—'}</td>
+                        <td className="px-3 py-2 text-right text-gray-400">{counts.at_lab > 0 ? counts.at_lab : '—'}</td>
+                        <td className="px-3 py-2 text-right text-gray-400">{counts.at_studio > 0 ? counts.at_studio : '—'}</td>
+                        <td className="px-3 py-2 text-right text-gray-400">{counts.re_edit > 0 ? counts.re_edit : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Video Deliverables */}
+            {videoDeliverables.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+                  <h3 className="font-bold text-sm text-[#0d4f4f]">
+                    🎬 Video Deliverables
+                    <span className="ml-2 font-normal text-gray-500">
+                      {videoDeliverables.length} video{videoDeliverables.length !== 1 ? 's' : ''} completed
+                      {Object.keys(videoDeliverablesByType).length > 0 && (
+                        <> ({Object.entries(videoDeliverablesByType).map(([t, c]) => `${c} ${t}${c !== 1 ? 's' : ''}`).join(', ')})</>
+                      )}
+                    </span>
+                  </h3>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[#0d4f4f]/5">
+                      <th className="text-left px-3 py-2.5 text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide">Couple</th>
+                      <th className="text-left px-3 py-2.5 text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide">Type</th>
+                      <th className="text-left px-3 py-2.5 text-xs font-semibold text-[#0d4f4f] uppercase tracking-wide">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {videoDeliverables.map((vj, i) => (
+                      <tr key={vj.id} className={i % 2 === 1 ? 'bg-[#faf8f5]' : ''}>
+                        <td className="px-3 py-2 font-medium">{vj.couples?.couple_name || 'Unknown'}</td>
+                        <td className="px-3 py-2 text-gray-600">{formatVideoJobType(vj.job_type)}</td>
+                        <td className="px-3 py-2 text-emerald-600 font-medium">Complete</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </section>
 
@@ -318,10 +516,10 @@ export default function ProductionReportPage() {
             <h2 className={`${playfair.className} text-xl font-bold`}>Photo Production</h2>
           </div>
 
-          {/* Currently Editing Table */}
+          {/* Currently Editing Table (proofs only) */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
             <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
-              <h3 className="font-bold text-sm text-[#0d4f4f]">Currently Editing <span className="ml-2 text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">{inProgressPhoto.length}</span></h3>
+              <h3 className="font-bold text-sm text-[#0d4f4f]">Currently Editing <span className="ml-2 text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">{editingProofs.length}</span></h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[1000px]">
@@ -339,7 +537,7 @@ export default function ProductionReportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {inProgressPhoto.map((job, i) => {
+                  {editingProofs.map((job, i) => {
                     const pt = job.photos_taken || 0
                     const esf = job.edited_so_far || 0
                     const tp = job.total_proofs || 0
@@ -364,8 +562,8 @@ export default function ProductionReportPage() {
                       </tr>
                     )
                   })}
-                  {inProgressPhoto.length === 0 && (
-                    <tr><td colSpan={9} className="px-4 py-6 text-center text-gray-400 italic">No jobs currently being edited</td></tr>
+                  {editingProofs.length === 0 && (
+                    <tr><td colSpan={9} className="px-4 py-6 text-center text-gray-400 italic">No proofs currently being edited</td></tr>
                   )}
                   {/* ASAP Summary */}
                   <tr className="bg-gray-100 border-t-2 border-gray-300 font-semibold">
@@ -398,7 +596,7 @@ export default function ProductionReportPage() {
 
           {/* Photo Pipeline Sections */}
           {PHOTO_PIPELINE.map(section => {
-            const sectionJobs = photoJobs.filter(j => j.status === section.status)
+            const sectionJobs = activePhotoJobs.filter(j => j.status === section.status)
             if (sectionJobs.length === 0) return null
             return (
               <div key={section.status} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-4">
@@ -471,22 +669,26 @@ export default function ProductionReportPage() {
           </div>
 
           {/* Video Summary Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm text-center">
               <p className="text-2xl font-bold text-emerald-600">{videoByStatus.complete.length}</p>
               <p className="text-xs text-gray-500 font-semibold uppercase mt-1">Complete</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm text-center">
+              <p className="text-2xl font-bold text-gray-500">{videoDeliverables.length}</p>
+              <p className="text-xs text-gray-500 font-semibold uppercase mt-1">Edited</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm text-center">
               <p className="text-2xl font-bold text-blue-600">{videoByStatus.in_progress.length}</p>
               <p className="text-xs text-gray-500 font-semibold uppercase mt-1">In Progress</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm text-center">
-              <p className="text-2xl font-bold text-gray-600">{videoByStatus.not_started.length}</p>
-              <p className="text-xs text-gray-500 font-semibold uppercase mt-1">Not Started</p>
+              <p className="text-2xl font-bold text-purple-600">{videoByStatus.waiting_for_bride.length}</p>
+              <p className="text-xs text-gray-500 font-semibold uppercase mt-1">Waiting for Bride</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm text-center">
-              <p className="text-2xl font-bold text-amber-600">{videoByStatus.waiting_on_recap.length}</p>
-              <p className="text-xs text-gray-500 font-semibold uppercase mt-1">Waiting on Recap</p>
+              <p className="text-2xl font-bold text-gray-600">{videoByStatus.not_started.length}</p>
+              <p className="text-xs text-gray-500 font-semibold uppercase mt-1">Not Started</p>
             </div>
           </div>
 
@@ -503,11 +705,10 @@ export default function ProductionReportPage() {
                     <tr className="bg-gray-50 border-b">
                       <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Couple</th>
                       <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Wedding Date</th>
-                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Job Type</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</th>
                       <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Assigned</th>
                       <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Segments</th>
                       <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Proxies</th>
-                      <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Form</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -528,13 +729,42 @@ export default function ProductionReportPage() {
                             </span>
                           </td>
                           <td className="px-3 py-2.5 text-center">{vj.proxies_run ? '✅' : '○'}</td>
-                          <td className="px-3 py-2.5 text-center">{vj.video_form ? '✅' : '○'}</td>
                         </tr>
                       )
                     })}
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* Video Waiting for Bride */}
+          {videoByStatus.waiting_for_bride.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-4">
+              <div className="px-5 py-2.5 bg-purple-600 flex items-center justify-between">
+                <h3 className="font-bold text-sm text-white">Waiting for Bride</h3>
+                <span className="text-xs text-white/80 font-semibold">{videoByStatus.waiting_for_bride.length}</span>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b">
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Couple</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Wedding Date</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Assigned</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {videoByStatus.waiting_for_bride.map((vj, i) => (
+                    <tr key={vj.id} className={`border-b border-gray-50 ${i % 2 === 1 ? 'bg-[#faf8f5]' : ''}`}>
+                      <td className="px-3 py-2.5 font-medium">{vj.couples?.couple_name || 'Unknown'}</td>
+                      <td className="px-3 py-2.5 text-gray-500">{formatDate(vj.couples?.wedding_date ?? null)}</td>
+                      <td className="px-3 py-2.5 text-gray-600">{formatVideoJobType(vj.job_type)}</td>
+                      <td className="px-3 py-2.5 text-gray-600">{vj.assigned_to || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
@@ -550,7 +780,7 @@ export default function ProductionReportPage() {
                   <tr className="bg-gray-50 border-b">
                     <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Couple</th>
                     <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Wedding Date</th>
-                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Job Type</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</th>
                     <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Assigned</th>
                     <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Proxies</th>
                   </tr>
@@ -599,18 +829,11 @@ export default function ProductionReportPage() {
               </table>
             </div>
           )}
-
-          {/* Video Completed Summary */}
-          {videoByStatus.complete.length > 0 && (
-            <div className="bg-emerald-50 rounded-xl border border-emerald-200 px-5 py-4 text-center">
-              <p className="text-sm font-semibold text-emerald-800">✅ {videoByStatus.complete.length} video{videoByStatus.complete.length !== 1 ? 's' : ''} completed</p>
-            </div>
-          )}
         </section>
 
         {/* ═══ FOOTER ═══ */}
         <footer className="border-t border-gray-200 pt-4 flex justify-between text-xs text-gray-400">
-          <p>Generated by StudioFlow • SIGS Photography</p>
+          <p>Generated by StudioFlow &bull; SIGS Photography</p>
           <p>{timestamp}</p>
         </footer>
       </div>

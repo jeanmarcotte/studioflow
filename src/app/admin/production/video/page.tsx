@@ -51,10 +51,11 @@ const STATUS_LABELS: Record<string, string> = {
   waiting_on_recap: 'Waiting on Recap',
   raw_video_output: 'Raw Video Output',
   complete: 'Complete',
+  waiting_for_bride: 'Waiting for Bride',
   archived: 'Archived',
 }
 
-const ALL_STATUSES = ['not_started', 'in_progress', 'waiting_on_recap', 'raw_video_output', 'complete', 'archived']
+const ALL_STATUSES = ['not_started', 'in_progress', 'waiting_on_recap', 'waiting_for_bride', 'raw_video_output', 'complete', 'archived']
 
 type SwimlaneKey = 'editing_full' | 'editing_recap' | 'editing_eng_slideshow' | 'reediting' | 'waiting_photo' | 'completed'
 

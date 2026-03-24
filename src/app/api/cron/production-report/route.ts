@@ -27,7 +27,7 @@ function formatJobType(type: string): string {
     bg_portrait_print: 'B&G Portrait Print',
     parent_album: 'Parent Album', parent_portrait_print: 'Parent Portrait Print',
     parent_portrait_canvas: 'Parent Portrait Canvas',
-    BEST_PRINT: 'Best Canvas Print',
+    BEST_PRINT: 'Best Canvas Print', TYC: 'Thank You Cards',
     tyc: 'Thank You Cards', hires_wedding: 'Hi-Res Wedding',
     eng_collage: 'Engagement Collage', eng_signing_book: 'Engagement Signing Book',
     eng_album: 'Engagement Album', eng_prints: 'Engagement Prints',
@@ -66,7 +66,8 @@ function daysSince(dateStr: string | null): number {
 }
 
 function safeDeleted(pt: number, tp: number): number {
-  return tp > 0 ? pt - tp : 0
+  if (tp <= 0 || pt <= 0 || pt <= tp) return 0
+  return pt - tp
 }
 
 function pctStr(deleted: number, pt: number): string {
@@ -74,7 +75,11 @@ function pctStr(deleted: number, pt: number): string {
 }
 
 function pctComp(esf: number, pt: number): string {
-  return pt > 0 ? ((esf / pt) * 100).toFixed(1) + '%' : '0.0%'
+  return pt > 0 ? ((esf / pt) * 100).toFixed(1) + '%' : '&mdash;'
+}
+
+function isProofsJob(jobType: string): boolean {
+  return jobType.toLowerCase().includes('proofs')
 }
 
 const SEGMENT_FIELDS = ['ceremony_done', 'reception_done', 'park_done', 'groom_done', 'bride_done', 'prereception_done'] as const
@@ -89,10 +94,23 @@ const PHOTO_PIPELINE = [
   { status: 'ready_to_order', label: 'Ready to Order', color: '#d97706' },
 ]
 
+const DELIVERABLE_MAP: Record<string, string> = {
+  wedding_proofs: 'Wedding Proofs', WED_PROOFS: 'Wedding Proofs',
+  eng_proofs: 'Engagement Proofs', ENG_PROOFS: 'Engagement Proofs',
+  WED_PACKAGE: 'Wedding Package',
+  parent_album: 'Parent Album', PARENT_BOOK: 'Parent Album',
+  WED_ALBUM: 'Wedding Album',
+  bg_album: 'B&G Album',
+  BEST_PRINT: 'Best Canvas Print',
+  ENG_COLLAGE: 'Engagement Collage', eng_collage: 'Engagement Collage',
+  WED_FRAMES: 'Wedding Frames',
+  WED_PORTRAIT: 'Wedding Portrait', WED_PORTRAITS: 'Wedding Portrait',
+  TYC: 'Thank You Cards', tyc: 'Thank You Cards',
+}
+
 // ── Route ────────────────────────────────────────────────────────
 
 export async function GET(request: Request) {
-  // Auth check
   if (request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -101,16 +119,15 @@ export async function GET(request: Request) {
     const supabase = getServiceClient()
     const today = new Date().toISOString().split('T')[0]
 
-    const [activePhotoRes, couplesRes, completedPhotoRes, waitingRes, videoRes, photosRes] = await Promise.all([
-      supabase.from('jobs').select('*').neq('status', 'completed').neq('status', 'picked_up').order('created_at', { ascending: false }),
+    const [allPhotosRes, couplesRes, waitingRes, videoRes] = await Promise.all([
+      supabase.from('jobs').select('*').order('created_at', { ascending: false }),
       supabase.from('couples').select('id, couple_name, wedding_date'),
-      supabase.from('jobs').select('id', { count: 'exact', head: true }).in('status', ['completed', 'picked_up']),
       supabase.from('couples')
         .select('id, couple_name, wedding_date, couple_milestones!inner(m24_photo_order_in)')
         .lt('wedding_date', today).eq('couple_milestones.m24_photo_order_in', false)
         .order('wedding_date', { ascending: true }),
-      supabase.from('video_jobs').select('*, couples(id, couple_name, wedding_date)').order('sort_order', { ascending: true, nullsFirst: false }),
-      supabase.from('jobs').select('edited_so_far, photos_taken, total_proofs'),
+      supabase.from('video_jobs').select('*, couples(id, couple_name, wedding_date)')
+        .order('sort_order', { ascending: true, nullsFirst: false }),
     ])
 
     // Build couple lookup
@@ -119,36 +136,68 @@ export async function GET(request: Request) {
       couplesRes.data.forEach((c: any) => coupleMap.set(c.id, { couple_name: c.couple_name, wedding_date: c.wedding_date }))
     }
 
-    const photoJobs = ((activePhotoRes.data || []) as any[]).map(j => ({
-      ...j,
-      couples: coupleMap.get(j.couple_id) || null,
+    const allPhotoJobs = ((allPhotosRes.data || []) as any[]).map(j => ({
+      ...j, couples: coupleMap.get(j.couple_id) || null,
     }))
     const videoJobs = (videoRes.data || []) as any[]
-    const photoCompletedCount = completedPhotoRes.count ?? 0
     const waitingCouples = (waitingRes.data || []) as any[]
 
-    // YTD photo stats
-    const ytdEdited = (photosRes.data || []).reduce((s: number, r: any) => s + (r.edited_so_far || 0), 0)
-    const ytdTaken = (photosRes.data || []).reduce((s: number, r: any) => s + (r.photos_taken || 0), 0)
-    const ytdProofs = (photosRes.data || []).reduce((s: number, r: any) => s + (r.total_proofs || 0), 0)
-    const photosPercent = ytdTaken > 0 ? Math.round((ytdEdited / ytdTaken) * 100) : 0
+    // ── Compute all data ──────────────────────────────────────────
+
+    // 2025/2026 season splits
+    const photo2025All = allPhotoJobs.filter((j: any) => { const wd = j.couples?.wedding_date; return wd && wd >= '2025-01-01' && wd < '2026-01-01' })
+    const photo2025Done = photo2025All.filter((j: any) => ['completed', 'picked_up'].includes(j.status))
+    const photo2026All = allPhotoJobs.filter((j: any) => { const wd = j.couples?.wedding_date; return wd && wd >= '2026-01-01' })
+    const photo2026Done = photo2026All.filter((j: any) => ['completed', 'picked_up'].includes(j.status))
+
+    const video2025All = videoJobs.filter((v: any) => { const wd = v.couples?.wedding_date; return wd && wd >= '2025-01-01' && wd < '2026-01-01' })
+    const video2025Done = video2025All.filter((v: any) => v.status === 'complete')
+    const video2026All = videoJobs.filter((v: any) => { const wd = v.couples?.wedding_date; return wd && wd >= '2026-01-01' })
+    const video2026Done = video2026All.filter((v: any) => v.status === 'complete')
+
+    // Deliverables
+    const delivStatusGroups = ['completed', 'picked_up', 'at_lab', 'at_studio', 'ready_to_reedit', 'reediting']
+    const photoDelivMap: Record<string, { done: number; at_lab: number; at_studio: number; re_edit: number }> = {}
+    for (const job of allPhotoJobs) {
+      if (!delivStatusGroups.includes(job.status)) continue
+      const label = DELIVERABLE_MAP[job.job_type] || formatJobType(job.job_type)
+      if (!photoDelivMap[label]) photoDelivMap[label] = { done: 0, at_lab: 0, at_studio: 0, re_edit: 0 }
+      if (job.status === 'completed' || job.status === 'picked_up') photoDelivMap[label].done++
+      else if (job.status === 'at_lab') photoDelivMap[label].at_lab++
+      else if (job.status === 'at_studio') photoDelivMap[label].at_studio++
+      else photoDelivMap[label].re_edit++
+    }
+    const photoDeliverables = Object.entries(photoDelivMap).filter(([, c]) => c.done + c.at_lab + c.at_studio + c.re_edit > 0)
+
+    const videoDeliverables = videoJobs.filter((v: any) => v.status === 'complete')
+    const videoDelivCounts: Record<string, number> = {}
+    for (const v of videoDeliverables) { const t = formatVideoJobType(v.job_type); videoDelivCounts[t] = (videoDelivCounts[t] || 0) + 1 }
+
+    // Active photo jobs
+    const activePhotoJobs = allPhotoJobs.filter((j: any) => !['completed', 'picked_up'].includes(j.status))
+
+    // Currently Editing (proofs only)
+    const editingProofs = activePhotoJobs.filter((j: any) => j.status === 'in_progress' && isProofsJob(j.job_type))
+
+    // ASAP totals
+    const asapPt = editingProofs.reduce((s: number, j: any) => s + (j.photos_taken || 0), 0)
+    const asapEsf = editingProofs.reduce((s: number, j: any) => s + (j.edited_so_far || 0), 0)
+    const asapTp = editingProofs.reduce((s: number, j: any) => s + (j.total_proofs || 0), 0)
+    const asapDel = safeDeleted(asapPt, asapTp)
+
+    // YTD totals (proofs only, all statuses)
+    const proofsAll = allPhotoJobs.filter((j: any) => isProofsJob(j.job_type))
+    const ytdPt = proofsAll.reduce((s: number, j: any) => s + (j.photos_taken || 0), 0)
+    const ytdEsf = proofsAll.reduce((s: number, j: any) => s + (j.edited_so_far || 0), 0)
+    const ytdTp = proofsAll.reduce((s: number, j: any) => s + (j.total_proofs || 0), 0)
+    const ytdDel = safeDeleted(ytdPt, ytdTp)
 
     // Video groupings
     const vidInProgress = videoJobs.filter((v: any) => v.status === 'in_progress')
+    const vidWaitingBride = videoJobs.filter((v: any) => v.status === 'waiting_for_bride')
     const vidNotStarted = videoJobs.filter((v: any) => v.status === 'not_started')
     const vidWaitingRecap = videoJobs.filter((v: any) => v.status === 'waiting_on_recap')
     const vidComplete = videoJobs.filter((v: any) => v.status === 'complete')
-    const vidActive = videoJobs.filter((v: any) => v.status !== 'complete' && v.status !== 'archived')
-
-    // Photo groupings
-    const inProgressPhoto = photoJobs.filter((j: any) => j.status === 'in_progress')
-
-    // ASAP totals
-    const asapPt = inProgressPhoto.reduce((s: number, j: any) => s + (j.photos_taken || 0), 0)
-    const asapEsf = inProgressPhoto.reduce((s: number, j: any) => s + (j.edited_so_far || 0), 0)
-    const asapTp = inProgressPhoto.reduce((s: number, j: any) => s + (j.total_proofs || 0), 0)
-    const asapDel = safeDeleted(asapPt, asapTp)
-    const ytdDel = safeDeleted(ytdTaken, ytdProofs)
 
     // Timestamp
     const now = new Date()
@@ -165,9 +214,93 @@ export async function GET(request: Request) {
     const tdGray = 'style="padding:8px 10px;font-size:13px;border-bottom:1px solid #f3f4f6;color:#6b7280;"'
     const tdGrayR = 'style="padding:8px 10px;font-size:13px;border-bottom:1px solid #f3f4f6;color:#6b7280;text-align:right;"'
 
-    // Currently Editing rows
+    // Season summary card helper
+    const seasonCard = (emoji: string, label: string, total: number, completed: number, remaining: number) => `
+      <td style="width:48%;padding:14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
+        <div style="font-size:13px;font-weight:700;color:#0d4f4f;margin-bottom:6px;">${emoji} ${label}</div>
+        <div style="font-size:24px;font-weight:700;color:#111;">${total} <span style="font-size:12px;font-weight:400;color:#9ca3af;">total</span></div>
+        <div style="font-size:12px;color:#6b7280;margin-top:2px;">${completed} completed</div>
+        ${remaining > 0 ? `<div style="font-size:12px;font-weight:700;color:#d97706;margin-top:2px;">${remaining} remaining</div>` : ''}
+      </td>`
+
+    // ── Executive Summary ──────────────────────────────────────────
+
+    const execSummary = `
+      <!-- 2025 Season -->
+      <div style="margin-bottom:8px;">
+        <p style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1.5px;margin:0 0 6px;">2025 Season</p>
+        <table style="width:100%;border-collapse:separate;border-spacing:8px 0;">
+          <tr>
+            ${seasonCard('&#128247;', 'Photo 2025', photo2025All.length, photo2025Done.length, photo2025All.length - photo2025Done.length)}
+            <td style="width:4%;"></td>
+            ${seasonCard('&#127916;', 'Video 2025', video2025All.length, video2025Done.length, video2025All.length - video2025Done.length)}
+          </tr>
+        </table>
+      </div>
+      <!-- 2026 Season -->
+      <div style="margin-bottom:20px;">
+        <p style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1.5px;margin:0 0 6px;">2026 Season</p>
+        <table style="width:100%;border-collapse:separate;border-spacing:8px 0;">
+          <tr>
+            ${seasonCard('&#128247;', 'Photo 2026', photo2026All.length, photo2026Done.length, photo2026All.length - photo2026Done.length)}
+            <td style="width:4%;"></td>
+            ${seasonCard('&#127916;', 'Video 2026', video2026All.length, video2026Done.length, video2026All.length - video2026Done.length)}
+          </tr>
+        </table>
+      </div>`
+
+    // ── Deliverables Produced ──────────────────────────────────────
+
+    let photoDelivHtml = ''
+    if (photoDeliverables.length > 0) {
+      let rows = ''
+      for (const [label, counts] of photoDeliverables) {
+        rows += `<tr>
+          <td ${td}><strong>${label}</strong></td>
+          <td ${tdR}>${counts.done > 0 ? counts.done : '&mdash;'}</td>
+          <td ${tdGrayR}>${counts.at_lab > 0 ? counts.at_lab : '&mdash;'}</td>
+          <td ${tdGrayR}>${counts.at_studio > 0 ? counts.at_studio : '&mdash;'}</td>
+          <td ${tdGrayR}>${counts.re_edit > 0 ? counts.re_edit : '&mdash;'}</td>
+        </tr>`
+      }
+      photoDelivHtml = `
+        <div style="margin-bottom:16px;">
+          <p style="font-size:13px;font-weight:700;color:#0d4f4f;margin:0 0 6px;">&#128247; Photo Deliverables</p>
+          <table style="width:100%;border-collapse:collapse;background:white;">
+            <tr style="background:#f9fafb;">
+              <th ${th}>Deliverable</th><th ${thR}>Done</th><th ${thR}>At Lab</th><th ${thR}>At Studio</th><th ${thR}>Re-edit</th>
+            </tr>
+            ${rows}
+          </table>
+        </div>`
+    }
+
+    let videoDelivHtml = ''
+    if (videoDeliverables.length > 0) {
+      const countStr = Object.entries(videoDelivCounts).map(([t, c]) => `${c} ${t}${c !== 1 ? 's' : ''}`).join(', ')
+      let rows = ''
+      for (const vj of videoDeliverables) {
+        rows += `<tr>
+          <td ${td}><strong>${vj.couples?.couple_name || 'Unknown'}</strong></td>
+          <td ${tdGray}>${formatVideoJobType(vj.job_type)}</td>
+          <td ${td} style="color:#059669;font-weight:600;">Complete</td>
+        </tr>`
+      }
+      videoDelivHtml = `
+        <div style="margin-bottom:16px;">
+          <p style="font-size:13px;font-weight:700;color:#0d4f4f;margin:0 0 2px;">&#127916; Video Deliverables</p>
+          <p style="font-size:12px;color:#6b7280;margin:0 0 6px;">${videoDeliverables.length} videos completed (${countStr})</p>
+          <table style="width:100%;border-collapse:collapse;background:white;">
+            <tr style="background:#f9fafb;"><th ${th}>Couple</th><th ${th}>Type</th><th ${th}>Status</th></tr>
+            ${rows}
+          </table>
+        </div>`
+    }
+
+    // ── Currently Editing (proofs only) ──────────────────────────
+
     let editingRows = ''
-    for (const job of inProgressPhoto) {
+    for (const job of editingProofs) {
       const pt = job.photos_taken || 0
       const esf = job.edited_so_far || 0
       const tp = job.total_proofs || 0
@@ -185,10 +318,11 @@ export async function GET(request: Request) {
       </tr>`
     }
 
-    // Pipeline sections
+    // ── Pipeline sections ──────────────────────────────────────────
+
     let pipelineHtml = ''
     for (const section of PHOTO_PIPELINE) {
-      const sectionJobs = photoJobs.filter((j: any) => j.status === section.status)
+      const sectionJobs = activePhotoJobs.filter((j: any) => j.status === section.status)
       if (sectionJobs.length === 0) continue
       let rows = ''
       for (const job of sectionJobs) {
@@ -212,7 +346,8 @@ export async function GET(request: Request) {
         </div>`
     }
 
-    // Follow-up
+    // ── Follow-up ──────────────────────────────────────────────────
+
     let followUpHtml = ''
     if (waitingCouples.length > 0) {
       let rows = ''
@@ -235,7 +370,9 @@ export async function GET(request: Request) {
         </div>`
     }
 
-    // Video In Progress rows
+    // ── Video sections ──────────────────────────────────────────────
+
+    // Video In Progress
     let vidInProgressHtml = ''
     if (vidInProgress.length > 0) {
       let rows = ''
@@ -249,7 +386,6 @@ export async function GET(request: Request) {
           <td ${tdGray}>${vj.assigned_to || '&mdash;'}</td>
           <td ${td} style="text-align:center;"><strong>${doneCount}/6</strong> ${segs}</td>
           <td ${td} style="text-align:center;">${vj.proxies_run ? '&#9989;' : '&#9675;'}</td>
-          <td ${td} style="text-align:center;">${vj.video_form ? '&#9989;' : '&#9675;'}</td>
         </tr>`
       }
       vidInProgressHtml = `
@@ -257,14 +393,36 @@ export async function GET(request: Request) {
           <div style="background:#2563eb;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:13px;font-weight:700;">In Progress (${vidInProgress.length})</div>
           <table style="width:100%;border-collapse:collapse;background:white;">
             <tr style="background:#f9fafb;">
-              <th ${th}>Couple</th><th ${th}>Date</th><th ${th}>Type</th><th ${th}>Assigned</th><th ${th} style="text-align:center">Segments</th><th ${th} style="text-align:center">Proxies</th><th ${th} style="text-align:center">Form</th>
+              <th ${th}>Couple</th><th ${th}>Date</th><th ${th}>Type</th><th ${th}>Assigned</th><th ${th} style="text-align:center">Segments</th><th ${th} style="text-align:center">Proxies</th>
             </tr>
             ${rows}
           </table>
         </div>`
     }
 
-    // Video Not Started rows
+    // Video Waiting for Bride
+    let vidWaitingBrideHtml = ''
+    if (vidWaitingBride.length > 0) {
+      let rows = ''
+      for (const vj of vidWaitingBride) {
+        rows += `<tr>
+          <td ${td}><strong>${vj.couples?.couple_name || 'Unknown'}</strong></td>
+          <td ${tdGray}>${fmtDate(vj.couples?.wedding_date ?? null)}</td>
+          <td ${tdGray}>${formatVideoJobType(vj.job_type)}</td>
+          <td ${tdGray}>${vj.assigned_to || '&mdash;'}</td>
+        </tr>`
+      }
+      vidWaitingBrideHtml = `
+        <div style="margin-bottom:16px;">
+          <div style="background:#7c3aed;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:13px;font-weight:700;">Waiting for Bride (${vidWaitingBride.length})</div>
+          <table style="width:100%;border-collapse:collapse;background:white;">
+            <tr style="background:#f9fafb;"><th ${th}>Couple</th><th ${th}>Date</th><th ${th}>Type</th><th ${th}>Assigned</th></tr>
+            ${rows}
+          </table>
+        </div>`
+    }
+
+    // Video Not Started
     let vidNotStartedHtml = ''
     if (vidNotStarted.length > 0) {
       const sorted = [...vidNotStarted].sort((a: any, b: any) => (a.couples?.wedding_date || '').localeCompare(b.couples?.wedding_date || ''))
@@ -306,6 +464,8 @@ export async function GET(request: Request) {
         </div>`
     }
 
+    // ── Assemble full HTML ──────────────────────────────────────────
+
     const html = `
 <!DOCTYPE html>
 <html>
@@ -323,42 +483,23 @@ export async function GET(request: Request) {
   <div style="padding:24px;">
 
     <!-- Executive Summary -->
-    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-      <tr>
-        <td style="width:25%;padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;text-align:center;">
-          <div style="font-size:28px;font-weight:700;color:#111;">${photoJobs.length}</div>
-          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600;">Photo Active</div>
-          <div style="font-size:11px;color:#9ca3af;">${photoCompletedCount} completed</div>
-        </td>
-        <td style="width:4px;"></td>
-        <td style="width:25%;padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;text-align:center;">
-          <div style="font-size:28px;font-weight:700;color:#111;">${vidActive.length}</div>
-          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600;">Video Active</div>
-          <div style="font-size:11px;color:#9ca3af;">${vidComplete.length} completed</div>
-        </td>
-        <td style="width:4px;"></td>
-        <td style="width:25%;padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;text-align:center;">
-          <div style="font-size:28px;font-weight:700;color:#111;">${photosPercent}%</div>
-          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600;">Photos Edited</div>
-          <div style="font-size:11px;color:#9ca3af;">${ytdEdited.toLocaleString()} of ${ytdTaken.toLocaleString()}</div>
-        </td>
-        <td style="width:4px;"></td>
-        <td style="width:25%;padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;text-align:center;">
-          <div style="font-size:16px;font-weight:700;color:#111;">${vidInProgress.length} / ${vidNotStarted.length} / ${vidComplete.length}</div>
-          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600;">Video Progress</div>
-          <div style="font-size:11px;color:#9ca3af;">IP / NS / Done</div>
-        </td>
-      </tr>
-    </table>
+    ${execSummary}
+
+    <!-- Deliverables -->
+    <div style="background:#0d4f4f;color:white;padding:10px 16px;border-radius:6px;margin-bottom:16px;font-size:16px;font-weight:700;font-family:Georgia,serif;">
+      &#128202; Deliverables Produced
+    </div>
+    ${photoDelivHtml}
+    ${videoDelivHtml}
 
     <!-- PHOTO SECTION -->
-    <div style="background:#0d4f4f;color:white;padding:10px 16px;border-radius:6px;margin-bottom:16px;font-size:16px;font-weight:700;font-family:Georgia,serif;">
+    <div style="background:#0d4f4f;color:white;padding:10px 16px;border-radius:6px;margin:28px 0 16px;font-size:16px;font-weight:700;font-family:Georgia,serif;">
       &#128247; Photo Production
     </div>
 
     <!-- Currently Editing -->
     <div style="margin-bottom:20px;">
-      <div style="background:#f0f9ff;padding:8px 14px;border-bottom:2px solid #0d4f4f;font-size:13px;font-weight:700;color:#0d4f4f;">Currently Editing (${inProgressPhoto.length})</div>
+      <div style="background:#f0f9ff;padding:8px 14px;border-bottom:2px solid #0d4f4f;font-size:13px;font-weight:700;color:#0d4f4f;">Currently Editing (${editingProofs.length})</div>
       <table style="width:100%;border-collapse:collapse;background:white;">
         <tr style="background:#f9fafb;">
           <th ${th}>Couple</th><th ${th}>Job</th><th ${thR}>Taken</th><th ${thR}>Edited</th><th ${thR}>Remain</th><th ${thR}>Del</th><th ${thR}>Proofs</th><th ${thR}>%Del</th><th ${thR}>%Done</th>
@@ -377,13 +518,13 @@ export async function GET(request: Request) {
         <!-- YTD -->
         <tr style="background:#dc2626;color:white;font-weight:700;font-size:14px;">
           <td style="padding:10px;border:none;"><strong>Year to Date</strong></td><td style="padding:10px;border:none;"></td>
-          <td style="padding:10px;border:none;text-align:right;"><strong>${ytdTaken.toLocaleString()}</strong></td>
-          <td style="padding:10px;border:none;text-align:right;"><strong>${ytdEdited.toLocaleString()}</strong></td>
-          <td style="padding:10px;border:none;text-align:right;"><strong>${(ytdTaken - ytdEdited).toLocaleString()}</strong></td>
+          <td style="padding:10px;border:none;text-align:right;"><strong>${ytdPt.toLocaleString()}</strong></td>
+          <td style="padding:10px;border:none;text-align:right;"><strong>${ytdEsf.toLocaleString()}</strong></td>
+          <td style="padding:10px;border:none;text-align:right;"><strong>${(ytdPt - ytdEsf).toLocaleString()}</strong></td>
           <td style="padding:10px;border:none;text-align:right;"><strong>${ytdDel > 0 ? ytdDel.toLocaleString() : '&mdash;'}</strong></td>
-          <td style="padding:10px;border:none;text-align:right;"><strong>${ytdProofs.toLocaleString()}</strong></td>
-          <td style="padding:10px;border:none;text-align:right;"><strong>${pctStr(ytdDel, ytdTaken)}</strong></td>
-          <td style="padding:10px;border:none;text-align:right;"><strong>${pctComp(ytdEdited, ytdTaken)}</strong></td>
+          <td style="padding:10px;border:none;text-align:right;"><strong>${ytdTp.toLocaleString()}</strong></td>
+          <td style="padding:10px;border:none;text-align:right;"><strong>${pctStr(ytdDel, ytdPt)}</strong></td>
+          <td style="padding:10px;border:none;text-align:right;"><strong>${pctComp(ytdEsf, ytdPt)}</strong></td>
         </tr>
       </table>
     </div>
@@ -399,21 +540,22 @@ export async function GET(request: Request) {
     <!-- Video Summary -->
     <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
       <tr>
-        <td style="width:25%;padding:10px;background:#ecfdf5;border:1px solid #d1fae5;border-radius:6px;text-align:center;font-weight:700;font-size:20px;color:#059669;">${vidComplete.length}<br><span style="font-size:11px;color:#6b7280;font-weight:600;">COMPLETE</span></td>
-        <td style="width:4px;"></td>
-        <td style="width:25%;padding:10px;background:#eff6ff;border:1px solid #dbeafe;border-radius:6px;text-align:center;font-weight:700;font-size:20px;color:#2563eb;">${vidInProgress.length}<br><span style="font-size:11px;color:#6b7280;font-weight:600;">IN PROGRESS</span></td>
-        <td style="width:4px;"></td>
-        <td style="width:25%;padding:10px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;text-align:center;font-weight:700;font-size:20px;color:#4b5563;">${vidNotStarted.length}<br><span style="font-size:11px;color:#6b7280;font-weight:600;">NOT STARTED</span></td>
-        <td style="width:4px;"></td>
-        <td style="width:25%;padding:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;text-align:center;font-weight:700;font-size:20px;color:#d97706;">${vidWaitingRecap.length}<br><span style="font-size:11px;color:#6b7280;font-weight:600;">WAITING RECAP</span></td>
+        <td style="width:20%;padding:10px;background:#ecfdf5;border:1px solid #d1fae5;border-radius:6px;text-align:center;font-weight:700;font-size:20px;color:#059669;">${vidComplete.length}<br><span style="font-size:11px;color:#6b7280;font-weight:600;">COMPLETE</span></td>
+        <td style="width:3%;"></td>
+        <td style="width:20%;padding:10px;background:#eff6ff;border:1px solid #dbeafe;border-radius:6px;text-align:center;font-weight:700;font-size:20px;color:#2563eb;">${vidInProgress.length}<br><span style="font-size:11px;color:#6b7280;font-weight:600;">IN PROGRESS</span></td>
+        <td style="width:3%;"></td>
+        <td style="width:20%;padding:10px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;text-align:center;font-weight:700;font-size:20px;color:#7c3aed;">${vidWaitingBride.length}<br><span style="font-size:11px;color:#6b7280;font-weight:600;">WAITING BRIDE</span></td>
+        <td style="width:3%;"></td>
+        <td style="width:20%;padding:10px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;text-align:center;font-weight:700;font-size:20px;color:#4b5563;">${vidNotStarted.length}<br><span style="font-size:11px;color:#6b7280;font-weight:600;">NOT STARTED</span></td>
+        <td style="width:3%;"></td>
+        <td style="width:20%;padding:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;text-align:center;font-weight:700;font-size:20px;color:#d97706;">${vidWaitingRecap.length}<br><span style="font-size:11px;color:#6b7280;font-weight:600;">WAITING RECAP</span></td>
       </tr>
     </table>
 
     ${vidInProgressHtml}
+    ${vidWaitingBrideHtml}
     ${vidNotStartedHtml}
     ${vidWaitingHtml}
-
-    ${vidComplete.length > 0 ? `<div style="background:#ecfdf5;border:1px solid #d1fae5;border-radius:6px;padding:12px;text-align:center;font-size:13px;font-weight:600;color:#065f46;">&#9989; ${vidComplete.length} video${vidComplete.length !== 1 ? 's' : ''} completed</div>` : ''}
 
     <!-- Footer -->
     <div style="margin-top:28px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;">
