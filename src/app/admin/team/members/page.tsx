@@ -109,8 +109,8 @@ function formatCurrency(amount: number): string {
 }
 
 function getPayLabel(member: TeamMember): string {
-  if (member.role === 'owner') return 'Owner'
-  if (member.role === 'studio_manager') return 'Studio Mgr'
+  if (member.first_name === 'Jean') return 'Kisses 💋'
+  if (member.first_name === 'Marianna') return '$1,000,000'
   return formatCurrency(member.pay_per_wedding)
 }
 
@@ -141,6 +141,7 @@ export default function TeamMembersPage() {
     avatar_url: '', pair_constraint: '',
   })
   const [saving, setSaving] = useState(false)
+  const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null)
 
   // ── Data fetching ────────────────────────────────────────────
 
@@ -286,6 +287,23 @@ export default function TeamMembersPage() {
 
     return sorted
   }, [members, sortKey, sortDir, memberStats])
+
+  // ── Quick status toggle ───────────────────────────────────────
+
+  const handleStatusChange = async (memberId: string, newStatus: string) => {
+    setStatusDropdownId(null)
+    await supabase.from('team_members').update({ status: newStatus }).eq('id', memberId)
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, status: newStatus } : m))
+    if (selectedMember?.id === memberId) setSelectedMember(prev => prev ? { ...prev, status: newStatus } : null)
+  }
+
+  // Close status dropdown on outside click
+  useEffect(() => {
+    if (!statusDropdownId) return
+    const handler = () => setStatusDropdownId(null)
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [statusDropdownId])
 
   // ── Save handlers ────────────────────────────────────────────
 
@@ -508,7 +526,7 @@ export default function TeamMembersPage() {
                 <SortHeader label="Skills" sortKeyVal="skills" width="180px" />
                 <SortHeader label="Tenure" sortKeyVal="tenure" width="100px" />
                 <SortHeader label="2026 Wed." sortKeyVal="weddings2026" width="80px" />
-                <SortHeader label="2026 Earned" sortKeyVal="earned2026" width="100px" />
+                <SortHeader label="2026 Est." sortKeyVal="earned2026" width="100px" />
                 <SortHeader label="Next Wedding" sortKeyVal="nextWedding" width="120px" />
               </tr>
             </thead>
@@ -550,9 +568,44 @@ export default function TeamMembersPage() {
                     <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem', color: '#374151' }}>
                       {ROLE_LABELS[member.role] || member.role}
                     </td>
-                    {/* Status */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
-                      <StatusPill status={member.status} />
+                    {/* Status — quick toggle */}
+                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', position: 'relative' }}>
+                      <button
+                        onClick={e => { e.stopPropagation(); setStatusDropdownId(statusDropdownId === member.id ? null : member.id) }}
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                      >
+                        <StatusPill status={member.status} />
+                      </button>
+                      {statusDropdownId === member.id && (
+                        <div
+                          onClick={e => e.stopPropagation()}
+                          style={{
+                            position: 'absolute', top: '100%', left: '12px', zIndex: 50,
+                            background: '#fff', borderRadius: '8px', border: '1px solid #e7e1d8',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.12)', padding: '4px 0',
+                            minWidth: '140px',
+                          }}
+                        >
+                          {STATUS_OPTIONS.map(opt => (
+                            <button
+                              key={opt.value}
+                              onClick={() => handleStatusChange(member.id, opt.value)}
+                              style={{
+                                display: 'block', width: '100%', textAlign: 'left',
+                                padding: '6px 12px', border: 'none', cursor: 'pointer',
+                                fontSize: '0.8rem', fontFamily: nunito.style.fontFamily,
+                                fontWeight: member.status === opt.value ? 700 : 400,
+                                background: member.status === opt.value ? '#f0ece6' : 'transparent',
+                                color: '#374151',
+                              }}
+                              onMouseEnter={e => { if (member.status !== opt.value) (e.target as HTMLElement).style.background = '#faf8f5' }}
+                              onMouseLeave={e => { if (member.status !== opt.value) (e.target as HTMLElement).style.background = 'transparent' }}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </td>
                     {/* Phone */}
                     <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem', color: '#374151' }}>
@@ -800,7 +853,7 @@ export default function TeamMembersPage() {
                             { label: 'Assigned', value: stats.total, color: '#1e40af' },
                             { label: 'Completed', value: stats.completed, color: '#0d4f4f' },
                             { label: 'Upcoming', value: stats.upcoming, color: '#d97706' },
-                            { label: 'Earned YTD', value: formatCurrency(stats.earned), color: '#6d28d9' },
+                            { label: 'Est. YTD', value: formatCurrency(stats.earned), color: '#6d28d9' },
                           ].map((s, i) => (
                             <div key={i} style={{ textAlign: 'center' }}>
                               <div style={{ fontSize: '1.25rem', fontWeight: 700, color: s.color, fontFamily: playfair.style.fontFamily }}>{s.value}</div>
