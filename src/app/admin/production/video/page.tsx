@@ -188,14 +188,17 @@ export default function VideoProductionPage() {
           .eq('section', 'waiting_photo'),
         supabase
           .from('couples')
-          .select('id, couple_name, wedding_date, contracts(num_videographers), couple_milestones(m24_photo_order_in)')
-          .lte('wedding_date', today),
+          .select('id, couple_name, wedding_date, status, contracts(num_videographers), couple_milestones(m24_photo_order_in)')
+          .lte('wedding_date', today)
+          .not('status', 'in', '("declined","cancelled")')
+          .order('wedding_date', { ascending: true }),
       ])
 
       if (!videoRes.error && videoRes.data) setJobs(videoRes.data)
       if (!photoRes.error && photoRes.data) setPhotoWaitingJobs(photoRes.data as unknown as PhotoWaitingJob[])
       if (!awaitingRes.error && awaitingRes.data) {
         const filtered = (awaitingRes.data as any[]).filter((c) => {
+          if (['declined', 'cancelled'].includes(c.status)) return false
           const contract = Array.isArray(c.contracts) ? c.contracts[0] : c.contracts
           if (!contract || (contract.num_videographers || 0) <= 0) return false
           const milestone = Array.isArray(c.couple_milestones) ? c.couple_milestones[0] : c.couple_milestones
@@ -508,7 +511,7 @@ export default function VideoProductionPage() {
         return a.localeCompare(b)
       })
       .map(([type, count]) => ({
-        label: type === 'ENG_SLIDESHOW' ? 'SLIDESHOW' : type.replace(/_/g, ' '),
+        label: (type === 'ENG_SLIDESHOW' ? 'SLIDESHOW' : type.replace(/_/g, ' ')).toUpperCase(),
         count,
       }))
     return { total: completed.length, full, recap, other: completed.length - full - recap, breakdown }
