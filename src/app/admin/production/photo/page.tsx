@@ -189,7 +189,7 @@ export default function PhotoProductionPage() {
         // Photos progress (all jobs including completed for true progress + YTD)
         supabase
           .from('jobs')
-          .select('edited_so_far, photos_taken, total_proofs'),
+          .select('job_type, edited_so_far, photos_taken, total_proofs'),
         // Cemetery — completed & picked up jobs
         supabase
           .from('jobs')
@@ -227,13 +227,18 @@ export default function PhotoProductionPage() {
         setReeditYtdCount(total)
       }
       if (!photosRes.error && photosRes.data) {
+        // Sidebar progress bar uses ALL jobs
         const edited = photosRes.data.reduce((sum, r: any) => sum + (r.edited_so_far || 0), 0)
         const taken = photosRes.data.reduce((sum, r: any) => sum + (r.photos_taken || 0), 0)
-        const proofs = photosRes.data.reduce((sum, r: any) => sum + (r.total_proofs || 0), 0)
-        console.log('[Photo Stats] photos:', edited, 'of', taken, 'proofs:', proofs)
         setEditedSoFar(edited)
         setTotalPhotos(taken)
-        setYtdData({ photos_taken: taken, edited_so_far: edited, total_proofs: proofs })
+
+        // YTD row uses ONLY proofs-type jobs
+        const proofsOnly = photosRes.data.filter((r: any) => r.job_type && r.job_type.toLowerCase().includes('proofs'))
+        const ytdEdited = proofsOnly.reduce((sum, r: any) => sum + (r.edited_so_far || 0), 0)
+        const ytdTaken = proofsOnly.reduce((sum, r: any) => sum + (r.photos_taken || 0), 0)
+        const ytdProofs = proofsOnly.reduce((sum, r: any) => sum + (r.total_proofs || 0), 0)
+        setYtdData({ photos_taken: ytdTaken, edited_so_far: ytdEdited, total_proofs: ytdProofs })
       }
 
       // Cemetery jobs
