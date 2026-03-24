@@ -104,8 +104,8 @@ function daysSince(dateStr: string | null): number {
   return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function safeDeleted(esf: number, tp: number): number {
-  return (esf > 0 && tp > 0 && esf >= tp) ? esf - tp : 0
+function safeDeleted(pt: number, tp: number): number {
+  return tp > 0 ? pt - tp : 0
 }
 
 // ── Photo pipeline section config ────────────────────────────────
@@ -213,18 +213,18 @@ export default function ProductionReportPage() {
     const pt = inProgressPhoto.reduce((s, j) => s + (j.photos_taken || 0), 0)
     const esf = inProgressPhoto.reduce((s, j) => s + (j.edited_so_far || 0), 0)
     const tp = inProgressPhoto.reduce((s, j) => s + (j.total_proofs || 0), 0)
-    const deleted = safeDeleted(esf, tp)
+    const deleted = safeDeleted(pt, tp)
     return { pt, esf, tp, remaining: pt - esf, deleted,
-      pctDeleted: deleted > 0 && esf > 0 ? ((deleted / esf) * 100).toFixed(1) : null,
-      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : '0.0' }
+      pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
+      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null }
   }, [inProgressPhoto])
 
   const ytdTotals = useMemo(() => {
     const { photos_taken: pt, edited_so_far: esf, total_proofs: tp } = ytdPhoto
-    const deleted = safeDeleted(esf, tp)
+    const deleted = safeDeleted(pt, tp)
     return { pt, esf, tp, remaining: pt - esf, deleted,
-      pctDeleted: deleted > 0 && esf > 0 ? ((deleted / esf) * 100).toFixed(1) : null,
-      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : '0.0' }
+      pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
+      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null }
   }, [ytdPhoto])
 
   const photosPercent = ytdPhoto.photos_taken > 0 ? Math.round((ytdPhoto.edited_so_far / ytdPhoto.photos_taken) * 100) : 0
@@ -344,9 +344,9 @@ export default function ProductionReportPage() {
                     const esf = job.edited_so_far || 0
                     const tp = job.total_proofs || 0
                     const remaining = pt - esf
-                    const deleted = safeDeleted(esf, tp)
-                    const pctDel = deleted > 0 && esf > 0 ? ((deleted / esf) * 100).toFixed(1) : null
-                    const pctComp = pt > 0 ? ((esf / pt) * 100).toFixed(1) : '0.0'
+                    const deleted = safeDeleted(pt, tp)
+                    const pctDel = deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null
+                    const pctComp = pt > 0 ? ((esf / pt) * 100).toFixed(1) : null
                     return (
                       <tr key={job.id} className={i % 2 === 1 ? 'bg-[#faf8f5]' : ''}>
                         <td className="px-3 py-2.5">
@@ -360,7 +360,7 @@ export default function ProductionReportPage() {
                         <td className="px-3 py-2.5 text-right text-gray-500">{deleted > 0 ? deleted.toLocaleString() : '—'}</td>
                         <td className="px-3 py-2.5 text-right">{tp.toLocaleString()}</td>
                         <td className="px-3 py-2.5 text-right text-gray-500">{pctDel !== null ? `${pctDel}%` : '—'}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-500">{pctComp}%</td>
+                        <td className="px-3 py-2.5 text-right text-gray-500">{pctComp !== null ? `${pctComp}%` : '—'}</td>
                       </tr>
                     )
                   })}
@@ -377,7 +377,7 @@ export default function ProductionReportPage() {
                     <td className="px-3 py-2.5 text-right">{asapTotals.deleted > 0 ? asapTotals.deleted.toLocaleString() : '—'}</td>
                     <td className="px-3 py-2.5 text-right">{asapTotals.tp.toLocaleString()}</td>
                     <td className="px-3 py-2.5 text-right">{asapTotals.pctDeleted !== null ? `${asapTotals.pctDeleted}%` : '—'}</td>
-                    <td className="px-3 py-2.5 text-right">{asapTotals.pctCompleted}%</td>
+                    <td className="px-3 py-2.5 text-right">{asapTotals.pctCompleted !== null ? `${asapTotals.pctCompleted}%` : '—'}</td>
                   </tr>
                   {/* YTD Summary */}
                   <tr className="bg-[#dc2626] text-white font-bold" style={{ fontSize: '15px' }}>
@@ -389,7 +389,7 @@ export default function ProductionReportPage() {
                     <td className="px-3 py-3 text-right">{ytdTotals.deleted > 0 ? ytdTotals.deleted.toLocaleString() : '—'}</td>
                     <td className="px-3 py-3 text-right">{ytdTotals.tp.toLocaleString()}</td>
                     <td className="px-3 py-3 text-right">{ytdTotals.pctDeleted !== null ? `${ytdTotals.pctDeleted}%` : '—'}</td>
-                    <td className="px-3 py-3 text-right">{ytdTotals.pctCompleted}%</td>
+                    <td className="px-3 py-3 text-right">{ytdTotals.pctCompleted !== null ? `${ytdTotals.pctCompleted}%` : '—'}</td>
                   </tr>
                 </tbody>
               </table>

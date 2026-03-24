@@ -65,12 +65,12 @@ function daysSince(dateStr: string | null): number {
   return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function safeDeleted(esf: number, tp: number): number {
-  return (esf > 0 && tp > 0 && esf >= tp) ? esf - tp : 0
+function safeDeleted(pt: number, tp: number): number {
+  return tp > 0 ? pt - tp : 0
 }
 
-function pctStr(deleted: number, esf: number): string {
-  return deleted > 0 && esf > 0 ? ((deleted / esf) * 100).toFixed(1) + '%' : '&mdash;'
+function pctStr(deleted: number, pt: number): string {
+  return deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) + '%' : '&mdash;'
 }
 
 function pctComp(esf: number, pt: number): string {
@@ -147,8 +147,8 @@ export async function GET(request: Request) {
     const asapPt = inProgressPhoto.reduce((s: number, j: any) => s + (j.photos_taken || 0), 0)
     const asapEsf = inProgressPhoto.reduce((s: number, j: any) => s + (j.edited_so_far || 0), 0)
     const asapTp = inProgressPhoto.reduce((s: number, j: any) => s + (j.total_proofs || 0), 0)
-    const asapDel = safeDeleted(asapEsf, asapTp)
-    const ytdDel = safeDeleted(ytdEdited, ytdProofs)
+    const asapDel = safeDeleted(asapPt, asapTp)
+    const ytdDel = safeDeleted(ytdTaken, ytdProofs)
 
     // Timestamp
     const now = new Date()
@@ -171,7 +171,7 @@ export async function GET(request: Request) {
       const pt = job.photos_taken || 0
       const esf = job.edited_so_far || 0
       const tp = job.total_proofs || 0
-      const del = safeDeleted(esf, tp)
+      const del = safeDeleted(pt, tp)
       editingRows += `<tr>
         <td ${td}><strong>${job.couples?.couple_name || 'Unknown'}</strong>${job.couples?.wedding_date ? `<br><span style="font-size:11px;color:#9ca3af;">${fmtDate(job.couples.wedding_date)}</span>` : ''}</td>
         <td ${tdGray}>${formatJobType(job.job_type)}</td>
@@ -180,7 +180,7 @@ export async function GET(request: Request) {
         <td ${tdGrayR}>${(pt - esf).toLocaleString()}</td>
         <td ${tdGrayR}>${del > 0 ? del.toLocaleString() : '&mdash;'}</td>
         <td ${tdR}>${tp.toLocaleString()}</td>
-        <td ${tdGrayR}>${pctStr(del, esf)}</td>
+        <td ${tdGrayR}>${pctStr(del, pt)}</td>
         <td ${tdGrayR}>${pctComp(esf, pt)}</td>
       </tr>`
     }
@@ -371,7 +371,7 @@ export async function GET(request: Request) {
           <td ${tdR}><strong>${(asapPt - asapEsf).toLocaleString()}</strong></td>
           <td ${tdR}><strong>${asapDel > 0 ? asapDel.toLocaleString() : '&mdash;'}</strong></td>
           <td ${tdR}><strong>${asapTp.toLocaleString()}</strong></td>
-          <td ${tdR}><strong>${pctStr(asapDel, asapEsf)}</strong></td>
+          <td ${tdR}><strong>${pctStr(asapDel, asapPt)}</strong></td>
           <td ${tdR}><strong>${pctComp(asapEsf, asapPt)}</strong></td>
         </tr>
         <!-- YTD -->
@@ -382,7 +382,7 @@ export async function GET(request: Request) {
           <td style="padding:10px;border:none;text-align:right;"><strong>${(ytdTaken - ytdEdited).toLocaleString()}</strong></td>
           <td style="padding:10px;border:none;text-align:right;"><strong>${ytdDel > 0 ? ytdDel.toLocaleString() : '&mdash;'}</strong></td>
           <td style="padding:10px;border:none;text-align:right;"><strong>${ytdProofs.toLocaleString()}</strong></td>
-          <td style="padding:10px;border:none;text-align:right;"><strong>${pctStr(ytdDel, ytdEdited)}</strong></td>
+          <td style="padding:10px;border:none;text-align:right;"><strong>${pctStr(ytdDel, ytdTaken)}</strong></td>
           <td style="padding:10px;border:none;text-align:right;"><strong>${pctComp(ytdEdited, ytdTaken)}</strong></td>
         </tr>
       </table>

@@ -357,11 +357,11 @@ export default function PhotoProductionPage() {
     const esf = inProgressJobs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
     const tp = inProgressJobs.reduce((s, j) => s + (j.total_proofs || 0), 0)
     const remaining = pt - esf
-    const deleted = (esf > 0 && tp > 0 && esf >= tp) ? esf - tp : 0
+    const deleted = tp > 0 ? pt - tp : 0
     return {
       photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
-      pctDeleted: deleted > 0 && esf > 0 ? ((deleted / esf) * 100).toFixed(1) : null,
-      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : '0.0',
+      pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
+      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null,
     }
   }, [inProgressJobs])
 
@@ -370,11 +370,11 @@ export default function PhotoProductionPage() {
     const esf = ytdData.edited_so_far
     const tp = ytdData.total_proofs
     const remaining = pt - esf
-    const deleted = (esf > 0 && tp > 0 && esf >= tp) ? esf - tp : 0
+    const deleted = tp > 0 ? pt - tp : 0
     return {
       photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
-      pctDeleted: deleted > 0 && esf > 0 ? ((deleted / esf) * 100).toFixed(1) : null,
-      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : '0.0',
+      pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
+      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null,
     }
   }, [ytdData])
 
@@ -564,9 +564,9 @@ export default function PhotoProductionPage() {
                       const esf = job.edited_so_far || 0
                       const tp = job.total_proofs || 0
                       const remaining = pt - esf
-                      const deleted = (esf > 0 && tp > 0 && esf >= tp) ? esf - tp : 0
-                      const pctDeleted = deleted > 0 && esf > 0 ? ((deleted / esf) * 100).toFixed(1) : null
-                      const pctCompleted = pt > 0 ? ((esf / pt) * 100).toFixed(1) : '0.0'
+                      const deleted = tp > 0 ? pt - tp : 0
+                      const pctDeleted = deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null
+                      const pctCompleted = pt > 0 ? ((esf / pt) * 100).toFixed(1) : null
 
                       return (
                         <tr key={job.id} className="border-b hover:bg-accent/20 transition-colors">
@@ -620,7 +620,7 @@ export default function PhotoProductionPage() {
                             />
                           </td>
                           <td className="px-3 py-2 text-right text-gray-500">{pctDeleted !== null ? `${pctDeleted}%` : '—'}</td>
-                          <td className="px-3 py-2 text-right text-gray-500">{pctCompleted}%</td>
+                          <td className="px-3 py-2 text-right text-gray-500">{pctCompleted !== null ? `${pctCompleted}%` : '—'}</td>
                           <td className="px-2 py-1">
                             <select
                               value={job.status}
@@ -654,7 +654,7 @@ export default function PhotoProductionPage() {
                       <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.deleted > 0 ? asapTotals.deleted.toLocaleString() : '—'}</td>
                       <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.totalProofs.toLocaleString()}</td>
                       <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.pctDeleted !== null ? `${asapTotals.pctDeleted}%` : '—'}</td>
-                      <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.pctCompleted}%</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.pctCompleted !== null ? `${asapTotals.pctCompleted}%` : '—'}</td>
                       <td></td>
                     </tr>
 
@@ -668,7 +668,7 @@ export default function PhotoProductionPage() {
                       <td className="px-3 py-2.5 text-right">{ytdTotals.deleted > 0 ? ytdTotals.deleted.toLocaleString() : '—'}</td>
                       <td className="px-3 py-2.5 text-right">{ytdTotals.totalProofs.toLocaleString()}</td>
                       <td className="px-3 py-2.5 text-right">{ytdTotals.pctDeleted !== null ? `${ytdTotals.pctDeleted}%` : '—'}</td>
-                      <td className="px-3 py-2.5 text-right">{ytdTotals.pctCompleted}%</td>
+                      <td className="px-3 py-2.5 text-right">{ytdTotals.pctCompleted !== null ? `${ytdTotals.pctCompleted}%` : '—'}</td>
                       <td className="rounded-br-xl"></td>
                     </tr>
                   </tbody>
