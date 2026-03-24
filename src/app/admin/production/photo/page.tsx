@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Search, Plus, ChevronDown, ChevronRight, X, FileText } from 'lucide-react'
 import { differenceInDays, parseISO, format } from 'date-fns'
-import { pdf } from '@react-pdf/renderer'
-import PhotoProductionReport from '@/components/reports/PhotoProductionReport'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -359,10 +357,10 @@ export default function PhotoProductionPage() {
     const esf = inProgressJobs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
     const tp = inProgressJobs.reduce((s, j) => s + (j.total_proofs || 0), 0)
     const remaining = pt - esf
-    const deleted = esf - tp
+    const deleted = (esf > 0 && tp > 0 && esf >= tp) ? esf - tp : 0
     return {
       photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
-      pctDeleted: esf > 0 ? ((deleted / esf) * 100).toFixed(1) : '0.0',
+      pctDeleted: deleted > 0 && esf > 0 ? ((deleted / esf) * 100).toFixed(1) : null,
       pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : '0.0',
     }
   }, [inProgressJobs])
@@ -372,10 +370,10 @@ export default function PhotoProductionPage() {
     const esf = ytdData.edited_so_far
     const tp = ytdData.total_proofs
     const remaining = pt - esf
-    const deleted = esf - tp
+    const deleted = (esf > 0 && tp > 0 && esf >= tp) ? esf - tp : 0
     return {
       photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
-      pctDeleted: esf > 0 ? ((deleted / esf) * 100).toFixed(1) : '0.0',
+      pctDeleted: deleted > 0 && esf > 0 ? ((deleted / esf) * 100).toFixed(1) : null,
       pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : '0.0',
     }
   }, [ytdData])
@@ -424,25 +422,10 @@ export default function PhotoProductionPage() {
     </button>
   )
 
-  // ── PDF Report ───────────────────────────────────────────────
+  // ── Report ───────────────────────────────────────────────────
 
-  const generateReport = async () => {
-    const blob = await pdf(
-      <PhotoProductionReport
-        jobs={jobs}
-        waitingOrderCouples={waitingOrderCouples}
-        completedCount={completedCount}
-        reeditYtdCount={reeditYtdCount}
-        editedSoFar={editedSoFar}
-        totalPhotos={totalPhotos}
-      />
-    ).toBlob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `photo-production-report-${new Date().toISOString().split('T')[0]}.pdf`
-    a.click()
-    URL.revokeObjectURL(url)
+  const openReport = () => {
+    window.open('/admin/production/report', '_blank')
   }
 
   // ── Loading ───────────────────────────────────────────────────
@@ -467,7 +450,7 @@ export default function PhotoProductionPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={generateReport}
+            onClick={openReport}
             className="flex items-center gap-2 rounded-lg border border-input bg-background px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-accent/50 transition-colors"
           >
             <FileText className="h-4 w-4" />
@@ -581,8 +564,8 @@ export default function PhotoProductionPage() {
                       const esf = job.edited_so_far || 0
                       const tp = job.total_proofs || 0
                       const remaining = pt - esf
-                      const deleted = esf - tp
-                      const pctDeleted = esf > 0 ? ((deleted / esf) * 100).toFixed(1) : '0.0'
+                      const deleted = (esf > 0 && tp > 0 && esf >= tp) ? esf - tp : 0
+                      const pctDeleted = deleted > 0 && esf > 0 ? ((deleted / esf) * 100).toFixed(1) : null
                       const pctCompleted = pt > 0 ? ((esf / pt) * 100).toFixed(1) : '0.0'
 
                       return (
@@ -623,7 +606,7 @@ export default function PhotoProductionPage() {
                             />
                           </td>
                           <td className="px-3 py-2 text-right text-gray-500">{remaining.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-right text-gray-500">{tp > 0 ? deleted.toLocaleString() : '—'}</td>
+                          <td className="px-3 py-2 text-right text-gray-500">{deleted > 0 ? deleted.toLocaleString() : '—'}</td>
                           <td className="px-1 py-1 text-right">
                             <input
                               key={`tp_${job.id}_${job.total_proofs}`}
@@ -636,7 +619,7 @@ export default function PhotoProductionPage() {
                               className={`w-[80px] text-right text-sm border rounded px-2 py-1 outline-none transition-all duration-300 focus:border-stone-400 ${savedFields.has(`${job.id}_total_proofs`) ? 'bg-green-100' : 'bg-white'}`}
                             />
                           </td>
-                          <td className="px-3 py-2 text-right text-gray-500">{pctDeleted}%</td>
+                          <td className="px-3 py-2 text-right text-gray-500">{pctDeleted !== null ? `${pctDeleted}%` : '—'}</td>
                           <td className="px-3 py-2 text-right text-gray-500">{pctCompleted}%</td>
                           <td className="px-2 py-1">
                             <select
@@ -668,9 +651,9 @@ export default function PhotoProductionPage() {
                       <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.photosTaken.toLocaleString()}</td>
                       <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.editedSoFar.toLocaleString()}</td>
                       <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.remaining.toLocaleString()}</td>
-                      <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.totalProofs > 0 ? asapTotals.deleted.toLocaleString() : '—'}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.deleted > 0 ? asapTotals.deleted.toLocaleString() : '—'}</td>
                       <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.totalProofs.toLocaleString()}</td>
-                      <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.pctDeleted}%</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.pctDeleted !== null ? `${asapTotals.pctDeleted}%` : '—'}</td>
                       <td className="px-3 py-2 text-right font-semibold text-sm">{asapTotals.pctCompleted}%</td>
                       <td></td>
                     </tr>
@@ -682,9 +665,9 @@ export default function PhotoProductionPage() {
                       <td className="px-3 py-2.5 text-right">{ytdTotals.photosTaken.toLocaleString()}</td>
                       <td className="px-3 py-2.5 text-right">{ytdTotals.editedSoFar.toLocaleString()}</td>
                       <td className="px-3 py-2.5 text-right">{ytdTotals.remaining.toLocaleString()}</td>
-                      <td className="px-3 py-2.5 text-right">{ytdTotals.totalProofs > 0 ? ytdTotals.deleted.toLocaleString() : '—'}</td>
+                      <td className="px-3 py-2.5 text-right">{ytdTotals.deleted > 0 ? ytdTotals.deleted.toLocaleString() : '—'}</td>
                       <td className="px-3 py-2.5 text-right">{ytdTotals.totalProofs.toLocaleString()}</td>
-                      <td className="px-3 py-2.5 text-right">{ytdTotals.pctDeleted}%</td>
+                      <td className="px-3 py-2.5 text-right">{ytdTotals.pctDeleted !== null ? `${ytdTotals.pctDeleted}%` : '—'}</td>
                       <td className="px-3 py-2.5 text-right">{ytdTotals.pctCompleted}%</td>
                       <td className="rounded-br-xl"></td>
                     </tr>

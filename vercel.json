@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/production-report",
+      "schedule": "0 13 * * 0,4"
+    }
+  ]
+}
