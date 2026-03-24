@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Printer } from 'lucide-react'
+import { Printer, Mail } from 'lucide-react'
 import { Playfair_Display, Nunito } from 'next/font/google'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700'] })
@@ -161,6 +161,23 @@ export default function ProductionReportPage() {
   const [videoJobs, setVideoJobs] = useState<VideoJob[]>([])
   const [waitingOrderCouples, setWaitingOrderCouples] = useState<WaitingOrderCouple[]>([])
   const [loading, setLoading] = useState(true)
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle')
+
+  // ── Send Test Email ─────────────────────────────────────────────
+  const sendTestEmail = async () => {
+    setEmailStatus('sending')
+    try {
+      const res = await fetch('/api/admin/reports/send-production-report', { method: 'POST' })
+      if (res.ok) {
+        setEmailStatus('sent')
+      } else {
+        setEmailStatus('failed')
+      }
+    } catch {
+      setEmailStatus('failed')
+    }
+    setTimeout(() => setEmailStatus('idle'), 3000)
+  }
 
   // ── Fetch ─────────────────────────────────────────────────────
 
@@ -361,13 +378,31 @@ export default function ProductionReportPage() {
         <h1 className={`${playfair.className} text-3xl font-bold tracking-wide`}>SIGS Photography</h1>
         <p className="text-[#a3d4d4] text-lg mt-1">Production Status Report</p>
         <p className="text-[#7ab8b8] text-sm mt-1">{timestamp}</p>
-        <button
-          onClick={() => window.print()}
-          className="no-print absolute top-6 right-8 flex items-center gap-2 bg-white/15 hover:bg-white/25 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-        >
-          <Printer className="h-4 w-4" />
-          Print Report
-        </button>
+        <div className="no-print absolute top-6 right-8 flex items-center gap-3">
+          <button
+            onClick={sendTestEmail}
+            disabled={emailStatus === 'sending'}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+              emailStatus === 'sent' ? 'bg-green-500/30 text-green-100' :
+              emailStatus === 'failed' ? 'bg-red-500/30 text-red-100' :
+              emailStatus === 'sending' ? 'bg-white/10 text-white/60 cursor-wait' :
+              'bg-white/15 hover:bg-white/25'
+            }`}
+          >
+            <Mail className="h-4 w-4" />
+            {emailStatus === 'sending' ? 'Sending...' :
+             emailStatus === 'sent' ? 'Email Sent!' :
+             emailStatus === 'failed' ? 'Send Failed' :
+             'Send Test Email'}
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 bg-white/15 hover:bg-white/25 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+          >
+            <Printer className="h-4 w-4" />
+            Print Report
+          </button>
+        </div>
       </header>
 
       <div className="report-page max-w-[1200px] mx-auto px-8 py-8">

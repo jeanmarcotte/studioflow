@@ -177,21 +177,27 @@ export default function VideoProductionPage() {
     if (newStatus === 'complete') {
       updates.section = 'completed'
     } else if (job?.section === 'completed') {
-      // Leaving completed state — restore section based on job type
-      if (job.job_type === 'RECAP' || job.job_type === 'ENG_SLIDESHOW') {
-        updates.section = 'editing'
-      } else {
-        updates.section = 'editing'
-      }
+      updates.section = 'editing'
     }
 
-    const { error } = await supabase
-      .from('video_jobs')
-      .update(updates)
-      .eq('id', jobId)
-
-    if (!error) {
-      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j))
+    try {
+      const res = await fetch(`/api/admin/video-jobs/${jobId}/update`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+      if (res.ok) {
+        setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j))
+      }
+    } catch {
+      // Fallback to direct Supabase if API fails
+      const { error } = await supabase
+        .from('video_jobs')
+        .update(updates)
+        .eq('id', jobId)
+      if (!error) {
+        setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j))
+      }
     }
   }
 

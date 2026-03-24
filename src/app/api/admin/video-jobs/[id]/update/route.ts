@@ -16,7 +16,7 @@ export async function PATCH(
     const { id } = params
     const body = await request.json()
 
-    const allowedFields = ['photos_taken', 'edited_so_far', 'total_proofs', 'status']
+    const allowedFields = ['status', 'section']
     const updates: Record<string, any> = { updated_at: new Date().toISOString() }
 
     for (const field of allowedFields) {
@@ -25,17 +25,12 @@ export async function PATCH(
       }
     }
 
-    // Auto-set at_lab_date when moving to at_lab
-    if (body.status === 'at_lab') {
-      updates.at_lab_date = new Date().toISOString().split('T')[0]
-    }
-
     const supabase = getServiceClient()
 
     // Track status history when status is changing
     if (body.status !== undefined) {
       const { data: current } = await supabase
-        .from('jobs')
+        .from('video_jobs')
         .select('status')
         .eq('id', id)
         .single()
@@ -43,7 +38,7 @@ export async function PATCH(
       if (current && current.status !== body.status) {
         await supabase.from('job_status_history').insert({
           job_id: id,
-          job_table: 'jobs',
+          job_table: 'video_jobs',
           previous_status: current.status,
           new_status: body.status,
           changed_by: 'Jean',
@@ -52,20 +47,20 @@ export async function PATCH(
     }
 
     const { data, error } = await supabase
-      .from('jobs')
+      .from('video_jobs')
       .update(updates)
       .eq('id', id)
       .select()
       .single()
 
     if (error) {
-      console.error(`[PATCH /api/admin/jobs/${id}/update] Update failed:`, error)
+      console.error(`[PATCH /api/admin/video-jobs/${id}/update] Update failed:`, error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     return NextResponse.json(data)
   } catch (err) {
-    console.error('[PATCH /api/admin/jobs/[id]/update] Error:', err)
+    console.error('[PATCH /api/admin/video-jobs/[id]/update] Error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
