@@ -701,9 +701,9 @@ export default function PhotoProductionPage() {
                       <td></td>
                     </tr>
 
-                    {/* Cemetery Total */}
+                    {/* Completed 2026 */}
                     <tr className="bg-gray-200 border-t border-gray-300">
-                      <td className="px-3 py-2 font-bold text-sm text-gray-600">Cemetery Total</td>
+                      <td className="px-3 py-2 font-bold text-sm text-gray-600">Completed 2026</td>
                       <td></td>
                       <td className="px-3 py-2 text-right font-semibold text-sm text-gray-600">{cemeteryProofsTotals.photosTaken.toLocaleString()}</td>
                       <td className="px-3 py-2 text-right font-semibold text-sm text-gray-600">{cemeteryProofsTotals.editedSoFar.toLocaleString()}</td>
@@ -844,7 +844,7 @@ export default function PhotoProductionPage() {
             })}
           </div>
 
-          {/* 🪦 Cemetery — Completed & Picked Up */}
+          {/* Completed 2026 */}
           <div className="mt-6 rounded-xl border border-gray-200 bg-card">
             <button
               onClick={() => setCemeteryOpen(!cemeteryOpen)}
@@ -855,7 +855,7 @@ export default function PhotoProductionPage() {
                   ? <ChevronDown className="h-4 w-4 text-gray-400" />
                   : <ChevronRight className="h-4 w-4 text-gray-400" />
                 }
-                <span className="font-semibold text-sm text-gray-400">🪦 Cemetery — Completed & Picked Up</span>
+                <span className="font-semibold text-sm text-gray-400">Completed 2026</span>
                 <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-gray-100 text-gray-500">
                   {cemeteryJobs.length}
                 </span>
@@ -924,7 +924,7 @@ export default function PhotoProductionPage() {
                       const pctComp = pt > 0 ? ((esf / pt) * 100).toFixed(1) : null
                       return (
                         <tr className="bg-gray-100 border-t-2 border-gray-300">
-                          <td className="px-3 py-2 font-bold text-sm text-gray-500">Cemetery Total</td>
+                          <td className="px-3 py-2 font-bold text-sm text-gray-500">Completed 2026</td>
                           <td></td>
                           <td className="px-3 py-2 text-right font-semibold text-sm text-gray-500">{pt.toLocaleString()}</td>
                           <td className="px-3 py-2 text-right font-semibold text-sm text-gray-500">{esf.toLocaleString()}</td>

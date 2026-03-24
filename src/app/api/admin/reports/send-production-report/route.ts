@@ -484,9 +484,9 @@ export async function POST() {
           <td ${tdR}><strong>${pctStr(asapDel, asapPt)}</strong></td>
           <td ${tdR}><strong>${pctComp(asapEsf, asapPt)}</strong></td>
         </tr>
-        <!-- Cemetery Total -->
+        <!-- Completed 2026 -->
         <tr style="background:#e5e7eb;font-weight:700;color:#4b5563;">
-          <td ${td}><strong>Cemetery Total</strong></td><td ${td}></td>
+          <td ${td}><strong>Completed 2026</strong></td><td ${td}></td>
           <td ${tdR}><strong>${cemPt.toLocaleString()}</strong></td><td ${tdR}><strong>${cemEsf.toLocaleString()}</strong></td>
           <td ${tdR}><strong>${(cemTp > 0 ? cemTp - cemEsf : cemPt - cemEsf).toLocaleString()}</strong></td>
           <td ${tdR}><strong>${cemDel > 0 ? cemDel.toLocaleString() : '&mdash;'}</strong></td>

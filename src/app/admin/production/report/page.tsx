@@ -625,9 +625,9 @@ export default function ProductionReportPage() {
                     <td className="px-3 py-2.5 text-right">{asapTotals.pctDeleted !== null ? `${asapTotals.pctDeleted}%` : '—'}</td>
                     <td className="px-3 py-2.5 text-right">{asapTotals.pctCompleted !== null ? `${asapTotals.pctCompleted}%` : '—'}</td>
                   </tr>
-                  {/* Cemetery Total */}
+                  {/* Completed 2026 */}
                   <tr className="bg-gray-200 border-t border-gray-300 font-semibold text-gray-600">
-                    <td className="px-3 py-2.5 font-bold">Cemetery Total</td>
+                    <td className="px-3 py-2.5 font-bold">Completed 2026</td>
                     <td></td>
                     <td className="px-3 py-2.5 text-right">{cemeteryProofsTotals.pt.toLocaleString()}</td>
                     <td className="px-3 py-2.5 text-right">{cemeteryProofsTotals.esf.toLocaleString()}</td>
