@@ -20,7 +20,7 @@ function formatJobType(type: string): string {
     wedding_proofs: 'Wedding Proofs', WED_PROOFS: 'Wedding Proofs',
     eng_proofs: 'Engagement Proofs', ENG_PROOFS: 'Engagement Proofs',
     WED_PACKAGE: 'Wedding Package', WED_ALBUM: 'Wedding Album',
-    WED_FRAMES: 'Wedding Frames', WED_CANVAS: 'Wedding Canvas',
+    WED_FRAMES: 'Wedding Prints', WED_CANVAS: 'Wedding Canvas',
     WED_PORTRAIT: 'Wedding Portrait', WED_PORTRAITS: 'Wedding Portrait',
     PARENT_BOOK: 'Parent Album', ENG_COLLAGE: 'Engagement Collage',
     bg_album: 'B&G Album', bg_portrait_canvas: 'B&G Portrait Canvas',
@@ -112,7 +112,7 @@ const DELIVERABLE_MAP: Record<string, string> = {
   bg_album: 'B&G Album',
   BEST_PRINT: 'Best Canvas Print',
   ENG_COLLAGE: 'Engagement Collage', eng_collage: 'Engagement Collage',
-  WED_FRAMES: 'Wedding Frames',
+  WED_FRAMES: 'Wedding Prints',
   WED_PORTRAIT: 'Wedding Portrait', WED_PORTRAITS: 'Wedding Portrait',
   TYC: 'Thank You Cards', tyc: 'Thank You Cards',
 }
@@ -220,7 +220,7 @@ function buildEmailHtml(data: {
         <tr>
           ${metricCell('Videos In Production', videoEditing.length.toString(), `${videoEditing.filter((v: any) => v.status === 'in_progress').length} active &middot; ${videoEditing.filter((v: any) => v.status !== 'in_progress').length} waiting`, '#0d4f4f')}
           ${metricCell('Video Backlog', videoNotStarted.length.toString(), videoNotStarted.length > 0 && videoNotStarted[0].couples?.wedding_date ? `oldest: ${daysSince(videoNotStarted[0].couples.wedding_date)} days` : 'no jobs waiting', videoNotStarted.length > 3 ? '#92400e' : '#0d4f4f')}
-          ${metricCell('Segments Progress', `${segsDone}/${segsTotal}`, 'segments complete', '#0d4f4f')}
+          ${metricCell('Segments Progress', `${segsDone}/${segsTotal}`, 'segments complete<br><span style="font-size:9px;">Each video has 6 parts: ceremony, reception, park, prep, groom &amp; bride</span>', '#0d4f4f')}
         </tr>
       </table>
     </div>`
@@ -337,7 +337,7 @@ function buildEmailHtml(data: {
       <div style="margin-bottom:16px;">
         <div style="background:rgba(13,79,79,0.04);padding:10px 14px;border-bottom:1px solid #e7e1d8;font-size:12px;font-weight:700;color:#0d4f4f;text-transform:uppercase;letter-spacing:0.5px;">${section.label} (${sectionJobs.length})</div>
         <table style="width:100%;border-collapse:collapse;background:white;">
-          <tr style="background:#fafaf9;"><th ${th}>Couple</th><th ${th}>Date</th><th ${th}>Job</th><th ${thR}>Photos</th><th ${th}>Vendor</th></tr>
+          <tr style="background:#fafaf9;"><th ${th}>Couple</th><th ${th}>Wedding Date</th><th ${th}>Job</th><th ${thR}>Photos</th><th ${th}>Vendor</th></tr>
           ${rows}
         </table>
       </div>`
@@ -382,6 +382,7 @@ function buildEmailHtml(data: {
           <div style="font-size:10px;font-weight:700;color:#78716c;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">In Production</div>
           <div style="font-size:22px;font-weight:700;color:#1c1917;">${segsDone}/${segsTotal}</div>
           <div style="font-size:11px;color:#a8a29e;">segments complete</div>
+          <div style="font-size:10px;color:#a8a29e;margin-top:2px;">Each wedding video has 6 parts: ceremony, reception, park, prep, groom &amp; bride</div>
         </td>
         <td style="width:33%;padding:12px;background:#f9fafb;border:1px solid #e7e1d8;border-radius:6px;">
           <div style="font-size:10px;font-weight:700;color:#78716c;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Incoming Work</div>
@@ -414,7 +415,7 @@ function buildEmailHtml(data: {
       <div style="margin-bottom:20px;">
         <div style="background:rgba(13,79,79,0.04);padding:10px 14px;border-bottom:1px solid #e7e1d8;font-size:12px;font-weight:700;color:#0d4f4f;text-transform:uppercase;letter-spacing:0.5px;">Not Started (${videoNotStarted.length})</div>
         <table style="width:100%;border-collapse:collapse;background:white;">
-          <tr style="background:#fafaf9;"><th ${th}>Couple</th><th ${th}>Date</th><th ${th}>Type</th><th ${th}>Assigned</th><th ${thC}>Proxies</th></tr>
+          <tr style="background:#fafaf9;"><th ${th}>Couple</th><th ${th}>Wedding Date</th><th ${th}>Type</th><th ${th}>Assigned</th><th ${thC}>Proxies</th></tr>
           ${rows}
         </table>
       </div>`
@@ -435,9 +436,9 @@ function buildEmailHtml(data: {
     }
     videoCompleted2026Html = `
       <div style="margin-bottom:20px;">
-        <div style="background:rgba(13,79,79,0.04);padding:10px 14px;border-bottom:1px solid #e7e1d8;font-size:12px;font-weight:700;color:#0d4f4f;text-transform:uppercase;letter-spacing:0.5px;">Completed in 2026 (${videoCompleted2026.length})</div>
+        <div style="background:rgba(13,79,79,0.04);padding:10px 14px;border-bottom:1px solid #e7e1d8;font-size:12px;font-weight:700;color:#0d4f4f;text-transform:uppercase;letter-spacing:0.5px;">Videos Completed in 2026 (${videoCompleted2026.length})</div>
         <table style="width:100%;border-collapse:collapse;background:white;">
-          <tr style="background:#fafaf9;"><th ${th}>Couple</th><th ${th}>Date</th><th ${th}>Type</th><th ${th}>Completed</th><th ${th}>Assigned</th></tr>
+          <tr style="background:#fafaf9;"><th ${th}>Couple</th><th ${th}>Wedding Date</th><th ${th}>Type</th><th ${th}>Completed</th><th ${th}>Assigned</th></tr>
           ${rows}
           <tr style="background:#f5f5f4;border-top:2px solid #e7e1d8;">
             <td ${td} style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#78716c;">${videoCompleted2026.length} completed</td>
@@ -514,7 +515,6 @@ function buildEmailHtml(data: {
       </table>
     </div>
 
-    ${photoDelivHtml}
     ${pipelineHtml}
 
     <!-- PAGE 3: VIDEO PRODUCTION -->

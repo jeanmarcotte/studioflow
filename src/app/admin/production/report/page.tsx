@@ -64,7 +64,7 @@ function formatJobType(type: string): string {
     wedding_proofs: 'Wedding Proofs', WED_PROOFS: 'Wedding Proofs',
     eng_proofs: 'Engagement Proofs', ENG_PROOFS: 'Engagement Proofs',
     WED_PACKAGE: 'Wedding Package', WED_ALBUM: 'Wedding Album',
-    WED_FRAMES: 'Wedding Frames', WED_CANVAS: 'Wedding Canvas',
+    WED_FRAMES: 'Wedding Prints', WED_CANVAS: 'Wedding Canvas',
     WED_PORTRAIT: 'Wedding Portrait', WED_PORTRAITS: 'Wedding Portrait',
     PARENT_BOOK: 'Parent Album', ENG_COLLAGE: 'Engagement Collage',
     bg_album: 'B&G Album', bg_portrait_canvas: 'B&G Portrait Canvas',
@@ -148,7 +148,7 @@ const DELIVERABLE_MAP: Record<string, string> = {
   bg_album: 'B&G Album',
   BEST_PRINT: 'Best Canvas Print',
   ENG_COLLAGE: 'Engagement Collage', eng_collage: 'Engagement Collage',
-  WED_FRAMES: 'Wedding Frames',
+  WED_FRAMES: 'Wedding Prints',
   WED_PORTRAIT: 'Wedding Portrait', WED_PORTRAITS: 'Wedding Portrait',
   TYC: 'Thank You Cards', tyc: 'Thank You Cards',
 }
@@ -626,42 +626,6 @@ export default function ProductionReportPage() {
             </div>
           </div>
 
-          {/* Photo Deliverables */}
-          {photoDeliverables.length > 0 && (
-            <div className="rounded-xl overflow-hidden mb-8 page-section" style={{ background: C.white, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
-              <div
-                className="px-5 py-3.5 text-[12px] font-semibold uppercase tracking-wider"
-                style={{ background: 'rgba(13,79,79,0.04)', color: C.teal, borderBottom: `1px solid ${C.border}` }}
-              >
-                Photo Deliverables
-              </div>
-              <table className="w-full text-[13px]">
-                <thead>
-                  <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
-                    <TH align="left">Deliverable</TH>
-                    <TH align="right" px="px-4">Done</TH>
-                    <TH align="right" px="px-4">At Lab</TH>
-                    <TH align="right" px="px-4">At Studio</TH>
-                    <TH align="right" px="px-4">Re-edit</TH>
-                    <TH align="right" px="px-4">Total</TH>
-                  </tr>
-                </thead>
-                <tbody>
-                  {photoDeliverables.map(([label, counts]) => (
-                    <tr key={label} style={{ borderBottom: '1px solid #f3f0ed' }}>
-                      <td className="px-5 py-2.5 font-semibold" style={{ color: C.textPrimary }}>{label}</td>
-                      <td className="text-right px-4 py-2.5 tabular-nums" style={{ color: counts.done > 0 ? C.teal : C.textSubtle }}>{counts.done || '\u2014'}</td>
-                      <td className="text-right px-4 py-2.5 tabular-nums" style={{ color: counts.at_lab > 0 ? '#4338ca' : C.textSubtle }}>{counts.at_lab || '\u2014'}</td>
-                      <td className="text-right px-4 py-2.5 tabular-nums" style={{ color: counts.at_studio > 0 ? '#7c3aed' : C.textSubtle }}>{counts.at_studio || '\u2014'}</td>
-                      <td className="text-right px-4 py-2.5 tabular-nums" style={{ color: counts.re_edit > 0 ? C.red : C.textSubtle }}>{counts.re_edit || '\u2014'}</td>
-                      <td className="text-right px-4 py-2.5 tabular-nums font-semibold">{counts.total}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
           {/* Photo Pipeline */}
           {PHOTO_PIPELINE.map(section => {
             const sectionJobs = activePhotoJobs.filter(j => j.status === section.status)
@@ -678,7 +642,7 @@ export default function ProductionReportPage() {
                   <thead>
                     <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
                       <TH align="left">Couple</TH>
-                      <TH align="left" px="px-4">Date</TH>
+                      <TH align="left" px="px-4">Wedding Date</TH>
                       <TH align="left" px="px-4">Job</TH>
                       <TH align="right" px="px-4">Photos</TH>
                       <TH align="left" px="px-4">Vendor</TH>
@@ -785,7 +749,8 @@ export default function ProductionReportPage() {
               <div className="font-bold tabular-nums leading-none mb-2" style={{ fontSize: '24px', color: C.textPrimary }}>
                 {videoSegmentStats.done}/{videoSegmentStats.total}
               </div>
-              <div className="text-[11px] mb-3" style={{ color: C.textSubtle }}>segments complete</div>
+              <div className="text-[11px] mb-1" style={{ color: C.textSubtle }}>segments complete</div>
+              <div className="text-[10px] mb-2" style={{ color: C.textSubtle }}>Each wedding video has 6 parts: ceremony, reception, park, prep, groom &amp; bride</div>
               <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#e5e7eb' }}>
                 <div className="h-full rounded-full" style={{ background: C.tealLight, width: `${videoSegmentStats.total > 0 ? Math.round((videoSegmentStats.done / videoSegmentStats.total) * 100) : 0}%` }} />
               </div>
@@ -824,7 +789,7 @@ export default function ProductionReportPage() {
                 <thead>
                   <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
                     <TH align="left">Couple</TH>
-                    <TH align="left" px="px-4">Date</TH>
+                    <TH align="left" px="px-4">Wedding Date</TH>
                     <TH align="left" px="px-4">Type</TH>
                     <TH align="left" px="px-4">Assigned</TH>
                     <TH align="center" px="px-4">Proxies</TH>
@@ -852,13 +817,13 @@ export default function ProductionReportPage() {
                 className="px-5 py-3.5 text-[12px] font-semibold uppercase tracking-wider"
                 style={{ background: 'rgba(13,79,79,0.04)', color: C.teal, borderBottom: `1px solid ${C.border}` }}
               >
-                Completed in 2026 ({videoCompleted2026.length})
+                Videos Completed in 2026 ({videoCompleted2026.length})
               </div>
               <table className="w-full text-[13px]">
                 <thead>
                   <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
                     <TH align="left">Couple</TH>
-                    <TH align="left" px="px-4">Date</TH>
+                    <TH align="left" px="px-4">Wedding Date</TH>
                     <TH align="left" px="px-4">Type</TH>
                     <TH align="left" px="px-4">Completed</TH>
                     <TH align="left" px="px-4">Assigned</TH>
