@@ -636,158 +636,156 @@ export default function VideoProductionPage() {
 
           {/* ══════ ZONE 1: Currently Editing ══════ */}
           <div className={`mb-10 ${nunito.className}`}>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-1.5 h-8 rounded-sm" style={{ backgroundColor: '#0d4f4f' }} />
-              <h2 className={`text-xl font-bold tracking-tight ${playfair.className}`} style={{ color: '#0d4f4f' }}>
+            {/* Section header */}
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className={`text-xl ${playfair.className}`} style={{ color: '#0d4f4f', fontWeight: 700 }}>
                 Currently Editing
               </h2>
-              <span className="inline-flex items-center justify-center h-7 min-w-[28px] px-2.5 rounded-full text-white text-xs font-bold tabular-nums" style={{ backgroundColor: '#0d4f4f' }}>
-                {currentlyEditingJobs.length}
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: '#ecfdf5', color: '#0d4f4f' }}>
+                {currentlyEditingJobs.length} job{currentlyEditingJobs.length !== 1 ? 's' : ''}
               </span>
             </div>
 
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e7e1d8', boxShadow: '0 1px 3px rgba(13,79,79,0.06), 0 6px 16px rgba(13,79,79,0.04)' }}>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ backgroundColor: '#faf8f5', borderBottom: '2px solid #e7e1d8' }}>
-                    <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Couple</th>
-                    <th className="text-left px-4 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Type</th>
-                    <th className="text-left px-4 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Editor</th>
-                    <th className="text-center px-3 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Segments</th>
-                    <th className="text-center px-3 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Proxies</th>
-                    <th className="text-center px-3 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Form</th>
-                    <th className="text-right px-4 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Days</th>
-                    <th className="text-right px-5 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentlyEditingJobs.map(job => {
-                    const segsDone = countSegmentsDone(job)
-                    const weddingDate = job.wedding_date || job.couples?.wedding_date
-                    const daysWaiting = weddingDate ? differenceInDays(new Date(), parseISO(weddingDate)) : 0
-                    const pill = STATUS_PILL[job.status] || { bg: 'bg-gray-100', text: 'text-gray-700' }
+            {/* Job Cards */}
+            {currentlyEditingJobs.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {currentlyEditingJobs.map(job => {
+                  const segsDone = countSegmentsDone(job)
+                  const weddingDate = job.wedding_date || job.couples?.wedding_date
+                  const daysWaiting = weddingDate ? differenceInDays(new Date(), parseISO(weddingDate)) : 0
+                  const pill = STATUS_PILL[job.status] || { bg: 'bg-gray-100', text: 'text-gray-700' }
+                  const daysColor = daysWaiting > 90 ? '#dc2626' : daysWaiting > 60 ? '#d97706' : '#1c1917'
 
-                    return (
-                      <tr
-                        key={job.id}
-                        className="transition-colors"
-                        style={{ borderBottom: '1px solid #f0ece4' }}
-                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#faf8f5')}
-                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = '')}
-                      >
-                        <td className="px-5 py-4">
-                          <button
-                            onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
-                            className="text-left group"
-                          >
-                            <div className="font-bold group-hover:underline text-[13px]" style={{ color: '#1c1917' }}>
-                              {job.couples?.couple_name || 'Unknown'}
-                            </div>
-                            {weddingDate && (
-                              <div className="text-[11px] mt-0.5 font-medium" style={{ color: '#a8a29e' }}>{format(parseISO(weddingDate), 'MMM d, yyyy')}</div>
-                            )}
-                          </button>
-                        </td>
-                        <td className="px-4 py-4 text-[13px] font-medium" style={{ color: '#57534e' }}>{JOB_TYPE_LABELS[job.job_type] || job.job_type}</td>
-                        <td className="px-4 py-4 text-[13px]" style={{ color: '#a8a29e' }}>{job.assigned_to || '\u2014'}</td>
-                        <td className="px-3 py-4 text-center">
-                          <span className={`inline-flex items-center justify-center font-mono text-xs font-bold min-w-[40px] px-2 py-1 rounded-md ${
-                            segsDone === 6 ? 'bg-emerald-50 text-emerald-700' :
-                            segsDone > 0 ? 'bg-amber-50 text-amber-700' :
-                            'bg-stone-100 text-stone-400'
-                          }`} style={segsDone === 6 ? { border: '1px solid #d1fae5' } : segsDone > 0 ? { border: '1px solid #fef3c7' } : { border: '1px solid #e7e5e4' }}>
-                            {segsDone}/6
-                          </span>
-                        </td>
-                        <td className="px-3 py-4 text-center">
-                          {job.proxies_run
-                            ? <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold" style={{ border: '1.5px solid #a7f3d0' }}>{'\u2713'}</span>
-                            : <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs" style={{ backgroundColor: '#faf8f5', border: '1.5px solid #e7e1d8', color: '#d6d3d1' }}>{'\u25CB'}</span>
-                          }
-                        </td>
-                        <td className="px-3 py-4 text-center">
-                          {job.video_form
-                            ? <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold" style={{ border: '1.5px solid #a7f3d0' }}>{'\u2713'}</span>
-                            : <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs" style={{ backgroundColor: '#faf8f5', border: '1.5px solid #e7e1d8', color: '#d6d3d1' }}>{'\u25CB'}</span>
-                          }
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <span className={`font-mono text-[13px] tabular-nums ${daysWaiting > 90 ? 'text-red-600 font-bold' : ''}`} style={daysWaiting <= 90 ? { color: '#a8a29e' } : {}}>
+                  return (
+                    <div
+                      key={job.id}
+                      className="rounded-xl p-5 transition-shadow hover:shadow-md"
+                      style={{ border: '1px solid #e5e7eb', backgroundColor: '#ffffff' }}
+                    >
+                      {/* Top row: Days waiting + Status pill */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <div className="font-bold tabular-nums leading-none" style={{ fontSize: '28px', color: daysColor }}>
                             {daysWaiting}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          <select
-                            value={job.status}
-                            onChange={e => updateJobStatus(job.id, e.target.value)}
-                            className={`text-xs font-bold rounded-full px-3.5 py-1.5 border-0 cursor-pointer ${pill.bg} ${pill.text}`}
-                          >
-                            <option value="in_progress">In Progress</option>
-                            <option value="waiting_for_bride">Waiting for Bride</option>
-                            <option value="waiting_on_recap">Waiting on Recap</option>
-                            <option disabled>{'────────────'}</option>
-                            <option value="not_started">Not Started</option>
-                            <option value="raw_video_output">Raw Video Output</option>
-                            <option value="complete">Complete</option>
-                            <option value="archived">Archived</option>
-                          </select>
-                        </td>
-                      </tr>
-                    )
-                  })}
-
-                  {currentlyEditingJobs.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="px-5 py-12 text-center text-sm" style={{ color: '#d6d3d1' }}>
-                        No videos currently being edited
-                      </td>
-                    </tr>
-                  )}
-
-                  {/* Summary Row 1: In production */}
-                  <tr style={{ backgroundColor: '#f5f5f4', borderTop: '2px solid #e7e1d8' }}>
-                    <td className="px-5 py-3.5 font-bold text-xs uppercase tracking-wider" style={{ color: '#1c1917' }} colSpan={3}>In production</td>
-                    <td className="px-3 py-3.5 text-center" colSpan={1}>
-                      <span className="font-mono text-sm font-bold" style={{ color: '#1c1917' }}>{inProductionStats.totalSegsDone}/{inProductionStats.totalSegsPossible}</span>
-                    </td>
-                    <td className="px-3 py-3.5 text-xs font-medium" style={{ color: '#78716c' }} colSpan={4}>segments complete</td>
-                  </tr>
-
-                  {/* Summary Row 2: Awaiting photo order */}
-                  <tr style={{ backgroundColor: '#fef3c7' }}>
-                    <td className="px-5 py-3.5" colSpan={8}>
-                      <div className="flex items-center gap-2.5 flex-wrap">
-                        <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#d97706' }} />
-                        <span className="font-bold text-sm" style={{ color: '#78350f' }}>Awaiting photo order</span>
-                        <span className="text-sm font-medium" style={{ color: '#92400e' }}>
-                          {awaitingOrderCouples.length} couple{awaitingOrderCouples.length !== 1 ? 's' : ''} shot with video
-                          {' \u00B7 '}
-                          {notStartedCount} not-started job{notStartedCount !== 1 ? 's' : ''} in backlog
-                        </span>
+                          </div>
+                          <div className="text-xs mt-1" style={{ color: '#a8a29e' }}>days since wedding</div>
+                        </div>
+                        <select
+                          value={job.status}
+                          onChange={e => updateJobStatus(job.id, e.target.value)}
+                          className={`text-xs font-bold rounded-full px-3 py-1.5 border-0 cursor-pointer ${pill.bg} ${pill.text}`}
+                        >
+                          <option value="in_progress">In Progress</option>
+                          <option value="waiting_for_bride">Waiting for Bride</option>
+                          <option value="waiting_on_recap">Waiting on Recap</option>
+                          <option disabled>{'\u2500'.repeat(12)}</option>
+                          <option value="not_started">Not Started</option>
+                          <option value="raw_video_output">Raw Video Output</option>
+                          <option value="complete">Complete</option>
+                          <option value="archived">Archived</option>
+                        </select>
                       </div>
-                    </td>
-                  </tr>
 
-                  {/* Summary Row 3: Edited in 2026 */}
-                  <tr style={{ backgroundColor: '#dc2626' }}>
-                    <td className="px-5 py-3.5" colSpan={8}>
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="font-bold text-white text-sm">Edited in 2026</span>
-                        <span className="font-semibold text-sm" style={{ color: '#fecaca' }}>
-                          {edited2026Stats.total} video{edited2026Stats.total !== 1 ? 's' : ''}
-                          {edited2026Stats.total > 0 && (
-                            <>
-                              {'  \u2014  '}
-                              {edited2026Stats.full} full {'\u00B7'} {edited2026Stats.recap} recap{edited2026Stats.recap !== 1 ? 's' : ''}
-                              {edited2026Stats.other > 0 && ` \u00B7 ${edited2026Stats.other} other`}
-                            </>
-                          )}
-                        </span>
+                      {/* Couple name + date */}
+                      <button
+                        onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
+                        className="text-left group mb-0.5 block"
+                      >
+                        <div className="text-base font-semibold group-hover:underline" style={{ color: '#1c1917' }}>
+                          {job.couples?.couple_name || 'Unknown'}
+                        </div>
+                      </button>
+                      {weddingDate && (
+                        <div className="text-[13px] mb-1" style={{ color: '#a8a29e' }}>{format(parseISO(weddingDate), 'MMMM d, yyyy')}</div>
+                      )}
+
+                      {/* Job type */}
+                      <div className="text-[13px] mb-4" style={{ color: '#78716c' }}>{JOB_TYPE_LABELS[job.job_type] || job.job_type}</div>
+
+                      {/* Segment progress circles */}
+                      <div className="mb-4">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          {SEGMENTS.map(seg => (
+                            <div
+                              key={seg.field}
+                              className="w-5 h-5 rounded-full transition-colors"
+                              style={{ backgroundColor: job[seg.field] ? '#0d9488' : '#e5e7eb' }}
+                              title={seg.label}
+                            />
+                          ))}
+                        </div>
+                        <div className="text-xs font-medium" style={{ color: segsDone === 6 ? '#0d9488' : segsDone > 0 ? '#d97706' : '#a8a29e' }}>
+                          {segsDone} of 6 segments
+                        </div>
                       </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+
+                      {/* Bottom row: Proxies, Form, Editor */}
+                      <div className="flex items-center gap-4 pt-3" style={{ borderTop: '1px solid #f3f4f6' }}>
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: job.proxies_run ? '#0d9488' : '#d4d4d8' }} />
+                          <span className="text-xs" style={{ color: '#78716c' }}>Proxies</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: job.video_form ? '#0d9488' : '#d4d4d8' }} />
+                          <span className="text-xs" style={{ color: '#78716c' }}>Form</span>
+                        </div>
+                        {job.assigned_to && (
+                          <div className="text-xs ml-auto" style={{ color: '#a8a29e' }}>{job.assigned_to}</div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-sm rounded-xl mb-6" style={{ color: '#a8a29e', border: '1px dashed #e5e7eb' }}>
+                No videos currently being edited
+              </div>
+            )}
+
+            {/* Metric Tiles */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Tile 1: In Production */}
+              <div className="rounded-lg p-4" style={{ backgroundColor: '#f9fafb' }}>
+                <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#78716c' }}>In Production</div>
+                <div className="font-bold tabular-nums mb-2" style={{ fontSize: '24px', color: '#1c1917' }}>
+                  {inProductionStats.totalSegsDone}/{inProductionStats.totalSegsPossible}
+                </div>
+                <div className="text-xs mb-3" style={{ color: '#a8a29e' }}>segments complete</div>
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#e5e7eb' }}>
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      backgroundColor: '#0d9488',
+                      width: `${inProductionStats.totalSegsPossible > 0 ? Math.round((inProductionStats.totalSegsDone / inProductionStats.totalSegsPossible) * 100) : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Tile 2: Incoming Work */}
+              <div className="rounded-lg p-4" style={{ backgroundColor: '#f9fafb' }}>
+                <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#78716c' }}>Incoming Work</div>
+                <div className="font-bold tabular-nums mb-2" style={{ fontSize: '24px', color: '#d97706' }}>
+                  {awaitingOrderCouples.length}
+                </div>
+                <div className="text-xs mb-1" style={{ color: '#78716c' }}>couples awaiting photo order</div>
+                <div className="text-xs" style={{ color: '#a8a29e' }}>
+                  {notStartedCount} not-started job{notStartedCount !== 1 ? 's' : ''} in backlog
+                </div>
+              </div>
+
+              {/* Tile 3: 2026 Velocity */}
+              <div className="rounded-lg p-4" style={{ backgroundColor: '#f9fafb' }}>
+                <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#78716c' }}>2026 Velocity</div>
+                <div className="font-bold tabular-nums mb-2" style={{ fontSize: '24px', color: '#0d9488' }}>
+                  {edited2026Stats.total}
+                </div>
+                <div className="text-xs mb-1" style={{ color: '#78716c' }}>videos edited in 2026</div>
+                <div className="text-xs" style={{ color: '#a8a29e' }}>
+                  {edited2026Stats.full} full {'\u00B7'} {edited2026Stats.recap} recap{edited2026Stats.recap !== 1 ? 's' : ''}{edited2026Stats.other > 0 ? ` \u00B7 ${edited2026Stats.other} other` : ''}
+                </div>
+              </div>
             </div>
           </div>
 
