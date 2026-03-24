@@ -34,6 +34,7 @@ interface VideoJob {
   couple_id: string
   job_type: string
   status: string
+  section: string
   assigned_to: string | null
   ceremony_done: boolean
   reception_done: boolean
@@ -167,6 +168,28 @@ const STATUS_PILL: Record<string, { bg: string; text: string; label: string }> =
   waiting_on_recap: { bg: '#f3e8ff', text: '#3b0764', label: 'Waiting on Recap' },
 }
 
+// ── Color Palette ────────────────────────────────────────────────
+
+const C = {
+  teal: '#0d4f4f',
+  tealLight: '#0d9488',
+  cream: '#faf8f5',
+  white: '#ffffff',
+  border: '#e7e1d8',
+  textPrimary: '#1c1917',
+  textSecondary: '#44403c',
+  textMuted: '#78716c',
+  textSubtle: '#a8a29e',
+  rowAlt: '#fafaf9',
+  summaryLight: '#f5f5f4',
+  summaryMed: '#f0f0ef',
+  amber: '#92400e',
+  amberBg: '#fef3c7',
+  amberBorder: '#fde68a',
+  red: '#dc2626',
+  redBold: '#b91c1c',
+}
+
 // ══════════════════════════════════════════════════════════════════
 // PAGE
 // ══════════════════════════════════════════════════════════════════
@@ -178,7 +201,6 @@ export default function ProductionReportPage() {
   const [loading, setLoading] = useState(true)
   const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle')
 
-  // ── Send Test Email ─────────────────────────────────────────────
   const sendTestEmail = async () => {
     setEmailStatus('sending')
     try {
@@ -192,6 +214,7 @@ export default function ProductionReportPage() {
   }
 
   // ── Fetch ─────────────────────────────────────────────────────
+
   useEffect(() => {
     const fetchAll = async () => {
       const today = new Date().toISOString().split('T')[0]
@@ -234,8 +257,7 @@ export default function ProductionReportPage() {
     return `${d} at ${t}`
   }, [])
 
-  // ── Photo data ────────────────────────────────────────────────
-
+  // Photo data
   const activePhotoJobs = useMemo(() => allPhotoJobs.filter(j => !['completed', 'picked_up'].includes(j.status)), [allPhotoJobs])
   const inProgressPhotoJobs = useMemo(() => activePhotoJobs.filter(j => j.status === 'in_progress'), [activePhotoJobs])
   const atLabCount = useMemo(() => activePhotoJobs.filter(j => j.status === 'at_lab').length, [activePhotoJobs])
@@ -285,8 +307,7 @@ export default function ProductionReportPage() {
     return Object.entries(map).filter(([, c]) => c.total > 0)
   }, [allPhotoJobs])
 
-  // ── Video data ────────────────────────────────────────────────
-
+  // Video data
   const videoEditing = useMemo(() =>
     videoJobs.filter(j => ['in_progress', 'waiting_for_bride', 'waiting_on_recap'].includes(j.status)),
   [videoJobs])
@@ -320,69 +341,77 @@ export default function ProductionReportPage() {
         return a.localeCompare(b)
       })
       .map(([type, count]) => ({
-        label: type === 'ENG_SLIDESHOW' ? 'SLIDESHOW' : type,
+        label: (type === 'ENG_SLIDESHOW' ? 'SLIDESHOW' : type.replace(/_/g, ' ')).toUpperCase(),
         count,
       }))
   }, [videoCompleted2026])
 
-  // ── Loading ────────────────────────────────────────────────────
-
+  // Loading
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0d4f4f]" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: C.teal }} />
       </div>
     )
   }
 
-  // Helper for percentage strings
   const pctDel = (del: number, pt: number) => del > 0 && pt > 0 ? ((del / pt) * 100).toFixed(1) + '%' : '\u2014'
   const pctComp = (esf: number, pt: number) => pt > 0 ? ((esf / pt) * 100).toFixed(1) + '%' : '\u2014'
 
-  // ── Render ────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  // RENDER
+  // ══════════════════════════════════════════════════════════════════
 
   return (
     <>
-      {/* Print styles */}
       <style>{`
         @media print {
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .no-print { display: none !important; }
           .print-break { page-break-before: always; }
           @page { margin: 0.5in; size: letter; }
+          table, .card-grid { page-break-inside: avoid; }
+          tr { page-break-inside: avoid; }
+          .page-section { page-break-inside: avoid; }
         }
       `}</style>
 
-      <div className={`${nunito.className} min-h-screen`} style={{ background: '#faf8f5' }}>
+      <div className={`${nunito.className} min-h-screen`} style={{ background: C.cream }}>
+
         {/* ════════════════════════════════════════════════════════
             PAGE 1: EXECUTIVE SUMMARY
             ════════════════════════════════════════════════════════ */}
         <div className="max-w-[900px] mx-auto px-8 pt-10 pb-8">
 
           {/* Header */}
-          <div className="flex items-start justify-between mb-10">
+          <div className="flex items-start justify-between mb-12">
             <div>
-              <h1 className={`${playfair.className} text-[28px] leading-tight`} style={{ color: '#0d4f4f' }}>
+              <h1
+                className={`${playfair.className} tracking-tight leading-tight`}
+                style={{ fontSize: '28px', color: C.teal }}
+              >
                 SIGS Photography
               </h1>
-              <p className="text-[16px] mt-1" style={{ color: '#78716c' }}>Production Status Report</p>
+              <p className="mt-1.5" style={{ fontSize: '16px', color: C.textMuted }}>
+                Production Status Report
+              </p>
             </div>
             <div className="text-right">
-              <p className="text-[13px] mb-3" style={{ color: '#a8a29e' }}>{timestamp}</p>
-              <div className="flex items-center gap-2 no-print">
+              <p className="mb-4" style={{ fontSize: '13px', color: C.textSubtle }}>{timestamp}</p>
+              <div className="flex items-center gap-2.5 no-print">
                 <button
                   onClick={sendTestEmail}
                   disabled={emailStatus === 'sending'}
-                  className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors hover:bg-white"
-                  style={{ borderColor: '#e7e1d8', color: '#44403c' }}
+                  className="flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-semibold transition-all hover:bg-white/80"
+                  style={{ borderColor: C.border, color: C.textSecondary }}
                 >
                   {emailStatus === 'sending' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                   {emailStatus === 'sent' ? 'Sent!' : emailStatus === 'failed' ? 'Failed' : 'Send Test Email'}
                 </button>
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors hover:opacity-90"
-                  style={{ background: '#0d4f4f' }}
+                  className="flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90"
+                  style={{ background: C.teal }}
                 >
                   <Printer className="h-4 w-4" />
                   Print Report
@@ -391,93 +420,88 @@ export default function ProductionReportPage() {
             </div>
           </div>
 
-          {/* Section 1: At a Glance */}
-          <h2 className={`${playfair.className} text-[20px] mb-5`} style={{ color: '#0d4f4f' }}>At a Glance</h2>
+          {/* ── Section 1: At a Glance ─────────────────────────── */}
+          <h2 className={`${playfair.className} mb-6`} style={{ fontSize: '20px', color: C.teal }}>
+            At a Glance
+          </h2>
 
-          <div className="grid grid-cols-3 gap-4 mb-10">
-            {/* Row 1: Photo metrics */}
+          <div className="grid grid-cols-3 gap-4 mb-12 card-grid">
             <MetricCard
-              emoji="\uD83D\uDCF7"
               label="Photos Remaining"
               value={asapTotals.remaining.toLocaleString()}
               sublabel={`${asapTotals.esf.toLocaleString()} of ${(asapTotals.tp || asapTotals.pt).toLocaleString()} edited`}
-              valueColor="#0d4f4f"
+              valueColor={C.teal}
               progress={asapTotals.pt > 0 ? Math.round((asapTotals.esf / (asapTotals.tp || asapTotals.pt)) * 100) : 0}
             />
             <MetricCard
-              emoji="\uD83D\uDCF7"
               label="Awaiting Photo Order"
               value={waitingOrderCouples.length.toString()}
               sublabel="couples waiting"
-              valueColor={waitingOrderCouples.length > 3 ? '#92400e' : '#0d4f4f'}
+              valueColor={waitingOrderCouples.length > 3 ? C.amber : C.teal}
             />
             <MetricCard
-              emoji="\uD83D\uDCF7"
               label="At Lab"
               value={atLabCount.toString()}
               sublabel="orders being printed"
-              valueColor="#0d4f4f"
+              valueColor={C.teal}
             />
-
-            {/* Row 2: Video metrics */}
             <MetricCard
-              emoji="\uD83C\uDFAC"
               label="Videos In Production"
               value={videoEditing.length.toString()}
               sublabel={`${videoEditing.filter(j => j.status === 'in_progress').length} active \u00B7 ${videoEditing.filter(j => j.status !== 'in_progress').length} waiting`}
-              valueColor="#0d4f4f"
+              valueColor={C.teal}
             />
             <MetricCard
-              emoji="\uD83C\uDFAC"
               label="Video Backlog"
               value={videoNotStarted.length.toString()}
               sublabel={videoNotStarted.length > 0 && videoNotStarted[0].couples?.wedding_date
                 ? `oldest: ${daysSince(videoNotStarted[0].couples.wedding_date)} days`
                 : 'no jobs waiting'}
-              valueColor={videoNotStarted.length > 3 ? '#92400e' : '#0d4f4f'}
+              valueColor={videoNotStarted.length > 3 ? C.amber : C.teal}
             />
             <MetricCard
-              emoji="\uD83C\uDFAC"
               label="Segments Progress"
               value={`${videoSegmentStats.done}/${videoSegmentStats.total}`}
               sublabel="segments complete"
-              valueColor="#0d4f4f"
+              valueColor={C.teal}
               progress={videoSegmentStats.total > 0 ? Math.round((videoSegmentStats.done / videoSegmentStats.total) * 100) : 0}
             />
           </div>
 
-          {/* Section 2: 2026 Velocity */}
-          <h2 className={`${playfair.className} text-[20px] mb-5`} style={{ color: '#0d4f4f' }}>2026 Velocity</h2>
+          {/* ── Section 2: 2026 Velocity ───────────────────────── */}
+          <h2 className={`${playfair.className} mb-6`} style={{ fontSize: '20px', color: C.teal }}>
+            2026 Velocity
+          </h2>
 
-          <div className="grid grid-cols-2 gap-4 mb-10">
-            {/* Photo 2026 */}
-            <div className="rounded-xl p-5" style={{ background: '#ffffff', border: '1px solid #e7e1d8' }}>
-              <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#78716c' }}>
-                {'\uD83D\uDCF7'} Photo Editing 2026
+          <div className="grid grid-cols-2 gap-4 mb-12 card-grid">
+            <div className="rounded-xl p-6" style={{ background: C.white, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
+              <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: C.textMuted }}>
+                Photo Editing 2026
               </div>
-              <div className="text-[24px] font-bold mb-1" style={{ color: '#0d4f4f' }}>
-                {ytdTotals.esf.toLocaleString()} <span className="text-[13px] font-normal" style={{ color: '#a8a29e' }}>of {ytdTotals.pt.toLocaleString()} photos</span>
+              <div className="font-bold tabular-nums leading-none mb-1.5" style={{ fontSize: '28px', color: C.teal }}>
+                {ytdTotals.esf.toLocaleString()}
+                <span className="font-normal ml-2" style={{ fontSize: '13px', color: C.textSubtle }}>of {ytdTotals.pt.toLocaleString()} photos</span>
               </div>
-              <div className="text-[13px] mb-3" style={{ color: '#78716c' }}>
+              <div className="text-[13px] mb-4" style={{ color: C.textMuted }}>
                 {ytdTotals.pt > 0 ? ((ytdTotals.esf / ytdTotals.pt) * 100).toFixed(1) : 0}% complete (proofs only)
               </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ background: '#e7e1d8' }}>
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: C.border }}>
                 <div
                   className="h-full rounded-full transition-all"
-                  style={{ background: '#0d9488', width: `${ytdTotals.pt > 0 ? Math.round((ytdTotals.esf / ytdTotals.pt) * 100) : 0}%` }}
+                  style={{ background: C.tealLight, width: `${ytdTotals.pt > 0 ? Math.round((ytdTotals.esf / ytdTotals.pt) * 100) : 0}%` }}
                 />
               </div>
             </div>
 
-            {/* Video 2026 */}
-            <div className="rounded-xl p-5" style={{ background: '#ffffff', border: '1px solid #e7e1d8' }}>
-              <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#78716c' }}>
-                {'\uD83C\uDFAC'} Video Editing 2026
+            <div className="rounded-xl p-6" style={{ background: C.white, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
+              <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: C.textMuted }}>
+                Video Editing 2026
               </div>
-              <div className="text-[24px] font-bold mb-1" style={{ color: '#0d4f4f' }}>
-                {videoCompleted2026.length} <span className="text-[13px] font-normal" style={{ color: '#a8a29e' }}>videos edited</span>
+              <div className="font-bold tabular-nums leading-none mb-1.5" style={{ fontSize: '28px', color: C.teal }}>
+                {videoCompleted2026.length}
+                <span className="font-normal ml-2" style={{ fontSize: '13px', color: C.textSubtle }}>videos edited</span>
               </div>
-              <div className="text-[13px]" style={{ color: '#78716c' }}>
+              <div className="text-[13px]" style={{ color: C.textMuted }}>
                 {videoTypeBreakdown.map((b, i) => (
                   <span key={b.label}>{i > 0 ? ' \u00B7 ' : ''}{b.count} {b.label}</span>
                 ))}
@@ -485,33 +509,36 @@ export default function ProductionReportPage() {
             </div>
           </div>
 
-          {/* Section 3: Attention Required */}
+          {/* ── Section 3: Attention Required ──────────────────── */}
           {waitingOrderCouples.length > 0 && (
-            <>
-              <h2 className={`${playfair.className} text-[20px] mb-5`} style={{ color: '#0d4f4f' }}>
-                {'\u26A0\uFE0F'} Attention Required
+            <div className="page-section">
+              <h2 className={`${playfair.className} mb-6`} style={{ fontSize: '20px', color: C.teal }}>
+                Attention Required
               </h2>
-              <div className="rounded-xl overflow-hidden mb-6" style={{ background: '#ffffff', border: '1px solid #e7e1d8' }}>
-                <div className="px-5 py-3 text-[12px] font-semibold uppercase tracking-wider" style={{ background: '#fef3c7', color: '#92400e', borderBottom: '1px solid #fde68a' }}>
+              <div className="rounded-xl overflow-hidden" style={{ background: C.white, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
+                <div
+                  className="px-5 py-3 text-[12px] font-semibold uppercase tracking-wider"
+                  style={{ background: C.amberBg, color: C.amber, borderBottom: `1px solid ${C.amberBorder}` }}
+                >
                   Couples Awaiting Photo Order
                 </div>
                 <table className="w-full text-[13px]">
                   <thead>
-                    <tr style={{ background: 'rgba(13,79,79,0.04)' }}>
-                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Couple</th>
-                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Wedding Date</th>
-                      <th className="text-right px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Days Since</th>
+                    <tr style={{ background: 'rgba(13,79,79,0.03)' }}>
+                      <TH align="left">Couple</TH>
+                      <TH align="left">Wedding Date</TH>
+                      <TH align="right">Days Since</TH>
                     </tr>
                   </thead>
                   <tbody>
                     {waitingOrderCouples.map(couple => {
                       const days = daysSince(couple.wedding_date)
-                      const color = days > 180 ? '#b91c1c' : days > 90 ? '#dc2626' : '#78716c'
+                      const color = days > 180 ? C.redBold : days > 90 ? C.red : C.textMuted
                       const bold = days > 180
                       return (
                         <tr key={couple.id} style={{ borderBottom: '1px solid #f3f0ed' }}>
                           <td className="px-5 py-2.5" style={{ color, fontWeight: bold ? 700 : 400 }}>{couple.couple_name}</td>
-                          <td className="px-5 py-2.5" style={{ color: '#a8a29e' }}>{formatDate(couple.wedding_date)}</td>
+                          <td className="px-5 py-2.5" style={{ color: C.textSubtle }}>{formatDate(couple.wedding_date)}</td>
                           <td className="text-right px-5 py-2.5 font-semibold" style={{ color }}>{days} days</td>
                         </tr>
                       )
@@ -519,7 +546,7 @@ export default function ProductionReportPage() {
                   </tbody>
                 </table>
               </div>
-            </>
+            </div>
           )}
         </div>
 
@@ -527,72 +554,72 @@ export default function ProductionReportPage() {
             PAGE 2: PHOTO PRODUCTION DETAIL
             ════════════════════════════════════════════════════════ */}
         <div className="print-break max-w-[900px] mx-auto px-8 pt-10 pb-8">
-          <h2 className={`${playfair.className} text-[22px] mb-6`} style={{ color: '#0d4f4f' }}>
-            {'\uD83D\uDCF7'} Photo Production
+          <h2 className={`${playfair.className} mb-8`} style={{ fontSize: '22px', color: C.teal }}>
+            Photo Production
           </h2>
 
-          {/* Currently Editing Table */}
-          <div className="rounded-xl overflow-hidden mb-8" style={{ background: '#ffffff', border: '1px solid #e7e1d8', boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
-            <div className="px-5 py-3 text-[12px] font-semibold uppercase tracking-wider" style={{ background: 'rgba(13,79,79,0.05)', color: '#0d4f4f', borderBottom: '1px solid #e7e1d8' }}>
+          {/* Currently Editing */}
+          <div className="rounded-xl overflow-hidden mb-8 page-section" style={{ background: C.white, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
+            <div
+              className="px-5 py-3.5 text-[12px] font-semibold uppercase tracking-wider"
+              style={{ background: 'rgba(13,79,79,0.04)', color: C.teal, borderBottom: `1px solid ${C.border}` }}
+            >
               Currently Editing ({inProgressPhotoJobs.length})
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-[13px]" style={{ minWidth: '900px' }}>
+              <table className="w-full text-[13px]" style={{ minWidth: '860px' }}>
                 <thead>
-                  <tr style={{ background: 'rgba(13,79,79,0.03)' }}>
-                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Couple</th>
-                    <th className="text-left px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Job</th>
-                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Taken</th>
-                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Edited</th>
-                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Remain</th>
-                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Del</th>
-                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Proofs</th>
-                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>%Del</th>
-                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>%Done</th>
+                  <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
+                    <TH align="left" px="px-4">Couple</TH>
+                    <TH align="left" px="px-3">Job</TH>
+                    <TH align="right" px="px-3">Taken</TH>
+                    <TH align="right" px="px-3">Edited</TH>
+                    <TH align="right" px="px-3">Remain</TH>
+                    <TH align="right" px="px-3">Del</TH>
+                    <TH align="right" px="px-3">Proofs</TH>
+                    <TH align="right" px="px-3">%Del</TH>
+                    <TH align="right" px="px-3">%Done</TH>
                   </tr>
                 </thead>
                 <tbody>
-                  {inProgressPhotoJobs.map(job => {
+                  {inProgressPhotoJobs.map((job, i) => {
                     const pt = job.photos_taken || 0
                     const esf = job.edited_so_far || 0
                     const tp = job.total_proofs || 0
                     const remaining = tp > 0 ? tp - esf : pt - esf
                     const deleted = safeDeleted(pt, tp)
                     return (
-                      <tr key={job.id} style={{ borderBottom: '1px solid #f3f0ed' }}>
+                      <tr key={job.id} style={{ borderBottom: '1px solid #f3f0ed', background: i % 2 === 1 ? C.rowAlt : C.white }}>
                         <td className="px-4 py-2.5">
-                          <div className="font-semibold" style={{ color: '#1c1917' }}>{job.couples?.couple_name || 'Unknown'}</div>
-                          {job.couples?.wedding_date && <div className="text-[11px]" style={{ color: '#a8a29e' }}>{formatDate(job.couples.wedding_date)}</div>}
+                          <div className="font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</div>
+                          {job.couples?.wedding_date && <div className="text-[11px]" style={{ color: C.textSubtle }}>{formatDate(job.couples.wedding_date)}</div>}
                         </td>
-                        <td className="px-3 py-2.5" style={{ color: '#78716c' }}>{formatJobType(job.job_type)}</td>
-                        <td className="text-right px-3 py-2.5">{pt.toLocaleString()}</td>
-                        <td className="text-right px-3 py-2.5">{esf.toLocaleString()}</td>
-                        <td className="text-right px-3 py-2.5" style={{ color: '#78716c' }}>{remaining.toLocaleString()}</td>
-                        <td className="text-right px-3 py-2.5" style={{ color: '#78716c' }}>{deleted > 0 ? deleted.toLocaleString() : '\u2014'}</td>
-                        <td className="text-right px-3 py-2.5">{tp.toLocaleString()}</td>
-                        <td className="text-right px-3 py-2.5" style={{ color: '#78716c' }}>{pctDel(deleted, pt)}</td>
-                        <td className="text-right px-3 py-2.5" style={{ color: '#78716c' }}>{pctComp(esf, pt)}</td>
+                        <td className="px-3 py-2.5" style={{ color: C.textMuted }}>{formatJobType(job.job_type)}</td>
+                        <td className="text-right px-3 py-2.5 tabular-nums">{pt.toLocaleString()}</td>
+                        <td className="text-right px-3 py-2.5 tabular-nums">{esf.toLocaleString()}</td>
+                        <td className="text-right px-3 py-2.5 tabular-nums" style={{ color: C.textMuted }}>{remaining.toLocaleString()}</td>
+                        <td className="text-right px-3 py-2.5 tabular-nums" style={{ color: C.textMuted }}>{deleted > 0 ? deleted.toLocaleString() : '\u2014'}</td>
+                        <td className="text-right px-3 py-2.5 tabular-nums">{tp.toLocaleString()}</td>
+                        <td className="text-right px-3 py-2.5 tabular-nums" style={{ color: C.textMuted }}>{pctDel(deleted, pt)}</td>
+                        <td className="text-right px-3 py-2.5 tabular-nums" style={{ color: C.textMuted }}>{pctComp(esf, pt)}</td>
                       </tr>
                     )
                   })}
                   {inProgressPhotoJobs.length === 0 && (
-                    <tr><td colSpan={9} className="px-4 py-6 text-center" style={{ color: '#a8a29e' }}>No jobs currently being edited</td></tr>
+                    <tr><td colSpan={9} className="px-4 py-8 text-center" style={{ color: C.textSubtle }}>No jobs currently being edited</td></tr>
                   )}
-                  {/* Currently Due ASAP */}
-                  <SummaryRow label="Currently Due ASAP" totals={asapTotals} bg="#f5f5f4" textColor="#44403c" />
-                  {/* Completed 2026 */}
-                  <SummaryRow label="Completed 2026" totals={cemeteryTotals} bg="#f0f0ef" textColor="#78716c" />
-                  {/* Year to Date */}
-                  <tr style={{ background: '#0d4f4f', fontSize: '14px' }} className="text-white font-bold">
+                  <SummaryRow label="Currently Due ASAP" totals={asapTotals} bg={C.summaryLight} textColor={C.textSecondary} />
+                  <SummaryRow label="Completed 2026" totals={cemeteryTotals} bg={C.summaryMed} textColor={C.textMuted} />
+                  <tr style={{ background: C.teal, fontSize: '14px' }} className="text-white font-bold">
                     <td className="px-4 py-3 font-bold">Year to Date</td>
                     <td></td>
-                    <td className="text-right px-3 py-3">{ytdTotals.pt.toLocaleString()}</td>
-                    <td className="text-right px-3 py-3">{ytdTotals.esf.toLocaleString()}</td>
-                    <td className="text-right px-3 py-3">{ytdTotals.remaining.toLocaleString()}</td>
-                    <td className="text-right px-3 py-3">{ytdTotals.deleted > 0 ? ytdTotals.deleted.toLocaleString() : '\u2014'}</td>
-                    <td className="text-right px-3 py-3">{ytdTotals.tp.toLocaleString()}</td>
-                    <td className="text-right px-3 py-3">{pctDel(ytdTotals.deleted, ytdTotals.pt)}</td>
-                    <td className="text-right px-3 py-3">{pctComp(ytdTotals.esf, ytdTotals.pt)}</td>
+                    <td className="text-right px-3 py-3 tabular-nums">{ytdTotals.pt.toLocaleString()}</td>
+                    <td className="text-right px-3 py-3 tabular-nums">{ytdTotals.esf.toLocaleString()}</td>
+                    <td className="text-right px-3 py-3 tabular-nums">{ytdTotals.remaining.toLocaleString()}</td>
+                    <td className="text-right px-3 py-3 tabular-nums">{ytdTotals.deleted > 0 ? ytdTotals.deleted.toLocaleString() : '\u2014'}</td>
+                    <td className="text-right px-3 py-3 tabular-nums">{ytdTotals.tp.toLocaleString()}</td>
+                    <td className="text-right px-3 py-3 tabular-nums">{pctDel(ytdTotals.deleted, ytdTotals.pt)}</td>
+                    <td className="text-right px-3 py-3 tabular-nums">{pctComp(ytdTotals.esf, ytdTotals.pt)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -601,30 +628,33 @@ export default function ProductionReportPage() {
 
           {/* Photo Deliverables */}
           {photoDeliverables.length > 0 && (
-            <div className="rounded-xl overflow-hidden mb-8" style={{ background: '#ffffff', border: '1px solid #e7e1d8' }}>
-              <div className="px-5 py-3 text-[12px] font-semibold uppercase tracking-wider" style={{ background: 'rgba(13,79,79,0.05)', color: '#0d4f4f', borderBottom: '1px solid #e7e1d8' }}>
+            <div className="rounded-xl overflow-hidden mb-8 page-section" style={{ background: C.white, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
+              <div
+                className="px-5 py-3.5 text-[12px] font-semibold uppercase tracking-wider"
+                style={{ background: 'rgba(13,79,79,0.04)', color: C.teal, borderBottom: `1px solid ${C.border}` }}
+              >
                 Photo Deliverables
               </div>
               <table className="w-full text-[13px]">
                 <thead>
-                  <tr style={{ background: 'rgba(13,79,79,0.03)' }}>
-                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Deliverable</th>
-                    <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Done</th>
-                    <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>At Lab</th>
-                    <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>At Studio</th>
-                    <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Re-edit</th>
-                    <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Total</th>
+                  <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
+                    <TH align="left">Deliverable</TH>
+                    <TH align="right" px="px-4">Done</TH>
+                    <TH align="right" px="px-4">At Lab</TH>
+                    <TH align="right" px="px-4">At Studio</TH>
+                    <TH align="right" px="px-4">Re-edit</TH>
+                    <TH align="right" px="px-4">Total</TH>
                   </tr>
                 </thead>
                 <tbody>
                   {photoDeliverables.map(([label, counts]) => (
                     <tr key={label} style={{ borderBottom: '1px solid #f3f0ed' }}>
-                      <td className="px-5 py-2.5 font-semibold" style={{ color: '#1c1917' }}>{label}</td>
-                      <td className="text-right px-4 py-2.5" style={{ color: counts.done > 0 ? '#0d4f4f' : '#a8a29e' }}>{counts.done || '\u2014'}</td>
-                      <td className="text-right px-4 py-2.5" style={{ color: counts.at_lab > 0 ? '#4338ca' : '#a8a29e' }}>{counts.at_lab || '\u2014'}</td>
-                      <td className="text-right px-4 py-2.5" style={{ color: counts.at_studio > 0 ? '#7c3aed' : '#a8a29e' }}>{counts.at_studio || '\u2014'}</td>
-                      <td className="text-right px-4 py-2.5" style={{ color: counts.re_edit > 0 ? '#dc2626' : '#a8a29e' }}>{counts.re_edit || '\u2014'}</td>
-                      <td className="text-right px-4 py-2.5 font-semibold">{counts.total}</td>
+                      <td className="px-5 py-2.5 font-semibold" style={{ color: C.textPrimary }}>{label}</td>
+                      <td className="text-right px-4 py-2.5 tabular-nums" style={{ color: counts.done > 0 ? C.teal : C.textSubtle }}>{counts.done || '\u2014'}</td>
+                      <td className="text-right px-4 py-2.5 tabular-nums" style={{ color: counts.at_lab > 0 ? '#4338ca' : C.textSubtle }}>{counts.at_lab || '\u2014'}</td>
+                      <td className="text-right px-4 py-2.5 tabular-nums" style={{ color: counts.at_studio > 0 ? '#7c3aed' : C.textSubtle }}>{counts.at_studio || '\u2014'}</td>
+                      <td className="text-right px-4 py-2.5 tabular-nums" style={{ color: counts.re_edit > 0 ? C.red : C.textSubtle }}>{counts.re_edit || '\u2014'}</td>
+                      <td className="text-right px-4 py-2.5 tabular-nums font-semibold">{counts.total}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -637,28 +667,31 @@ export default function ProductionReportPage() {
             const sectionJobs = activePhotoJobs.filter(j => j.status === section.status)
             if (sectionJobs.length === 0) return null
             return (
-              <div key={section.status} className="rounded-xl overflow-hidden mb-6" style={{ background: '#ffffff', border: '1px solid #e7e1d8' }}>
-                <div className="px-5 py-3 text-[12px] font-semibold uppercase tracking-wider" style={{ background: 'rgba(13,79,79,0.05)', color: '#0d4f4f', borderBottom: '1px solid #e7e1d8' }}>
+              <div key={section.status} className="rounded-xl overflow-hidden mb-6 page-section" style={{ background: C.white, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
+                <div
+                  className="px-5 py-3.5 text-[12px] font-semibold uppercase tracking-wider"
+                  style={{ background: 'rgba(13,79,79,0.04)', color: C.teal, borderBottom: `1px solid ${C.border}` }}
+                >
                   {section.label} ({sectionJobs.length})
                 </div>
                 <table className="w-full text-[13px]">
                   <thead>
-                    <tr style={{ background: 'rgba(13,79,79,0.03)' }}>
-                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Couple</th>
-                      <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Date</th>
-                      <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Job</th>
-                      <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Photos</th>
-                      <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Vendor</th>
+                    <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
+                      <TH align="left">Couple</TH>
+                      <TH align="left" px="px-4">Date</TH>
+                      <TH align="left" px="px-4">Job</TH>
+                      <TH align="right" px="px-4">Photos</TH>
+                      <TH align="left" px="px-4">Vendor</TH>
                     </tr>
                   </thead>
                   <tbody>
                     {sectionJobs.map(job => (
                       <tr key={job.id} style={{ borderBottom: '1px solid #f3f0ed' }}>
-                        <td className="px-5 py-2.5 font-semibold" style={{ color: '#1c1917' }}>{job.couples?.couple_name || 'Unknown'}</td>
-                        <td className="px-4 py-2.5" style={{ color: '#a8a29e' }}>{formatDate(job.couples?.wedding_date ?? null)}</td>
-                        <td className="px-4 py-2.5" style={{ color: '#78716c' }}>{formatJobType(job.job_type)}</td>
-                        <td className="text-right px-4 py-2.5" style={{ color: '#78716c' }}>{job.photos_taken ?? '\u2014'}</td>
-                        <td className="px-4 py-2.5" style={{ color: '#78716c' }}>{formatVendor(job.vendor)}</td>
+                        <td className="px-5 py-2.5 font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</td>
+                        <td className="px-4 py-2.5" style={{ color: C.textSubtle }}>{formatDate(job.couples?.wedding_date ?? null)}</td>
+                        <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{formatJobType(job.job_type)}</td>
+                        <td className="text-right px-4 py-2.5 tabular-nums" style={{ color: C.textMuted }}>{job.photos_taken ?? '\u2014'}</td>
+                        <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{formatVendor(job.vendor)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -672,107 +705,138 @@ export default function ProductionReportPage() {
             PAGE 3: VIDEO PRODUCTION DETAIL
             ════════════════════════════════════════════════════════ */}
         <div className="print-break max-w-[900px] mx-auto px-8 pt-10 pb-16">
-          <h2 className={`${playfair.className} text-[22px] mb-6`} style={{ color: '#0d4f4f' }}>
-            {'\uD83C\uDFAC'} Video Production
+          <h2 className={`${playfair.className} mb-8`} style={{ fontSize: '22px', color: C.teal }}>
+            Video Production
           </h2>
 
           {/* Video Currently Editing — Cards */}
           {videoEditing.length > 0 && (
-            <div className="mb-8">
-              <div className="text-[12px] font-semibold uppercase tracking-wider mb-4" style={{ color: '#78716c' }}>
+            <div className="mb-8 page-section">
+              <div className="text-[12px] font-semibold uppercase tracking-wider mb-4" style={{ color: C.textMuted }}>
                 Currently Editing ({videoEditing.length})
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 card-grid">
                 {videoEditing.map(job => {
                   const segsDone = countSegments(job)
                   const weddingDate = job.couples?.wedding_date
                   const daysW = weddingDate ? daysSince(weddingDate) : 0
                   const pill = STATUS_PILL[job.status] || { bg: '#f3f4f6', text: '#374151', label: job.status }
-                  const daysColor = daysW > 90 ? '#dc2626' : daysW > 60 ? '#d97706' : '#1c1917'
+                  const daysColor = daysW > 90 ? C.red : daysW > 60 ? '#d97706' : C.textPrimary
 
                   return (
-                    <div key={job.id} className="rounded-xl p-5" style={{ background: '#ffffff', border: '1px solid #e7e1d8' }}>
+                    <div key={job.id} className="rounded-xl p-5" style={{ background: C.white, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <div className="font-bold tabular-nums" style={{ fontSize: '24px', color: daysColor }}>{daysW}</div>
-                          <div className="text-[11px]" style={{ color: '#a8a29e' }}>days since wedding</div>
+                          <div className="font-bold tabular-nums leading-none" style={{ fontSize: '26px', color: daysColor }}>{daysW}</div>
+                          <div className="text-[11px] mt-0.5" style={{ color: C.textSubtle }}>days since wedding</div>
                         </div>
                         <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: pill.bg, color: pill.text }}>
                           {pill.label}
                         </span>
                       </div>
-                      <div className="font-semibold text-[14px] mb-0.5" style={{ color: '#1c1917' }}>{job.couples?.couple_name || 'Unknown'}</div>
-                      <div className="text-[12px] mb-3" style={{ color: '#78716c' }}>{formatVideoJobType(job.job_type)}</div>
+                      <div className="font-semibold text-[14px] mb-0.5" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</div>
+                      <div className="text-[12px] mb-3" style={{ color: C.textMuted }}>{formatVideoJobType(job.job_type)}</div>
                       <div className="flex items-center gap-1.5 mb-1">
                         {SEGMENT_FIELDS.map(seg => (
                           <div
                             key={seg.field}
                             className="w-4 h-4 rounded-full"
-                            style={{ background: job[seg.field] ? '#0d9488' : '#e5e7eb' }}
+                            style={{ background: job[seg.field] ? C.tealLight : '#e5e7eb' }}
                             title={seg.label}
                           />
                         ))}
                       </div>
-                      <div className="text-[11px] font-medium" style={{ color: segsDone === 6 ? '#0d9488' : '#a8a29e' }}>
+                      <div className="text-[11px] font-medium mb-2.5" style={{ color: segsDone === 6 ? C.tealLight : C.textSubtle }}>
                         {segsDone}/6 segments
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold"
+                          style={{
+                            background: job.proxies_run ? 'rgba(13,148,136,0.15)' : 'rgba(0,0,0,0.05)',
+                            color: job.proxies_run ? C.tealLight : C.textSubtle,
+                          }}
+                          title={job.proxies_run ? 'Proxies run' : 'Proxies pending'}
+                        >
+                          P
+                        </span>
+                        <span
+                          className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold"
+                          style={{
+                            background: job.video_form ? 'rgba(13,148,136,0.15)' : 'rgba(0,0,0,0.05)',
+                            color: job.video_form ? C.tealLight : C.textSubtle,
+                          }}
+                          title={job.video_form ? 'Form received' : 'Form pending'}
+                        >
+                          F
+                        </span>
                       </div>
                     </div>
                   )
                 })}
               </div>
-
-              {/* Video Metric Tiles */}
-              <div className="grid grid-cols-3 gap-4 mb-8">
-                <div className="rounded-lg p-4" style={{ background: '#f9fafb', border: '1px solid #e7e1d8' }}>
-                  <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#78716c' }}>In Production</div>
-                  <div className="text-[22px] font-bold tabular-nums mb-2" style={{ color: '#1c1917' }}>{videoSegmentStats.done}/{videoSegmentStats.total}</div>
-                  <div className="text-[11px] mb-2" style={{ color: '#a8a29e' }}>segments complete</div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#e5e7eb' }}>
-                    <div className="h-full rounded-full" style={{ background: '#0d9488', width: `${videoSegmentStats.total > 0 ? Math.round((videoSegmentStats.done / videoSegmentStats.total) * 100) : 0}%` }} />
-                  </div>
-                </div>
-                <div className="rounded-lg p-4" style={{ background: '#f9fafb', border: '1px solid #e7e1d8' }}>
-                  <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#78716c' }}>Incoming Work</div>
-                  <div className="text-[22px] font-bold tabular-nums mb-2" style={{ color: '#d97706' }}>{waitingOrderCouples.length}</div>
-                  <div className="text-[11px]" style={{ color: '#78716c' }}>couples awaiting photo order</div>
-                  <div className="text-[11px]" style={{ color: '#a8a29e' }}>{videoNotStarted.length} not-started jobs</div>
-                </div>
-                <div className="rounded-lg p-4" style={{ background: '#f9fafb', border: '1px solid #e7e1d8' }}>
-                  <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#78716c' }}>2026 Velocity</div>
-                  <div className="text-[22px] font-bold tabular-nums mb-2" style={{ color: '#0d9488' }}>{videoCompleted2026.length}</div>
-                  <div className="text-[11px]" style={{ color: '#78716c' }}>
-                    {videoTypeBreakdown.map((b, i) => (
-                      <span key={b.label}>{i > 0 ? ' \u00B7 ' : ''}{b.count} {b.label}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
+          {/* Video Metric Tiles */}
+          <div className="grid grid-cols-3 gap-4 mb-8 card-grid">
+            <div className="rounded-xl p-5" style={{ background: '#f9fafb', border: `1px solid ${C.border}` }}>
+              <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: C.textMuted }}>In Production</div>
+              <div className="font-bold tabular-nums leading-none mb-2" style={{ fontSize: '24px', color: C.textPrimary }}>
+                {videoSegmentStats.done}/{videoSegmentStats.total}
+              </div>
+              <div className="text-[11px] mb-3" style={{ color: C.textSubtle }}>segments complete</div>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#e5e7eb' }}>
+                <div className="h-full rounded-full" style={{ background: C.tealLight, width: `${videoSegmentStats.total > 0 ? Math.round((videoSegmentStats.done / videoSegmentStats.total) * 100) : 0}%` }} />
+              </div>
+            </div>
+            <div className="rounded-xl p-5" style={{ background: '#f9fafb', border: `1px solid ${C.border}` }}>
+              <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: C.textMuted }}>Incoming Work</div>
+              <div className="font-bold tabular-nums leading-none mb-2" style={{ fontSize: '24px', color: '#d97706' }}>
+                {waitingOrderCouples.length}
+              </div>
+              <div className="text-[11px]" style={{ color: C.textMuted }}>couples awaiting photo order</div>
+              <div className="text-[11px]" style={{ color: C.textSubtle }}>{videoNotStarted.length} not-started jobs</div>
+            </div>
+            <div className="rounded-xl p-5" style={{ background: '#f9fafb', border: `1px solid ${C.border}` }}>
+              <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: C.textMuted }}>2026 Velocity</div>
+              <div className="font-bold tabular-nums leading-none mb-2" style={{ fontSize: '24px', color: C.tealLight }}>
+                {videoCompleted2026.length}
+              </div>
+              <div className="text-[11px]" style={{ color: C.textMuted }}>
+                {videoTypeBreakdown.map((b, i) => (
+                  <span key={b.label}>{i > 0 ? ' \u00B7 ' : ''}{b.count} {b.label}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Video Not Started */}
           {videoNotStarted.length > 0 && (
-            <div className="rounded-xl overflow-hidden mb-8" style={{ background: '#ffffff', border: '1px solid #e7e1d8' }}>
-              <div className="px-5 py-3 text-[12px] font-semibold uppercase tracking-wider" style={{ background: 'rgba(13,79,79,0.05)', color: '#0d4f4f', borderBottom: '1px solid #e7e1d8' }}>
+            <div className="rounded-xl overflow-hidden mb-8 page-section" style={{ background: C.white, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
+              <div
+                className="px-5 py-3.5 text-[12px] font-semibold uppercase tracking-wider"
+                style={{ background: 'rgba(13,79,79,0.04)', color: C.teal, borderBottom: `1px solid ${C.border}` }}
+              >
                 Not Started ({videoNotStarted.length})
               </div>
               <table className="w-full text-[13px]">
                 <thead>
-                  <tr style={{ background: 'rgba(13,79,79,0.03)' }}>
-                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Couple</th>
-                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Date</th>
-                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Type</th>
-                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Assigned</th>
-                    <th className="text-center px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Proxies</th>
+                  <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
+                    <TH align="left">Couple</TH>
+                    <TH align="left" px="px-4">Date</TH>
+                    <TH align="left" px="px-4">Type</TH>
+                    <TH align="left" px="px-4">Assigned</TH>
+                    <TH align="center" px="px-4">Proxies</TH>
                   </tr>
                 </thead>
                 <tbody>
                   {videoNotStarted.map(job => (
                     <tr key={job.id} style={{ borderBottom: '1px solid #f3f0ed' }}>
-                      <td className="px-5 py-2.5 font-semibold" style={{ color: '#1c1917' }}>{job.couples?.couple_name || 'Unknown'}</td>
-                      <td className="px-4 py-2.5" style={{ color: '#a8a29e' }}>{formatDate(job.couples?.wedding_date ?? null)}</td>
-                      <td className="px-4 py-2.5" style={{ color: '#78716c' }}>{formatVideoJobType(job.job_type)}</td>
-                      <td className="px-4 py-2.5" style={{ color: '#78716c' }}>{job.assigned_to || '\u2014'}</td>
+                      <td className="px-5 py-2.5 font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</td>
+                      <td className="px-4 py-2.5" style={{ color: C.textSubtle }}>{formatDate(job.couples?.wedding_date ?? null)}</td>
+                      <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{formatVideoJobType(job.job_type)}</td>
+                      <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{job.assigned_to || '\u2014'}</td>
                       <td className="text-center px-4 py-2.5">{job.proxies_run ? '\u2705' : '\u25CB'}</td>
                     </tr>
                   ))}
@@ -783,37 +847,39 @@ export default function ProductionReportPage() {
 
           {/* Video Completed in 2026 */}
           {videoCompleted2026.length > 0 && (
-            <div className="rounded-xl overflow-hidden mb-8" style={{ background: '#ffffff', border: '1px solid #e7e1d8' }}>
-              <div className="px-5 py-3 text-[12px] font-semibold uppercase tracking-wider" style={{ background: 'rgba(13,79,79,0.05)', color: '#0d4f4f', borderBottom: '1px solid #e7e1d8' }}>
+            <div className="rounded-xl overflow-hidden mb-8 page-section" style={{ background: C.white, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
+              <div
+                className="px-5 py-3.5 text-[12px] font-semibold uppercase tracking-wider"
+                style={{ background: 'rgba(13,79,79,0.04)', color: C.teal, borderBottom: `1px solid ${C.border}` }}
+              >
                 Completed in 2026 ({videoCompleted2026.length})
               </div>
               <table className="w-full text-[13px]">
                 <thead>
-                  <tr style={{ background: 'rgba(13,79,79,0.03)' }}>
-                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Couple</th>
-                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Date</th>
-                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Type</th>
-                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Completed</th>
-                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Assigned</th>
+                  <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
+                    <TH align="left">Couple</TH>
+                    <TH align="left" px="px-4">Date</TH>
+                    <TH align="left" px="px-4">Type</TH>
+                    <TH align="left" px="px-4">Completed</TH>
+                    <TH align="left" px="px-4">Assigned</TH>
                   </tr>
                 </thead>
                 <tbody>
                   {videoCompleted2026.map(job => (
                     <tr key={job.id} style={{ borderBottom: '1px solid #f3f0ed' }}>
-                      <td className="px-5 py-2.5 font-semibold" style={{ color: '#1c1917' }}>{job.couples?.couple_name || 'Unknown'}</td>
-                      <td className="px-4 py-2.5" style={{ color: '#a8a29e' }}>{formatDate(job.couples?.wedding_date ?? null)}</td>
-                      <td className="px-4 py-2.5" style={{ color: '#78716c' }}>{formatVideoJobType(job.job_type)}</td>
-                      <td className="px-4 py-2.5" style={{ color: '#0d9488' }}>{formatDate(job.completed_date)}</td>
-                      <td className="px-4 py-2.5" style={{ color: '#78716c' }}>{job.assigned_to || '\u2014'}</td>
+                      <td className="px-5 py-2.5 font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</td>
+                      <td className="px-4 py-2.5" style={{ color: C.textSubtle }}>{formatDate(job.couples?.wedding_date ?? null)}</td>
+                      <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{formatVideoJobType(job.job_type)}</td>
+                      <td className="px-4 py-2.5" style={{ color: C.tealLight }}>{formatDate(job.completed_date)}</td>
+                      <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{job.assigned_to || '\u2014'}</td>
                     </tr>
                   ))}
-                  {/* Summary row */}
-                  <tr style={{ background: '#f5f5f4', borderTop: '2px solid #e7e1d8' }}>
-                    <td className="px-5 py-3 font-bold text-[12px] uppercase tracking-wider" style={{ color: '#78716c' }}>
+                  <tr style={{ background: C.summaryLight, borderTop: `2px solid ${C.border}` }}>
+                    <td className="px-5 py-3 font-bold text-[12px] uppercase tracking-wider" style={{ color: C.textMuted }}>
                       {videoCompleted2026.length} completed
                     </td>
                     <td colSpan={2}></td>
-                    <td className="px-4 py-3 text-[12px] font-medium" colSpan={2} style={{ color: '#78716c' }}>
+                    <td className="px-4 py-3 text-[12px] font-medium" colSpan={2} style={{ color: C.textMuted }}>
                       {videoTypeBreakdown.map((b, i) => (
                         <span key={b.label}>{i > 0 ? ' \u00B7 ' : ''}{b.count} {b.label}</span>
                       ))}
@@ -825,8 +891,10 @@ export default function ProductionReportPage() {
           )}
 
           {/* Footer */}
-          <div className="text-center pt-6" style={{ borderTop: '1px solid #e7e1d8' }}>
-            <p className="text-[11px]" style={{ color: '#a8a29e' }}>Generated by StudioFlow &bull; SIGS Photography</p>
+          <div className="text-center pt-8" style={{ borderTop: `1px solid ${C.border}` }}>
+            <p className="text-[11px]" style={{ color: C.textSubtle }}>
+              Generated by StudioFlow &bull; SIGS Photography
+            </p>
           </div>
         </div>
       </div>
@@ -834,10 +902,22 @@ export default function ProductionReportPage() {
   )
 }
 
-// ── Metric Card Component ──────────────────────────────────────
+// ── Table Header Component ───────────────────────────────────────
 
-function MetricCard({ emoji, label, value, sublabel, valueColor, progress }: {
-  emoji: string
+function TH({ children, align = 'left', px = 'px-5' }: { children: React.ReactNode; align?: 'left' | 'right' | 'center'; px?: string }) {
+  return (
+    <th
+      className={`text-${align} ${px} py-2.5 text-[11px] font-semibold uppercase tracking-wider`}
+      style={{ color: '#0d4f4f' }}
+    >
+      {children}
+    </th>
+  )
+}
+
+// ── Metric Card Component ────────────────────────────────────────
+
+function MetricCard({ label, value, sublabel, valueColor, progress }: {
   label: string
   value: string
   sublabel: string
@@ -845,16 +925,19 @@ function MetricCard({ emoji, label, value, sublabel, valueColor, progress }: {
   progress?: number
 }) {
   return (
-    <div className="rounded-xl p-5" style={{ background: '#ffffff', border: '1px solid #e7e1d8' }}>
-      <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#78716c' }}>
-        {emoji} {label}
+    <div
+      className="rounded-xl p-5"
+      style={{ background: '#ffffff', border: '1px solid #e7e1d8', boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}
+    >
+      <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: '#78716c' }}>
+        {label}
       </div>
-      <div className="text-[24px] font-bold tabular-nums mb-1" style={{ color: valueColor }}>
+      <div className="font-bold tabular-nums leading-none mb-1.5" style={{ fontSize: '28px', color: valueColor }}>
         {value}
       </div>
       <div className="text-[12px] mb-2" style={{ color: '#a8a29e' }}>{sublabel}</div>
       {progress !== undefined && (
-        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#e7e1d8' }}>
+        <div className="h-1.5 rounded-full overflow-hidden mt-1" style={{ background: '#e7e1d8' }}>
           <div className="h-full rounded-full transition-all" style={{ background: '#0d9488', width: `${progress}%` }} />
         </div>
       )}
@@ -862,7 +945,7 @@ function MetricCard({ emoji, label, value, sublabel, valueColor, progress }: {
   )
 }
 
-// ── Summary Row Component ──────────────────────────────────────
+// ── Summary Row Component ────────────────────────────────────────
 
 function SummaryRow({ label, totals, bg, textColor }: {
   label: string
@@ -876,13 +959,13 @@ function SummaryRow({ label, totals, bg, textColor }: {
     <tr style={{ background: bg, borderTop: '2px solid #e7e1d8' }}>
       <td className="px-4 py-2.5 font-bold text-[13px]" style={{ color: textColor }}>{label}</td>
       <td></td>
-      <td className="text-right px-3 py-2.5 font-semibold" style={{ color: textColor }}>{totals.pt.toLocaleString()}</td>
-      <td className="text-right px-3 py-2.5 font-semibold" style={{ color: textColor }}>{totals.esf.toLocaleString()}</td>
-      <td className="text-right px-3 py-2.5 font-semibold" style={{ color: textColor }}>{totals.remaining.toLocaleString()}</td>
-      <td className="text-right px-3 py-2.5 font-semibold" style={{ color: textColor }}>{totals.deleted > 0 ? totals.deleted.toLocaleString() : '\u2014'}</td>
-      <td className="text-right px-3 py-2.5 font-semibold" style={{ color: textColor }}>{totals.tp.toLocaleString()}</td>
-      <td className="text-right px-3 py-2.5 font-semibold" style={{ color: textColor }}>{pctD}</td>
-      <td className="text-right px-3 py-2.5 font-semibold" style={{ color: textColor }}>{pctC}</td>
+      <td className="text-right px-3 py-2.5 font-semibold tabular-nums" style={{ color: textColor }}>{totals.pt.toLocaleString()}</td>
+      <td className="text-right px-3 py-2.5 font-semibold tabular-nums" style={{ color: textColor }}>{totals.esf.toLocaleString()}</td>
+      <td className="text-right px-3 py-2.5 font-semibold tabular-nums" style={{ color: textColor }}>{totals.remaining.toLocaleString()}</td>
+      <td className="text-right px-3 py-2.5 font-semibold tabular-nums" style={{ color: textColor }}>{totals.deleted > 0 ? totals.deleted.toLocaleString() : '\u2014'}</td>
+      <td className="text-right px-3 py-2.5 font-semibold tabular-nums" style={{ color: textColor }}>{totals.tp.toLocaleString()}</td>
+      <td className="text-right px-3 py-2.5 font-semibold tabular-nums" style={{ color: textColor }}>{pctD}</td>
+      <td className="text-right px-3 py-2.5 font-semibold tabular-nums" style={{ color: textColor }}>{pctC}</td>
     </tr>
   )
 }
