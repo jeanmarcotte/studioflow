@@ -493,10 +493,25 @@ export default function VideoProductionPage() {
 
   const edited2026Stats = useMemo(() => {
     const completed = jobs.filter(j => j.completed_date && j.completed_date >= '2026-01-01')
-    const full = completed.filter(j => j.job_type === 'FULL').length
-    const recap = completed.filter(j => j.job_type === 'RECAP').length
-    const other = completed.length - full - recap
-    return { total: completed.length, full, recap, other }
+    const typeCounts: Record<string, number> = {}
+    completed.forEach(j => { typeCounts[j.job_type] = (typeCounts[j.job_type] || 0) + 1 })
+    const full = typeCounts['FULL'] || 0
+    const recap = typeCounts['RECAP'] || 0
+    // Build ordered breakdown with actual type labels uppercase
+    const typeOrder = ['FULL', 'RECAP']
+    const breakdown = Object.entries(typeCounts)
+      .sort(([a], [b]) => {
+        const ai = typeOrder.indexOf(a), bi = typeOrder.indexOf(b)
+        if (ai >= 0 && bi >= 0) return ai - bi
+        if (ai >= 0) return -1
+        if (bi >= 0) return 1
+        return a.localeCompare(b)
+      })
+      .map(([type, count]) => ({
+        label: type === 'ENG_SLIDESHOW' ? 'SLIDESHOW' : type.replace(/_/g, ' '),
+        count,
+      }))
+    return { total: completed.length, full, recap, other: completed.length - full - recap, breakdown }
   }, [jobs])
 
   const completed2026JobsList = useMemo(() => {
@@ -783,7 +798,7 @@ export default function VideoProductionPage() {
                 </div>
                 <div className="text-xs mb-1" style={{ color: '#78716c' }}>videos edited in 2026</div>
                 <div className="text-xs" style={{ color: '#a8a29e' }}>
-                  {edited2026Stats.full} full {'\u00B7'} {edited2026Stats.recap} recap{edited2026Stats.recap !== 1 ? 's' : ''}{edited2026Stats.other > 0 ? ` \u00B7 ${edited2026Stats.other} other` : ''}
+                  {edited2026Stats.breakdown.map((b, i) => <span key={b.label}>{i > 0 ? ' \u00B7 ' : ''}{b.count} {b.label}</span>)}
                 </div>
               </div>
             </div>
@@ -793,7 +808,7 @@ export default function VideoProductionPage() {
           {SWIMLANES.map(lane => {
             if (lane.key === 'completed' && !showCompleted) return null
             const isWaiting = isWaitingPhotoLane(lane.key)
-            const laneJobCount = isWaiting ? photoWaitingJobs.length : (processedJobs[lane.key as Exclude<SwimlaneKey, 'waiting_photo'>] || []).length
+            const laneJobCount = isWaiting ? awaitingOrderCouples.length : (processedJobs[lane.key as Exclude<SwimlaneKey, 'waiting_photo'>] || []).length
             const isCollapsed = collapsedLanes.has(lane.key)
             const recap = isRecapLane(lane.key)
             const slideshow = isSlideshowLane(lane.key)
@@ -848,41 +863,44 @@ export default function VideoProductionPage() {
                   )}
                 </div>
 
-                {/* WAITING FOR PHOTO ORDER — read-only from editing_queue */}
-                {isWaiting && !isCollapsed && photoWaitingJobs.length > 0 && (
+                {/* WAITING FOR PHOTO ORDER — couples with video but no photo order */}
+                {isWaiting && !isCollapsed && awaitingOrderCouples.length > 0 && (
                   <div className="rounded-xl border bg-card overflow-hidden">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b bg-muted/50">
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Wedding Date</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Photo Status</th>
+                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Days Since Wedding</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {photoWaitingJobs.map(job => (
-                          <tr key={job.id} className="hover:bg-accent/50 transition-colors">
-                            <td className="p-3">
-                              <button
-                                onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
-                                className="font-medium text-blue-600 hover:underline text-left"
-                              >
-                                {job.couples?.couple_name || 'Unknown'}
-                              </button>
-                            </td>
-                            <td className="p-3 text-muted-foreground">
-                              {job.couples?.wedding_date
-                                ? format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')
-                                : <span className="text-amber-600 text-xs">No date</span>
-                              }
-                            </td>
-                            <td className="p-3">
-                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
-                                Waiting for Photo Order
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
+                        {awaitingOrderCouples.map(couple => {
+                          const daysSince = couple.wedding_date ? differenceInDays(new Date(), parseISO(couple.wedding_date)) : 0
+                          return (
+                            <tr key={couple.id} className="hover:bg-accent/50 transition-colors">
+                              <td className="p-3">
+                                <button
+                                  onClick={() => router.push(`/admin/couples/${couple.id}`)}
+                                  className="font-medium text-blue-600 hover:underline text-left"
+                                >
+                                  {couple.couple_name}
+                                </button>
+                              </td>
+                              <td className="p-3 text-muted-foreground">
+                                {couple.wedding_date
+                                  ? format(parseISO(couple.wedding_date), 'MMM d, yyyy')
+                                  : <span className="text-amber-600 text-xs">No date</span>
+                                }
+                              </td>
+                              <td className="p-3">
+                                <span className={`text-sm font-medium ${daysSince > 90 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                                  {daysSince} days
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1139,7 +1157,7 @@ export default function VideoProductionPage() {
                       </td>
                       <td className="px-2 py-3 hidden md:table-cell" colSpan={7}></td>
                       <td className="px-4 py-3 text-xs font-medium" style={{ color: '#78716c' }} colSpan={3}>
-                        {edited2026Stats.full} full {'\u00B7'} {edited2026Stats.recap} recap{edited2026Stats.other > 0 ? ` \u00B7 ${edited2026Stats.other} other` : ''}
+                        {edited2026Stats.breakdown.map((b, i) => <span key={b.label}>{i > 0 ? ' \u00B7 ' : ''}{b.count} {b.label}</span>)}
                       </td>
                     </tr>
                   </tbody>
