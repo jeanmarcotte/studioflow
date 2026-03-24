@@ -1,0 +1,328 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { Resend } from 'resend'
+import { format } from 'date-fns'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+const resend = new Resend(process.env.RESEND_API_KEY)
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://studioflow-zeta.vercel.app'
+
+// ── Types ────────────────────────────────────────────────────────
+
+interface CrewMemberPayload {
+  team_member_id: string
+  member_name: string
+  member_email: string
+  role: string
+  call_time: string
+  meeting_point: string
+  meeting_point_time: string
+  equipment_pickup_location: string
+  equipment_pickup_time: string
+  equipment_dropoff_location: string
+  equipment_dropoff_time: string
+  special_notes: string
+}
+
+interface SendPayload {
+  couple_id: string
+  couple_name: string
+  wedding_date: string
+  day_of_week: string
+  ceremony_location: string
+  reception_venue: string
+  park_location: string
+  start_time: string
+  end_time: string
+  package_type: string
+  notes: string
+  crew_members: CrewMemberPayload[]
+}
+
+// ── POST: Send crew call sheet ───────────────────────────────────
+
+export async function POST(request: NextRequest) {
+  try {
+    const payload: SendPayload = await request.json()
+    const {
+      couple_id, couple_name, wedding_date, day_of_week,
+      ceremony_location, reception_venue, park_location,
+      start_time, end_time, notes, crew_members,
+    } = payload
+
+    if (!couple_id || !crew_members?.length) {
+      return NextResponse.json({ error: 'Missing couple_id or crew_members' }, { status: 400 })
+    }
+
+    const dateFormatted = wedding_date
+      ? format(new Date(wedding_date + 'T12:00:00'), 'MMMM d, yyyy')
+      : ''
+    const dayUpper = (day_of_week || '').toUpperCase()
+    const subjectDate = wedding_date
+      ? format(new Date(wedding_date + 'T12:00:00'), 'EEE, MMM d')
+      : ''
+
+    // Calculate coverage hours
+    let coverageText = ''
+    if (start_time && end_time) {
+      coverageText = `${start_time} – ${end_time}`
+      // Try to calculate hours
+      const parseTime = (t: string) => {
+        const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
+        if (!match) return null
+        let h = parseInt(match[1])
+        const m = parseInt(match[2])
+        const ampm = match[3].toUpperCase()
+        if (ampm === 'PM' && h !== 12) h += 12
+        if (ampm === 'AM' && h === 12) h = 0
+        return h * 60 + m
+      }
+      const s = parseTime(start_time)
+      const e = parseTime(end_time)
+      if (s !== null && e !== null) {
+        const diff = e - s
+        if (diff > 0) coverageText += ` (${Math.round(diff / 60)} hours)`
+      }
+    }
+
+    // 1. Create the call sheet record
+    const { data: sheet, error: sheetErr } = await supabase
+      .from('crew_call_sheets')
+      .insert({ couple_id, notes, sent_at: new Date().toISOString(), sent_by: 'Jean' })
+      .select('id')
+      .limit(1)
+
+    if (sheetErr || !sheet?.length) {
+      return NextResponse.json({ error: 'Failed to create call sheet', detail: sheetErr }, { status: 500 })
+    }
+
+    const callSheetId = sheet[0].id
+
+    // 2. Insert crew members
+    const memberInserts = crew_members.map(cm => ({
+      call_sheet_id: callSheetId,
+      team_member_id: cm.team_member_id,
+      member_name: cm.member_name,
+      member_email: cm.member_email,
+      role: cm.role,
+      call_time: cm.call_time || null,
+      meeting_point: cm.meeting_point || null,
+      meeting_point_time: cm.meeting_point_time || null,
+      equipment_pickup_location: cm.equipment_pickup_location || null,
+      equipment_pickup_time: cm.equipment_pickup_time || null,
+      equipment_dropoff_location: cm.equipment_dropoff_location || null,
+      equipment_dropoff_time: cm.equipment_dropoff_time || null,
+      special_notes: cm.special_notes || null,
+    }))
+
+    const { data: insertedMembers, error: memberErr } = await supabase
+      .from('crew_call_sheet_members')
+      .insert(memberInserts)
+      .select('id, member_name, member_email, role, call_time, meeting_point, meeting_point_time, equipment_pickup_location, equipment_pickup_time, equipment_dropoff_location, equipment_dropoff_time, special_notes, confirmation_token')
+
+    if (memberErr || !insertedMembers?.length) {
+      return NextResponse.json({ error: 'Failed to insert crew members', detail: memberErr }, { status: 500 })
+    }
+
+    // 3. Check for wedding day form PDF in Supabase Storage
+    let pdfAttachment: { filename: string; content: Buffer } | null = null
+    try {
+      const { data: pdfData, error: pdfErr } = await supabase
+        .storage
+        .from('wedding-day-forms')
+        .download(`${couple_id}.pdf`)
+
+      if (!pdfErr && pdfData) {
+        const buffer = Buffer.from(await pdfData.arrayBuffer())
+        pdfAttachment = {
+          filename: `Wedding-Day-Form-${couple_name.replace(/\s+/g, '-')}.pdf`,
+          content: buffer,
+        }
+      }
+    } catch {
+      // PDF not found — that's fine
+    }
+
+    // 4. Send individual emails to each crew member
+    const emailResults: { name: string; success: boolean; error?: string }[] = []
+
+    for (const cm of insertedMembers) {
+      const confirmUrl = `${APP_URL}/api/confirm-crew/${cm.confirmation_token}`
+
+      const equipmentHtml = (cm.equipment_pickup_location || cm.equipment_dropoff_location) ? `
+        <tr><td colspan="2" style="padding:16px 0 8px;">
+          <div style="border-top:2px solid #e7e1d8;padding-top:12px;">
+            <p style="margin:0 0 8px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">Equipment</p>
+            ${cm.equipment_pickup_location ? `<p style="margin:4px 0;font-family:'Trebuchet MS',sans-serif;font-size:14px;color:#374151;"><strong>Pickup:</strong> ${esc(cm.equipment_pickup_location)}${cm.equipment_pickup_time ? ` — ${esc(cm.equipment_pickup_time)}` : ''}</p>` : ''}
+            ${cm.equipment_dropoff_location ? `<p style="margin:4px 0;font-family:'Trebuchet MS',sans-serif;font-size:14px;color:#374151;"><strong>Dropoff:</strong> ${esc(cm.equipment_dropoff_location)}${cm.equipment_dropoff_time ? ` — ${esc(cm.equipment_dropoff_time)}` : ''}</p>` : ''}
+          </div>
+        </td></tr>` : ''
+
+      const notesHtml = cm.special_notes ? `
+        <tr><td colspan="2" style="padding:8px 0;">
+          <p style="margin:0 0 4px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">Notes</p>
+          <p style="margin:0;font-family:'Trebuchet MS',sans-serif;font-size:14px;color:#374151;">${esc(cm.special_notes)}</p>
+        </td></tr>` : ''
+
+      const generalNotesHtml = notes ? `
+        <tr><td colspan="2" style="padding:12px 0 8px;">
+          <div style="border-top:2px solid #e7e1d8;padding-top:12px;">
+            <p style="margin:0 0 8px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">General Notes</p>
+            <p style="margin:0;font-family:'Trebuchet MS',sans-serif;font-size:14px;color:#374151;">${esc(notes)}</p>
+          </div>
+        </td></tr>` : ''
+
+      const pdfNote = !pdfAttachment
+        ? `<tr><td colspan="2" style="padding:8px 0;"><p style="margin:0;font-family:'Trebuchet MS',sans-serif;font-size:13px;color:#d97706;">⚠️ Wedding Day Form: Not yet received</p></td></tr>`
+        : ''
+
+      const html = `
+<div style="font-family:'Trebuchet MS',sans-serif;max-width:600px;margin:0 auto;background:#ffffff;">
+  <!-- Header -->
+  <div style="background:#0d4f4f;padding:24px 28px;border-radius:8px 8px 0 0;">
+    <p style="margin:0;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.7);">SIGS Photography</p>
+    <h1 style="margin:6px 0 0;font-family:Georgia,serif;font-size:22px;color:#ffffff;">Crew Call Sheet</h1>
+  </div>
+
+  <div style="padding:24px 28px;border:1px solid #e7e1d8;border-top:none;border-radius:0 0 8px 8px;">
+    <!-- Wedding Details -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+      <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;width:100px;">Couple</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(couple_name)}</td></tr>
+      <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Date</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${dayUpper}, ${esc(dateFormatted)}</td></tr>
+      ${ceremony_location ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Ceremony</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(ceremony_location)}</td></tr>` : ''}
+      ${reception_venue ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Reception</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(reception_venue)}</td></tr>` : ''}
+      ${park_location ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Park</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(park_location)}</td></tr>` : ''}
+      ${coverageText ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Coverage</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(coverageText)}</td></tr>` : ''}
+    </table>
+
+    <!-- Divider -->
+    <div style="border-top:3px solid #0d4f4f;margin:20px 0;"></div>
+
+    <!-- Assignment -->
+    <table style="width:100%;border-collapse:collapse;">
+      <tr><td colspan="2" style="padding:0 0 12px;">
+        <p style="margin:0;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#0d4f4f;">Your Assignment</p>
+      </td></tr>
+      <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;width:120px;">Name</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(cm.member_name)}</td></tr>
+      <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Role</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(cm.role)}</td></tr>
+      ${cm.call_time ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Call Time</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(cm.call_time)}</td></tr>` : ''}
+      ${cm.meeting_point ? `
+      <tr><td colspan="2" style="padding:12px 0 4px;">
+        <p style="margin:0 0 4px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">Meeting Point</p>
+        <p style="margin:0;font-size:14px;color:#374151;">📍 ${esc(cm.meeting_point)}</p>
+        ${cm.meeting_point_time ? `<p style="margin:2px 0 0;font-size:14px;color:#374151;">⏰ Arrive by ${esc(cm.meeting_point_time)}</p>` : ''}
+      </td></tr>` : ''}
+      ${equipmentHtml}
+      ${notesHtml}
+      ${generalNotesHtml}
+      ${pdfNote}
+    </table>
+
+    <!-- Confirm Button -->
+    <div style="text-align:center;margin:28px 0 16px;">
+      <a href="${confirmUrl}" style="display:inline-block;padding:14px 40px;background:#0d4f4f;color:#ffffff;font-family:Georgia,serif;font-size:16px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:0.5px;">✅ Click Here to Confirm</a>
+    </div>
+
+    <!-- Footer -->
+    <div style="border-top:1px solid #e7e1d8;padding-top:16px;text-align:center;">
+      <p style="margin:0;font-size:13px;color:#6b7280;">Questions? Call Jean: (416) 731-6748</p>
+    </div>
+  </div>
+</div>`
+
+      const emailPayload: any = {
+        from: 'SIGS Photography <noreply@sigsphoto.ca>',
+        to: [cm.member_email],
+        cc: ['mariannakogan@gmail.com'],
+        subject: `Crew Call Sheet — ${couple_name} | ${subjectDate}`,
+        html,
+      }
+
+      if (pdfAttachment) {
+        emailPayload.attachments = [{
+          filename: pdfAttachment.filename,
+          content: pdfAttachment.content,
+        }]
+      }
+
+      try {
+        const { error: sendErr } = await resend.emails.send(emailPayload)
+        if (sendErr) {
+          emailResults.push({ name: cm.member_name, success: false, error: String(sendErr) })
+        } else {
+          emailResults.push({ name: cm.member_name, success: true })
+          // Mark as sent
+          await supabase
+            .from('crew_call_sheet_members')
+            .update({ email_sent: true, email_sent_at: new Date().toISOString() })
+            .eq('id', cm.id)
+        }
+      } catch (err) {
+        emailResults.push({ name: cm.member_name, success: false, error: String(err) })
+      }
+    }
+
+    // 5. Send Marianna a summary email
+    const summaryRows = insertedMembers.map(cm => `
+      <tr>
+        <td style="padding:6px 12px;border-bottom:1px solid #e7e1d8;font-size:14px;font-weight:600;color:#1a1a1a;">${esc(cm.member_name)}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #e7e1d8;font-size:14px;color:#374151;">${esc(cm.role)}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #e7e1d8;font-size:14px;color:#374151;">${cm.call_time ? esc(cm.call_time) : '—'}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #e7e1d8;font-size:14px;color:#374151;">${cm.meeting_point ? esc(cm.meeting_point) : '—'}</td>
+      </tr>
+    `).join('')
+
+    const summaryHtml = `
+<div style="font-family:'Trebuchet MS',sans-serif;max-width:640px;margin:0 auto;background:#ffffff;">
+  <div style="background:#0d4f4f;padding:24px 28px;border-radius:8px 8px 0 0;">
+    <p style="margin:0;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.7);">SIGS Photography</p>
+    <h1 style="margin:6px 0 0;font-family:Georgia,serif;font-size:22px;color:#ffffff;">Crew Call Sheet Sent</h1>
+  </div>
+  <div style="padding:24px 28px;border:1px solid #e7e1d8;border-top:none;border-radius:0 0 8px 8px;">
+    <p style="font-size:15px;font-weight:700;color:#1a1a1a;margin:0 0 4px;">${esc(couple_name)}</p>
+    <p style="font-size:14px;color:#6b7280;margin:0 0 20px;">${dayUpper}, ${esc(dateFormatted)}</p>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:#faf8f5;">
+          <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Name</th>
+          <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Role</th>
+          <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Call Time</th>
+          <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Meeting Point</th>
+        </tr>
+      </thead>
+      <tbody>${summaryRows}</tbody>
+    </table>
+    ${notes ? `<div style="margin-top:16px;padding:12px;background:#faf8f5;border-radius:8px;border:1px solid #e7e1d8;"><p style="margin:0;font-size:13px;color:#374151;"><strong>General Notes:</strong> ${esc(notes)}</p></div>` : ''}
+    <p style="margin:20px 0 0;font-size:13px;color:#6b7280;">Sent by Jean via StudioFlow</p>
+  </div>
+</div>`
+
+    try {
+      await resend.emails.send({
+        from: 'SIGS Photography <noreply@sigsphoto.ca>',
+        to: ['mariannakogan@gmail.com'],
+        subject: `Crew Call Sheet Sent — ${couple_name} | ${subjectDate}`,
+        html: summaryHtml,
+      })
+    } catch {
+      // Non-critical — summary email failure doesn't block
+    }
+
+    return NextResponse.json({
+      success: true,
+      call_sheet_id: callSheetId,
+      emails: emailResults,
+    })
+  } catch (err) {
+    console.error('[crew-call-sheet] Error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+function esc(s: string): string {
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
