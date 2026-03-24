@@ -289,7 +289,7 @@ export async function POST() {
         <td ${tdGray}>${formatJobType(job.job_type)}</td>
         <td ${tdR}>${pt.toLocaleString()}</td>
         <td ${tdR}>${esf.toLocaleString()}</td>
-        <td ${tdGrayR}>${(pt - esf).toLocaleString()}</td>
+        <td ${tdGrayR}>${(tp > 0 ? tp - esf : pt - esf).toLocaleString()}</td>
         <td ${tdGrayR}>${del > 0 ? del.toLocaleString() : '&mdash;'}</td>
         <td ${tdR}>${tp.toLocaleString()}</td>
         <td ${tdGrayR}>${pctStr(del, pt)}</td>
@@ -471,7 +471,7 @@ export async function POST() {
         <tr style="background:#f3f4f6;font-weight:700;">
           <td ${td}><strong>Currently Due ASAP</strong></td><td ${td}></td>
           <td ${tdR}><strong>${asapPt.toLocaleString()}</strong></td><td ${tdR}><strong>${asapEsf.toLocaleString()}</strong></td>
-          <td ${tdR}><strong>${(asapPt - asapEsf).toLocaleString()}</strong></td>
+          <td ${tdR}><strong>${(asapTp > 0 ? asapTp - asapEsf : asapPt - asapEsf).toLocaleString()}</strong></td>
           <td ${tdR}><strong>${asapDel > 0 ? asapDel.toLocaleString() : '&mdash;'}</strong></td>
           <td ${tdR}><strong>${asapTp.toLocaleString()}</strong></td>
           <td ${tdR}><strong>${pctStr(asapDel, asapPt)}</strong></td>
@@ -481,7 +481,7 @@ export async function POST() {
           <td style="padding:10px;border:none;"><strong>Year to Date</strong></td><td style="padding:10px;border:none;"></td>
           <td style="padding:10px;border:none;text-align:right;"><strong>${ytdPt.toLocaleString()}</strong></td>
           <td style="padding:10px;border:none;text-align:right;"><strong>${ytdEsf.toLocaleString()}</strong></td>
-          <td style="padding:10px;border:none;text-align:right;"><strong>${(ytdPt - ytdEsf).toLocaleString()}</strong></td>
+          <td style="padding:10px;border:none;text-align:right;"><strong>${(ytdTp > 0 ? ytdTp - ytdEsf : ytdPt - ytdEsf).toLocaleString()}</strong></td>
           <td style="padding:10px;border:none;text-align:right;"><strong>${ytdDel > 0 ? ytdDel.toLocaleString() : '&mdash;'}</strong></td>
           <td style="padding:10px;border:none;text-align:right;"><strong>${ytdTp.toLocaleString()}</strong></td>
           <td style="padding:10px;border:none;text-align:right;"><strong>${pctStr(ytdDel, ytdPt)}</strong></td>

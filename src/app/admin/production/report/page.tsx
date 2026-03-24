@@ -318,7 +318,7 @@ export default function ProductionReportPage() {
     const tp = editingProofs.reduce((s, j) => s + (j.total_proofs || 0), 0)
     const deleted = safeDeleted(pt, tp)
     return {
-      pt, esf, tp, remaining: pt - esf, deleted,
+      pt, esf, tp, remaining: tp > 0 ? tp - esf : pt - esf, deleted,
       pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
       pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null,
     }
@@ -331,7 +331,7 @@ export default function ProductionReportPage() {
     const tp = proofsJobs.reduce((s, j) => s + (j.total_proofs || 0), 0)
     const deleted = safeDeleted(pt, tp)
     return {
-      pt, esf, tp, remaining: pt - esf, deleted,
+      pt, esf, tp, remaining: tp > 0 ? tp - esf : pt - esf, deleted,
       pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
       pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null,
     }
@@ -576,7 +576,7 @@ export default function ProductionReportPage() {
                     const pt = job.photos_taken || 0
                     const esf = job.edited_so_far || 0
                     const tp = job.total_proofs || 0
-                    const remaining = pt - esf
+                    const remaining = tp > 0 ? tp - esf : pt - esf
                     const deleted = safeDeleted(pt, tp)
                     const pctDel = deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null
                     const pctComp = pt > 0 ? ((esf / pt) * 100).toFixed(1) : null

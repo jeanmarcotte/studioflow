@@ -385,7 +385,7 @@ export default function PhotoProductionPage() {
     const pt = inProgressJobs.reduce((s, j) => s + (j.photos_taken || 0), 0)
     const esf = inProgressJobs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
     const tp = inProgressJobs.reduce((s, j) => s + (j.total_proofs || 0), 0)
-    const remaining = pt - esf
+    const remaining = tp > 0 ? tp - esf : pt - esf
     const deleted = tp > 0 ? pt - tp : 0
     return {
       photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
@@ -398,7 +398,7 @@ export default function PhotoProductionPage() {
     const pt = ytdData.photos_taken
     const esf = ytdData.edited_so_far
     const tp = ytdData.total_proofs
-    const remaining = pt - esf
+    const remaining = tp > 0 ? tp - esf : pt - esf
     const deleted = tp > 0 ? pt - tp : 0
     return {
       photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
@@ -592,7 +592,7 @@ export default function PhotoProductionPage() {
                       const pt = job.photos_taken || 0
                       const esf = job.edited_so_far || 0
                       const tp = job.total_proofs || 0
-                      const remaining = pt - esf
+                      const remaining = tp > 0 ? tp - esf : pt - esf
                       const deleted = tp > 0 ? pt - tp : 0
                       const pctDeleted = deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null
                       const pctCompleted = pt > 0 ? ((esf / pt) * 100).toFixed(1) : null
