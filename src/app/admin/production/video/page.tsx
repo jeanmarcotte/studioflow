@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Search, ChevronDown, ChevronRight, GripVertical, X } from 'lucide-react'
 import { format, parseISO, differenceInDays } from 'date-fns'
+import { Playfair_Display, Nunito } from 'next/font/google'
+
+const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
+const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -65,9 +69,9 @@ const STATUS_LABELS: Record<string, string> = {
 const ALL_STATUSES = ['not_started', 'in_progress', 'waiting_on_recap', 'waiting_for_bride', 'raw_video_output', 'complete', 'archived']
 
 const STATUS_PILL: Record<string, { bg: string; text: string }> = {
-  in_progress: { bg: 'bg-blue-100', text: 'text-blue-700' },
-  waiting_for_bride: { bg: 'bg-amber-100', text: 'text-amber-700' },
-  waiting_on_recap: { bg: 'bg-purple-100', text: 'text-purple-700' },
+  in_progress: { bg: 'bg-[#dbeafe]', text: 'text-[#1e40af]' },
+  waiting_for_bride: { bg: 'bg-[#fef3c7]', text: 'text-[#92400e]' },
+  waiting_on_recap: { bg: 'bg-[#f3e8ff]', text: 'text-[#3b0764]' },
 }
 
 const JOB_TYPE_LABELS: Record<string, string> = {
@@ -631,30 +635,32 @@ export default function VideoProductionPage() {
           </div>
 
           {/* ══════ ZONE 1: Currently Editing ══════ */}
-          <div className="mb-10">
+          <div className={`mb-10 ${nunito.className}`}>
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-1 h-7 rounded-full bg-blue-500" />
-              <h2 className="text-lg font-bold tracking-tight">Currently Editing</h2>
-              <span className="inline-flex items-center justify-center h-6 min-w-[24px] px-2.5 rounded-full bg-blue-600 text-white text-xs font-bold tabular-nums">
+              <div className="w-1.5 h-8 rounded-sm" style={{ backgroundColor: '#0d4f4f' }} />
+              <h2 className={`text-xl font-bold tracking-tight ${playfair.className}`} style={{ color: '#0d4f4f' }}>
+                Currently Editing
+              </h2>
+              <span className="inline-flex items-center justify-center h-7 min-w-[28px] px-2.5 rounded-full text-white text-xs font-bold tabular-nums" style={{ backgroundColor: '#0d4f4f' }}>
                 {currentlyEditingJobs.length}
               </span>
             </div>
 
-            <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)]">
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e7e1d8', boxShadow: '0 1px 3px rgba(13,79,79,0.06), 0 6px 16px rgba(13,79,79,0.04)' }}>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
-                    <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Type</th>
-                    <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Editor</th>
-                    <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Segments</th>
-                    <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Proxies</th>
-                    <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Form</th>
-                    <th className="text-right p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Days</th>
-                    <th className="text-right p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Status</th>
+                  <tr style={{ backgroundColor: '#faf8f5', borderBottom: '2px solid #e7e1d8' }}>
+                    <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Couple</th>
+                    <th className="text-left px-4 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Type</th>
+                    <th className="text-left px-4 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Editor</th>
+                    <th className="text-center px-3 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Segments</th>
+                    <th className="text-center px-3 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Proxies</th>
+                    <th className="text-center px-3 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Form</th>
+                    <th className="text-right px-4 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Days</th>
+                    <th className="text-right px-5 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#0d4f4f' }}>Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody>
                   {currentlyEditingJobs.map(job => {
                     const segsDone = countSegmentsDone(job)
                     const weddingDate = job.wedding_date || job.couples?.wedding_date
@@ -662,51 +668,59 @@ export default function VideoProductionPage() {
                     const pill = STATUS_PILL[job.status] || { bg: 'bg-gray-100', text: 'text-gray-700' }
 
                     return (
-                      <tr key={job.id} className="hover:bg-accent/50 transition-colors">
-                        <td className="p-3">
+                      <tr
+                        key={job.id}
+                        className="transition-colors"
+                        style={{ borderBottom: '1px solid #f0ece4' }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#faf8f5')}
+                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = '')}
+                      >
+                        <td className="px-5 py-4">
                           <button
                             onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
-                            className="text-left"
+                            className="text-left group"
                           >
-                            <div className="font-semibold text-foreground">{job.couples?.couple_name || 'Unknown'}</div>
+                            <div className="font-bold group-hover:underline text-[13px]" style={{ color: '#1c1917' }}>
+                              {job.couples?.couple_name || 'Unknown'}
+                            </div>
                             {weddingDate && (
-                              <div className="text-xs text-muted-foreground">{format(parseISO(weddingDate), 'MMM d, yyyy')}</div>
+                              <div className="text-[11px] mt-0.5 font-medium" style={{ color: '#a8a29e' }}>{format(parseISO(weddingDate), 'MMM d, yyyy')}</div>
                             )}
                           </button>
                         </td>
-                        <td className="p-3 text-muted-foreground">{JOB_TYPE_LABELS[job.job_type] || job.job_type}</td>
-                        <td className="p-3 text-muted-foreground">{job.assigned_to || '\u2014'}</td>
-                        <td className="p-3 text-center">
-                          <span className={`inline-flex items-center justify-center font-mono text-xs font-bold min-w-[38px] px-1.5 py-0.5 rounded-md ${
-                            segsDone === 6 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' :
-                            segsDone > 0 ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                            'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
-                          }`}>
+                        <td className="px-4 py-4 text-[13px] font-medium" style={{ color: '#57534e' }}>{JOB_TYPE_LABELS[job.job_type] || job.job_type}</td>
+                        <td className="px-4 py-4 text-[13px]" style={{ color: '#a8a29e' }}>{job.assigned_to || '\u2014'}</td>
+                        <td className="px-3 py-4 text-center">
+                          <span className={`inline-flex items-center justify-center font-mono text-xs font-bold min-w-[40px] px-2 py-1 rounded-md ${
+                            segsDone === 6 ? 'bg-emerald-50 text-emerald-700' :
+                            segsDone > 0 ? 'bg-amber-50 text-amber-700' :
+                            'bg-stone-100 text-stone-400'
+                          }`} style={segsDone === 6 ? { border: '1px solid #d1fae5' } : segsDone > 0 ? { border: '1px solid #fef3c7' } : { border: '1px solid #e7e5e4' }}>
                             {segsDone}/6
                           </span>
                         </td>
-                        <td className="p-3 text-center">
+                        <td className="px-3 py-4 text-center">
                           {job.proxies_run
-                            ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold">{'\u2713'}</span>
-                            : <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 text-xs">{'\u25CB'}</span>
+                            ? <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold" style={{ border: '1.5px solid #a7f3d0' }}>{'\u2713'}</span>
+                            : <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs" style={{ backgroundColor: '#faf8f5', border: '1.5px solid #e7e1d8', color: '#d6d3d1' }}>{'\u25CB'}</span>
                           }
                         </td>
-                        <td className="p-3 text-center">
+                        <td className="px-3 py-4 text-center">
                           {job.video_form
-                            ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold">{'\u2713'}</span>
-                            : <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 text-xs">{'\u25CB'}</span>
+                            ? <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold" style={{ border: '1.5px solid #a7f3d0' }}>{'\u2713'}</span>
+                            : <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs" style={{ backgroundColor: '#faf8f5', border: '1.5px solid #e7e1d8', color: '#d6d3d1' }}>{'\u25CB'}</span>
                           }
                         </td>
-                        <td className="p-3 text-right">
-                          <span className={`font-mono text-sm ${daysWaiting > 90 ? 'text-red-600 font-bold' : 'text-muted-foreground'}`}>
+                        <td className="px-4 py-4 text-right">
+                          <span className={`font-mono text-[13px] tabular-nums ${daysWaiting > 90 ? 'text-red-600 font-bold' : ''}`} style={daysWaiting <= 90 ? { color: '#a8a29e' } : {}}>
                             {daysWaiting}
                           </span>
                         </td>
-                        <td className="p-3 text-right">
+                        <td className="px-5 py-4 text-right">
                           <select
                             value={job.status}
                             onChange={e => updateJobStatus(job.id, e.target.value)}
-                            className={`text-xs font-semibold rounded-full px-3 py-1.5 border-0 cursor-pointer ${pill.bg} ${pill.text}`}
+                            className={`text-xs font-bold rounded-full px-3.5 py-1.5 border-0 cursor-pointer ${pill.bg} ${pill.text}`}
                           >
                             <option value="in_progress">In Progress</option>
                             <option value="waiting_for_bride">Waiting for Bride</option>
@@ -724,28 +738,28 @@ export default function VideoProductionPage() {
 
                   {currentlyEditingJobs.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="p-6 text-center text-muted-foreground">
+                      <td colSpan={8} className="px-5 py-12 text-center text-sm" style={{ color: '#d6d3d1' }}>
                         No videos currently being edited
                       </td>
                     </tr>
                   )}
 
                   {/* Summary Row 1: In production */}
-                  <tr className="bg-slate-50 dark:bg-slate-900/40 border-t-2 border-slate-200 dark:border-slate-700">
-                    <td className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wide" colSpan={3}>In production</td>
-                    <td className="px-3 py-3 text-center" colSpan={1}>
-                      <span className="font-mono text-sm font-bold text-slate-700 dark:text-slate-200">{inProductionStats.totalSegsDone}/{inProductionStats.totalSegsPossible}</span>
+                  <tr style={{ backgroundColor: '#f5f5f4', borderTop: '2px solid #e7e1d8' }}>
+                    <td className="px-5 py-3.5 font-bold text-xs uppercase tracking-wider" style={{ color: '#1c1917' }} colSpan={3}>In production</td>
+                    <td className="px-3 py-3.5 text-center" colSpan={1}>
+                      <span className="font-mono text-sm font-bold" style={{ color: '#1c1917' }}>{inProductionStats.totalSegsDone}/{inProductionStats.totalSegsPossible}</span>
                     </td>
-                    <td className="px-3 py-3 text-slate-500 dark:text-slate-400 text-xs" colSpan={4}>segments complete</td>
+                    <td className="px-3 py-3.5 text-xs font-medium" style={{ color: '#78716c' }} colSpan={4}>segments complete</td>
                   </tr>
 
-                  {/* Summary Row 2: Awaiting photo order — HIGH CONTRAST */}
-                  <tr className="bg-amber-100 dark:bg-amber-900/60">
-                    <td className="px-4 py-3.5" colSpan={8}>
+                  {/* Summary Row 2: Awaiting photo order */}
+                  <tr style={{ backgroundColor: '#fef3c7' }}>
+                    <td className="px-5 py-3.5" colSpan={8}>
                       <div className="flex items-center gap-2.5 flex-wrap">
-                        <span className="inline-block w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                        <span className="font-semibold text-amber-900 dark:text-amber-100 text-sm">Awaiting photo order</span>
-                        <span className="text-amber-800 dark:text-amber-200 text-sm">
+                        <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#d97706' }} />
+                        <span className="font-bold text-sm" style={{ color: '#78350f' }}>Awaiting photo order</span>
+                        <span className="text-sm font-medium" style={{ color: '#92400e' }}>
                           {awaitingOrderCouples.length} couple{awaitingOrderCouples.length !== 1 ? 's' : ''} shot with video
                           {' \u00B7 '}
                           {notStartedCount} not-started job{notStartedCount !== 1 ? 's' : ''} in backlog
@@ -755,11 +769,11 @@ export default function VideoProductionPage() {
                   </tr>
 
                   {/* Summary Row 3: Edited in 2026 */}
-                  <tr className="bg-red-600 dark:bg-red-700">
-                    <td className="px-4 py-3.5" colSpan={8}>
+                  <tr style={{ backgroundColor: '#dc2626' }}>
+                    <td className="px-5 py-3.5" colSpan={8}>
                       <div className="flex items-center gap-3 flex-wrap">
                         <span className="font-bold text-white text-sm">Edited in 2026</span>
-                        <span className="font-medium text-sm text-red-100">
+                        <span className="font-semibold text-sm" style={{ color: '#fecaca' }}>
                           {edited2026Stats.total} video{edited2026Stats.total !== 1 ? 's' : ''}
                           {edited2026Stats.total > 0 && (
                             <>
@@ -1045,83 +1059,88 @@ export default function VideoProductionPage() {
           })}
 
           {/* ══════ ZONE 3: Completed 2026 ══════ */}
-          <div className="mt-10">
+          <div className={`mt-10 ${nunito.className}`}>
             <button
               onClick={() => setCompleted2026Collapsed(!completed2026Collapsed)}
               className="flex items-center gap-3 py-3 group"
             >
               {completed2026Collapsed
-                ? <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
-                : <ChevronDown className="h-4 w-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
+                ? <ChevronRight className="h-4 w-4 transition-colors" style={{ color: '#d6d3d1' }} />
+                : <ChevronDown className="h-4 w-4 transition-colors" style={{ color: '#d6d3d1' }} />
               }
-              <span className="text-base font-semibold tracking-tight text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">Completed 2026</span>
-              <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-semibold tabular-nums">
+              <span className={`text-base font-bold tracking-tight transition-colors ${playfair.className}`} style={{ color: '#a8a29e' }}>
+                Completed 2026
+              </span>
+              <span className="inline-flex items-center justify-center h-5 min-w-[22px] px-1.5 rounded-full text-xs font-bold tabular-nums" style={{ backgroundColor: '#e7e5e4', color: '#a8a29e' }}>
                 {completed2026JobsList.length}
               </span>
             </button>
 
             {!completed2026Collapsed && completed2026JobsList.length > 0 && (
-              <div className="rounded-xl border border-slate-200/60 dark:border-slate-700/40 bg-slate-50/50 dark:bg-slate-900/20 overflow-hidden">
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e7e5e4', backgroundColor: '#fafaf9' }}>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/30">
-                      <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
-                      <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Wedding Date</th>
+                    <tr style={{ backgroundColor: '#f5f5f4', borderBottom: '1px solid #e7e5e4' }}>
+                      <th className="text-left px-5 py-3 font-semibold text-xs uppercase tracking-wider" style={{ color: '#a8a29e' }}>Couple</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden lg:table-cell" style={{ color: '#a8a29e' }}>Wedding Date</th>
                       {SEGMENTS.map(seg => (
-                        <th key={seg.field} className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">{seg.shortLabel}</th>
+                        <th key={seg.field} className="text-center px-2 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell" style={{ color: '#a8a29e' }}>{seg.shortLabel}</th>
                       ))}
-                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">HD</th>
-                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Prox</th>
-                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Form</th>
-                      <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Status</th>
-                      <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Due Date</th>
+                      <th className="text-center px-2 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell" style={{ color: '#a8a29e' }}>HD</th>
+                      <th className="text-center px-2 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell" style={{ color: '#a8a29e' }}>Prox</th>
+                      <th className="text-center px-2 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell" style={{ color: '#a8a29e' }}>Form</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style={{ color: '#a8a29e' }}>Status</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell" style={{ color: '#a8a29e' }}>Due Date</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody>
                     {completed2026JobsList.map(job => (
-                      <tr key={job.id} className="text-muted-foreground">
-                        <td className="p-3">
+                      <tr key={job.id} style={{ borderBottom: '1px solid #f0ece4', color: '#a8a29e' }}>
+                        <td className="px-5 py-3">
                           <button
                             onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
-                            className="font-medium text-slate-500 dark:text-slate-400 hover:text-blue-500 hover:underline text-left transition-colors"
+                            className="font-medium hover:underline text-left transition-colors text-[13px]"
+                            style={{ color: '#78716c' }}
                           >
                             {job.couples?.couple_name || 'Unknown'}
                           </button>
                         </td>
-                        <td className="p-3 hidden lg:table-cell">
+                        <td className="px-4 py-3 hidden lg:table-cell text-xs">
                           {(job.wedding_date || job.couples?.wedding_date)
                             ? format(parseISO((job.wedding_date || job.couples?.wedding_date)!), 'MMM d, yyyy')
                             : '\u2014'
                           }
                         </td>
                         {SEGMENTS.map(seg => (
-                          <td key={seg.field} className="px-2 py-2.5 text-center hidden md:table-cell">
-                            <span className={job[seg.field] ? 'text-xs text-emerald-400 dark:text-emerald-600' : 'text-xs text-slate-300 dark:text-slate-600'}>{job[seg.field] ? '\u2713' : '\u25CB'}</span>
+                          <td key={seg.field} className="px-2 py-3 text-center hidden md:table-cell">
+                            <span style={{ color: job[seg.field] ? '#86efac' : '#d6d3d1' }} className="text-xs">{job[seg.field] ? '\u2713' : '\u25CB'}</span>
                           </td>
                         ))}
-                        <td className="px-2 py-2.5 text-center hidden md:table-cell text-xs">{job.active_hd || '\u2014'}</td>
-                        <td className="px-2 py-2.5 text-center hidden md:table-cell">
-                          <span className={job.proxies_run ? 'text-xs text-emerald-400 dark:text-emerald-600' : 'text-xs text-slate-300 dark:text-slate-600'}>{job.proxies_run ? '\u2713' : '\u25CB'}</span>
+                        <td className="px-2 py-3 text-center hidden md:table-cell text-xs">{job.active_hd || '\u2014'}</td>
+                        <td className="px-2 py-3 text-center hidden md:table-cell">
+                          <span style={{ color: job.proxies_run ? '#86efac' : '#d6d3d1' }} className="text-xs">{job.proxies_run ? '\u2713' : '\u25CB'}</span>
                         </td>
-                        <td className="px-2 py-2.5 text-center hidden md:table-cell">
-                          <span className={job.video_form ? 'text-xs text-emerald-400 dark:text-emerald-600' : 'text-xs text-slate-300 dark:text-slate-600'}>{job.video_form ? '\u2713' : '\u25CB'}</span>
+                        <td className="px-2 py-3 text-center hidden md:table-cell">
+                          <span style={{ color: job.video_form ? '#86efac' : '#d6d3d1' }} className="text-xs">{job.video_form ? '\u2713' : '\u25CB'}</span>
                         </td>
-                        <td className="p-3">
-                          <span className="text-xs">{STATUS_LABELS[job.status] || job.status}</span>
+                        <td className="px-4 py-3">
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#f5f5f4', color: '#78716c', border: '1px solid #e7e5e4' }}>
+                            {STATUS_LABELS[job.status] || job.status}
+                          </span>
                         </td>
-                        <td className="p-3 hidden md:table-cell text-xs">
+                        <td className="px-4 py-3 hidden md:table-cell text-xs">
                           {job.due_date ? format(parseISO(job.due_date), 'MMM d') : '\u2014'}
                         </td>
                       </tr>
                     ))}
 
                     {/* Summary row */}
-                    <tr className="bg-muted/30 border-t-2 border-border text-muted-foreground">
-                      <td className="p-3 font-semibold" colSpan={2}>
+                    <tr style={{ backgroundColor: '#f5f5f4', borderTop: '2px solid #e7e5e4' }}>
+                      <td className="px-5 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#78716c' }} colSpan={2}>
                         {completed2026JobsList.length} completed
                       </td>
-                      <td className="p-3 hidden md:table-cell" colSpan={7}></td>
-                      <td className="p-3 text-xs" colSpan={3}>
+                      <td className="px-2 py-3 hidden md:table-cell" colSpan={7}></td>
+                      <td className="px-4 py-3 text-xs font-medium" style={{ color: '#78716c' }} colSpan={3}>
                         {edited2026Stats.full} full {'\u00B7'} {edited2026Stats.recap} recap{edited2026Stats.other > 0 ? ` \u00B7 ${edited2026Stats.other} other` : ''}
                       </td>
                     </tr>
