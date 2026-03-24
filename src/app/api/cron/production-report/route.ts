@@ -533,7 +533,7 @@ export async function GET(request: Request) {
           <td ${tdR}><strong>${pctComp(cemEsf, cemPt)}</strong></td>
         </tr>
         <!-- YTD -->
-        <tr style="background:#dc2626;color:white;font-weight:700;font-size:14px;">
+        <tr style="background:#0d4f4f;color:white;font-weight:700;font-size:14px;">
           <td style="padding:10px;border:none;"><strong>Year to Date</strong></td><td style="padding:10px;border:none;"></td>
           <td style="padding:10px;border:none;text-align:right;"><strong>${ytdPt.toLocaleString()}</strong></td>
           <td style="padding:10px;border:none;text-align:right;"><strong>${ytdEsf.toLocaleString()}</strong></td>
