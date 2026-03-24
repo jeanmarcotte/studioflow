@@ -33,6 +33,7 @@ interface VideoJob {
   full_video_id: string | null
   created_at: string
   updated_at: string
+  completed_date: string | null
   couples?: { couple_name: string; id: string; wedding_date: string | null }
 }
 
@@ -41,6 +42,12 @@ interface PhotoWaitingJob {
   couple_id: string
   status: string
   couples?: { couple_name: string; id: string; wedding_date: string | null }
+}
+
+interface AwaitingOrderCouple {
+  id: string
+  couple_name: string
+  wedding_date: string | null
 }
 
 // ── Constants ────────────────────────────────────────────────────
@@ -56,6 +63,18 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const ALL_STATUSES = ['not_started', 'in_progress', 'waiting_on_recap', 'waiting_for_bride', 'raw_video_output', 'complete', 'archived']
+
+const STATUS_PILL: Record<string, { bg: string; text: string }> = {
+  in_progress: { bg: 'bg-blue-100', text: 'text-blue-700' },
+  waiting_for_bride: { bg: 'bg-amber-100', text: 'text-amber-700' },
+  waiting_on_recap: { bg: 'bg-purple-100', text: 'text-purple-700' },
+}
+
+const JOB_TYPE_LABELS: Record<string, string> = {
+  FULL: 'Full video',
+  RECAP: 'Recap',
+  ENG_SLIDESHOW: 'Slideshow',
+}
 
 type SwimlaneKey = 'editing_full' | 'editing_recap' | 'editing_eng_slideshow' | 'reediting' | 'waiting_photo' | 'completed'
 
@@ -146,12 +165,15 @@ export default function VideoProductionPage() {
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [editingDueDate, setEditingDueDate] = useState<string | null>(null)
+  const [awaitingOrderCouples, setAwaitingOrderCouples] = useState<AwaitingOrderCouple[]>([])
+  const [completed2026Collapsed, setCompleted2026Collapsed] = useState(true)
 
   // ── Fetch jobs ─────────────────────────────────────────────────
 
   useEffect(() => {
     const fetchJobs = async () => {
-      const [videoRes, photoRes] = await Promise.all([
+      const today = new Date().toISOString().split('T')[0]
+      const [videoRes, photoRes, awaitingRes] = await Promise.all([
         supabase
           .from('video_jobs')
           .select('*, couples(id, couple_name, wedding_date)')
@@ -160,10 +182,27 @@ export default function VideoProductionPage() {
           .from('editing_queue')
           .select('id, couple_id, status, couples(id, couple_name, wedding_date)')
           .eq('section', 'waiting_photo'),
+        supabase
+          .from('couples')
+          .select('id, couple_name, wedding_date, contracts(num_videographers), couple_milestones(m24_photo_order_in)')
+          .lte('wedding_date', today),
       ])
 
       if (!videoRes.error && videoRes.data) setJobs(videoRes.data)
       if (!photoRes.error && photoRes.data) setPhotoWaitingJobs(photoRes.data as unknown as PhotoWaitingJob[])
+      if (!awaitingRes.error && awaitingRes.data) {
+        const filtered = (awaitingRes.data as any[]).filter((c) => {
+          const contract = Array.isArray(c.contracts) ? c.contracts[0] : c.contracts
+          if (!contract || (contract.num_videographers || 0) <= 0) return false
+          const milestone = Array.isArray(c.couple_milestones) ? c.couple_milestones[0] : c.couple_milestones
+          return !milestone?.m24_photo_order_in
+        })
+        setAwaitingOrderCouples(filtered.map((c) => ({
+          id: c.id,
+          couple_name: c.couple_name,
+          wedding_date: c.wedding_date,
+        })))
+      }
       setLoading(false)
     }
     fetchJobs()
@@ -426,6 +465,48 @@ export default function VideoProductionPage() {
     }
   }, [jobs, photoWaitingJobs])
 
+  // ── Zone 1 & 3 computed data ────────────────────────────────────
+
+  const currentlyEditingJobs = useMemo(() => {
+    let result = jobs.filter(j => ['in_progress', 'waiting_for_bride', 'waiting_on_recap'].includes(j.status))
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter(j =>
+        j.couples?.couple_name?.toLowerCase().includes(q) ||
+        j.assigned_to?.toLowerCase().includes(q)
+      )
+    }
+    return result.sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999))
+  }, [jobs, search])
+
+  const inProductionStats = useMemo(() => {
+    const totalSegsDone = currentlyEditingJobs.reduce((sum, j) => sum + countSegmentsDone(j), 0)
+    const totalSegsPossible = currentlyEditingJobs.length * 6
+    return { totalSegsDone, totalSegsPossible }
+  }, [currentlyEditingJobs])
+
+  const notStartedCount = useMemo(() => jobs.filter(j => j.status === 'not_started').length, [jobs])
+
+  const edited2026Stats = useMemo(() => {
+    const completed = jobs.filter(j => j.completed_date && j.completed_date >= '2026-01-01')
+    const full = completed.filter(j => j.job_type === 'FULL').length
+    const recap = completed.filter(j => j.job_type === 'RECAP').length
+    const other = completed.length - full - recap
+    return { total: completed.length, full, recap, other }
+  }, [jobs])
+
+  const completed2026JobsList = useMemo(() => {
+    let result = jobs.filter(j => j.completed_date && j.completed_date >= '2026-01-01')
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter(j =>
+        j.couples?.couple_name?.toLowerCase().includes(q) ||
+        j.assigned_to?.toLowerCase().includes(q)
+      )
+    }
+    return result.sort((a, b) => (b.completed_date || '').localeCompare(a.completed_date || ''))
+  }, [jobs, search])
+
   // ── Toggle lane collapse ───────────────────────────────────────
 
   const toggleLane = (key: string) => {
@@ -546,6 +627,143 @@ export default function VideoProductionPage() {
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
+            </div>
+          </div>
+
+          {/* ══════ ZONE 1: Currently Editing ══════ */}
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <h2 className="text-lg font-semibold tracking-tight">Currently Editing</h2>
+              <span className="inline-flex items-center justify-center h-6 min-w-[24px] px-2 rounded-full bg-blue-600 text-white text-xs font-bold">
+                {currentlyEditingJobs.length}
+              </span>
+            </div>
+
+            <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
+                    <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Type</th>
+                    <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Editor</th>
+                    <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Segments</th>
+                    <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Proxies</th>
+                    <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Form</th>
+                    <th className="text-right p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Days</th>
+                    <th className="text-right p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {currentlyEditingJobs.map(job => {
+                    const segsDone = countSegmentsDone(job)
+                    const weddingDate = job.wedding_date || job.couples?.wedding_date
+                    const daysWaiting = weddingDate ? differenceInDays(new Date(), parseISO(weddingDate)) : 0
+                    const pill = STATUS_PILL[job.status] || { bg: 'bg-gray-100', text: 'text-gray-700' }
+
+                    return (
+                      <tr key={job.id} className="hover:bg-accent/50 transition-colors">
+                        <td className="p-3">
+                          <button
+                            onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
+                            className="text-left"
+                          >
+                            <div className="font-semibold text-foreground">{job.couples?.couple_name || 'Unknown'}</div>
+                            {weddingDate && (
+                              <div className="text-xs text-muted-foreground">{format(parseISO(weddingDate), 'MMM d, yyyy')}</div>
+                            )}
+                          </button>
+                        </td>
+                        <td className="p-3 text-muted-foreground">{JOB_TYPE_LABELS[job.job_type] || job.job_type}</td>
+                        <td className="p-3 text-muted-foreground">{job.assigned_to || '\u2014'}</td>
+                        <td className="p-3 text-center">
+                          <span className={`font-mono text-sm font-semibold ${segsDone === 6 ? 'text-green-600' : segsDone > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                            {segsDone}/6
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          {job.proxies_run
+                            ? <span className="text-green-600 font-medium">{'\u2713'}</span>
+                            : <span className="text-muted-foreground/40">{'\u25CB'}</span>
+                          }
+                        </td>
+                        <td className="p-3 text-center">
+                          {job.video_form
+                            ? <span className="text-green-600 font-medium">{'\u2713'}</span>
+                            : <span className="text-muted-foreground/40">{'\u25CB'}</span>
+                          }
+                        </td>
+                        <td className="p-3 text-right">
+                          <span className={`font-mono text-sm ${daysWaiting > 90 ? 'text-red-600 font-bold' : 'text-muted-foreground'}`}>
+                            {daysWaiting}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <select
+                            value={job.status}
+                            onChange={e => updateJobStatus(job.id, e.target.value)}
+                            className={`text-xs font-semibold rounded-full px-3 py-1.5 border-0 cursor-pointer ${pill.bg} ${pill.text}`}
+                          >
+                            <option value="in_progress">In Progress</option>
+                            <option value="waiting_for_bride">Waiting for Bride</option>
+                            <option value="waiting_on_recap">Waiting on Recap</option>
+                            <option disabled>{'────────────'}</option>
+                            <option value="not_started">Not Started</option>
+                            <option value="raw_video_output">Raw Video Output</option>
+                            <option value="complete">Complete</option>
+                            <option value="archived">Archived</option>
+                          </select>
+                        </td>
+                      </tr>
+                    )
+                  })}
+
+                  {currentlyEditingJobs.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="p-6 text-center text-muted-foreground">
+                        No videos currently being edited
+                      </td>
+                    </tr>
+                  )}
+
+                  {/* Summary Row 1: In production */}
+                  <tr className="bg-muted/30 border-t-2 border-border">
+                    <td className="p-3 font-medium text-muted-foreground" colSpan={3}>In production</td>
+                    <td className="p-3 text-center font-mono text-sm font-semibold text-muted-foreground" colSpan={1}>
+                      {inProductionStats.totalSegsDone} / {inProductionStats.totalSegsPossible}
+                    </td>
+                    <td className="p-3 text-muted-foreground text-xs" colSpan={4}>segments</td>
+                  </tr>
+
+                  {/* Summary Row 2: Awaiting photo order */}
+                  <tr className="bg-amber-50 dark:bg-amber-950/30">
+                    <td className="p-3 font-medium text-amber-700 dark:text-amber-400" colSpan={8}>
+                      <span>Awaiting photo order</span>
+                      <span className="ml-3 font-normal text-sm">
+                        {awaitingOrderCouples.length} couple{awaitingOrderCouples.length !== 1 ? 's' : ''} shot with video
+                        {' \u00B7 '}
+                        {notStartedCount} not-started job{notStartedCount !== 1 ? 's' : ''} in backlog
+                      </span>
+                    </td>
+                  </tr>
+
+                  {/* Summary Row 3: Edited in 2026 */}
+                  <tr style={{ backgroundColor: '#dc2626' }}>
+                    <td className="p-3 font-bold text-white" colSpan={8}>
+                      <span>Edited in 2026</span>
+                      <span className="ml-3 font-normal text-sm text-white/90">
+                        {edited2026Stats.total} video{edited2026Stats.total !== 1 ? 's' : ''}
+                        {edited2026Stats.total > 0 && (
+                          <>
+                            {'   '}
+                            {edited2026Stats.full} full {'\u00B7'} {edited2026Stats.recap} recap{edited2026Stats.recap !== 1 ? 's' : ''}
+                            {edited2026Stats.other > 0 && ` \u00B7 ${edited2026Stats.other} other`}
+                          </>
+                        )}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -815,6 +1033,93 @@ export default function VideoProductionPage() {
               </div>
             )
           })}
+
+          {/* ══════ ZONE 3: Completed 2026 ══════ */}
+          <div className="mt-8">
+            <button
+              onClick={() => setCompleted2026Collapsed(!completed2026Collapsed)}
+              className="flex items-center gap-3 py-3 hover:opacity-80"
+            >
+              {completed2026Collapsed
+                ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              }
+              <span className="text-lg font-semibold tracking-tight text-muted-foreground">Completed 2026</span>
+              <span className="inline-flex items-center justify-center h-6 min-w-[24px] px-2 rounded-full bg-muted text-muted-foreground text-xs font-bold">
+                {completed2026JobsList.length}
+              </span>
+            </button>
+
+            {!completed2026Collapsed && completed2026JobsList.length > 0 && (
+              <div className="rounded-xl border bg-card/50 overflow-hidden opacity-70">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/30">
+                      <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
+                      <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Wedding Date</th>
+                      {SEGMENTS.map(seg => (
+                        <th key={seg.field} className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">{seg.shortLabel}</th>
+                      ))}
+                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">HD</th>
+                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Prox</th>
+                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Form</th>
+                      <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Status</th>
+                      <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Due Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {completed2026JobsList.map(job => (
+                      <tr key={job.id} className="text-muted-foreground">
+                        <td className="p-3">
+                          <button
+                            onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
+                            className="font-medium text-blue-600/60 hover:underline text-left"
+                          >
+                            {job.couples?.couple_name || 'Unknown'}
+                          </button>
+                        </td>
+                        <td className="p-3 hidden lg:table-cell">
+                          {(job.wedding_date || job.couples?.wedding_date)
+                            ? format(parseISO((job.wedding_date || job.couples?.wedding_date)!), 'MMM d, yyyy')
+                            : '\u2014'
+                          }
+                        </td>
+                        {SEGMENTS.map(seg => (
+                          <td key={seg.field} className="p-2 text-center hidden md:table-cell">
+                            <span className="text-sm opacity-60">{job[seg.field] ? '\u2705' : '\u2B1C'}</span>
+                          </td>
+                        ))}
+                        <td className="p-2 text-center hidden md:table-cell text-xs">{job.active_hd || '\u2014'}</td>
+                        <td className="p-2 text-center hidden md:table-cell">
+                          <span className="text-sm opacity-60">{job.proxies_run ? '\u2705' : '\u2B1C'}</span>
+                        </td>
+                        <td className="p-2 text-center hidden md:table-cell">
+                          <span className="text-sm opacity-60">{job.video_form ? '\u2705' : '\u2B1C'}</span>
+                        </td>
+                        <td className="p-3">
+                          <span className="text-xs">{STATUS_LABELS[job.status] || job.status}</span>
+                        </td>
+                        <td className="p-3 hidden md:table-cell text-xs">
+                          {job.due_date ? format(parseISO(job.due_date), 'MMM d') : '\u2014'}
+                        </td>
+                      </tr>
+                    ))}
+
+                    {/* Summary row */}
+                    <tr className="bg-muted/30 border-t-2 border-border text-muted-foreground">
+                      <td className="p-3 font-semibold" colSpan={2}>
+                        {completed2026JobsList.length} completed
+                      </td>
+                      <td className="p-3 hidden md:table-cell" colSpan={7}></td>
+                      <td className="p-3 text-xs" colSpan={3}>
+                        {edited2026Stats.full} full {'\u00B7'} {edited2026Stats.recap} recap{edited2026Stats.other > 0 ? ` \u00B7 ${edited2026Stats.other} other` : ''}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
           {/* Bottom spacer */}
         </div>
