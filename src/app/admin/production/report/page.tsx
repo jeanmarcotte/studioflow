@@ -324,6 +324,19 @@ export default function ProductionReportPage() {
     }
   }, [editingProofs])
 
+  const cemeteryProofsTotals = useMemo(() => {
+    const proofs = allPhotoJobs.filter(j => ['completed', 'picked_up'].includes(j.status) && isProofsJob(j.job_type))
+    const pt = proofs.reduce((s, j) => s + (j.photos_taken || 0), 0)
+    const esf = proofs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
+    const tp = proofs.reduce((s, j) => s + (j.total_proofs || 0), 0)
+    const deleted = safeDeleted(pt, tp)
+    return {
+      pt, esf, tp, remaining: tp > 0 ? tp - esf : pt - esf, deleted,
+      pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
+      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null,
+    }
+  }, [allPhotoJobs])
+
   const ytdTotals = useMemo(() => {
     const proofsJobs = allPhotoJobs.filter(j => isProofsJob(j.job_type))
     const pt = proofsJobs.reduce((s, j) => s + (j.photos_taken || 0), 0)
@@ -611,6 +624,18 @@ export default function ProductionReportPage() {
                     <td className="px-3 py-2.5 text-right">{asapTotals.tp.toLocaleString()}</td>
                     <td className="px-3 py-2.5 text-right">{asapTotals.pctDeleted !== null ? `${asapTotals.pctDeleted}%` : '—'}</td>
                     <td className="px-3 py-2.5 text-right">{asapTotals.pctCompleted !== null ? `${asapTotals.pctCompleted}%` : '—'}</td>
+                  </tr>
+                  {/* Cemetery Total */}
+                  <tr className="bg-gray-200 border-t border-gray-300 font-semibold text-gray-600">
+                    <td className="px-3 py-2.5 font-bold">Cemetery Total</td>
+                    <td></td>
+                    <td className="px-3 py-2.5 text-right">{cemeteryProofsTotals.pt.toLocaleString()}</td>
+                    <td className="px-3 py-2.5 text-right">{cemeteryProofsTotals.esf.toLocaleString()}</td>
+                    <td className="px-3 py-2.5 text-right">{cemeteryProofsTotals.remaining.toLocaleString()}</td>
+                    <td className="px-3 py-2.5 text-right">{cemeteryProofsTotals.deleted > 0 ? cemeteryProofsTotals.deleted.toLocaleString() : '—'}</td>
+                    <td className="px-3 py-2.5 text-right">{cemeteryProofsTotals.tp.toLocaleString()}</td>
+                    <td className="px-3 py-2.5 text-right">{cemeteryProofsTotals.pctDeleted !== null ? `${cemeteryProofsTotals.pctDeleted}%` : '—'}</td>
+                    <td className="px-3 py-2.5 text-right">{cemeteryProofsTotals.pctCompleted !== null ? `${cemeteryProofsTotals.pctCompleted}%` : '—'}</td>
                   </tr>
                   {/* YTD Summary */}
                   <tr className="bg-[#dc2626] text-white font-bold" style={{ fontSize: '15px' }}>

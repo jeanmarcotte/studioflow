@@ -185,6 +185,13 @@ export async function GET(request: Request) {
     const asapTp = editingProofs.reduce((s: number, j: any) => s + (j.total_proofs || 0), 0)
     const asapDel = safeDeleted(asapPt, asapTp)
 
+    // Cemetery totals (completed/picked_up proofs only)
+    const cemProofs = allPhotoJobs.filter((j: any) => ['completed', 'picked_up'].includes(j.status) && isProofsJob(j.job_type))
+    const cemPt = cemProofs.reduce((s: number, j: any) => s + (j.photos_taken || 0), 0)
+    const cemEsf = cemProofs.reduce((s: number, j: any) => s + (j.edited_so_far || 0), 0)
+    const cemTp = cemProofs.reduce((s: number, j: any) => s + (j.total_proofs || 0), 0)
+    const cemDel = safeDeleted(cemPt, cemTp)
+
     // YTD totals (proofs only, all statuses)
     const proofsAll = allPhotoJobs.filter((j: any) => isProofsJob(j.job_type))
     const ytdPt = proofsAll.reduce((s: number, j: any) => s + (j.photos_taken || 0), 0)
@@ -514,6 +521,16 @@ export async function GET(request: Request) {
           <td ${tdR}><strong>${asapTp.toLocaleString()}</strong></td>
           <td ${tdR}><strong>${pctStr(asapDel, asapPt)}</strong></td>
           <td ${tdR}><strong>${pctComp(asapEsf, asapPt)}</strong></td>
+        </tr>
+        <!-- Cemetery Total -->
+        <tr style="background:#e5e7eb;font-weight:700;color:#4b5563;">
+          <td ${td}><strong>Cemetery Total</strong></td><td ${td}></td>
+          <td ${tdR}><strong>${cemPt.toLocaleString()}</strong></td><td ${tdR}><strong>${cemEsf.toLocaleString()}</strong></td>
+          <td ${tdR}><strong>${(cemTp > 0 ? cemTp - cemEsf : cemPt - cemEsf).toLocaleString()}</strong></td>
+          <td ${tdR}><strong>${cemDel > 0 ? cemDel.toLocaleString() : '&mdash;'}</strong></td>
+          <td ${tdR}><strong>${cemTp.toLocaleString()}</strong></td>
+          <td ${tdR}><strong>${pctStr(cemDel, cemPt)}</strong></td>
+          <td ${tdR}><strong>${pctComp(cemEsf, cemPt)}</strong></td>
         </tr>
         <!-- YTD -->
         <tr style="background:#dc2626;color:white;font-weight:700;font-size:14px;">

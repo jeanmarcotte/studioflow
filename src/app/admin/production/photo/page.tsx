@@ -394,6 +394,20 @@ export default function PhotoProductionPage() {
     }
   }, [inProgressJobs])
 
+  const cemeteryProofsTotals = useMemo(() => {
+    const proofs = cemeteryJobs.filter(j => j.job_type.toLowerCase().includes('proofs'))
+    const pt = proofs.reduce((s, j) => s + (j.photos_taken || 0), 0)
+    const esf = proofs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
+    const tp = proofs.reduce((s, j) => s + (j.total_proofs || 0), 0)
+    const remaining = tp > 0 ? tp - esf : pt - esf
+    const deleted = tp > 0 ? pt - tp : 0
+    return {
+      photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
+      pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
+      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null,
+    }
+  }, [cemeteryJobs])
+
   const ytdTotals = useMemo(() => {
     const pt = ytdData.photos_taken
     const esf = ytdData.edited_so_far
@@ -687,6 +701,20 @@ export default function PhotoProductionPage() {
                       <td></td>
                     </tr>
 
+                    {/* Cemetery Total */}
+                    <tr className="bg-gray-200 border-t border-gray-300">
+                      <td className="px-3 py-2 font-bold text-sm text-gray-600">Cemetery Total</td>
+                      <td></td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm text-gray-600">{cemeteryProofsTotals.photosTaken.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm text-gray-600">{cemeteryProofsTotals.editedSoFar.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm text-gray-600">{cemeteryProofsTotals.remaining.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm text-gray-600">{cemeteryProofsTotals.deleted > 0 ? cemeteryProofsTotals.deleted.toLocaleString() : '—'}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm text-gray-600">{cemeteryProofsTotals.totalProofs.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm text-gray-600">{cemeteryProofsTotals.pctDeleted !== null ? `${cemeteryProofsTotals.pctDeleted}%` : '—'}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-sm text-gray-600">{cemeteryProofsTotals.pctCompleted !== null ? `${cemeteryProofsTotals.pctCompleted}%` : '—'}</td>
+                      <td></td>
+                    </tr>
+
                     {/* Year to Date Summary */}
                     <tr className="bg-red-600 text-white font-bold" style={{ fontSize: '15px' }}>
                       <td className="px-3 py-2.5 font-bold rounded-bl-xl">Year to Date</td>
@@ -885,6 +913,29 @@ export default function PhotoProductionPage() {
                         </tr>
                       )
                     })}
+                    {/* Cemetery Summary Total */}
+                    {(() => {
+                      const pt = cemeteryJobs.reduce((s, j) => s + (j.photos_taken || 0), 0)
+                      const esf = cemeteryJobs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
+                      const tp = cemeteryJobs.reduce((s, j) => s + (j.total_proofs || 0), 0)
+                      const remaining = tp > 0 ? tp - esf : pt - esf
+                      const deleted = tp > 0 && pt > tp ? pt - tp : 0
+                      const pctDel = deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null
+                      const pctComp = pt > 0 ? ((esf / pt) * 100).toFixed(1) : null
+                      return (
+                        <tr className="bg-gray-100 border-t-2 border-gray-300">
+                          <td className="px-3 py-2 font-bold text-sm text-gray-500">Cemetery Total</td>
+                          <td></td>
+                          <td className="px-3 py-2 text-right font-semibold text-sm text-gray-500">{pt.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-sm text-gray-500">{esf.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-sm text-gray-500">{tp.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-sm text-gray-500">{deleted > 0 ? deleted.toLocaleString() : '—'}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-sm text-gray-500">{pctDel !== null ? `${pctDel}%` : '—'}</td>
+                          <td></td>
+                          <td></td>
+                        </tr>
+                      )
+                    })()}
                   </tbody>
                 </table>
               </div>
