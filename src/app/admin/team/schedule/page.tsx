@@ -13,7 +13,7 @@ import autoTable from 'jspdf-autotable'
 
 interface TeamMember {
   id: string
-  name: string
+  first_name: string
   role: string        // 'photographer' | 'videographer' | 'both'
   color: string
   is_active: boolean
@@ -112,7 +112,7 @@ function StaffDropdown({ value, role, members, onSelect }: {
 }) {
   const [open, setOpen] = useState(false)
   const filtered = members.filter(m => (m.role === role || m.role === 'both') && m.is_active)
-  const member = members.find(m => m.name === value)
+  const member = members.find(m => m.first_name === value)
 
   return (
     <div className="relative">
@@ -146,11 +146,11 @@ function StaffDropdown({ value, role, members, onSelect }: {
             {filtered.map(m => (
               <button
                 key={m.id}
-                onClick={() => { onSelect(m.name); setOpen(false) }}
+                onClick={() => { onSelect(m.first_name); setOpen(false) }}
                 className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 flex items-center gap-2"
               >
                 <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: m.color }} />
-                <span className="font-medium">{m.name}</span>
+                <span className="font-medium">{m.first_name}</span>
                 <span className="text-muted-foreground ml-auto capitalize">{m.role}</span>
               </button>
             ))}
@@ -190,7 +190,7 @@ export default function TeamSchedulePage() {
         .from('team_members')
         .select('*')
         .eq('is_active', true)
-        .order('name'),
+        .order('first_name'),
       supabase
         .from('contracts')
         .select('couple_id, num_photographers, num_videographers'),
@@ -349,7 +349,7 @@ export default function TeamSchedulePage() {
   const memberCounts = useMemo(() => {
     const withCounts = teamMembers.map(m => {
       const count = assignments.filter(a =>
-        a.photo_1 === m.name || a.photo_2 === m.name || a.video_1 === m.name
+        a.photo_1 === m.first_name || a.photo_2 === m.first_name || a.video_1 === m.first_name
       ).length
       return { ...m, count }
     })
@@ -646,7 +646,7 @@ export default function TeamSchedulePage() {
                   </div>
                   <span className="text-2xl font-bold">{m.count}</span>
                 </div>
-                <div className="text-sm font-medium">{m.name}</div>
+                <div className="text-sm font-medium">{m.first_name}</div>
                 <p className="text-xs text-muted-foreground mt-0.5 capitalize">{m.role}</p>
               </div>
             ))}
@@ -671,7 +671,7 @@ export default function TeamSchedulePage() {
                   </div>
                   <span className="text-2xl font-bold">{m.count}</span>
                 </div>
-                <div className="text-sm font-medium">{m.name}</div>
+                <div className="text-sm font-medium">{m.first_name}</div>
                 <p className="text-xs text-muted-foreground mt-0.5 capitalize">{m.role}</p>
               </div>
             ))}
