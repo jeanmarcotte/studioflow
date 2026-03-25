@@ -108,6 +108,10 @@ export async function POST(request: Request) {
       console.log('[from-quote] Created couple:', coupleId, coupleName)
     } else {
       // Couple already exists — update with booking data
+      const weddingYear = quote.wedding_date
+        ? new Date(quote.wedding_date + 'T12:00:00').getFullYear()
+        : null
+
       const { error: updateErr } = await supabase
         .from('couples')
         .update({
@@ -117,6 +121,7 @@ export async function POST(request: Request) {
           balance_owing: quote.total || 0,
           package_type: quote.service_needs || null,
           coverage_hours: quote.coverage_hours || null,
+          wedding_year: weddingYear,
         })
         .eq('id', coupleId)
 
