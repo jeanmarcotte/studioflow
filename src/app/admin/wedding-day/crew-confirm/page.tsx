@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Send, X, ChevronDown, ChevronRight, Plus, Eye, Check, Clock, Mail, Upload, FileText, Trash2, Download, ExternalLink, MapPin, Minus } from 'lucide-react'
+import { Send, X, ChevronDown, ChevronRight, Plus, Eye, Check, Clock, Mail, Upload, FileText, Trash2, Download, ExternalLink, ChevronUp } from 'lucide-react'
 import { Playfair_Display, Nunito } from 'next/font/google'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -103,7 +103,7 @@ interface WeatherData {
   available: boolean
 }
 
-// ── Helpers ────────────────────────────────────────────────────────
+// ── Time Helpers ──────────────────────────────────────────────────
 
 function parseTimeStr(t: string): number | null {
   const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
@@ -117,7 +117,7 @@ function parseTimeStr(t: string): number | null {
 }
 
 function minutesToTimeStr(mins: number): string {
-  if (mins < 0) mins += 24 * 60
+  while (mins < 0) mins += 24 * 60
   const h = Math.floor(mins / 60) % 24
   const m = mins % 60
   const ampm = h >= 12 ? 'PM' : 'AM'
@@ -133,6 +133,74 @@ function adjustTime(time: string, deltaMins: number): string {
 
 function mapsUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+}
+
+// ── Digital Clock Time Picker ────────────────────────────────────
+
+function TimePicker({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
+  const hasValue = !!value && parseTimeStr(value) !== null
+
+  return (
+    <div>
+      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '4px' }}>{label}</span>
+      <div style={{
+        display: 'flex', alignItems: 'stretch', border: '1px solid #e7e1d8', borderRadius: '8px',
+        overflow: 'hidden', background: '#fff', height: '38px',
+      }}>
+        {/* Down button */}
+        <button
+          onClick={() => onChange(adjustTime(value || '12:00 PM', -15))}
+          style={{
+            width: '32px', border: 'none', background: '#faf8f5', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            borderRight: '1px solid #e7e1d8', color: '#0d4f4f', flexShrink: 0,
+          }}
+          title="-15 min"
+        >
+          <ChevronDown size={14} />
+        </button>
+
+        {/* Time display */}
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: "'Courier New', Courier, monospace",
+          fontSize: '1rem', fontWeight: 700,
+          color: hasValue ? '#0d4f4f' : '#9ca3af',
+          letterSpacing: '0.5px',
+          background: hasValue ? '#f0faf9' : '#fff',
+          minWidth: '90px',
+          cursor: 'text',
+          position: 'relative',
+        }}>
+          <input
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder="--:-- --"
+            style={{
+              width: '100%', textAlign: 'center', border: 'none', background: 'transparent',
+              fontFamily: "'Courier New', Courier, monospace",
+              fontSize: '1rem', fontWeight: 700,
+              color: hasValue ? '#0d4f4f' : '#9ca3af',
+              outline: 'none', padding: '0 4px',
+            }}
+          />
+        </div>
+
+        {/* Up button */}
+        <button
+          onClick={() => onChange(adjustTime(value || '12:00 PM', 15))}
+          style={{
+            width: '32px', border: 'none', background: '#faf8f5', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            borderLeft: '1px solid #e7e1d8', color: '#0d4f4f', flexShrink: 0,
+          }}
+          title="+15 min"
+        >
+          <ChevronUp size={14} />
+        </button>
+      </div>
+    </div>
+  )
 }
 
 // ── Component ────────────────────────────────────────────────────
@@ -156,6 +224,7 @@ export default function CrewCallSheetPage() {
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDoc[]>([])
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
   const [sending, setSending] = useState(false)
   const [sentTimestamp, setSentTimestamp] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
@@ -168,6 +237,7 @@ export default function CrewCallSheetPage() {
   const [newMpName, setNewMpName] = useState('')
   const [newMpAddress, setNewMpAddress] = useState('')
   const [loading, setLoading] = useState(true)
+  const [groomStartTime, setGroomStartTime] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // ── Fetch data ─────────────────────────────────────────────────
@@ -210,7 +280,6 @@ export default function CrewCallSheetPage() {
     setWeatherLoading(true)
     setWeather({ high: null, low: null, precipitation: null, sunrise: null, sunset: null, available: false })
 
-    // Check if date is within 7 days
     const wDate = new Date(weddingDate + 'T12:00:00')
     const now = new Date()
     const diffDays = Math.ceil((wDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
@@ -220,17 +289,13 @@ export default function CrewCallSheetPage() {
     }
 
     try {
-      // Geocode the venue
-      let lat = 43.65, lng = -79.38 // Default Toronto
+      let lat = 43.65, lng = -79.38
       if (receptionVenue) {
         const city = receptionVenue.split(',').pop()?.trim() || 'Toronto'
         try {
           const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`)
           const geoData = await geoRes.json()
-          if (geoData.results?.[0]) {
-            lat = geoData.results[0].latitude
-            lng = geoData.results[0].longitude
-          }
+          if (geoData.results?.[0]) { lat = geoData.results[0].latitude; lng = geoData.results[0].longitude }
         } catch { /* use defaults */ }
       }
 
@@ -241,8 +306,7 @@ export default function CrewCallSheetPage() {
       if (weatherData.daily) {
         const d = weatherData.daily
         setWeather({
-          high: d.temperature_2m_max?.[0] ?? null,
-          low: d.temperature_2m_min?.[0] ?? null,
+          high: d.temperature_2m_max?.[0] ?? null, low: d.temperature_2m_min?.[0] ?? null,
           precipitation: d.precipitation_probability_max?.[0] ?? null,
           sunrise: d.sunrise?.[0] ? format(new Date(d.sunrise[0]), 'h:mm a') : null,
           sunset: d.sunset?.[0] ? format(new Date(d.sunset[0]), 'h:mm a') : null,
@@ -255,69 +319,61 @@ export default function CrewCallSheetPage() {
 
   // ── Fetch wedding day form data ────────────────────────────────
 
-  const fetchWeddingDayForm = useCallback(async (coupleId: string) => {
+  const fetchWeddingDayForm = useCallback(async (coupleId: string, defaultCallTime: string) => {
     const { data } = await supabase
       .from('wedding_day_forms')
-      .select('bridal_party_count, vendor_dj_mc, vendor_floral, vendor_makeup, vendor_hair, vendor_wedding_planner, vendor_transportation')
+      .select('bridal_party_count, vendor_dj_mc, vendor_floral, vendor_makeup, vendor_hair, vendor_wedding_planner, vendor_transportation, groom_start_time')
       .eq('couple_id', coupleId)
       .limit(1)
 
     if (data?.[0]) {
       const form = data[0]
       if (form.bridal_party_count) {
-        // bridal_party_count might be "8" or "4+4" or JSON
         const bpc = String(form.bridal_party_count)
         const parts = bpc.split('+')
-        if (parts.length === 2) {
-          setBridesmaids(parts[0].trim())
-          setGroomsmen(parts[1].trim())
-        }
+        if (parts.length === 2) { setBridesmaids(parts[0].trim()); setGroomsmen(parts[1].trim()) }
       }
       setVendors({
-        dj_mc: form.vendor_dj_mc || '',
-        florist: form.vendor_floral || '',
-        makeup: form.vendor_makeup || '',
-        hair: form.vendor_hair || '',
-        planner: form.vendor_wedding_planner || '',
-        transport: form.vendor_transportation || '',
+        dj_mc: form.vendor_dj_mc || '', florist: form.vendor_floral || '',
+        makeup: form.vendor_makeup || '', hair: form.vendor_hair || '',
+        planner: form.vendor_wedding_planner || '', transport: form.vendor_transportation || '',
       })
+      // Use groom_start_time for meeting point time default
+      const gst = form.groom_start_time || ''
+      setGroomStartTime(gst)
+      return gst
     }
+    setGroomStartTime('')
+    return ''
   }, [])
 
   // ── Fetch uploaded docs for couple ─────────────────────────────
 
   const fetchUploadedDocs = useCallback(async (coupleId: string) => {
     try {
-      const { data: files } = await supabase.storage.from('wedding-documents').list(coupleId)
+      const { data: files, error } = await supabase.storage.from('wedding-documents').list(coupleId)
+      if (error) { setUploadedDocs([]); return }
       if (files?.length) {
-        setUploadedDocs(files.map(f => ({
-          name: f.name,
-          path: `${coupleId}/${f.name}`,
-          uploaded_at: f.created_at || '',
-          attachToEmail: true,
+        setUploadedDocs(files.filter(f => f.name !== '.emptyFolderPlaceholder').map(f => ({
+          name: f.name, path: `${coupleId}/${f.name}`,
+          uploaded_at: f.created_at || '', attachToEmail: true,
         })))
       } else {
         setUploadedDocs([])
       }
-    } catch {
-      setUploadedDocs([])
-    }
+    } catch { setUploadedDocs([]) }
   }, [])
 
   // ── Build crew entries when couple changes ─────────────────────
 
   useEffect(() => {
     if (!selectedCoupleId || !selectedAssignment) {
-      setCrewEntries([])
-      setSentTimestamp(null)
-      setHistory([])
-      setDressCode('')
-      setBridesmaids('')
-      setGroomsmen('')
+      setCrewEntries([]); setSentTimestamp(null); setHistory([])
+      setDressCode(''); setBridesmaids(''); setGroomsmen('')
       setVendors({ dj_mc: '', florist: '', makeup: '', hair: '', planner: '', transport: '' })
-      setKeyMoments('')
+      setKeyMoments(''); setGroomStartTime('')
       setWeather({ high: null, low: null, precipitation: null, sunrise: null, sunset: null, available: false })
-      setUploadedDocs([])
+      setUploadedDocs([]); setUploadError('')
       return
     }
 
@@ -328,93 +384,79 @@ export default function CrewCallSheetPage() {
     let defaultCallTime = ''
     if (contract?.start_time) {
       const startMins = parseTimeStr(contract.start_time)
-      if (startMins !== null) {
-        defaultCallTime = minutesToTimeStr(startMins - 60)
+      if (startMins !== null) defaultCallTime = minutesToTimeStr(startMins - 60)
+    }
+
+    // Build entries first, then update meeting point time after form fetch
+    const buildEntries = (meetingPointTime: string) => {
+      // Equipment pickup time: 90 min before meeting point time
+      let defaultEquipPickupTime = ''
+      if (meetingPointTime) {
+        const mpMins = parseTimeStr(meetingPointTime)
+        if (mpMins !== null) defaultEquipPickupTime = minutesToTimeStr(mpMins - 90)
+      } else if (defaultCallTime) {
+        const callMins = parseTimeStr(defaultCallTime)
+        if (callMins !== null) defaultEquipPickupTime = minutesToTimeStr(callMins - 90)
       }
-    }
 
-    // Equipment pickup time: 30 min before call time
-    let defaultEquipPickupTime = ''
-    if (defaultCallTime) {
-      const callMins = parseTimeStr(defaultCallTime)
-      if (callMins !== null) {
-        defaultEquipPickupTime = minutesToTimeStr(callMins - 30)
+      const entries: CrewEntry[] = []
+      let isFirst = true
+      const addEntry = (name: string | null, role: string) => {
+        if (!name) return
+        const member = teamMembers.find(m => m.first_name === name)
+        if (!member) return
+        const isLead = isFirst
+        entries.push({
+          team_member_id: member.id,
+          member_name: `${member.first_name} ${member.last_name || ''}`.trim(),
+          member_email: member.email || '', role, checked: true,
+          call_time: defaultCallTime,
+          meeting_point_id: '', meeting_point: '', meeting_point_address: '',
+          meeting_point_maps_url: '', meeting_point_custom: '',
+          meeting_point_time: meetingPointTime || defaultCallTime,
+          equipment_pickup_location: isLead ? "Jean's house" : '',
+          equipment_pickup_time: isLead ? defaultEquipPickupTime : '',
+          equipment_dropoff_location: '', equipment_dropoff_time: '',
+          special_notes: '', showEquipment: isLead,
+        })
+        isFirst = false
       }
+
+      addEntry(selectedAssignment.photo_1, 'Lead Photographer')
+      addEntry(selectedAssignment.photo_2, '2nd Photographer')
+      addEntry(selectedAssignment.video_1, 'Videographer')
+      setCrewEntries(entries)
     }
 
-    const entries: CrewEntry[] = []
-    let isFirst = true
-    const addEntry = (name: string | null, role: string) => {
-      if (!name) return
-      const member = teamMembers.find(m => m.first_name === name)
-      if (!member) return
-      const isLeadPhotographer = isFirst
-      entries.push({
-        team_member_id: member.id,
-        member_name: `${member.first_name} ${member.last_name || ''}`.trim(),
-        member_email: member.email || '',
-        role,
-        checked: true,
-        call_time: defaultCallTime,
-        meeting_point_id: '',
-        meeting_point: '',
-        meeting_point_address: '',
-        meeting_point_maps_url: '',
-        meeting_point_custom: '',
-        meeting_point_time: '',
-        equipment_pickup_location: isLeadPhotographer ? "Jean's house" : '',
-        equipment_pickup_time: isLeadPhotographer ? defaultEquipPickupTime : '',
-        equipment_dropoff_location: '',
-        equipment_dropoff_time: '',
-        special_notes: '',
-        showEquipment: isLeadPhotographer,
-      })
-      isFirst = false
-    }
-
-    addEntry(selectedAssignment.photo_1, 'Lead Photographer')
-    addEntry(selectedAssignment.photo_2, '2nd Photographer')
-    addEntry(selectedAssignment.video_1, 'Videographer')
-
-    setCrewEntries(entries)
     setSentTimestamp(null)
-
-    // Fetch additional data
     fetchHistory(selectedCoupleId)
-    fetchWeddingDayForm(selectedCoupleId)
     fetchUploadedDocs(selectedCoupleId)
 
     if (couple?.wedding_date) {
       fetchWeather(couple.wedding_date, contract?.reception_venue || '')
     }
+
+    // Fetch form, then build entries with groom_start_time
+    fetchWeddingDayForm(selectedCoupleId, defaultCallTime).then(gst => {
+      buildEntries(gst)
+    })
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCoupleId, selectedAssignment, teamMembers])
 
   const fetchHistory = async (coupleId: string) => {
-    const { data: sheets } = await supabase
-      .from('crew_call_sheets')
-      .select('id, sent_at, notes')
-      .eq('couple_id', coupleId)
-      .order('sent_at', { ascending: false })
-
+    const { data: sheets } = await supabase.from('crew_call_sheets')
+      .select('id, sent_at, notes').eq('couple_id', coupleId).order('sent_at', { ascending: false })
     if (!sheets?.length) { setHistory([]); return }
-
     const sheetIds = sheets.map(s => s.id)
-    const { data: members } = await supabase
-      .from('crew_call_sheet_members')
-      .select('call_sheet_id, member_name, role, confirmed, email_sent')
-      .in('call_sheet_id', sheetIds)
-
-    const mapped: HistorySheet[] = sheets.map(s => ({
-      id: s.id,
-      sent_at: s.sent_at,
-      notes: s.notes,
+    const { data: members } = await supabase.from('crew_call_sheet_members')
+      .select('call_sheet_id, member_name, role, confirmed, email_sent').in('call_sheet_id', sheetIds)
+    setHistory(sheets.map(s => ({
+      id: s.id, sent_at: s.sent_at, notes: s.notes,
       members: (members || []).filter(m => m.call_sheet_id === s.id).map(m => ({
         member_name: m.member_name, role: m.role, confirmed: m.confirmed, email_sent: m.email_sent,
       })),
-    }))
-
-    setHistory(mapped)
+    })))
   }
 
   // ── Crew entry updates ─────────────────────────────────────────
@@ -426,77 +468,56 @@ export default function CrewCallSheetPage() {
   const handleMeetingPointChange = (idx: number, mpId: string) => {
     if (mpId === '__venue__') {
       const venue = selectedContract?.reception_venue || ''
-      updateEntry(idx, 'meeting_point_id', mpId)
       setCrewEntries(prev => prev.map((e, i) => i === idx ? {
-        ...e,
-        meeting_point_id: mpId,
-        meeting_point: `The Venue — ${venue}`,
-        meeting_point_address: venue,
-        meeting_point_maps_url: venue ? mapsUrl(venue) : '',
-        meeting_point_custom: '',
+        ...e, meeting_point_id: mpId, meeting_point: `The Venue — ${venue}`,
+        meeting_point_address: venue, meeting_point_maps_url: venue ? mapsUrl(venue) : '', meeting_point_custom: '',
       } : e))
     } else if (mpId === '__other__') {
       setCrewEntries(prev => prev.map((e, i) => i === idx ? {
-        ...e,
-        meeting_point_id: mpId,
-        meeting_point: '',
-        meeting_point_address: '',
-        meeting_point_maps_url: '',
-        meeting_point_custom: '',
+        ...e, meeting_point_id: mpId, meeting_point: '', meeting_point_address: '',
+        meeting_point_maps_url: '', meeting_point_custom: '',
       } : e))
     } else if (mpId) {
       const mp = meetingPoints.find(m => m.id === mpId)
       if (mp) {
         setCrewEntries(prev => prev.map((e, i) => i === idx ? {
-          ...e,
-          meeting_point_id: mpId,
+          ...e, meeting_point_id: mpId,
           meeting_point: mp.name + (mp.usual_for ? ` — ${mp.usual_for}` : ''),
           meeting_point_address: mp.address,
-          meeting_point_maps_url: mp.maps_url || mapsUrl(mp.address),
-          meeting_point_custom: '',
+          meeting_point_maps_url: mp.maps_url || mapsUrl(mp.address), meeting_point_custom: '',
         } : e))
       }
     } else {
       setCrewEntries(prev => prev.map((e, i) => i === idx ? {
-        ...e,
-        meeting_point_id: '',
-        meeting_point: '',
-        meeting_point_address: '',
-        meeting_point_maps_url: '',
-        meeting_point_custom: '',
+        ...e, meeting_point_id: '', meeting_point: '', meeting_point_address: '',
+        meeting_point_maps_url: '', meeting_point_custom: '',
       } : e))
     }
   }
 
   const handleCustomMeetingPoint = (idx: number, text: string) => {
     setCrewEntries(prev => prev.map((e, i) => i === idx ? {
-      ...e,
-      meeting_point_custom: text,
-      meeting_point: text,
-      meeting_point_address: text,
-      meeting_point_maps_url: text ? mapsUrl(text) : '',
+      ...e, meeting_point_custom: text, meeting_point: text,
+      meeting_point_address: text, meeting_point_maps_url: text ? mapsUrl(text) : '',
     } : e))
   }
 
   const addCrewMember = (member: TeamMember) => {
     if (crewEntries.some(e => e.team_member_id === member.id)) return
-
     const contract = contracts.find(c => c.couple_id === selectedCoupleId)
     let defaultCallTime = ''
     if (contract?.start_time) {
       const startMins = parseTimeStr(contract.start_time)
       if (startMins !== null) defaultCallTime = minutesToTimeStr(startMins - 60)
     }
-
+    const mpTime = groomStartTime || defaultCallTime
     setCrewEntries(prev => [...prev, {
       team_member_id: member.id,
       member_name: `${member.first_name} ${member.last_name || ''}`.trim(),
-      member_email: member.email || '',
-      role: '2nd Photographer',
-      checked: true,
+      member_email: member.email || '', role: '2nd Photographer', checked: true,
       call_time: defaultCallTime,
       meeting_point_id: '', meeting_point: '', meeting_point_address: '',
-      meeting_point_maps_url: '', meeting_point_custom: '', meeting_point_time: '',
+      meeting_point_maps_url: '', meeting_point_custom: '', meeting_point_time: mpTime,
       equipment_pickup_location: '', equipment_pickup_time: '',
       equipment_dropoff_location: '', equipment_dropoff_time: '',
       special_notes: '', showEquipment: false,
@@ -513,11 +534,15 @@ export default function CrewCallSheetPage() {
   const handleFileUpload = async (files: FileList | null) => {
     if (!files?.length || !selectedCoupleId) return
     setUploading(true)
+    setUploadError('')
 
     for (const file of Array.from(files)) {
       const path = `${selectedCoupleId}/${file.name}`
       const { error } = await supabase.storage.from('wedding-documents').upload(path, file, { upsert: true })
-      if (!error) {
+      if (error) {
+        console.error('Upload error:', error)
+        setUploadError(`Upload failed: ${error.message}`)
+      } else {
         setUploadedDocs(prev => {
           const exists = prev.some(d => d.name === file.name)
           if (exists) return prev
@@ -539,10 +564,7 @@ export default function CrewCallSheetPage() {
     if (data) {
       const url = URL.createObjectURL(data)
       const a = document.createElement('a')
-      a.href = url
-      a.download = doc.name
-      a.click()
-      URL.revokeObjectURL(url)
+      a.href = url; a.download = doc.name; a.click(); URL.revokeObjectURL(url)
     }
   }
 
@@ -555,17 +577,12 @@ export default function CrewCallSheetPage() {
 
   const handleAddMeetingPoint = async () => {
     if (!newMpName.trim() || !newMpAddress.trim()) return
-    const { data, error } = await supabase
-      .from('meeting_points')
+    const { data, error } = await supabase.from('meeting_points')
       .insert({ name: newMpName.trim(), address: newMpAddress.trim(), maps_url: mapsUrl(newMpAddress.trim()), is_active: true })
-      .select('*')
-      .limit(1)
-
+      .select('*').limit(1)
     if (!error && data?.[0]) {
       setMeetingPoints(prev => [...prev, data[0]])
-      setNewMpName('')
-      setNewMpAddress('')
-      setShowAddMeetingPoint(false)
+      setNewMpName(''); setNewMpAddress(''); setShowAddMeetingPoint(false)
     }
   }
 
@@ -586,34 +603,22 @@ export default function CrewCallSheetPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          couple_id: selectedCouple.id,
-          couple_name: selectedCouple.couple_name,
+          couple_id: selectedCouple.id, couple_name: selectedCouple.couple_name,
           wedding_date: selectedCouple.wedding_date,
           day_of_week: selectedContract?.day_of_week || (selectedCouple.wedding_date ? format(new Date(selectedCouple.wedding_date + 'T12:00:00'), 'EEEE') : ''),
           ceremony_location: selectedContract?.ceremony_location || '',
           reception_venue: selectedContract?.reception_venue || '',
           park_location: selectedCouple.park_location || '',
-          start_time: selectedContract?.start_time || '',
-          end_time: selectedContract?.end_time || '',
-          package_type: selectedCouple.package_type || '',
-          notes: generalNotes,
-          dress_code: dressCode,
-          bridesmaids,
-          groomsmen,
-          vendors,
-          key_moments: keyMoments,
+          start_time: selectedContract?.start_time || '', end_time: selectedContract?.end_time || '',
+          package_type: selectedCouple.package_type || '', notes: generalNotes,
+          dress_code: dressCode, bridesmaids, groomsmen, vendors, key_moments: keyMoments,
           weather: weatherStr,
           attachments: uploadedDocs.filter(d => d.attachToEmail).map(d => ({ filename: d.name, path: d.path })),
           crew_members: checkedCrew.map(e => ({
-            team_member_id: e.team_member_id,
-            member_name: e.member_name,
-            member_email: e.member_email,
-            role: e.role,
-            call_time: e.call_time,
-            meeting_point: e.meeting_point,
-            meeting_point_address: e.meeting_point_address,
-            meeting_point_maps_url: e.meeting_point_maps_url,
-            meeting_point_time: e.meeting_point_time,
+            team_member_id: e.team_member_id, member_name: e.member_name,
+            member_email: e.member_email, role: e.role, call_time: e.call_time,
+            meeting_point: e.meeting_point, meeting_point_address: e.meeting_point_address,
+            meeting_point_maps_url: e.meeting_point_maps_url, meeting_point_time: e.meeting_point_time,
             equipment_pickup_location: e.equipment_pickup_location,
             equipment_pickup_time: e.equipment_pickup_time,
             equipment_dropoff_location: e.equipment_dropoff_location,
@@ -627,9 +632,7 @@ export default function CrewCallSheetPage() {
         setSentTimestamp(new Date().toLocaleString('en-US', { timeZone: 'America/Toronto' }))
         fetchHistory(selectedCouple.id)
       }
-    } catch (err) {
-      console.error('Send failed:', err)
-    }
+    } catch (err) { console.error('Send failed:', err) }
     setSending(false)
   }
 
@@ -722,7 +725,7 @@ export default function CrewCallSheetPage() {
 
       {selectedCouple && (
         <>
-          {/* Section 2: Wedding Summary Card with Maps + Weather + Bridal Party */}
+          {/* Section 2: Wedding Summary Card */}
           <div style={cardStyle}>
             {sectionTitle('Wedding Details')}
             <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '6px 16px', fontSize: '0.85rem' }}>
@@ -732,15 +735,10 @@ export default function CrewCallSheetPage() {
               <span style={{ color: '#6b7280', fontWeight: 600 }}>Date</span>
               <span style={{ color: '#1a1a1a', fontWeight: 700 }}>{formatWeddingDateUpper(selectedCouple.wedding_date)}</span>
 
-              {/* Weather */}
               <span style={{ color: '#6b7280', fontWeight: 600 }}>Weather</span>
               <span style={{ color: '#374151' }}>
                 {weatherLoading ? 'Loading...' : weather.available ? (
-                  <>
-                    High {weather.high}°C / Low {weather.low}°C | {weather.precipitation}% rain
-                    <br />
-                    Sunrise {weather.sunrise} | Sunset {weather.sunset}
-                  </>
+                  <>High {weather.high}°C / Low {weather.low}°C | {weather.precipitation}% rain<br />Sunrise {weather.sunrise} | Sunset {weather.sunset}</>
                 ) : 'Available closer to date'}
               </span>
 
@@ -806,15 +804,12 @@ export default function CrewCallSheetPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <h2 className={playfair.className} style={{ fontSize: '1.1rem', color: '#0d4f4f', margin: 0 }}>Crew Assignments</h2>
               <div style={{ position: 'relative' }}>
-                <button
-                  onClick={() => setShowAddCrew(!showAddCrew)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '4px',
-                    padding: '6px 12px', borderRadius: '6px', border: '1px solid #e7e1d8',
-                    background: '#fff', color: '#0d4f4f', fontWeight: 600, fontSize: '0.8rem',
-                    cursor: 'pointer', fontFamily: nunito.style.fontFamily,
-                  }}
-                >
+                <button onClick={() => setShowAddCrew(!showAddCrew)} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  padding: '6px 12px', borderRadius: '6px', border: '1px solid #e7e1d8',
+                  background: '#fff', color: '#0d4f4f', fontWeight: 600, fontSize: '0.8rem',
+                  cursor: 'pointer', fontFamily: nunito.style.fontFamily,
+                }}>
                   <Plus size={14} /> Add Crew Member
                 </button>
                 {showAddCrew && availableMembers.length > 0 && (
@@ -825,20 +820,15 @@ export default function CrewCallSheetPage() {
                     minWidth: '200px', marginTop: '4px',
                   }}>
                     {availableMembers.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() => addCrewMember(m)}
-                        style={{
-                          display: 'block', width: '100%', textAlign: 'left',
-                          padding: '8px 12px', border: 'none', cursor: 'pointer',
-                          fontSize: '0.85rem', fontFamily: nunito.style.fontFamily,
-                          background: 'transparent', color: '#374151',
-                        }}
+                      <button key={m.id} onClick={() => addCrewMember(m)} style={{
+                        display: 'block', width: '100%', textAlign: 'left',
+                        padding: '8px 12px', border: 'none', cursor: 'pointer',
+                        fontSize: '0.85rem', fontFamily: nunito.style.fontFamily,
+                        background: 'transparent', color: '#374151',
+                      }}
                         onMouseEnter={e => { (e.target as HTMLElement).style.background = '#faf8f5' }}
                         onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent' }}
-                      >
-                        {m.first_name} {m.last_name || ''}
-                      </button>
+                      >{m.first_name} {m.last_name || ''}</button>
                     ))}
                   </div>
                 )}
@@ -857,22 +847,14 @@ export default function CrewCallSheetPage() {
                   display: 'flex', alignItems: 'center', gap: '10px',
                   padding: '10px 14px', background: '#faf8f5', borderBottom: '1px solid #e7e1d8',
                 }}>
-                  <input
-                    type="checkbox" checked={entry.checked}
+                  <input type="checkbox" checked={entry.checked}
                     onChange={e => updateEntry(idx, 'checked', e.target.checked)}
-                    style={{ width: 18, height: 18, cursor: 'pointer' }}
-                  />
-                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a1a', flex: 1 }}>
-                    {entry.member_name}
-                  </span>
-                  <select
-                    value={entry.role}
-                    onChange={e => updateEntry(idx, 'role', e.target.value)}
-                    style={{
-                      padding: '4px 8px', borderRadius: '6px', border: '1px solid #e7e1d8',
-                      fontSize: '0.8rem', fontFamily: nunito.style.fontFamily, background: '#fff',
-                    }}
-                  >
+                    style={{ width: 18, height: 18, cursor: 'pointer' }} />
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a1a', flex: 1 }}>{entry.member_name}</span>
+                  <select value={entry.role} onChange={e => updateEntry(idx, 'role', e.target.value)} style={{
+                    padding: '4px 8px', borderRadius: '6px', border: '1px solid #e7e1d8',
+                    fontSize: '0.8rem', fontFamily: nunito.style.fontFamily, background: '#fff',
+                  }}>
                     <option>Lead Photographer</option>
                     <option>2nd Photographer</option>
                     <option>Videographer</option>
@@ -885,75 +867,83 @@ export default function CrewCallSheetPage() {
                 {/* Card body */}
                 {entry.checked && (
                   <div style={{ padding: '14px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                      {/* Call Time with ±15 buttons */}
-                      <div>
-                        <span style={labelStyle}>Call Time</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <button
-                            onClick={() => updateEntry(idx, 'call_time', adjustTime(entry.call_time, -15))}
-                            style={{ padding: '4px 6px', border: '1px solid #e7e1d8', borderRadius: '4px', background: '#faf8f5', cursor: 'pointer', fontSize: '0.75rem', lineHeight: 1 }}
-                            title="-15 min"
-                          ><Minus size={12} /></button>
-                          <input value={entry.call_time} onChange={e => updateEntry(idx, 'call_time', e.target.value)} placeholder="8:30 AM" style={{ ...inputStyle, flex: 1 }} />
-                          <button
-                            onClick={() => updateEntry(idx, 'call_time', adjustTime(entry.call_time, 15))}
-                            style={{ padding: '4px 6px', border: '1px solid #e7e1d8', borderRadius: '4px', background: '#faf8f5', cursor: 'pointer', fontSize: '0.75rem', lineHeight: 1 }}
-                            title="+15 min"
-                          ><Plus size={12} /></button>
-                        </div>
-                      </div>
+                    {/* Row 1: Call Time + Meeting Point Time */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                      <TimePicker label="Call Time" value={entry.call_time} onChange={v => updateEntry(idx, 'call_time', v)} />
+                      <TimePicker label="Meeting Point Time" value={entry.meeting_point_time} onChange={v => updateEntry(idx, 'meeting_point_time', v)} />
+                    </div>
 
-                      {/* Meeting Point Dropdown */}
-                      <div>
-                        <span style={labelStyle}>Meeting Point</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <select
-                            value={entry.meeting_point_id}
-                            onChange={e => handleMeetingPointChange(idx, e.target.value)}
-                            style={{ ...inputStyle, flex: 1 }}
-                          >
-                            <option value="">Select meeting point...</option>
-                            {meetingPoints.map(mp => (
-                              <option key={mp.id} value={mp.id}>
-                                {mp.name}{mp.usual_for ? ` — ${mp.usual_for}` : ''}
-                              </option>
-                            ))}
-                            <option value="__venue__">The Venue (reception)</option>
-                            <option value="__other__">Other (custom)</option>
-                          </select>
+                    {/* Meeting Point Dropdown */}
+                    <div style={{ marginBottom: '10px' }}>
+                      <span style={labelStyle}>Meeting Point</span>
+                      <select
+                        value={entry.meeting_point_id}
+                        onChange={e => handleMeetingPointChange(idx, e.target.value)}
+                        style={{ ...inputStyle, marginBottom: '6px' }}
+                      >
+                        <option value="">Select meeting point...</option>
+                        {meetingPoints.map(mp => (
+                          <option key={mp.id} value={mp.id}>
+                            {mp.name}{mp.usual_for ? ` — ${mp.usual_for}` : ''}
+                          </option>
+                        ))}
+                        <option value="__venue__">The Venue (reception)</option>
+                        <option value="__other__">Other (custom)</option>
+                      </select>
+
+                      {/* Other — custom input */}
+                      {entry.meeting_point_id === '__other__' && (
+                        <input
+                          value={entry.meeting_point_custom}
+                          onChange={e => handleCustomMeetingPoint(idx, e.target.value)}
+                          placeholder="Enter custom address..."
+                          style={{ ...inputStyle, marginBottom: '6px' }}
+                        />
+                      )}
+
+                      {/* ── Address Display Card ── */}
+                      {entry.meeting_point_address && (
+                        <div style={{
+                          background: '#f0faf9', border: '2px solid #0d4f4f', borderRadius: '10px',
+                          padding: '14px 16px', marginTop: '4px',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                            <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>📍</span>
+                            <div style={{ flex: 1 }}>
+                              <p style={{
+                                margin: 0, fontWeight: 700, fontSize: '0.95rem', color: '#0d4f4f',
+                              }}>{entry.meeting_point.split(' — ')[0]}</p>
+                              <p style={{
+                                margin: '3px 0 0', fontSize: '0.9rem', color: '#374151', lineHeight: 1.4,
+                              }}>{entry.meeting_point_address}</p>
+                            </div>
+                          </div>
                           {entry.meeting_point_maps_url && (
-                            <a href={entry.meeting_point_maps_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '1.1rem' }} title="Open in Maps">📍</a>
+                            <a
+                              href={entry.meeting_point_maps_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                marginTop: '10px', padding: '8px 16px', borderRadius: '6px',
+                                background: '#0d4f4f', color: '#fff', textDecoration: 'none',
+                                fontWeight: 700, fontSize: '0.85rem', fontFamily: nunito.style.fontFamily,
+                              }}
+                            >
+                              🗺️ Open in Google Maps
+                            </a>
                           )}
                         </div>
-                        {entry.meeting_point_id === '__other__' && (
-                          <input
-                            value={entry.meeting_point_custom}
-                            onChange={e => handleCustomMeetingPoint(idx, e.target.value)}
-                            placeholder="Enter custom address..."
-                            style={{ ...inputStyle, marginTop: '4px' }}
-                          />
-                        )}
-                      </div>
-
-                      <div>
-                        <span style={labelStyle}>Meeting Point Time</span>
-                        <input value={entry.meeting_point_time} onChange={e => updateEntry(idx, 'meeting_point_time', e.target.value)} placeholder="9:30 AM" style={inputStyle} />
-                      </div>
+                      )}
                     </div>
 
                     {/* + Add Meeting Point link */}
                     {!showAddMeetingPoint ? (
-                      <button
-                        onClick={() => setShowAddMeetingPoint(true)}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          fontSize: '0.75rem', color: '#0d4f4f', fontWeight: 600,
-                          padding: '0 0 8px', fontFamily: nunito.style.fontFamily,
-                        }}
-                      >
-                        + Add Meeting Point
-                      </button>
+                      <button onClick={() => setShowAddMeetingPoint(true)} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        fontSize: '0.75rem', color: '#0d4f4f', fontWeight: 600,
+                        padding: '0 0 8px', fontFamily: nunito.style.fontFamily,
+                      }}>+ Add Meeting Point</button>
                     ) : (
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', marginBottom: '8px', padding: '8px', background: '#faf8f5', borderRadius: '6px' }}>
                         <div style={{ flex: 1 }}>
@@ -971,34 +961,29 @@ export default function CrewCallSheetPage() {
 
                     {/* Equipment — collapsible */}
                     <div style={{ marginBottom: '10px' }}>
-                      <button
-                        onClick={() => updateEntry(idx, 'showEquipment', !entry.showEquipment)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '4px', background: 'none',
-                          border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
-                          color: '#6b7280', padding: '4px 0', fontFamily: nunito.style.fontFamily,
-                        }}
-                      >
+                      <button onClick={() => updateEntry(idx, 'showEquipment', !entry.showEquipment)} style={{
+                        display: 'flex', alignItems: 'center', gap: '4px', background: 'none',
+                        border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
+                        color: '#6b7280', padding: '4px 0', fontFamily: nunito.style.fontFamily,
+                      }}>
                         {entry.showEquipment ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         Equipment Instructions
                       </button>
                       {entry.showEquipment && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px', paddingLeft: '18px' }}>
-                          <div>
-                            <span style={labelStyle}>Pickup Location</span>
-                            <input value={entry.equipment_pickup_location} onChange={e => updateEntry(idx, 'equipment_pickup_location', e.target.value)} placeholder="Jean's house" style={inputStyle} />
+                        <div style={{ marginTop: '8px', paddingLeft: '18px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                            <div>
+                              <span style={labelStyle}>Pickup Location</span>
+                              <input value={entry.equipment_pickup_location} onChange={e => updateEntry(idx, 'equipment_pickup_location', e.target.value)} placeholder="Jean's house" style={inputStyle} />
+                            </div>
+                            <TimePicker label="Pickup Time" value={entry.equipment_pickup_time} onChange={v => updateEntry(idx, 'equipment_pickup_time', v)} />
                           </div>
-                          <div>
-                            <span style={labelStyle}>Pickup Time</span>
-                            <input value={entry.equipment_pickup_time} onChange={e => updateEntry(idx, 'equipment_pickup_time', e.target.value)} placeholder="8:00 AM" style={inputStyle} />
-                          </div>
-                          <div>
-                            <span style={labelStyle}>Dropoff Location</span>
-                            <input value={entry.equipment_dropoff_location} onChange={e => updateEntry(idx, 'equipment_dropoff_location', e.target.value)} placeholder="Meet at reception venue" style={inputStyle} />
-                          </div>
-                          <div>
-                            <span style={labelStyle}>Dropoff Time</span>
-                            <input value={entry.equipment_dropoff_time} onChange={e => updateEntry(idx, 'equipment_dropoff_time', e.target.value)} placeholder="11:30 PM" style={inputStyle} />
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div>
+                              <span style={labelStyle}>Dropoff Location</span>
+                              <input value={entry.equipment_dropoff_location} onChange={e => updateEntry(idx, 'equipment_dropoff_location', e.target.value)} placeholder="Meet at reception venue" style={inputStyle} />
+                            </div>
+                            <TimePicker label="Dropoff Time" value={entry.equipment_dropoff_time} onChange={v => updateEntry(idx, 'equipment_dropoff_time', v)} />
                           </div>
                         </div>
                       )}
@@ -1026,44 +1011,28 @@ export default function CrewCallSheetPage() {
           {/* Dress Code */}
           <div style={cardStyle}>
             {sectionTitle('Dress Code')}
-            <input
-              value={dressCode}
-              onChange={e => setDressCode(e.target.value)}
-              placeholder="All black"
-              style={inputStyle}
-            />
+            <input value={dressCode} onChange={e => setDressCode(e.target.value)} placeholder="All black" style={inputStyle} />
           </div>
 
           {/* Key Vendors — collapsible */}
           <div style={cardStyle}>
-            <button
-              onClick={() => setShowVendors(!showVendors)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px', background: 'none',
-                border: 'none', cursor: 'pointer', padding: 0, width: '100%',
-              }}
-            >
+            <button onClick={() => setShowVendors(!showVendors)} style={{
+              display: 'flex', alignItems: 'center', gap: '6px', background: 'none',
+              border: 'none', cursor: 'pointer', padding: 0, width: '100%',
+            }}>
               {showVendors ? <ChevronDown size={16} style={{ color: '#0d4f4f' }} /> : <ChevronRight size={16} style={{ color: '#0d4f4f' }} />}
               <h2 className={playfair.className} style={{ fontSize: '1.1rem', color: '#0d4f4f', margin: 0 }}>Key Vendors</h2>
             </button>
             {showVendors && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '12px' }}>
                 {[
-                  { key: 'dj_mc', label: 'DJ/MC' },
-                  { key: 'florist', label: 'Florist' },
-                  { key: 'makeup', label: 'Makeup' },
-                  { key: 'hair', label: 'Hair' },
-                  { key: 'planner', label: 'Planner' },
-                  { key: 'transport', label: 'Transport/Limo' },
+                  { key: 'dj_mc', label: 'DJ/MC' }, { key: 'florist', label: 'Florist' },
+                  { key: 'makeup', label: 'Makeup' }, { key: 'hair', label: 'Hair' },
+                  { key: 'planner', label: 'Planner' }, { key: 'transport', label: 'Transport/Limo' },
                 ].map(v => (
                   <div key={v.key}>
                     <span style={labelStyle}>{v.label}</span>
-                    <input
-                      value={vendors[v.key] || ''}
-                      onChange={e => setVendors(prev => ({ ...prev, [v.key]: e.target.value }))}
-                      placeholder={v.label}
-                      style={inputStyle}
-                    />
+                    <input value={vendors[v.key] || ''} onChange={e => setVendors(prev => ({ ...prev, [v.key]: e.target.value }))} placeholder={v.label} style={inputStyle} />
                   </div>
                 ))}
               </div>
@@ -1073,25 +1042,17 @@ export default function CrewCallSheetPage() {
           {/* Must-Capture Moments */}
           <div style={cardStyle}>
             {sectionTitle('Must-Capture Moments')}
-            <textarea
-              value={keyMoments}
-              onChange={e => setKeyMoments(e.target.value)}
+            <textarea value={keyMoments} onChange={e => setKeyMoments(e.target.value)}
               placeholder="Sparklers at first dance, drone shot outside church, glow sticks at 10 PM..."
-              rows={3}
-              style={{ ...inputStyle, width: '100%', resize: 'vertical' as const }}
-            />
+              rows={3} style={{ ...inputStyle, width: '100%', resize: 'vertical' as const }} />
           </div>
 
           {/* Additional Notes */}
           <div style={cardStyle}>
             {sectionTitle('Additional Notes')}
-            <textarea
-              value={generalNotes}
-              onChange={e => setGeneralNotes(e.target.value)}
+            <textarea value={generalNotes} onChange={e => setGeneralNotes(e.target.value)}
               placeholder="Parking is free at venue."
-              rows={3}
-              style={{ ...inputStyle, width: '100%', resize: 'vertical' as const }}
-            />
+              rows={3} style={{ ...inputStyle, width: '100%', resize: 'vertical' as const }} />
           </div>
 
           {/* Wedding Documents Upload */}
@@ -1101,25 +1062,25 @@ export default function CrewCallSheetPage() {
               style={{
                 border: '2px dashed #e7e1d8', borderRadius: '8px', padding: '1.5rem',
                 textAlign: 'center', cursor: 'pointer', background: '#faf8f5',
-                marginBottom: uploadedDocs.length ? '12px' : 0,
+                marginBottom: (uploadedDocs.length || uploadError) ? '12px' : 0,
+                transition: 'border-color 0.2s',
               }}
               onClick={() => fileInputRef.current?.click()}
-              onDragOver={e => { e.preventDefault(); e.stopPropagation() }}
-              onDrop={e => { e.preventDefault(); e.stopPropagation(); handleFileUpload(e.dataTransfer.files) }}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); (e.currentTarget as HTMLElement).style.borderColor = '#0d4f4f' }}
+              onDragLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#e7e1d8' }}
+              onDrop={e => { e.preventDefault(); e.stopPropagation(); (e.currentTarget as HTMLElement).style.borderColor = '#e7e1d8'; handleFileUpload(e.dataTransfer.files) }}
             >
               <Upload size={24} style={{ color: '#9ca3af', marginBottom: '6px' }} />
               <p style={{ margin: 0, fontSize: '0.85rem', color: '#6b7280' }}>
                 {uploading ? 'Uploading...' : 'Drag & drop PDFs here or click to upload'}
               </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf"
-                multiple
-                style={{ display: 'none' }}
-                onChange={e => handleFileUpload(e.target.files)}
-              />
+              <input ref={fileInputRef} type="file" accept=".pdf" multiple style={{ display: 'none' }}
+                onChange={e => handleFileUpload(e.target.files)} />
             </div>
+
+            {uploadError && (
+              <p style={{ margin: '0 0 8px', fontSize: '0.8rem', color: '#dc2626', fontWeight: 600 }}>{uploadError}</p>
+            )}
 
             {uploadedDocs.length > 0 && (
               <div>
@@ -1133,22 +1094,13 @@ export default function CrewCallSheetPage() {
                     <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>
                       {doc.uploaded_at ? format(new Date(doc.uploaded_at), 'MMM d') : ''}
                     </span>
-                    <button onClick={() => handleDownloadDoc(doc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '2px' }} title="Download">
-                      <Download size={14} />
-                    </button>
-                    <button onClick={() => handleViewDoc(doc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '2px' }} title="View">
-                      <ExternalLink size={14} />
-                    </button>
-                    <button onClick={() => handleDeleteDoc(doc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '2px' }} title="Delete">
-                      <Trash2 size={14} />
-                    </button>
+                    <button onClick={() => handleDownloadDoc(doc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '2px' }} title="Download"><Download size={14} /></button>
+                    <button onClick={() => handleViewDoc(doc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '2px' }} title="View"><ExternalLink size={14} /></button>
+                    <button onClick={() => handleDeleteDoc(doc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '2px' }} title="Delete"><Trash2 size={14} /></button>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', color: '#6b7280' }}>
-                      <input
-                        type="checkbox"
-                        checked={doc.attachToEmail}
+                      <input type="checkbox" checked={doc.attachToEmail}
                         onChange={e => setUploadedDocs(prev => prev.map(d => d.path === doc.path ? { ...d, attachToEmail: e.target.checked } : d))}
-                        style={{ width: 14, height: 14 }}
-                      />
+                        style={{ width: 14, height: 14 }} />
                       Attach
                     </label>
                   </div>
@@ -1157,10 +1109,9 @@ export default function CrewCallSheetPage() {
             )}
           </div>
 
-          {/* Section 5: Action Buttons */}
+          {/* Action Buttons */}
           <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem', alignItems: 'center' }}>
-            <button
-              onClick={() => { setShowPreview(true); setPreviewTab(0) }}
+            <button onClick={() => { setShowPreview(true); setPreviewTab(0) }}
               disabled={!crewEntries.some(e => e.checked)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px',
@@ -1168,8 +1119,7 @@ export default function CrewCallSheetPage() {
                 background: '#fff', color: '#0d4f4f', fontWeight: 600, fontSize: '0.85rem',
                 cursor: 'pointer', fontFamily: nunito.style.fontFamily,
                 opacity: crewEntries.some(e => e.checked) ? 1 : 0.5,
-              }}
-            >
+              }}>
               <Eye size={16} /> Preview Email
             </button>
 
@@ -1183,8 +1133,7 @@ export default function CrewCallSheetPage() {
                 <Check size={16} /> Sent {sentTimestamp}
               </div>
             ) : (
-              <button
-                onClick={handleSend}
+              <button onClick={handleSend}
                 disabled={sending || !crewEntries.some(e => e.checked)}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
@@ -1192,38 +1141,31 @@ export default function CrewCallSheetPage() {
                   background: '#0d4f4f', color: '#fff', fontWeight: 700, fontSize: '0.9rem',
                   cursor: 'pointer', fontFamily: nunito.style.fontFamily,
                   opacity: (sending || !crewEntries.some(e => e.checked)) ? 0.6 : 1,
-                }}
-              >
+                }}>
                 <Send size={16} /> {sending ? 'Sending...' : 'Send Call Sheet'}
               </button>
             )}
           </div>
 
-          {/* Section 6: History */}
+          {/* History */}
           {history.length > 0 && (
             <div style={{
               background: '#fff', borderRadius: '12px', border: '1px solid #e7e1d8',
               overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
             }}>
-              <button
-                onClick={() => setShowHistory(!showHistory)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '6px', width: '100%',
-                  padding: '12px 16px', border: 'none', background: '#faf8f5',
-                  cursor: 'pointer', fontFamily: nunito.style.fontFamily,
-                  fontSize: '0.85rem', fontWeight: 700, color: '#0d4f4f',
-                }}
-              >
+              <button onClick={() => setShowHistory(!showHistory)} style={{
+                display: 'flex', alignItems: 'center', gap: '6px', width: '100%',
+                padding: '12px 16px', border: 'none', background: '#faf8f5',
+                cursor: 'pointer', fontFamily: nunito.style.fontFamily,
+                fontSize: '0.85rem', fontWeight: 700, color: '#0d4f4f',
+              }}>
                 {showHistory ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 Previous Call Sheets ({history.length})
               </button>
               {showHistory && (
                 <div style={{ padding: '0 16px 16px' }}>
                   {history.map(h => (
-                    <div key={h.id} style={{
-                      padding: '12px', borderBottom: '1px solid #f0ece6',
-                      fontSize: '0.85rem',
-                    }}>
+                    <div key={h.id} style={{ padding: '12px', borderBottom: '1px solid #f0ece6', fontSize: '0.85rem' }}>
                       <div style={{ fontWeight: 700, color: '#1a1a1a', marginBottom: '6px' }}>
                         Sent {h.sent_at ? format(new Date(h.sent_at), 'MMM d, yyyy h:mm a') : '—'}
                       </div>
@@ -1252,22 +1194,16 @@ export default function CrewCallSheetPage() {
 
       {/* ── Preview Modal ─────────────────────────────────────────── */}
       {showPreview && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)',
-          }}
-          onClick={() => setShowPreview(false)}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: '#faf8f5', borderRadius: '16px', width: '90%', maxWidth: '700px',
-              maxHeight: '85vh', overflow: 'auto', padding: '2rem',
-              boxShadow: '0 25px 50px rgba(0,0,0,0.25)', border: '1px solid #e7e1d8',
-            }}
-          >
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)',
+        }} onClick={() => setShowPreview(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#faf8f5', borderRadius: '16px', width: '90%', maxWidth: '700px',
+            maxHeight: '85vh', overflow: 'auto', padding: '2rem',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.25)', border: '1px solid #e7e1d8',
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h2 className={playfair.className} style={{ fontSize: '1.25rem', color: '#1a1a1a', margin: 0 }}>Email Preview</h2>
               <button onClick={() => setShowPreview(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
@@ -1276,20 +1212,13 @@ export default function CrewCallSheetPage() {
             {/* Tabs */}
             <div style={{ display: 'flex', gap: '4px', marginBottom: '1rem', flexWrap: 'wrap' }}>
               {crewEntries.filter(e => e.checked).map((entry, idx) => (
-                <button
-                  key={entry.team_member_id}
-                  onClick={() => setPreviewTab(idx)}
-                  style={{
-                    padding: '6px 14px', borderRadius: '6px',
-                    border: previewTab === idx ? '2px solid #0d4f4f' : '1px solid #e7e1d8',
-                    background: previewTab === idx ? '#e6f4f1' : '#fff',
-                    color: previewTab === idx ? '#0d4f4f' : '#374151',
-                    fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer',
-                    fontFamily: nunito.style.fontFamily,
-                  }}
-                >
-                  {entry.member_name}
-                </button>
+                <button key={entry.team_member_id} onClick={() => setPreviewTab(idx)} style={{
+                  padding: '6px 14px', borderRadius: '6px',
+                  border: previewTab === idx ? '2px solid #0d4f4f' : '1px solid #e7e1d8',
+                  background: previewTab === idx ? '#e6f4f1' : '#fff',
+                  color: previewTab === idx ? '#0d4f4f' : '#374151',
+                  fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', fontFamily: nunito.style.fontFamily,
+                }}>{entry.member_name}</button>
               ))}
             </div>
 
@@ -1301,17 +1230,12 @@ export default function CrewCallSheetPage() {
               const dateStr = selectedCouple?.wedding_date ? formatWeddingDateUpper(selectedCouple.wedding_date) : '—'
 
               return (
-                <div style={{
-                  background: '#fff', borderRadius: '10px', border: '1px solid #e7e1d8',
-                  overflow: 'hidden',
-                }}>
-                  {/* Email header preview */}
+                <div style={{ background: '#fff', borderRadius: '10px', border: '1px solid #e7e1d8', overflow: 'hidden' }}>
                   <div style={{ background: '#0d4f4f', padding: '20px 24px', color: '#fff' }}>
                     <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', opacity: 0.7 }}>SIGS Photography</p>
                     <h3 style={{ margin: '4px 0 0', fontSize: '1.1rem', fontFamily: 'Georgia, serif' }}>Crew Call Sheet</h3>
                   </div>
                   <div style={{ padding: '20px 24px', fontSize: '0.85rem' }}>
-
                     {/* Jean's phone — TOP */}
                     <div style={{ background: '#e6f4f1', borderRadius: '6px', padding: '8px 14px', marginBottom: '16px', textAlign: 'center' }}>
                       <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#0d4f4f' }}>📞 Questions? Call Jean: (416) 731-6748</p>
@@ -1322,8 +1246,6 @@ export default function CrewCallSheetPage() {
                       <span style={{ fontWeight: 700 }}>{selectedCouple?.couple_name}</span>
                       <span style={{ color: '#6b7280' }}>Date</span>
                       <span style={{ fontWeight: 700 }}>{dateStr}</span>
-
-                      {/* Weather */}
                       {weather.available && <>
                         <span style={{ color: '#6b7280' }}>Weather</span>
                         <span>High {weather.high}°C / Low {weather.low}°C | {weather.precipitation}% rain</span>
@@ -1332,18 +1254,17 @@ export default function CrewCallSheetPage() {
                         <span style={{ color: '#6b7280' }}></span>
                         <span>Sunrise {weather.sunrise} | Sunset {weather.sunset}</span>
                       </>}
-
                       {selectedContract?.ceremony_location && <>
                         <span style={{ color: '#6b7280' }}>Ceremony</span>
-                        <span>{selectedContract.ceremony_location} <a href={mapsUrl(selectedContract.ceremony_location)} style={{ textDecoration: 'none' }}>📍</a></span>
+                        <span>{selectedContract.ceremony_location} 📍</span>
                       </>}
                       {selectedContract?.reception_venue && <>
                         <span style={{ color: '#6b7280' }}>Reception</span>
-                        <span>{selectedContract.reception_venue} <a href={mapsUrl(selectedContract.reception_venue)} style={{ textDecoration: 'none' }}>📍</a></span>
+                        <span>{selectedContract.reception_venue} 📍</span>
                       </>}
                       {selectedCouple?.park_location && <>
                         <span style={{ color: '#6b7280' }}>Park</span>
-                        <span>{selectedCouple.park_location} <a href={mapsUrl(selectedCouple.park_location)} style={{ textDecoration: 'none' }}>📍</a></span>
+                        <span>{selectedCouple.park_location} 📍</span>
                       </>}
                       {(bridesmaids || groomsmen) && <>
                         <span style={{ color: '#6b7280' }}>Bridal Party</span>
@@ -1351,7 +1272,6 @@ export default function CrewCallSheetPage() {
                       </>}
                     </div>
 
-                    {/* Dress Code */}
                     {dressCode && (
                       <div style={{ background: '#faf8f5', borderRadius: '6px', padding: '10px 14px', border: '1px solid #e7e1d8', marginBottom: '16px' }}>
                         <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#1a1a1a' }}>👔 DRESS CODE: {dressCode}</p>
@@ -1366,15 +1286,16 @@ export default function CrewCallSheetPage() {
                         {entry.call_time && <><span style={{ color: '#6b7280' }}>Call Time</span><span style={{ fontWeight: 700 }}>{entry.call_time}</span></>}
                       </div>
 
+                      {/* Meeting point with prominent address */}
                       {entry.meeting_point && (
-                        <div style={{ marginTop: '12px' }}>
-                          <p style={{ margin: 0, color: '#374151' }}>
-                            {entry.meeting_point_maps_url
-                              ? <><a href={entry.meeting_point_maps_url} style={{ textDecoration: 'none' }}>📍</a> {entry.meeting_point}</>
-                              : <>📍 {entry.meeting_point}</>
-                            }
+                        <div style={{ marginTop: '12px', background: '#f0faf9', border: '2px solid #0d4f4f', borderRadius: '8px', padding: '12px 14px' }}>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: '#0d4f4f' }}>
+                            📍 {entry.meeting_point.split(' — ')[0]}
                           </p>
-                          {entry.meeting_point_time && <p style={{ margin: '2px 0 0', color: '#374151' }}>⏰ Arrive by {entry.meeting_point_time}</p>}
+                          {entry.meeting_point_address && entry.meeting_point_address !== entry.meeting_point.split(' — ')[0] && (
+                            <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: '#374151' }}>{entry.meeting_point_address}</p>
+                          )}
+                          {entry.meeting_point_time && <p style={{ margin: '4px 0 0', color: '#374151', fontWeight: 600 }}>⏰ Arrive by {entry.meeting_point_time}</p>}
                         </div>
                       )}
 
@@ -1390,7 +1311,6 @@ export default function CrewCallSheetPage() {
                         <div style={{ marginTop: '10px' }}><p style={{ margin: 0, color: '#374151' }}><strong>Notes:</strong> {entry.special_notes}</p></div>
                       )}
 
-                      {/* Vendors */}
                       {Object.values(vendors).some(v => v) && (
                         <div style={{ marginTop: '12px', borderTop: '1px solid #e7e1d8', paddingTop: '10px' }}>
                           <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#0d4f4f', margin: '0 0 6px' }}>Key Vendors</p>
@@ -1403,7 +1323,6 @@ export default function CrewCallSheetPage() {
                         </div>
                       )}
 
-                      {/* Key Moments */}
                       {keyMoments && (
                         <div style={{ marginTop: '12px', background: '#fffbeb', borderRadius: '6px', padding: '10px 14px', border: '1px solid #fde68a' }}>
                           <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#92400e', margin: '0 0 6px' }}>📸 Must-Capture Moments</p>
@@ -1426,7 +1345,6 @@ export default function CrewCallSheetPage() {
                       </span>
                     </div>
 
-                    {/* Jean's phone — BOTTOM */}
                     <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#6b7280', margin: '10px 0 0' }}>
                       📞 Questions? Call Jean: (416) 731-6748
                     </p>
