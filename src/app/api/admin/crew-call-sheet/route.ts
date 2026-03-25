@@ -30,6 +30,13 @@ interface CrewMemberPayload {
   special_notes: string
 }
 
+interface ScheduleEvent {
+  time: string
+  label: string
+  address: string
+  maps_url: string
+}
+
 interface SendPayload {
   couple_id: string
   couple_name: string
@@ -48,6 +55,7 @@ interface SendPayload {
   vendors: Record<string, string>
   key_moments: string
   weather: string
+  schedule: ScheduleEvent[]
   crew_members: CrewMemberPayload[]
   attachments?: { filename: string; path: string }[]
 }
@@ -66,6 +74,7 @@ export async function POST(request: NextRequest) {
       ceremony_location, reception_venue, park_location,
       start_time, end_time, notes, crew_members,
       dress_code, bridesmaids, groomsmen, vendors, key_moments, weather,
+      schedule,
     } = payload
 
     if (!couple_id || !crew_members?.length) {
@@ -248,6 +257,23 @@ export async function POST(request: NextRequest) {
           </div>
         </td></tr>` : ''
 
+      const scheduleHtml = schedule?.length ? `
+        <tr><td colspan="2" style="padding:16px 0 8px;">
+          <div style="border-top:2px solid #e7e1d8;padding-top:12px;">
+            <p style="margin:0 0 12px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#0d4f4f;">Wedding Day Schedule</p>
+            ${schedule.map(evt => `
+              <div style="margin-bottom:12px;padding-left:12px;border-left:3px solid #0d4f4f;">
+                <p style="margin:0;font-size:14px;">
+                  ${evt.time ? `<span style="font-family:'Courier New',monospace;font-weight:700;color:#0d4f4f;">⏰ ${esc(evt.time)}</span> &mdash; ` : ''}
+                  <strong>${esc(evt.label)}</strong>
+                </p>
+                ${evt.address ? `<p style="margin:2px 0 0;font-size:13px;color:#374151;">📍 ${esc(evt.address)}</p>` : ''}
+                ${evt.maps_url ? `<p style="margin:2px 0 0;"><a href="${evt.maps_url}" style="color:#0d4f4f;text-decoration:underline;font-weight:600;font-size:13px;">🗺️ Open in Google Maps</a></p>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        </td></tr>` : ''
+
       const html = `
 <div style="font-family:'Trebuchet MS',sans-serif;max-width:600px;margin:0 auto;background:#ffffff;">
   <div style="background:#0d4f4f;padding:24px 28px;border-radius:8px 8px 0 0;">
@@ -266,14 +292,12 @@ export async function POST(request: NextRequest) {
       <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;width:100px;">Couple</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(couple_name)}</td></tr>
       <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Date</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${dayUpper}, ${esc(dateFormatted)}</td></tr>
       ${weatherHtml}
-      ${ceremony_location ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Ceremony</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(ceremony_location)} <a href="${mapsUrl(ceremony_location)}" style="text-decoration:none;">📍</a></td></tr>` : ''}
-      ${reception_venue ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Reception</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(reception_venue)} <a href="${mapsUrl(reception_venue)}" style="text-decoration:none;">📍</a></td></tr>` : ''}
-      ${park_location ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Park</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(park_location)} <a href="${mapsUrl(park_location)}" style="text-decoration:none;">📍</a></td></tr>` : ''}
+      ${ceremony_location ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Ceremony</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(ceremony_location)} <a href="${mapsUrl(ceremony_location)}" style="color:#0d4f4f;text-decoration:underline;font-weight:600;font-size:13px;">📍 Open in Google Maps</a></td></tr>` : ''}
+      ${reception_venue ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Reception</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(reception_venue)} <a href="${mapsUrl(reception_venue)}" style="color:#0d4f4f;text-decoration:underline;font-weight:600;font-size:13px;">📍 Open in Google Maps</a></td></tr>` : ''}
+      ${park_location ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Park</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(park_location)} <a href="${mapsUrl(park_location)}" style="color:#0d4f4f;text-decoration:underline;font-weight:600;font-size:13px;">📍 Open in Google Maps</a></td></tr>` : ''}
       ${coverageText ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Coverage</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(coverageText)}</td></tr>` : ''}
       ${bridalPartyHtml}
     </table>
-
-    ${dressCodeHtml}
 
     <!-- Divider -->
     <div style="border-top:3px solid #0d4f4f;margin:20px 0;"></div>
@@ -285,15 +309,18 @@ export async function POST(request: NextRequest) {
       </td></tr>
       <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;width:120px;">Name</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(cm.member_name)}</td></tr>
       <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Role</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(cm.role)}</td></tr>
-      ${cm.call_time ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Call Time</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(cm.call_time)}</td></tr>` : ''}
+      ${cm.call_time ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Meet Jean at:</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(cm.call_time)}</td></tr>` : ''}
       ${cm.meeting_point ? `
       <tr><td colspan="2" style="padding:12px 0 4px;">
         <p style="margin:0 0 4px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">Meeting Point</p>
-        <p style="margin:0;font-size:14px;color:#374151;">${mpMapsUrl ? `<a href="${mpMapsUrl}" style="text-decoration:none;">📍</a> ` : '📍 '}${esc(cm.meeting_point)}</p>
-        ${cm.meeting_point_time ? `<p style="margin:2px 0 0;font-size:14px;color:#374151;">⏰ Arrive by ${esc(cm.meeting_point_time)}</p>` : ''}
+        <p style="margin:0;font-size:14px;color:#374151;">📍 ${esc(cm.meeting_point)}</p>
+        ${mpMapsUrl ? `<p style="margin:4px 0 0;"><a href="${mpMapsUrl}" style="color:#0d4f4f;text-decoration:underline;font-weight:600;font-size:13px;">📍 Open in Google Maps</a></p>` : ''}
+        ${cm.call_time ? `<p style="margin:4px 0 0;font-size:14px;color:#374151;font-weight:600;">⏰ Arrive by ${esc(cm.call_time)}</p>` : ''}
       </td></tr>` : ''}
       ${equipmentHtml}
       ${notesHtml}
+      ${scheduleHtml}
+      ${dressCodeHtml}
       ${vendorsHtml}
       ${keyMomentsHtml}
       ${generalNotesHtml}

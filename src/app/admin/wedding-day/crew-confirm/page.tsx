@@ -103,6 +103,13 @@ interface WeatherData {
   available: boolean
 }
 
+interface ScheduleEvent {
+  time: string
+  label: string
+  address: string
+  maps_url: string
+}
+
 // ── Time Helpers ──────────────────────────────────────────────────
 
 function parseTimeStr(t: string): number | null {
@@ -240,6 +247,7 @@ export default function CrewCallSheetPage() {
   const [keyMoments, setKeyMoments] = useState('')
   const [weather, setWeather] = useState<WeatherData>({ high: null, low: null, precipitation: null, sunrise: null, sunset: null, available: false })
   const [weatherLoading, setWeatherLoading] = useState(false)
+  const [schedule, setSchedule] = useState<ScheduleEvent[]>([])
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDoc[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
@@ -293,7 +301,7 @@ export default function CrewCallSheetPage() {
 
   // ── Fetch weather for selected couple ──────────────────────────
 
-  const fetchWeather = useCallback(async (weddingDate: string, receptionVenue: string) => {
+  const fetchWeather = useCallback(async (weddingDate: string) => {
     setWeatherLoading(true)
     setWeather({ high: null, low: null, precipitation: null, sunrise: null, sunset: null, available: false })
 
@@ -306,15 +314,8 @@ export default function CrewCallSheetPage() {
     }
 
     try {
-      let lat = 43.65, lng = -79.38
-      if (receptionVenue) {
-        const city = receptionVenue.split(',').pop()?.trim() || 'Toronto'
-        try {
-          const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`)
-          const geoData = await geoRes.json()
-          if (geoData.results?.[0]) { lat = geoData.results[0].latitude; lng = geoData.results[0].longitude }
-        } catch { /* use defaults */ }
-      }
+      // Hardcoded Toronto coordinates — all GTA weddings
+      const lat = 43.6532, lng = -79.3832
 
       const weatherRes = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&timezone=America/Toronto&start_date=${weddingDate}&end_date=${weddingDate}`
@@ -339,7 +340,7 @@ export default function CrewCallSheetPage() {
   const fetchWeddingDayForm = useCallback(async (coupleId: string) => {
     const { data } = await supabase
       .from('wedding_day_forms')
-      .select('bridal_party_count, vendor_dj_mc, vendor_floral, vendor_makeup, vendor_hair, vendor_wedding_planner, vendor_transportation')
+      .select('bridal_party_count, vendor_dj_mc, vendor_floral, vendor_makeup, vendor_hair, vendor_wedding_planner, vendor_transportation, groom_start_time, groom_address, bride_start_time, bride_address, ceremony_start_time, ceremony_address, ceremony_location_name, park_start_time, park_address, park_name, reception_start_time, reception_address, reception_venue_name, photo_video_end_time, first_look_time, first_look_address, has_first_look')
       .eq('couple_id', coupleId)
       .limit(1)
 
@@ -355,6 +356,37 @@ export default function CrewCallSheetPage() {
         makeup: form.vendor_makeup || '', hair: form.vendor_hair || '',
         planner: form.vendor_wedding_planner || '', transport: form.vendor_transportation || '',
       })
+
+      // Build schedule events from wedding day form
+      const events: ScheduleEvent[] = []
+      const fmtTime = (t: string) => { const m = parseTimeStr(t); return m !== null ? minutesToTimeStr(m) : t }
+      if (form.groom_start_time && form.groom_address) {
+        events.push({ time: fmtTime(form.groom_start_time), label: 'Groom Prep', address: form.groom_address, maps_url: mapsUrl(form.groom_address) })
+      }
+      if (form.bride_start_time && form.bride_address) {
+        events.push({ time: fmtTime(form.bride_start_time), label: 'Bride Prep', address: form.bride_address, maps_url: mapsUrl(form.bride_address) })
+      }
+      if (form.has_first_look && form.first_look_time && form.first_look_address) {
+        events.push({ time: fmtTime(form.first_look_time), label: 'First Look', address: form.first_look_address, maps_url: mapsUrl(form.first_look_address) })
+      }
+      if (form.ceremony_start_time) {
+        const addr = [form.ceremony_location_name, form.ceremony_address].filter(Boolean).join(', ')
+        events.push({ time: fmtTime(form.ceremony_start_time), label: 'Ceremony', address: addr, maps_url: mapsUrl(form.ceremony_address || form.ceremony_location_name || '') })
+      }
+      if (form.park_start_time) {
+        const addr = [form.park_name, form.park_address].filter(Boolean).join(', ')
+        events.push({ time: fmtTime(form.park_start_time), label: 'Park Photos', address: addr, maps_url: mapsUrl(form.park_address || form.park_name || '') })
+      }
+      if (form.reception_start_time) {
+        const addr = [form.reception_venue_name, form.reception_address].filter(Boolean).join(', ')
+        events.push({ time: fmtTime(form.reception_start_time), label: 'Reception', address: addr, maps_url: mapsUrl(form.reception_address || form.reception_venue_name || '') })
+      }
+      if (form.photo_video_end_time) {
+        events.push({ time: fmtTime(form.photo_video_end_time), label: 'Photo/Video Concludes', address: '', maps_url: '' })
+      }
+      setSchedule(events)
+    } else {
+      setSchedule([])
     }
   }, [])
 
@@ -384,6 +416,7 @@ export default function CrewCallSheetPage() {
       setVendors({ dj_mc: '', florist: '', makeup: '', hair: '', planner: '', transport: '' })
       setKeyMoments('')
       setWeather({ high: null, low: null, precipitation: null, sunrise: null, sunset: null, available: false })
+      setSchedule([])
       setUploadedDocs([]); setUploadError('')
       return
     }
@@ -435,7 +468,7 @@ export default function CrewCallSheetPage() {
     fetchWeddingDayForm(selectedCoupleId)
 
     if (couple?.wedding_date) {
-      fetchWeather(couple.wedding_date, contract?.reception_venue || '')
+      fetchWeather(couple.wedding_date)
     }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -623,6 +656,14 @@ export default function CrewCallSheetPage() {
           package_type: selectedCouple.package_type || '', notes: generalNotes,
           dress_code: dressCode, bridesmaids, groomsmen, vendors, key_moments: keyMoments,
           weather: weatherStr,
+          schedule: schedule.length > 0 ? schedule : (selectedContract ? (() => {
+            const minimal: ScheduleEvent[] = []
+            if (selectedContract.start_time) minimal.push({ time: selectedContract.start_time, label: 'Coverage Begins', address: '', maps_url: '' })
+            if (selectedContract.ceremony_location) minimal.push({ time: '', label: 'Ceremony', address: selectedContract.ceremony_location, maps_url: mapsUrl(selectedContract.ceremony_location) })
+            if (selectedContract.reception_venue) minimal.push({ time: '', label: 'Reception', address: selectedContract.reception_venue, maps_url: mapsUrl(selectedContract.reception_venue) })
+            if (selectedContract.end_time) minimal.push({ time: selectedContract.end_time, label: 'Coverage Ends', address: '', maps_url: '' })
+            return minimal
+          })() : []),
           attachments: uploadedDocs.filter(d => d.attachToEmail).map(d => ({ filename: d.name, path: d.path })),
           crew_members: checkedCrew.map(e => ({
             team_member_id: e.team_member_id, member_name: e.member_name,
@@ -756,7 +797,7 @@ export default function CrewCallSheetPage() {
                 <span style={{ color: '#6b7280', fontWeight: 600 }}>Reception</span>
                 <span style={{ color: '#374151' }}>
                   {selectedContract.reception_venue}
-                  <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '6px', textDecoration: 'none' }}>📍</a>
+                  <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
                 </span>
               </>}
 
@@ -764,7 +805,7 @@ export default function CrewCallSheetPage() {
                 <span style={{ color: '#6b7280', fontWeight: 600 }}>Ceremony</span>
                 <span style={{ color: '#374151' }}>
                   {selectedContract.ceremony_location}
-                  <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '6px', textDecoration: 'none' }}>📍</a>
+                  <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
                 </span>
               </>}
 
@@ -772,7 +813,7 @@ export default function CrewCallSheetPage() {
                 <span style={{ color: '#6b7280', fontWeight: 600 }}>Park</span>
                 <span style={{ color: '#374151' }}>
                   {selectedCouple.park_location}
-                  <a href={mapsUrl(selectedCouple.park_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '6px', textDecoration: 'none' }}>📍</a>
+                  <a href={mapsUrl(selectedCouple.park_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
                 </span>
               </>}
 
@@ -807,6 +848,78 @@ export default function CrewCallSheetPage() {
                 <input value={groomsmen} onChange={e => setGroomsmen(e.target.value)} placeholder="0" style={{ ...inputStyle, width: '60px', textAlign: 'center' }} />
               </div>
             </div>
+          </div>
+
+          {/* Section: Wedding Day Schedule */}
+          <div style={cardStyle}>
+            {sectionTitle('Wedding Day Schedule')}
+            {schedule.length > 0 ? (
+              <div style={{ position: 'relative', paddingLeft: '24px' }}>
+                {/* Timeline line */}
+                <div style={{ position: 'absolute', left: '8px', top: '4px', bottom: '4px', width: '2px', background: '#0d4f4f', borderRadius: '1px' }} />
+                {schedule.map((evt, i) => (
+                  <div key={i} style={{ position: 'relative', marginBottom: i < schedule.length - 1 ? '16px' : 0, paddingLeft: '16px' }}>
+                    {/* Dot */}
+                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: '#0d4f4f', border: '2px solid #fff', boxShadow: '0 0 0 1px #0d4f4f' }} />
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '2px' }}>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: '#0d4f4f', minWidth: '80px' }}>⏰ {evt.time}</span>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a1a' }}>{evt.label}</span>
+                    </div>
+                    {evt.address && (
+                      <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#374151' }}>
+                        📍 {evt.address}
+                        {evt.maps_url && (
+                          <a href={evt.maps_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : selectedContract ? (
+              /* Minimal schedule from contracts */
+              <div style={{ position: 'relative', paddingLeft: '24px' }}>
+                <div style={{ position: 'absolute', left: '8px', top: '4px', bottom: '4px', width: '2px', background: '#0d4f4f', borderRadius: '1px' }} />
+                {selectedContract.start_time && (
+                  <div style={{ position: 'relative', marginBottom: '16px', paddingLeft: '16px' }}>
+                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: '#0d4f4f', border: '2px solid #fff', boxShadow: '0 0 0 1px #0d4f4f' }} />
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: '#0d4f4f', minWidth: '80px' }}>⏰ {selectedContract.start_time}</span>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a1a' }}>Coverage Begins</span>
+                    </div>
+                  </div>
+                )}
+                {selectedContract.ceremony_location && (
+                  <div style={{ position: 'relative', marginBottom: '16px', paddingLeft: '16px' }}>
+                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: '#0d4f4f', border: '2px solid #fff', boxShadow: '0 0 0 1px #0d4f4f' }} />
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#374151' }}>
+                      📍 Ceremony: {selectedContract.ceremony_location}
+                      <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
+                    </p>
+                  </div>
+                )}
+                {selectedContract.reception_venue && (
+                  <div style={{ position: 'relative', marginBottom: '16px', paddingLeft: '16px' }}>
+                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: '#0d4f4f', border: '2px solid #fff', boxShadow: '0 0 0 1px #0d4f4f' }} />
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#374151' }}>
+                      📍 Reception: {selectedContract.reception_venue}
+                      <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
+                    </p>
+                  </div>
+                )}
+                {selectedContract.end_time && (
+                  <div style={{ position: 'relative', paddingLeft: '16px' }}>
+                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: '#0d4f4f', border: '2px solid #fff', boxShadow: '0 0 0 1px #0d4f4f' }} />
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: '#0d4f4f', minWidth: '80px' }}>⏰ {selectedContract.end_time}</span>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a1a' }}>Coverage Ends</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#9ca3af' }}>No schedule data available</p>
+            )}
           </div>
 
           {/* Section 3: Crew Assignment Cards */}
@@ -1266,15 +1379,15 @@ export default function CrewCallSheetPage() {
                       </>}
                       {selectedContract?.ceremony_location && <>
                         <span style={{ color: '#6b7280' }}>Ceremony</span>
-                        <span>{selectedContract.ceremony_location} 📍</span>
+                        <span>{selectedContract.ceremony_location} <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem' }}>📍 Open in Google Maps</a></span>
                       </>}
                       {selectedContract?.reception_venue && <>
                         <span style={{ color: '#6b7280' }}>Reception</span>
-                        <span>{selectedContract.reception_venue} 📍</span>
+                        <span>{selectedContract.reception_venue} <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem' }}>📍 Open in Google Maps</a></span>
                       </>}
                       {selectedCouple?.park_location && <>
                         <span style={{ color: '#6b7280' }}>Park</span>
-                        <span>{selectedCouple.park_location} 📍</span>
+                        <span>{selectedCouple.park_location} <a href={mapsUrl(selectedCouple.park_location)} target="_blank" rel="noopener noreferrer" style={{ color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem' }}>📍 Open in Google Maps</a></span>
                       </>}
                       {(bridesmaids || groomsmen) && <>
                         <span style={{ color: '#6b7280' }}>Bridal Party</span>
@@ -1293,7 +1406,7 @@ export default function CrewCallSheetPage() {
                       <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '4px 12px' }}>
                         <span style={{ color: '#6b7280' }}>Name</span><span style={{ fontWeight: 700 }}>{entry.member_name}</span>
                         <span style={{ color: '#6b7280' }}>Role</span><span style={{ fontWeight: 700 }}>{entry.role}</span>
-                        {entry.call_time && <><span style={{ color: '#6b7280' }}>Call Time</span><span style={{ fontWeight: 700 }}>{entry.call_time}</span></>}
+                        {entry.call_time && <><span style={{ color: '#6b7280' }}>Meet Jean at:</span><span style={{ fontWeight: 700 }}>{entry.call_time}</span></>}
                       </div>
 
                       {/* Meeting point with prominent address */}
@@ -1305,7 +1418,10 @@ export default function CrewCallSheetPage() {
                           {entry.meeting_point_address && entry.meeting_point_address !== entry.meeting_point.split(' — ')[0] && (
                             <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: '#374151' }}>{entry.meeting_point_address}</p>
                           )}
-                          {entry.meeting_point_time && <p style={{ margin: '4px 0 0', color: '#374151', fontWeight: 600 }}>⏰ Arrive by {entry.meeting_point_time}</p>}
+                          {entry.meeting_point_maps_url && (
+                            <a href={entry.meeting_point_maps_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '6px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
+                          )}
+                          {entry.call_time && <p style={{ margin: '4px 0 0', color: '#374151', fontWeight: 600 }}>⏰ Arrive by {entry.call_time}</p>}
                         </div>
                       )}
 
@@ -1319,6 +1435,27 @@ export default function CrewCallSheetPage() {
 
                       {entry.special_notes && (
                         <div style={{ marginTop: '10px' }}><p style={{ margin: 0, color: '#374151' }}><strong>Notes:</strong> {entry.special_notes}</p></div>
+                      )}
+
+                      {/* Schedule preview */}
+                      {(schedule.length > 0 || selectedContract) && (
+                        <div style={{ marginTop: '16px', borderTop: '2px solid #e7e1d8', paddingTop: '12px' }}>
+                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', color: '#0d4f4f', margin: '0 0 10px' }}>Wedding Day Schedule</p>
+                          {(schedule.length > 0 ? schedule : [
+                            ...(selectedContract?.start_time ? [{ time: selectedContract.start_time, label: 'Coverage Begins', address: '', maps_url: '' }] : []),
+                            ...(selectedContract?.ceremony_location ? [{ time: '', label: 'Ceremony', address: selectedContract.ceremony_location, maps_url: mapsUrl(selectedContract.ceremony_location) }] : []),
+                            ...(selectedContract?.reception_venue ? [{ time: '', label: 'Reception', address: selectedContract.reception_venue, maps_url: mapsUrl(selectedContract.reception_venue) }] : []),
+                            ...(selectedContract?.end_time ? [{ time: selectedContract.end_time, label: 'Coverage Ends', address: '', maps_url: '' }] : []),
+                          ]).map((evt, i) => (
+                            <div key={i} style={{ marginBottom: '8px', paddingLeft: '12px', borderLeft: '2px solid #0d4f4f' }}>
+                              <p style={{ margin: 0, fontSize: '0.85rem' }}>
+                                {evt.time && <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, color: '#0d4f4f' }}>⏰ {evt.time} — </span>}
+                                <strong>{evt.label}</strong>
+                              </p>
+                              {evt.address && <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#374151' }}>📍 {evt.address}{evt.maps_url && <a href={evt.maps_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '6px', color: '#0d4f4f', textDecoration: 'underline' }}>Open in Google Maps</a>}</p>}
+                            </div>
+                          ))}
+                        </div>
                       )}
 
                       {Object.values(vendors).some(v => v) && (
