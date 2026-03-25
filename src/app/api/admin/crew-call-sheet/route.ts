@@ -20,6 +20,8 @@ interface CrewMemberPayload {
   role: string
   call_time: string
   meeting_point: string
+  meeting_point_address: string
+  meeting_point_maps_url: string
   meeting_point_time: string
   equipment_pickup_location: string
   equipment_pickup_time: string
@@ -40,7 +42,18 @@ interface SendPayload {
   end_time: string
   package_type: string
   notes: string
+  dress_code: string
+  bridesmaids: string
+  groomsmen: string
+  vendors: Record<string, string>
+  key_moments: string
+  weather: string
   crew_members: CrewMemberPayload[]
+  attachments?: { filename: string; path: string }[]
+}
+
+function mapsUrl(address: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
 }
 
 // ── POST: Send crew call sheet ───────────────────────────────────
@@ -52,6 +65,7 @@ export async function POST(request: NextRequest) {
       couple_id, couple_name, wedding_date, day_of_week,
       ceremony_location, reception_venue, park_location,
       start_time, end_time, notes, crew_members,
+      dress_code, bridesmaids, groomsmen, vendors, key_moments, weather,
     } = payload
 
     if (!couple_id || !crew_members?.length) {
@@ -66,11 +80,10 @@ export async function POST(request: NextRequest) {
       ? format(new Date(wedding_date + 'T12:00:00'), 'EEE, MMM d')
       : ''
 
-    // Calculate coverage hours
+    // Coverage hours
     let coverageText = ''
     if (start_time && end_time) {
       coverageText = `${start_time} – ${end_time}`
-      // Try to calculate hours
       const parseTime = (t: string) => {
         const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
         if (!match) return null
@@ -83,9 +96,20 @@ export async function POST(request: NextRequest) {
       }
       const s = parseTime(start_time)
       const e = parseTime(end_time)
-      if (s !== null && e !== null) {
-        const diff = e - s
-        if (diff > 0) coverageText += ` (${Math.round(diff / 60)} hours)`
+      if (s !== null && e !== null && e - s > 0) coverageText += ` (${Math.round((e - s) / 60)} hours)`
+    }
+
+    // Bridal party text
+    const bridalPartyText = (bridesmaids || groomsmen)
+      ? `${bridesmaids || '0'} bridesmaids + ${groomsmen || '0'} groomsmen`
+      : ''
+
+    // Vendors text
+    const vendorLines: string[] = []
+    if (vendors) {
+      const labels: Record<string, string> = { dj_mc: 'DJ/MC', florist: 'Florist', makeup: 'Makeup', hair: 'Hair', planner: 'Planner', transport: 'Transport' }
+      for (const [k, v] of Object.entries(vendors)) {
+        if (v) vendorLines.push(`${labels[k] || k}: ${v}`)
       }
     }
 
@@ -128,76 +152,128 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to insert crew members', detail: memberErr }, { status: 500 })
     }
 
-    // 3. Check for wedding day form PDF in Supabase Storage
-    let pdfAttachment: { filename: string; content: Buffer } | null = null
-    try {
-      const { data: pdfData, error: pdfErr } = await supabase
-        .storage
-        .from('wedding-day-forms')
-        .download(`${couple_id}.pdf`)
+    // 3. Gather all file attachments from Supabase Storage
+    const fileAttachments: { filename: string; content: Buffer }[] = []
 
+    // Legacy: check wedding-day-forms bucket
+    try {
+      const { data: pdfData, error: pdfErr } = await supabase.storage.from('wedding-day-forms').download(`${couple_id}.pdf`)
       if (!pdfErr && pdfData) {
-        const buffer = Buffer.from(await pdfData.arrayBuffer())
-        pdfAttachment = {
+        fileAttachments.push({
           filename: `Wedding-Day-Form-${couple_name.replace(/\s+/g, '-')}.pdf`,
-          content: buffer,
-        }
+          content: Buffer.from(await pdfData.arrayBuffer()),
+        })
       }
-    } catch {
-      // PDF not found — that's fine
+    } catch { /* not found */ }
+
+    // New: wedding-documents bucket
+    if (payload.attachments?.length) {
+      for (const att of payload.attachments) {
+        try {
+          const { data: fileData, error: fileErr } = await supabase.storage.from('wedding-documents').download(att.path)
+          if (!fileErr && fileData) {
+            fileAttachments.push({
+              filename: att.filename,
+              content: Buffer.from(await fileData.arrayBuffer()),
+            })
+          }
+        } catch { /* skip */ }
+      }
     }
 
-    // 4. Send individual emails to each crew member
+    // Maps link helper for crew members
+    const crewMapsLink = (cm: CrewMemberPayload) => {
+      if (cm.meeting_point_maps_url) return cm.meeting_point_maps_url
+      if (cm.meeting_point_address) return mapsUrl(cm.meeting_point_address)
+      if (cm.meeting_point) return mapsUrl(cm.meeting_point)
+      return ''
+    }
+
+    // 4. Send individual emails
     const emailResults: { name: string; success: boolean; error?: string }[] = []
 
-    for (const cm of insertedMembers) {
+    for (let i = 0; i < insertedMembers.length; i++) {
+      const cm = insertedMembers[i]
+      const crewPayload = crew_members[i]
       const confirmUrl = `${APP_URL}/api/confirm-crew/${cm.confirmation_token}`
+      const mpMapsUrl = crewPayload ? crewMapsLink(crewPayload) : ''
 
       const equipmentHtml = (cm.equipment_pickup_location || cm.equipment_dropoff_location) ? `
         <tr><td colspan="2" style="padding:16px 0 8px;">
           <div style="border-top:2px solid #e7e1d8;padding-top:12px;">
             <p style="margin:0 0 8px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">Equipment</p>
-            ${cm.equipment_pickup_location ? `<p style="margin:4px 0;font-family:'Trebuchet MS',sans-serif;font-size:14px;color:#374151;"><strong>Pickup:</strong> ${esc(cm.equipment_pickup_location)}${cm.equipment_pickup_time ? ` — ${esc(cm.equipment_pickup_time)}` : ''}</p>` : ''}
-            ${cm.equipment_dropoff_location ? `<p style="margin:4px 0;font-family:'Trebuchet MS',sans-serif;font-size:14px;color:#374151;"><strong>Dropoff:</strong> ${esc(cm.equipment_dropoff_location)}${cm.equipment_dropoff_time ? ` — ${esc(cm.equipment_dropoff_time)}` : ''}</p>` : ''}
+            ${cm.equipment_pickup_location ? `<p style="margin:4px 0;font-size:14px;color:#374151;"><strong>Pickup:</strong> ${esc(cm.equipment_pickup_location)}${cm.equipment_pickup_time ? ` — ${esc(cm.equipment_pickup_time)}` : ''}</p>` : ''}
+            ${cm.equipment_dropoff_location ? `<p style="margin:4px 0;font-size:14px;color:#374151;"><strong>Dropoff:</strong> ${esc(cm.equipment_dropoff_location)}${cm.equipment_dropoff_time ? ` — ${esc(cm.equipment_dropoff_time)}` : ''}</p>` : ''}
           </div>
         </td></tr>` : ''
+
+      const dressCodeHtml = dress_code ? `
+        <tr><td colspan="2" style="padding:12px 0 8px;">
+          <div style="background:#faf8f5;border-radius:6px;padding:10px 14px;border:1px solid #e7e1d8;">
+            <p style="margin:0;font-size:15px;font-weight:700;color:#1a1a1a;">👔 DRESS CODE: ${esc(dress_code)}</p>
+          </div>
+        </td></tr>` : ''
+
+      const bridalPartyHtml = bridalPartyText ? `
+        <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Bridal Party</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(bridalPartyText)}</td></tr>` : ''
+
+      const vendorsHtml = vendorLines.length ? `
+        <tr><td colspan="2" style="padding:12px 0 4px;">
+          <p style="margin:0 0 6px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">Key Vendors</p>
+          ${vendorLines.map(v => `<p style="margin:2px 0;font-size:13px;color:#374151;">${esc(v)}</p>`).join('')}
+        </td></tr>` : ''
+
+      const keyMomentsHtml = key_moments ? `
+        <tr><td colspan="2" style="padding:12px 0 8px;">
+          <div style="background:#fffbeb;border-radius:6px;padding:10px 14px;border:1px solid #fde68a;">
+            <p style="margin:0 0 6px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#92400e;">📸 Must-Capture Moments</p>
+            ${esc(key_moments).split('\n').filter(Boolean).map(line => `<p style="margin:2px 0;font-size:14px;color:#374151;">• ${line.replace(/^[-•]\s*/, '')}</p>`).join('')}
+          </div>
+        </td></tr>` : ''
+
+      const weatherHtml = weather ? `
+        <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Weather</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(weather)}</td></tr>` : ''
 
       const notesHtml = cm.special_notes ? `
         <tr><td colspan="2" style="padding:8px 0;">
           <p style="margin:0 0 4px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">Notes</p>
-          <p style="margin:0;font-family:'Trebuchet MS',sans-serif;font-size:14px;color:#374151;">${esc(cm.special_notes)}</p>
+          <p style="margin:0;font-size:14px;color:#374151;">${esc(cm.special_notes)}</p>
         </td></tr>` : ''
 
       const generalNotesHtml = notes ? `
         <tr><td colspan="2" style="padding:12px 0 8px;">
           <div style="border-top:2px solid #e7e1d8;padding-top:12px;">
             <p style="margin:0 0 8px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">General Notes</p>
-            <p style="margin:0;font-family:'Trebuchet MS',sans-serif;font-size:14px;color:#374151;">${esc(notes)}</p>
+            <p style="margin:0;font-size:14px;color:#374151;">${esc(notes)}</p>
           </div>
         </td></tr>` : ''
 
-      const pdfNote = !pdfAttachment
-        ? `<tr><td colspan="2" style="padding:8px 0;"><p style="margin:0;font-family:'Trebuchet MS',sans-serif;font-size:13px;color:#d97706;">⚠️ Wedding Day Form: Not yet received</p></td></tr>`
-        : ''
-
       const html = `
 <div style="font-family:'Trebuchet MS',sans-serif;max-width:600px;margin:0 auto;background:#ffffff;">
-  <!-- Header -->
   <div style="background:#0d4f4f;padding:24px 28px;border-radius:8px 8px 0 0;">
     <p style="margin:0;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.7);">SIGS Photography</p>
     <h1 style="margin:6px 0 0;font-family:Georgia,serif;font-size:22px;color:#ffffff;">Crew Call Sheet</h1>
   </div>
 
   <div style="padding:24px 28px;border:1px solid #e7e1d8;border-top:none;border-radius:0 0 8px 8px;">
+    <!-- Jean's phone — TOP -->
+    <div style="background:#e6f4f1;border-radius:6px;padding:8px 14px;margin-bottom:16px;text-align:center;">
+      <p style="margin:0;font-size:14px;font-weight:700;color:#0d4f4f;">📞 Questions? Call Jean: (416) 731-6748</p>
+    </div>
+
     <!-- Wedding Details -->
     <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
       <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;width:100px;">Couple</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(couple_name)}</td></tr>
       <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Date</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${dayUpper}, ${esc(dateFormatted)}</td></tr>
-      ${ceremony_location ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Ceremony</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(ceremony_location)}</td></tr>` : ''}
-      ${reception_venue ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Reception</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(reception_venue)}</td></tr>` : ''}
-      ${park_location ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Park</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(park_location)}</td></tr>` : ''}
+      ${weatherHtml}
+      ${ceremony_location ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Ceremony</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(ceremony_location)} <a href="${mapsUrl(ceremony_location)}" style="text-decoration:none;">📍</a></td></tr>` : ''}
+      ${reception_venue ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Reception</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(reception_venue)} <a href="${mapsUrl(reception_venue)}" style="text-decoration:none;">📍</a></td></tr>` : ''}
+      ${park_location ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Park</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(park_location)} <a href="${mapsUrl(park_location)}" style="text-decoration:none;">📍</a></td></tr>` : ''}
       ${coverageText ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Coverage</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(coverageText)}</td></tr>` : ''}
+      ${bridalPartyHtml}
     </table>
+
+    ${dressCodeHtml}
 
     <!-- Divider -->
     <div style="border-top:3px solid #0d4f4f;margin:20px 0;"></div>
@@ -213,13 +289,14 @@ export async function POST(request: NextRequest) {
       ${cm.meeting_point ? `
       <tr><td colspan="2" style="padding:12px 0 4px;">
         <p style="margin:0 0 4px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">Meeting Point</p>
-        <p style="margin:0;font-size:14px;color:#374151;">📍 ${esc(cm.meeting_point)}</p>
+        <p style="margin:0;font-size:14px;color:#374151;">${mpMapsUrl ? `<a href="${mpMapsUrl}" style="text-decoration:none;">📍</a> ` : '📍 '}${esc(cm.meeting_point)}</p>
         ${cm.meeting_point_time ? `<p style="margin:2px 0 0;font-size:14px;color:#374151;">⏰ Arrive by ${esc(cm.meeting_point_time)}</p>` : ''}
       </td></tr>` : ''}
       ${equipmentHtml}
       ${notesHtml}
+      ${vendorsHtml}
+      ${keyMomentsHtml}
       ${generalNotesHtml}
-      ${pdfNote}
     </table>
 
     <!-- Confirm Button -->
@@ -229,7 +306,7 @@ export async function POST(request: NextRequest) {
 
     <!-- Footer -->
     <div style="border-top:1px solid #e7e1d8;padding-top:16px;text-align:center;">
-      <p style="margin:0;font-size:13px;color:#6b7280;">Questions? Call Jean: (416) 731-6748</p>
+      <p style="margin:0;font-size:13px;color:#6b7280;">📞 Questions? Call Jean: (416) 731-6748</p>
     </div>
   </div>
 </div>`
@@ -242,11 +319,8 @@ export async function POST(request: NextRequest) {
         html,
       }
 
-      if (pdfAttachment) {
-        emailPayload.attachments = [{
-          filename: pdfAttachment.filename,
-          content: pdfAttachment.content,
-        }]
+      if (fileAttachments.length) {
+        emailPayload.attachments = fileAttachments.map(a => ({ filename: a.filename, content: a.content }))
       }
 
       try {
@@ -255,26 +329,21 @@ export async function POST(request: NextRequest) {
           emailResults.push({ name: cm.member_name, success: false, error: String(sendErr) })
         } else {
           emailResults.push({ name: cm.member_name, success: true })
-          // Mark as sent
-          await supabase
-            .from('crew_call_sheet_members')
-            .update({ email_sent: true, email_sent_at: new Date().toISOString() })
-            .eq('id', cm.id)
+          await supabase.from('crew_call_sheet_members').update({ email_sent: true, email_sent_at: new Date().toISOString() }).eq('id', cm.id)
         }
       } catch (err) {
         emailResults.push({ name: cm.member_name, success: false, error: String(err) })
       }
     }
 
-    // 5. Send Marianna a summary email
+    // 5. Summary email to Marianna
     const summaryRows = insertedMembers.map(cm => `
       <tr>
         <td style="padding:6px 12px;border-bottom:1px solid #e7e1d8;font-size:14px;font-weight:600;color:#1a1a1a;">${esc(cm.member_name)}</td>
         <td style="padding:6px 12px;border-bottom:1px solid #e7e1d8;font-size:14px;color:#374151;">${esc(cm.role)}</td>
         <td style="padding:6px 12px;border-bottom:1px solid #e7e1d8;font-size:14px;color:#374151;">${cm.call_time ? esc(cm.call_time) : '—'}</td>
         <td style="padding:6px 12px;border-bottom:1px solid #e7e1d8;font-size:14px;color:#374151;">${cm.meeting_point ? esc(cm.meeting_point) : '—'}</td>
-      </tr>
-    `).join('')
+      </tr>`).join('')
 
     const summaryHtml = `
 <div style="font-family:'Trebuchet MS',sans-serif;max-width:640px;margin:0 auto;background:#ffffff;">
@@ -286,17 +355,16 @@ export async function POST(request: NextRequest) {
     <p style="font-size:15px;font-weight:700;color:#1a1a1a;margin:0 0 4px;">${esc(couple_name)}</p>
     <p style="font-size:14px;color:#6b7280;margin:0 0 20px;">${dayUpper}, ${esc(dateFormatted)}</p>
     <table style="width:100%;border-collapse:collapse;">
-      <thead>
-        <tr style="background:#faf8f5;">
-          <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Name</th>
-          <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Role</th>
-          <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Call Time</th>
-          <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Meeting Point</th>
-        </tr>
-      </thead>
+      <thead><tr style="background:#faf8f5;">
+        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Name</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Role</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Call Time</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Meeting Point</th>
+      </tr></thead>
       <tbody>${summaryRows}</tbody>
     </table>
-    ${notes ? `<div style="margin-top:16px;padding:12px;background:#faf8f5;border-radius:8px;border:1px solid #e7e1d8;"><p style="margin:0;font-size:13px;color:#374151;"><strong>General Notes:</strong> ${esc(notes)}</p></div>` : ''}
+    ${dress_code ? `<p style="margin:16px 0 0;font-size:14px;font-weight:700;color:#1a1a1a;">👔 Dress Code: ${esc(dress_code)}</p>` : ''}
+    ${notes ? `<div style="margin-top:12px;padding:12px;background:#faf8f5;border-radius:8px;border:1px solid #e7e1d8;"><p style="margin:0;font-size:13px;color:#374151;"><strong>Notes:</strong> ${esc(notes)}</p></div>` : ''}
     <p style="margin:20px 0 0;font-size:13px;color:#6b7280;">Sent by Jean via StudioFlow</p>
   </div>
 </div>`
@@ -308,15 +376,9 @@ export async function POST(request: NextRequest) {
         subject: `Crew Call Sheet Sent — ${couple_name} | ${subjectDate}`,
         html: summaryHtml,
       })
-    } catch {
-      // Non-critical — summary email failure doesn't block
-    }
+    } catch { /* non-critical */ }
 
-    return NextResponse.json({
-      success: true,
-      call_sheet_id: callSheetId,
-      emails: emailResults,
-    })
+    return NextResponse.json({ success: true, call_sheet_id: callSheetId, emails: emailResults })
   } catch (err) {
     console.error('[crew-call-sheet] Error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
