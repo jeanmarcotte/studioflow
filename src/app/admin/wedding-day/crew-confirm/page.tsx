@@ -106,14 +106,32 @@ interface WeatherData {
 // ── Time Helpers ──────────────────────────────────────────────────
 
 function parseTimeStr(t: string): number | null {
-  const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
-  if (!match) return null
-  let h = parseInt(match[1])
-  const m = parseInt(match[2])
-  const ampm = match[3].toUpperCase()
-  if (ampm === 'PM' && h !== 12) h += 12
-  if (ampm === 'AM' && h === 12) h = 0
-  return h * 60 + m
+  if (!t) return null
+  // Format: "7:30 AM" or "10:30 PM"
+  const match12 = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
+  if (match12) {
+    let h = parseInt(match12[1])
+    const m = parseInt(match12[2])
+    const ampm = match12[3].toUpperCase()
+    if (ampm === 'PM' && h !== 12) h += 12
+    if (ampm === 'AM' && h === 12) h = 0
+    return h * 60 + m
+  }
+  // Format: "10:30" (24h)
+  const match24 = t.match(/^(\d{1,2}):(\d{2})$/)
+  if (match24) {
+    return parseInt(match24[1]) * 60 + parseInt(match24[2])
+  }
+  // Format: "10am" or "10pm"
+  const matchShort = t.match(/^(\d{1,2})\s*(am|pm)$/i)
+  if (matchShort) {
+    let h = parseInt(matchShort[1])
+    const ampm = matchShort[2].toUpperCase()
+    if (ampm === 'PM' && h !== 12) h += 12
+    if (ampm === 'AM' && h === 12) h = 0
+    return h * 60
+  }
+  return null
 }
 
 function minutesToTimeStr(mins: number): string {
@@ -237,7 +255,6 @@ export default function CrewCallSheetPage() {
   const [newMpName, setNewMpName] = useState('')
   const [newMpAddress, setNewMpAddress] = useState('')
   const [loading, setLoading] = useState(true)
-  const [groomStartTime, setGroomStartTime] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // ── Fetch data ─────────────────────────────────────────────────
@@ -319,10 +336,10 @@ export default function CrewCallSheetPage() {
 
   // ── Fetch wedding day form data ────────────────────────────────
 
-  const fetchWeddingDayForm = useCallback(async (coupleId: string, defaultCallTime: string) => {
+  const fetchWeddingDayForm = useCallback(async (coupleId: string) => {
     const { data } = await supabase
       .from('wedding_day_forms')
-      .select('bridal_party_count, vendor_dj_mc, vendor_floral, vendor_makeup, vendor_hair, vendor_wedding_planner, vendor_transportation, groom_start_time')
+      .select('bridal_party_count, vendor_dj_mc, vendor_floral, vendor_makeup, vendor_hair, vendor_wedding_planner, vendor_transportation')
       .eq('couple_id', coupleId)
       .limit(1)
 
@@ -338,13 +355,7 @@ export default function CrewCallSheetPage() {
         makeup: form.vendor_makeup || '', hair: form.vendor_hair || '',
         planner: form.vendor_wedding_planner || '', transport: form.vendor_transportation || '',
       })
-      // Use groom_start_time for meeting point time default
-      const gst = form.groom_start_time || ''
-      setGroomStartTime(gst)
-      return gst
     }
-    setGroomStartTime('')
-    return ''
   }, [])
 
   // ── Fetch uploaded docs for couple ─────────────────────────────
@@ -371,7 +382,7 @@ export default function CrewCallSheetPage() {
       setCrewEntries([]); setSentTimestamp(null); setHistory([])
       setDressCode(''); setBridesmaids(''); setGroomsmen('')
       setVendors({ dj_mc: '', florist: '', makeup: '', hair: '', planner: '', transport: '' })
-      setKeyMoments(''); setGroomStartTime('')
+      setKeyMoments('')
       setWeather({ high: null, low: null, precipitation: null, sunrise: null, sunset: null, available: false })
       setUploadedDocs([]); setUploadError('')
       return
@@ -380,66 +391,52 @@ export default function CrewCallSheetPage() {
     const contract = contracts.find(c => c.couple_id === selectedCoupleId)
     const couple = couples.find(c => c.id === selectedCoupleId)
 
-    // Auto-calculate call time: 1 hour before start_time
-    let defaultCallTime = ''
-    if (contract?.start_time) {
-      const startMins = parseTimeStr(contract.start_time)
-      if (startMins !== null) defaultCallTime = minutesToTimeStr(startMins - 60)
+    // ── All times derive from contracts.start_time ──
+    const startMins = contract?.start_time ? parseTimeStr(contract.start_time) : null
+    const endMins = contract?.end_time ? parseTimeStr(contract.end_time) : null
+
+    const defaultCallTime = startMins !== null ? minutesToTimeStr(startMins - 60) : ''         // start - 1hr
+    const defaultMeetingTime = startMins !== null ? minutesToTimeStr(startMins) : ''            // = start_time
+    const defaultEquipPickup = startMins !== null ? minutesToTimeStr(startMins - 90) : ''       // meeting - 90min
+    const defaultEquipDropoff = endMins !== null ? minutesToTimeStr(endMins) : ''               // = end_time
+
+    const entries: CrewEntry[] = []
+    let isFirst = true
+    const addEntry = (name: string | null, role: string) => {
+      if (!name) return
+      const member = teamMembers.find(m => m.first_name === name)
+      if (!member) return
+      const isLead = isFirst
+      entries.push({
+        team_member_id: member.id,
+        member_name: `${member.first_name} ${member.last_name || ''}`.trim(),
+        member_email: member.email || '', role, checked: true,
+        call_time: defaultCallTime,
+        meeting_point_id: '', meeting_point: '', meeting_point_address: '',
+        meeting_point_maps_url: '', meeting_point_custom: '',
+        meeting_point_time: defaultMeetingTime,
+        equipment_pickup_location: isLead ? "Jean's house" : '',
+        equipment_pickup_time: isLead ? defaultEquipPickup : '',
+        equipment_dropoff_location: '',
+        equipment_dropoff_time: isLead ? defaultEquipDropoff : '',
+        special_notes: '', showEquipment: isLead,
+      })
+      isFirst = false
     }
 
-    // Build entries first, then update meeting point time after form fetch
-    const buildEntries = (meetingPointTime: string) => {
-      // Equipment pickup time: 90 min before meeting point time
-      let defaultEquipPickupTime = ''
-      if (meetingPointTime) {
-        const mpMins = parseTimeStr(meetingPointTime)
-        if (mpMins !== null) defaultEquipPickupTime = minutesToTimeStr(mpMins - 90)
-      } else if (defaultCallTime) {
-        const callMins = parseTimeStr(defaultCallTime)
-        if (callMins !== null) defaultEquipPickupTime = minutesToTimeStr(callMins - 90)
-      }
-
-      const entries: CrewEntry[] = []
-      let isFirst = true
-      const addEntry = (name: string | null, role: string) => {
-        if (!name) return
-        const member = teamMembers.find(m => m.first_name === name)
-        if (!member) return
-        const isLead = isFirst
-        entries.push({
-          team_member_id: member.id,
-          member_name: `${member.first_name} ${member.last_name || ''}`.trim(),
-          member_email: member.email || '', role, checked: true,
-          call_time: defaultCallTime,
-          meeting_point_id: '', meeting_point: '', meeting_point_address: '',
-          meeting_point_maps_url: '', meeting_point_custom: '',
-          meeting_point_time: meetingPointTime || defaultCallTime,
-          equipment_pickup_location: isLead ? "Jean's house" : '',
-          equipment_pickup_time: isLead ? defaultEquipPickupTime : '',
-          equipment_dropoff_location: '', equipment_dropoff_time: '',
-          special_notes: '', showEquipment: isLead,
-        })
-        isFirst = false
-      }
-
-      addEntry(selectedAssignment.photo_1, 'Lead Photographer')
-      addEntry(selectedAssignment.photo_2, '2nd Photographer')
-      addEntry(selectedAssignment.video_1, 'Videographer')
-      setCrewEntries(entries)
-    }
+    addEntry(selectedAssignment.photo_1, 'Lead Photographer')
+    addEntry(selectedAssignment.photo_2, '2nd Photographer')
+    addEntry(selectedAssignment.video_1, 'Videographer')
+    setCrewEntries(entries)
 
     setSentTimestamp(null)
     fetchHistory(selectedCoupleId)
     fetchUploadedDocs(selectedCoupleId)
+    fetchWeddingDayForm(selectedCoupleId)
 
     if (couple?.wedding_date) {
       fetchWeather(couple.wedding_date, contract?.reception_venue || '')
     }
-
-    // Fetch form, then build entries with groom_start_time
-    fetchWeddingDayForm(selectedCoupleId, defaultCallTime).then(gst => {
-      buildEntries(gst)
-    })
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCoupleId, selectedAssignment, teamMembers])
@@ -462,7 +459,21 @@ export default function CrewCallSheetPage() {
   // ── Crew entry updates ─────────────────────────────────────────
 
   const updateEntry = (idx: number, field: keyof CrewEntry, value: any) => {
-    setCrewEntries(prev => prev.map((e, i) => i === idx ? { ...e, [field]: value } : e))
+    if (field === 'meeting_point_time') {
+      // Sync meeting point time across ALL crew members
+      const newPickup = (() => {
+        const mins = parseTimeStr(value)
+        return mins !== null ? minutesToTimeStr(mins - 90) : ''
+      })()
+      setCrewEntries(prev => prev.map((e, i) => ({
+        ...e,
+        meeting_point_time: value,
+        // Recalculate equipment pickup time for lead (first entry with showEquipment)
+        equipment_pickup_time: e.showEquipment ? newPickup : e.equipment_pickup_time,
+      })))
+    } else {
+      setCrewEntries(prev => prev.map((e, i) => i === idx ? { ...e, [field]: value } : e))
+    }
   }
 
   const handleMeetingPointChange = (idx: number, mpId: string) => {
@@ -505,19 +516,18 @@ export default function CrewCallSheetPage() {
   const addCrewMember = (member: TeamMember) => {
     if (crewEntries.some(e => e.team_member_id === member.id)) return
     const contract = contracts.find(c => c.couple_id === selectedCoupleId)
-    let defaultCallTime = ''
-    if (contract?.start_time) {
-      const startMins = parseTimeStr(contract.start_time)
-      if (startMins !== null) defaultCallTime = minutesToTimeStr(startMins - 60)
-    }
-    const mpTime = groomStartTime || defaultCallTime
+    const startMins = contract?.start_time ? parseTimeStr(contract.start_time) : null
+    const defaultCallTime = startMins !== null ? minutesToTimeStr(startMins - 60) : ''
+    const defaultMeetingTime = startMins !== null ? minutesToTimeStr(startMins) : ''
+    // Inherit current meeting point time from existing crew if already changed
+    const existingMpTime = crewEntries[0]?.meeting_point_time || defaultMeetingTime
     setCrewEntries(prev => [...prev, {
       team_member_id: member.id,
       member_name: `${member.first_name} ${member.last_name || ''}`.trim(),
       member_email: member.email || '', role: '2nd Photographer', checked: true,
       call_time: defaultCallTime,
       meeting_point_id: '', meeting_point: '', meeting_point_address: '',
-      meeting_point_maps_url: '', meeting_point_custom: '', meeting_point_time: mpTime,
+      meeting_point_maps_url: '', meeting_point_custom: '', meeting_point_time: existingMpTime,
       equipment_pickup_location: '', equipment_pickup_time: '',
       equipment_dropoff_location: '', equipment_dropoff_time: '',
       special_notes: '', showEquipment: false,
@@ -870,7 +880,7 @@ export default function CrewCallSheetPage() {
                     {/* Row 1: Call Time + Meeting Point Time */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                       <TimePicker label="Call Time" value={entry.call_time} onChange={v => updateEntry(idx, 'call_time', v)} />
-                      <TimePicker label="Meeting Point Time" value={entry.meeting_point_time} onChange={v => updateEntry(idx, 'meeting_point_time', v)} />
+                      <TimePicker label="1st Location Start" value={entry.meeting_point_time} onChange={v => updateEntry(idx, 'meeting_point_time', v)} />
                     </div>
 
                     {/* Meeting Point Dropdown */}
