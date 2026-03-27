@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Loader2 } from 'lucide-react';
@@ -13,6 +13,7 @@ import { InstallmentsTable } from './components/InstallmentsTable';
 import { AdditionalPurchases } from './components/AdditionalPurchases';
 import { BalanceSheet } from './components/BalanceSheet';
 import { DocumentsSection } from './components/DocumentsSection';
+import { PickupSlipSection } from './components/PickupSlipSection';
 import {
   ClientJourney,
   NotesSection,
@@ -37,6 +38,7 @@ export default function CoupleDetailPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [rawExtrasOrders, setRawExtrasOrders] = useState<any[]>([]);
   const [clientExtras, setClientExtras] = useState<any[]>([]);
+  const [docsRefreshKey, setDocsRefreshKey] = useState(0);
 
   useEffect(() => {
     async function fetchData() {
@@ -296,6 +298,16 @@ export default function CoupleDetailPage() {
 
       <DocumentsSection
         coupleId={coupleId}
+        hasClientExtras={clientExtras.length > 0}
+        hasExtrasOrders={rawExtrasOrders.length > 0}
+        refreshKey={docsRefreshKey}
+      />
+
+      <PickupSlipSection
+        coupleId={coupleId}
+        brideName={[couple.bride_first_name, couple.bride_last_name].filter(Boolean).join(' ')}
+        groomName={[couple.groom_first_name, couple.groom_last_name].filter(Boolean).join(' ')}
+        onGenerated={() => setDocsRefreshKey(k => k + 1)}
       />
 
     </div>
