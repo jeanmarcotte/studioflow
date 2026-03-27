@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { ShoppingBag, DollarSign, ChevronUp, ChevronDown } from 'lucide-react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { ShoppingBag, DollarSign, ChevronUp, ChevronDown, Plus, X, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { format, parseISO } from 'date-fns'
 
@@ -28,8 +28,24 @@ interface ExtrasRow {
   wedding_year: number | null
 }
 
+interface CoupleOption {
+  id: string
+  couple_name: string
+  wedding_date: string | null
+}
+
+interface FormItem {
+  item_type: string
+  description: string
+  quantity: number
+  unit_price: number
+  tax_mode: 'before' | 'included' | 'none'
+}
+
 type SortField = 'invoice_date' | 'couple_name' | 'item_type' | 'description' | 'total' | 'discount_value' | 'status' | 'payment_note'
 type SortDir = 'asc' | 'desc'
+
+const ITEM_TYPES = ['Additional Person', 'Hi Res Files', 'Hours', 'Parent Album', 'Print', 'Raw Video']
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -61,6 +77,357 @@ function statusBadge(status: string | null) {
   }
 }
 
+function calcItemTotals(item: FormItem) {
+  const lineSubtotal = item.quantity * item.unit_price
+  let hst = 0
+  if (item.tax_mode === 'before') {
+    hst = lineSubtotal * 0.13
+  } else if (item.tax_mode === 'included') {
+    // Tax already included — back it out for display
+    hst = lineSubtotal - lineSubtotal / 1.13
+  }
+  const total = item.tax_mode === 'included' ? lineSubtotal : lineSubtotal + hst
+  return { subtotal: lineSubtotal, hst: Math.round(hst * 100) / 100, total: Math.round(total * 100) / 100 }
+}
+
+function emptyItem(): FormItem {
+  return { item_type: '', description: '', quantity: 1, unit_price: 0, tax_mode: 'before' }
+}
+
+// ── New Sale Modal ──────────────────────────────────────────────────────────
+
+function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; onClose: () => void; onSaved: () => void }) {
+  const [coupleId, setCoupleId] = useState('')
+  const [items, setItems] = useState<FormItem[]>([emptyItem()])
+  const [discountType, setDiscountType] = useState<'percent' | 'fixed' | ''>('')
+  const [discountValue, setDiscountValue] = useState<number>(0)
+  const [paymentNote, setPaymentNote] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState('')
+
+  const updateItem = (i: number, patch: Partial<FormItem>) => {
+    setItems(prev => prev.map((item, idx) => idx === i ? { ...item, ...patch } : item))
+  }
+
+  const removeItem = (i: number) => {
+    if (items.length <= 1) return
+    setItems(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  // Running totals
+  const totals = useMemo(() => {
+    let subtotal = 0
+    let hst = 0
+    let total = 0
+    for (const item of items) {
+      const t = calcItemTotals(item)
+      subtotal += t.subtotal
+      hst += t.hst
+      total += t.total
+    }
+    // Apply discount
+    let discountAmt = 0
+    if (discountType === 'percent' && discountValue > 0) {
+      discountAmt = total * discountValue / 100
+    } else if (discountType === 'fixed' && discountValue > 0) {
+      discountAmt = discountValue
+    }
+    return {
+      subtotal: Math.round(subtotal * 100) / 100,
+      hst: Math.round(hst * 100) / 100,
+      total: Math.round(total * 100) / 100,
+      discountAmt: Math.round(discountAmt * 100) / 100,
+      grandTotal: Math.round((total - discountAmt) * 100) / 100,
+    }
+  }, [items, discountType, discountValue])
+
+  const selectedCouple = couples.find(c => c.id === coupleId)
+
+  const handleSubmit = async () => {
+    if (!coupleId || items.some(i => !i.item_type || i.unit_price <= 0)) return
+
+    setSaving(true)
+    const invoiceDate = new Date().toISOString().split('T')[0]
+    const coupleName = selectedCouple?.couple_name || ''
+
+    try {
+      // Insert each item as a separate row
+      for (const item of items) {
+        const t = calcItemTotals(item)
+
+        // Apply discount proportionally if multiple items
+        let itemDiscountAmt = 0
+        if (totals.discountAmt > 0 && totals.total > 0) {
+          itemDiscountAmt = totals.discountAmt * (t.total / totals.total)
+        }
+        const finalTotal = Math.round((t.total - itemDiscountAmt) * 100) / 100
+
+        const { data: inserted, error: insertErr } = await supabase
+          .from('client_extras')
+          .insert({
+            couple_id: coupleId,
+            item_type: item.item_type,
+            description: item.description || null,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            tax_mode: item.tax_mode,
+            subtotal: item.tax_mode === 'included' ? Math.round((t.subtotal / 1.13) * 100) / 100 : t.subtotal,
+            hst: t.hst,
+            total: finalTotal,
+            discount_type: discountType || null,
+            discount_value: discountValue > 0 ? discountValue : null,
+            payment_note: paymentNote || null,
+            status: 'pending',
+            invoice_date: invoiceDate,
+          })
+          .select('id')
+          .single()
+
+        if (insertErr) {
+          console.error('Insert error:', insertErr)
+          setToast('Error saving — check console')
+          setSaving(false)
+          return
+        }
+
+        // Insert couple_charges row
+        if (inserted) {
+          await supabase.from('couple_charges').insert({
+            couple_id: coupleId,
+            charge_date: invoiceDate,
+            contract_type: 'C3',
+            description: `${item.item_type} — ${coupleName}`,
+            amount: finalTotal,
+            source_table: 'client_extras',
+            source_id: inserted.id,
+          })
+        }
+      }
+
+      setToast('Sale saved!')
+      setTimeout(() => {
+        onSaved()
+        onClose()
+      }, 800)
+    } catch (err) {
+      console.error('Save error:', err)
+      setToast('Error saving — check console')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 px-4" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/40" />
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+          <h2 className="text-lg font-bold">New Extras Sale</h2>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-5 w-5" /></button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {/* Couple selector */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Couple</label>
+            <select
+              value={coupleId}
+              onChange={e => setCoupleId(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="">Select a couple...</option>
+              {couples.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.couple_name}{c.wedding_date ? ` — ${fmtDate(c.wedding_date)}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Items */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Items</label>
+            <div className="space-y-3">
+              {items.map((item, i) => (
+                <div key={i} className="rounded-xl border bg-gray-50 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-400 uppercase">Item {i + 1}</span>
+                    {items.length > 1 && (
+                      <button onClick={() => removeItem(i)} className="p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Item Type</label>
+                      <select
+                        value={item.item_type}
+                        onChange={e => updateItem(i, { item_type: e.target.value })}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      >
+                        <option value="">Select...</option>
+                        {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Description</label>
+                      <input
+                        type="text"
+                        value={item.description}
+                        onChange={e => updateItem(i, { description: e.target.value })}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        placeholder="Description"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Quantity</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={item.quantity}
+                        onChange={e => updateItem(i, { quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Unit Price</label>
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={item.unit_price || ''}
+                        onChange={e => updateItem(i, { unit_price: parseFloat(e.target.value) || 0 })}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Tax</label>
+                    <div className="flex gap-2">
+                      {([['before', '+ Tax (13%)'], ['included', 'Tax Included'], ['none', 'No Tax']] as const).map(([val, label]) => (
+                        <button
+                          key={val}
+                          onClick={() => updateItem(i, { tax_mode: val })}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                            item.tax_mode === val
+                              ? 'bg-teal-600 text-white border-teal-600'
+                              : 'bg-white text-gray-600 border-gray-300 hover:border-teal-400'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Item line total */}
+                  <div className="text-right text-sm text-gray-500">
+                    Line total: <span className="font-semibold text-gray-800">{fmtMoney(calcItemTotals(item).total)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setItems(prev => [...prev, emptyItem()])}
+              className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-teal-600 hover:text-teal-700"
+            >
+              <Plus className="h-4 w-4" /> Add Item
+            </button>
+          </div>
+
+          {/* Discount */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Discount (optional)</label>
+            <div className="flex gap-2 items-center">
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={discountValue || ''}
+                onChange={e => {
+                  setDiscountValue(parseFloat(e.target.value) || 0)
+                  if (!discountType) setDiscountType('fixed')
+                }}
+                className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="0"
+              />
+              <div className="flex gap-1">
+                {([['fixed', '$'], ['percent', '%']] as const).map(([val, label]) => (
+                  <button
+                    key={val}
+                    onClick={() => setDiscountType(val)}
+                    className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
+                      discountType === val
+                        ? 'bg-teal-600 text-white border-teal-600'
+                        : 'bg-white text-gray-600 border-gray-300 hover:border-teal-400'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Note */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Payment Note</label>
+            <input
+              type="text"
+              value={paymentNote}
+              onChange={e => setPaymentNote(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="When / How will they pay?"
+            />
+          </div>
+
+          {/* Running Total */}
+          <div className="rounded-xl bg-gray-50 border p-4 space-y-1">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Subtotal</span>
+              <span>{fmtMoney(totals.subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">HST (13%)</span>
+              <span>{fmtMoney(totals.hst)}</span>
+            </div>
+            {totals.discountAmt > 0 && (
+              <div className="flex justify-between text-sm text-red-600">
+                <span>Discount</span>
+                <span>-{fmtMoney(totals.discountAmt)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-base font-bold border-t pt-2 mt-2">
+              <span>TOTAL</span>
+              <span className="text-green-700">{fmtMoney(totals.grandTotal)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex items-center justify-between rounded-b-2xl">
+          {toast ? (
+            <span className={`text-sm font-medium ${toast.includes('Error') ? 'text-red-600' : 'text-green-600'}`}>{toast}</span>
+          ) : (
+            <span />
+          )}
+          <button
+            onClick={handleSubmit}
+            disabled={saving || !coupleId || items.some(i => !i.item_type || i.unit_price <= 0)}
+            className="inline-flex items-center gap-2 rounded-lg bg-teal-600 text-white px-5 py-2.5 text-sm font-semibold hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {saving ? 'Saving...' : 'Save Sale'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Component ──────────────────────────────────────────────────────────
 
 export default function ExtrasSalesPage() {
@@ -69,50 +436,62 @@ export default function ExtrasSalesPage() {
   const [yearFilter, setYearFilter] = useState<string>('all')
   const [sortField, setSortField] = useState<SortField>('invoice_date')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [showNewSale, setShowNewSale] = useState(false)
+  const [couples, setCouples] = useState<CoupleOption[]>([])
+  const [refreshKey, setRefreshKey] = useState(0)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('client_extras')
-          .select('id, couple_id, item_type, description, quantity, unit_price, subtotal, hst, total, discount_type, discount_value, payment_note, status, paid_date, invoice_date, couples(couple_name, wedding_date, wedding_year)')
-          .order('invoice_date', { ascending: false })
+  const fetchData = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('client_extras')
+        .select('id, couple_id, item_type, description, quantity, unit_price, subtotal, hst, total, discount_type, discount_value, payment_note, status, paid_date, invoice_date, couples(couple_name, wedding_date, wedding_year)')
+        .order('invoice_date', { ascending: false })
 
-        if (error) {
-          console.error('[ExtrasSalesPage] fetch error:', error)
-          setLoading(false)
-          return
-        }
-
-        setRows(
-          (data || []).map((r: any) => ({
-            id: r.id,
-            couple_id: r.couple_id,
-            item_type: r.item_type || '',
-            description: r.description,
-            quantity: r.quantity != null ? Number(r.quantity) : null,
-            unit_price: r.unit_price != null ? Number(r.unit_price) : null,
-            subtotal: r.subtotal != null ? Number(r.subtotal) : null,
-            hst: r.hst != null ? Number(r.hst) : null,
-            total: r.total != null ? Number(r.total) : null,
-            discount_type: r.discount_type,
-            discount_value: r.discount_value != null ? Number(r.discount_value) : null,
-            payment_note: r.payment_note,
-            status: r.status,
-            paid_date: r.paid_date,
-            invoice_date: r.invoice_date,
-            couple_name: r.couples?.couple_name || '—',
-            wedding_date: r.couples?.wedding_date || null,
-            wedding_year: r.couples?.wedding_year || null,
-          }))
-        )
+      if (error) {
+        console.error('[ExtrasSalesPage] fetch error:', error)
         setLoading(false)
-      } catch (err) {
-        console.error('[ExtrasSalesPage] error:', err)
-        setLoading(false)
+        return
       }
+
+      setRows(
+        (data || []).map((r: any) => ({
+          id: r.id,
+          couple_id: r.couple_id,
+          item_type: r.item_type || '',
+          description: r.description,
+          quantity: r.quantity != null ? Number(r.quantity) : null,
+          unit_price: r.unit_price != null ? Number(r.unit_price) : null,
+          subtotal: r.subtotal != null ? Number(r.subtotal) : null,
+          hst: r.hst != null ? Number(r.hst) : null,
+          total: r.total != null ? Number(r.total) : null,
+          discount_type: r.discount_type,
+          discount_value: r.discount_value != null ? Number(r.discount_value) : null,
+          payment_note: r.payment_note,
+          status: r.status,
+          paid_date: r.paid_date,
+          invoice_date: r.invoice_date,
+          couple_name: r.couples?.couple_name || '—',
+          wedding_date: r.couples?.wedding_date || null,
+          wedding_year: r.couples?.wedding_year || null,
+        }))
+      )
+      setLoading(false)
+    } catch (err) {
+      console.error('[ExtrasSalesPage] error:', err)
+      setLoading(false)
     }
-    fetchData()
+  }, [])
+
+  useEffect(() => { fetchData() }, [fetchData, refreshKey])
+
+  // Fetch couples for the modal
+  useEffect(() => {
+    supabase
+      .from('couples')
+      .select('id, couple_name, wedding_date')
+      .eq('status', 'booked')
+      .order('wedding_date', { ascending: true })
+      .then(({ data }) => setCouples(data || []))
   }, [])
 
   // Year filter
@@ -134,7 +513,6 @@ export default function ExtrasSalesPage() {
     const totalDiscount = active.reduce((sum, r) => {
       if (!r.discount_value) return sum
       if (r.discount_type === 'percent') {
-        // For percent discounts, calculate the dollar amount from subtotal
         return sum + ((r.subtotal || 0) * r.discount_value / 100)
       }
       return sum + r.discount_value
@@ -208,19 +586,13 @@ export default function ExtrasSalesPage() {
           <p className="text-muted-foreground">Post-contract add-ons & extras</p>
         </div>
         <div className="flex items-center gap-3">
-          <a
-            href="https://sigs-extras-invoice.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="relative inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-accent/50 transition-colors group"
-            title="Mobile entry (for Marianna)"
+          <button
+            onClick={() => setShowNewSale(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-teal-600 text-white px-4 py-2 text-sm font-semibold hover:bg-teal-700 transition-colors"
           >
-            <span className="text-lg">📱</span>
-            Mobile Entry
-            <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-stone-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity">
-              Mobile entry (for Marianna)
-            </span>
-          </a>
+            <Plus className="h-4 w-4" />
+            New Sale
+          </button>
           {years.length > 0 && (
             <select
               value={yearFilter}
@@ -340,6 +712,15 @@ export default function ExtrasSalesPage() {
           </div>
         </div>
       </div>
+
+      {/* New Sale Modal */}
+      {showNewSale && (
+        <NewSaleModal
+          couples={couples}
+          onClose={() => setShowNewSale(false)}
+          onSaved={() => setRefreshKey(k => k + 1)}
+        />
+      )}
     </div>
   )
 }
