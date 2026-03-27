@@ -84,7 +84,7 @@ export function ClientCard({ couple, contract, extrasOrders }: ClientCardProps) 
         fontSize: '1.75rem', fontWeight: 400, color: T.text,
         lineHeight: 1.2, margin: '0 0 0.5rem',
       }}>
-        {couple.couple_name} — {nV > 0 ? 'Photo & Video' : 'Photo Only'}
+        {couple.couple_name} <span style={{ fontSize: '1.1rem', color: T.textSecondary }}>— {nV > 0 ? 'Photo & Video' : 'Photo Only'}</span>
       </h1>
 
       {/* ── Wedding date + meta ────────────────────────────── */}
