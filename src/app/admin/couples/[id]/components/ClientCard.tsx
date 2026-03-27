@@ -79,13 +79,26 @@ export function ClientCard({ couple, contract, extrasOrders }: ClientCardProps) 
 
   return (
     <div style={{ ...card, padding: '2rem 2.25rem' }}>
-      {/* ── Name ──────────────────────────────────────────── */}
+      {/* ── Name + Service Type ─────────────────────────────── */}
       <h1 className={display.className} style={{
         fontSize: '1.75rem', fontWeight: 400, color: T.text,
-        lineHeight: 1.2, margin: '0 0 1.5rem',
+        lineHeight: 1.2, margin: '0 0 0.5rem',
       }}>
-        {couple.couple_name}
+        {couple.couple_name} — {nV > 0 ? 'Photo & Video' : 'Photo Only'}
       </h1>
+
+      {/* ── Wedding date + meta ────────────────────────────── */}
+      <div style={{ marginBottom: '1.25rem' }}>
+        <div style={{ fontSize: '0.8125rem', color: T.text, marginBottom: '0.25rem' }}>
+          {weddingStr}
+          <span style={{ color: T.textSecondary, marginLeft: '0.75rem' }}>
+            {isPast ? `${Math.abs(daysUntil)} days since wedding` : `${daysUntil} days until wedding`}
+          </span>
+        </div>
+        {meta.length > 0 && (
+          <div style={{ fontSize: '0.8125rem', color: T.textSecondary }}>{meta.join(' · ')}</div>
+        )}
+      </div>
 
       {/* ── 3-column grid ─────────────────────────────────── */}
       <div style={{
@@ -124,18 +137,6 @@ export function ClientCard({ couple, contract, extrasOrders }: ClientCardProps) 
         {extrasOrders.length > 0 && <Badge v="warning">Extras Purchased</Badge>}
       </div>
 
-      {/* ── Subtext ───────────────────────────────────────── */}
-      <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: '0.875rem' }}>
-        <div style={{ fontSize: '0.8125rem', color: T.text, marginBottom: '0.25rem' }}>
-          {weddingStr}
-          <span style={{ color: T.textSecondary, marginLeft: '0.75rem' }}>
-            {isPast ? `${Math.abs(daysUntil)} days since wedding` : `${daysUntil} days until wedding`}
-          </span>
-        </div>
-        {meta.length > 0 && (
-          <div style={{ fontSize: '0.8125rem', color: T.textSecondary }}>{meta.join(' · ')}</div>
-        )}
-      </div>
     </div>
   );
 }
