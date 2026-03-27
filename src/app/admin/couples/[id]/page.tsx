@@ -295,9 +295,7 @@ export default function CoupleDetailPage() {
       )}
 
       <DocumentsSection
-        contract={contract}
-        extrasOrders={rawExtrasOrders}
-        clientExtras={clientExtras}
+        coupleId={coupleId}
       />
 
     </div>
