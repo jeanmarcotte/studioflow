@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { Resend } from 'resend'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // Look up the crew member by confirmation token
   const { data: members, error } = await supabase
     .from('crew_call_sheet_members')
-    .select('id, member_name, confirmed, confirmed_at, call_sheet_id')
+    .select('id, member_name, role, confirmed, confirmed_at, call_sheet_id')
     .eq('confirmation_token', token)
     .limit(1)
 
@@ -45,10 +46,48 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   // Mark as confirmed
+  const confirmedAt = new Date()
   await supabase
     .from('crew_call_sheet_members')
-    .update({ confirmed: true, confirmed_at: new Date().toISOString() })
+    .update({ confirmed: true, confirmed_at: confirmedAt.toISOString() })
     .eq('id', member.id)
+
+  // Send notification email to Jean + info
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const coupleName = couple?.couple_name || 'Unknown Couple'
+    const confirmedAtToronto = confirmedAt.toLocaleString('en-US', {
+      timeZone: 'America/Toronto',
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+
+    await resend.emails.send({
+      from: 'SIGS Photography <noreply@sigsphoto.ca>',
+      to: ['jeanmarcotte@gmail.com', 'info@sigsphoto.ca'],
+      subject: `✅ ${member.member_name} confirmed — ${coupleName} | ${weddingDate}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;">
+          <div style="background:#0d4f4f;color:white;padding:20px 24px;border-radius:8px 8px 0 0;">
+            <h2 style="margin:0;font-size:18px;">✅ Crew Confirmation</h2>
+          </div>
+          <div style="padding:20px 24px;background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
+            <p style="margin:0 0 12px;font-size:15px;color:#111827;"><strong>${member.member_name}</strong> just confirmed for <strong>${coupleName}</strong>'s wedding on <strong>${weddingDate}</strong>.</p>
+            <p style="margin:0 0 4px;font-size:14px;color:#374151;"><strong>Role:</strong> ${member.role || 'Not specified'}</p>
+            <p style="margin:0 0 16px;font-size:14px;color:#374151;"><strong>Confirmed at:</strong> ${confirmedAtToronto}</p>
+            <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />
+            <p style="margin:0;"><a href="https://studioflow-zeta.vercel.app/admin/wedding-day/crew-confirm" style="color:#0d9488;text-decoration:none;font-weight:600;">View Crew Call Sheet →</a></p>
+          </div>
+        </div>
+      `,
+    })
+  } catch (emailErr) {
+    console.error('[Crew confirm] Notification email failed:', emailErr)
+  }
 
   return new NextResponse(
     htmlPage('Confirmed!', `Thanks ${member.member_name}! You're all set. See you on ${weddingDate}.`, '#0d4f4f'),
