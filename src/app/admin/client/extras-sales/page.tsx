@@ -1,10 +1,5 @@
-import { UnderConstruction } from '@/components/under-construction'
+import { redirect } from 'next/navigation'
 
-export default function ClientExtrasSalesPage() {
-  return (
-    <UnderConstruction
-      title="Extras Sales"
-      description="Extras sales tools for client-facing orders."
-    />
-  )
+export default function ExtrasRedirect() {
+  redirect('/admin/sales/extras')
 }
