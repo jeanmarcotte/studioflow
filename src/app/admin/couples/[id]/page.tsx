@@ -8,10 +8,7 @@ import Link from 'next/link';
 
 import { ClientCard } from './components/ClientCard';
 import { TeamSection } from './components/TeamSection';
-import { FinancialSummary } from './components/FinancialSummary';
-import { InstallmentsTable } from './components/InstallmentsTable';
-import { AdditionalPurchases } from './components/AdditionalPurchases';
-import { BalanceSheet } from './components/BalanceSheet';
+import { FinanceSection } from './components/FinanceSection';
 import { DocumentsSection } from './components/DocumentsSection';
 import { PickupSlipSection } from './components/PickupSlipSection';
 import {
@@ -234,29 +231,12 @@ export default function CoupleDetailPage() {
         coupleId={coupleId}
       />
 
-      <FinancialSummary
+      <FinanceSection
         contractTotal={contractTotal}
-        framesTotal={rawFramesTotal}
-        extrasTotal={rawClientExtrasTotal}
-        totalPaid={totalPaid}
-      />
-
-      <InstallmentsTable
         installments={installments}
-        totalPaid={totalPaid}
-      />
-
-      <AdditionalPurchases
-        extrasOrders={rawExtrasOrders}
-        clientExtras={clientExtras}
-      />
-
-      <BalanceSheet
         payments={payments}
-        contractInstallments={installments}
-        contractTotal={contractTotal}
-        framesTotal={rawFramesTotal}
-        extrasTotal={rawClientExtrasTotal}
+        extrasOrder={rawExtrasOrders[0] || null}
+        clientExtras={clientExtras}
       />
 
       <ExtrasSection
