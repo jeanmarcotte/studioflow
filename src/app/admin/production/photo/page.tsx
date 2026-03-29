@@ -87,6 +87,7 @@ const getVendorInfo = (vendor: string | null) => {
 const LANES = [
   { key: 'not_started', label: 'Ready to Start', badge: 'bg-gray-100 text-gray-700' },
   { key: 'in_progress', label: 'In Progress', badge: 'bg-blue-100 text-blue-700' },
+  { key: 'proofs_delivered', label: 'Proofs Out', badge: 'bg-sky-100 text-sky-700' },
   { key: 'waiting_approval', label: 'Waiting for Bride', badge: 'bg-amber-100 text-amber-700' },
   { key: 'ready_to_reedit', label: 'Ready to Re-edit', badge: 'bg-orange-100 text-orange-700' },
   { key: 'reediting', label: 'Re-editing', badge: 'bg-rose-100 text-rose-700' },
@@ -100,6 +101,7 @@ const POPUP_LABELS: Record<string, string> = {
   active: 'Active Jobs',
   waiting_order: 'Waiting for Order',
   in_progress: 'In Progress',
+  proofs_delivered: 'Proofs Out',
   waiting_approval: 'Waiting for Bride',
   reedits: 'Re-edits',
   at_lab: 'At Lab',
@@ -134,7 +136,7 @@ export default function PhotoProductionPage() {
   const [sortDir, setSortDir] = useState<SortDir>('asc')
 
   // Collapsed lanes
-  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['not_started', 'waiting_approval', 'ready_to_order', 'at_lab', 'at_studio', 'on_hold']))
+  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['not_started', 'proofs_delivered', 'waiting_approval', 'ready_to_order', 'at_lab', 'at_studio', 'on_hold']))
 
   // Stats (fetched separately since main query excludes completed)
   const [completedCount, setCompletedCount] = useState(0)
@@ -429,6 +431,7 @@ export default function PhotoProductionPage() {
     switch (key) {
       case 'active': return jobs
       case 'in_progress': return jobs.filter(j => j.status === 'in_progress')
+      case 'proofs_delivered': return jobs.filter(j => j.status === 'proofs_delivered')
       case 'waiting_approval': return jobs.filter(j => j.status === 'waiting_approval')
       case 'reedits': return jobs.filter(j => j.status === 'ready_to_reedit' || j.status === 'reediting')
       case 'at_lab': return jobs.filter(j => j.status === 'at_lab')
