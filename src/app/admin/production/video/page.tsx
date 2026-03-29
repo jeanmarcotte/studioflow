@@ -163,6 +163,7 @@ export default function VideoProductionPage() {
   const [showCompletedRecaps, setShowCompletedRecaps] = useState(false)
   const [showCompletedSlideshows, setShowCompletedSlideshows] = useState(false)
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['completed']))
+  const [showVideoOut, setShowVideoOut] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null)
   const editingRef = useRef<HTMLDivElement>(null)
@@ -392,6 +393,11 @@ export default function VideoProductionPage() {
       }
     }
 
+    // Filter video_proofs_out from editing_full when toggle is off
+    if (!showVideoOut) {
+      lanes.editing_full = lanes.editing_full.filter(j => j.status !== 'video_proofs_out')
+    }
+
     // Sort each lane
     for (const key of Object.keys(lanes) as Exclude<SwimlaneKey, 'waiting_photo'>[]) {
       if (sortColumn) {
@@ -435,7 +441,7 @@ export default function VideoProductionPage() {
     }
 
     return lanes
-  }, [jobs, search, sortColumn, sortDirection, showCompleted, showCompletedRecaps, showCompletedSlideshows])
+  }, [jobs, search, sortColumn, sortDirection, showCompleted, showCompletedRecaps, showCompletedSlideshows, showVideoOut])
 
   // ── Stats ──────────────────────────────────────────────────────
 
@@ -462,7 +468,7 @@ export default function VideoProductionPage() {
 
     const remaining2025 = activeJobs.filter(j => {
       const wd = j.wedding_date || j.couples?.wedding_date
-      return wd && wd >= '2025-01-01' && wd <= '2025-12-31'
+      return j.job_type === 'FULL' && j.status !== 'complete' && wd && wd >= '2025-01-01' && wd <= '2025-12-31'
     }).length
     const remaining2026 = activeJobs.filter(j => {
       const wd = j.wedding_date || j.couples?.wedding_date
@@ -504,12 +510,15 @@ export default function VideoProductionPage() {
       if (!counts[j.job_type]) counts[j.job_type] = {}
       counts[j.job_type][j.status] = (counts[j.job_type][j.status] || 0) + 1
     }
+    const fullTotal = Object.values(counts['FULL'] || {}).reduce((s, n) => s + n, 0)
     return {
       fullInProgress: counts['FULL']?.['in_progress'] || 0,
       fullVideoOut: counts['FULL']?.['video_proofs_out'] || 0,
       fullWaitingBride: counts['FULL']?.['waiting_for_bride'] || 0,
-      fullWaitingRecap: counts['FULL']?.['waiting_on_recap'] || 0,
-      recapsNotStarted: counts['RECAP']?.['not_started'] || 0,
+      fullNotStarted: counts['FULL']?.['not_started'] || 0,
+      fullComplete: counts['FULL']?.['complete'] || 0,
+      fullTotal,
+      slideshowsNotStarted: counts['ENG_SLIDESHOW']?.['not_started'] || 0,
     }
   }, [jobs])
 
@@ -861,12 +870,20 @@ export default function VideoProductionPage() {
                     </span>
                   </button>
                   {lane.key === 'editing_full' && (
-                    <button
-                      onClick={() => setShowCompleted(!showCompleted)}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showCompleted ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type !== 'RECAP' && j.job_type !== 'ENG_SLIDESHOW').length})
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setShowVideoOut(!showVideoOut)}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showVideoOut ? 'Hide Video Out' : 'Show All'}
+                      </button>
+                      <button
+                        onClick={() => setShowCompleted(!showCompleted)}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showCompleted ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type !== 'RECAP' && j.job_type !== 'ENG_SLIDESHOW').length})
+                      </button>
+                    </div>
                   )}
                   {lane.key === 'editing_recap' && (
                     <button
@@ -1194,97 +1211,40 @@ export default function VideoProductionPage() {
 
         {/* Stats Sidebar */}
         <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
-          {/* Active Jobs */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Active Jobs
-            </div>
-            <div className="text-3xl font-bold">
-              {stats.totalJobs - stats.completedCount}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {stats.completedCount} non-active
-            </div>
-          </div>
-
-          {/* Recaps Pending */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Recaps Pending
-            </div>
-            <div className={`text-3xl font-bold ${stats.recapsPending > 0 ? 'text-violet-600' : 'text-foreground'}`}>
-              {stats.recapsPending}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Recap videos to edit</div>
-          </div>
-
-          {/* Slideshows Pending */}
-          {stats.slideshowsPending > 0 && (
-            <div className="rounded-xl border bg-card p-4 mb-4">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                Slideshows Pending
-              </div>
-              <div className="text-3xl font-bold text-pink-600">
-                {stats.slideshowsPending}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">Engagement slideshows to edit</div>
-            </div>
-          )}
-
-          {/* In Progress */}
+          {/* 1. In Progress */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               In Progress
             </div>
-            <div className="text-3xl font-bold">
-              {stats.inProgressCount}
+            <div className="text-3xl font-bold text-teal-600">
+              {pipelineStats.fullInProgress}
             </div>
             <div className="text-xs text-muted-foreground mt-1">Currently editing</div>
           </div>
 
-          {/* Waiting for Photo */}
+          {/* 2. Slideshows Pending */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Waiting for Photo
+              Slideshows Pending
             </div>
-            <div className="text-3xl font-bold">
-              {stats.onHoldCount}
+            <div className="text-3xl font-bold text-violet-600">
+              {pipelineStats.slideshowsNotStarted}
             </div>
-            <div className="text-xs text-muted-foreground mt-1">Waiting on photo order</div>
+            <div className="text-xs text-muted-foreground mt-1">Engagement slideshows to edit</div>
           </div>
 
-          {/* Editing Queue */}
+          {/* 3. Video Out */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Editing Queue
+              Video Out
             </div>
-            <div className="text-3xl font-bold">
-              {stats.editingCount}
+            <div className="text-3xl font-bold text-blue-600">
+              {pipelineStats.fullVideoOut}
             </div>
-            <div className="text-xs text-muted-foreground mt-1">Ready to edit</div>
+            <div className="text-xs text-muted-foreground mt-1">Sent, awaiting client feedback</div>
           </div>
 
-          {/* Divider */}
-          <div className="h-px bg-border my-6" />
-
-          {/* Videos Complete */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-foreground mb-3">
-              Videos Complete
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-green-500 rounded-full transition-all"
-                style={{ width: `${stats.totalJobs > 0 ? Math.round((stats.completedCount / stats.totalJobs) * 100) : 0}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground mt-2">
-              <span>{stats.completedCount} of {stats.totalJobs}</span>
-              <span>{stats.totalJobs > 0 ? Math.round((stats.completedCount / stats.totalJobs) * 100) : 0}%</span>
-            </div>
-          </div>
-
-          {/* 2025 Videos Remaining */}
+          {/* 4. 2025 Videos Remaining */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               2025 Videos Remaining
@@ -1294,7 +1254,7 @@ export default function VideoProductionPage() {
             </div>
           </div>
 
-          {/* 2026 Videos Remaining */}
+          {/* 5. 2026 Videos Remaining */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               2026 Videos Remaining
@@ -1304,59 +1264,43 @@ export default function VideoProductionPage() {
             </div>
           </div>
 
-          {/* Segments Done */}
+          {/* 6. Editing Queue */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Editing Queue
+            </div>
+            <div className="text-3xl font-bold">
+              {pipelineStats.fullNotStarted}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Ready to edit</div>
+          </div>
+
+          {/* 7. Waiting for Photo */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Waiting for Photo
+            </div>
+            <div className="text-3xl font-bold text-amber-600">
+              {pipelineStats.fullWaitingBride}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Waiting on photo order</div>
+          </div>
+
+          {/* 8. Videos Complete */}
           <div className="rounded-xl border bg-card p-4">
             <div className="text-xs font-semibold text-foreground mb-3">
-              Segments Done
+              Videos Complete
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-500 rounded-full transition-all"
-                style={{ width: `${stats.totalSegmentsPossible > 0 ? Math.round((stats.totalSegmentsDone / stats.totalSegmentsPossible) * 100) : 0}%` }}
+                className="h-full bg-green-500 rounded-full transition-all"
+                style={{ width: `${pipelineStats.fullTotal > 0 ? Math.round((pipelineStats.fullComplete / pipelineStats.fullTotal) * 100) : 0}%` }}
               />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground mt-2">
-              <span>{stats.totalSegmentsDone} of {stats.totalSegmentsPossible}</span>
-              <span>{stats.totalSegmentsPossible > 0 ? Math.round((stats.totalSegmentsDone / stats.totalSegmentsPossible) * 100) : 0}%</span>
+              <span>{pipelineStats.fullComplete} of {pipelineStats.fullTotal}</span>
+              <span>{pipelineStats.fullTotal > 0 ? Math.round((pipelineStats.fullComplete / pipelineStats.fullTotal) * 100) : 0}%</span>
             </div>
-          </div>
-
-          {/* Divider */}
-          <div className="h-px bg-border my-6" />
-
-          {/* Pipeline Status */}
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            Pipeline Status
-          </div>
-
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">In Progress</div>
-            <div className="text-3xl font-bold text-teal-600">{pipelineStats.fullInProgress}</div>
-            <div className="text-xs text-muted-foreground mt-1">Full videos editing</div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Video Out</div>
-            <div className="text-3xl font-bold text-blue-600">{pipelineStats.fullVideoOut}</div>
-            <div className="text-xs text-muted-foreground mt-1">Proofs delivered</div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Waiting on Bride</div>
-            <div className="text-3xl font-bold text-amber-600">{pipelineStats.fullWaitingBride}</div>
-            <div className="text-xs text-muted-foreground mt-1">Awaiting feedback</div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Waiting on Recap</div>
-            <div className="text-3xl font-bold text-amber-600">{pipelineStats.fullWaitingRecap}</div>
-            <div className="text-xs text-muted-foreground mt-1">Full videos waiting</div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Recaps in Queue</div>
-            <div className="text-3xl font-bold text-violet-600">{pipelineStats.recapsNotStarted}</div>
-            <div className="text-xs text-muted-foreground mt-1">Not started recaps</div>
           </div>
         </aside>
       </div>
