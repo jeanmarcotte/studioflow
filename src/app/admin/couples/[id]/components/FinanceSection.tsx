@@ -181,13 +181,15 @@ function SummaryBar({ c1, c2, c3, balance }: { c1: number; c2: number; c3: numbe
 
 // ── Q8a: C1 Installments ─────────────────────────────────────────────────────
 
-function C1Section({ installments, payments, contractTotal }: {
-  installments: Installment[]; payments: Payment[]; contractTotal: number;
+function C1Section({ installments, payments, contractTotal, c2OrderDate }: {
+  installments: Installment[]; payments: Payment[]; contractTotal: number; c2OrderDate: string | null;
 }) {
   const today = new Date();
 
-  // Split payments: first N go to C1 where N = installments.length
-  const c1Payments = payments.slice(0, installments.length);
+  // C1 payments: only those made BEFORE the C2 signing date (LESSON-016)
+  const c1Payments = c2OrderDate
+    ? payments.filter(p => p.payment_date < c2OrderDate)
+    : payments;
   const matched = matchPayments(
     installments.map(inst => ({ due_date: inst.due_date, amount: n(inst.amount) })),
     c1Payments
@@ -289,8 +291,8 @@ function C1Section({ installments, payments, contractTotal }: {
 
 // ── Q8b: C2 Additional Sale ──────────────────────────────────────────────────
 
-function C2Section({ extrasOrder, payments, c1Total, c1InstallmentCount }: {
-  extrasOrder: ExtrasOrder; payments: Payment[]; c1Total: number; c1InstallmentCount: number;
+function C2Section({ extrasOrder, payments, c1Total }: {
+  extrasOrder: ExtrasOrder; payments: Payment[]; c1Total: number;
 }) {
   const today = new Date();
   const saleAmt = n(extrasOrder.extras_sale_amount);
@@ -301,8 +303,10 @@ function C2Section({ extrasOrder, payments, c1Total, c1InstallmentCount }: {
   const perInst = n(extrasOrder.payment_per_installment);
   const lastInst = n(extrasOrder.last_installment_amount);
 
-  // Payments after C1 installments used for C2
-  const c2Payments = payments.slice(c1InstallmentCount);
+  // C2 payments: those made on or after C2 signing date
+  const c2Payments = extrasOrder.order_date
+    ? payments.filter(p => p.payment_date >= extrasOrder.order_date!)
+    : [];
 
   // Build C2 installment schedule: downpayment + standard descriptions cycling
   const c2Installments: { num: number; desc: string; amount: number; due_date: string | null }[] = [];
@@ -326,8 +330,8 @@ function C2Section({ extrasOrder, payments, c1Total, c1InstallmentCount }: {
     c2Payments
   );
 
-  // C1 paid before C2
-  const c1PaidBeforeC2 = payments.slice(0, c1InstallmentCount).reduce((s, p) => s + n(p.amount), 0);
+  // C1 paid before C2 — derived from stored contract_balance_remaining (source of truth)
+  const c1PaidBeforeC2 = c1Total - balRemaining;
 
   // Items description
   const itemsDesc = extrasOrder.items
@@ -505,14 +509,13 @@ export function FinanceSection({ contractTotal, installments, payments, extrasOr
 
       <SummaryBar c1={contractTotal} c2={c2Total} c3={c3Total} balance={balance} />
 
-      <C1Section installments={installments} payments={payments} contractTotal={contractTotal} />
+      <C1Section installments={installments} payments={payments} contractTotal={contractTotal} c2OrderDate={extrasOrder?.order_date || null} />
 
       {extrasOrder && (
         <C2Section
           extrasOrder={extrasOrder}
           payments={payments}
           c1Total={contractTotal}
-          c1InstallmentCount={installments.length}
         />
       )}
 
