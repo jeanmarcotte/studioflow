@@ -22,26 +22,21 @@ SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 
 # ── Junk Detection ──────────────────────────────────────────────
 
+# Software/preset/plugin/system folders — clearly NOT couples or events
 JUNK_PATTERNS = [
-    '2019', '2020', '2021', '2022', '2023', '2024', '2025',
-    'dvd_menu', 'aftereffects', 'after effects', 'presets', 'preset',
-    'video_luts', 'luts', 'lr_plugins', 'plugins', 'software',
+    'lr_plugins', 'plugins', 'video_luts', 'luts', 'software',
     'pm motion', 'motion array', 'showit effects', 'photoshop_shapes',
-    'photos library', 'icloud photos', 'gabbyrome', 'mariannagabbytrip',
-    'gabbybarmi', 'wed', 'eng', 'backgrounds', 'photopia',
-    'mograpics', 'completed 2023', 'backeduppresets', 'python',
-    'marianna', 'bradfordrowley', 'paradiaseedits', 'free instagram',
-    '2025 shots', 'aftereffects', 'davinci', 'resolve',
+    'photos library', 'icloud photos', 'backeduppresets', 'presets', 'preset',
+    'python', 'mograpics',
 ]
 
 
 def is_junk(folder_name):
+    """Only flag as junk if it's clearly software/presets/system — NOT a couple or event."""
     name_lower = folder_name.lower().strip()
     for pattern in JUNK_PATTERNS:
         if name_lower == pattern or name_lower.startswith(pattern):
             return True
-    if re.match(r'^20\d\d$', name_lower):
-        return True
     return False
 
 
@@ -63,10 +58,20 @@ def parse_couple_names(folder_name):
     parts = name.split('_')
     parts = [p.strip() for p in parts if p.strip() and len(p.strip()) > 1]
 
+    # Strip known suffixes from individual name parts (e.g. MikeENG → Mike)
+    PART_SUFFIXES = re.compile(
+        r'(eng|hr|video|photo|photos|slideshow|redo|project|wedding|wed)$',
+        re.IGNORECASE,
+    )
+
+    def clean_part(p):
+        cleaned = PART_SUFFIXES.sub('', p).strip()
+        return cleaned if len(cleaned) > 1 else p
+
     if len(parts) >= 2:
-        return parts[0].capitalize(), parts[1].capitalize()
+        return clean_part(parts[0]).capitalize(), clean_part(parts[1]).capitalize()
     elif len(parts) == 1:
-        return parts[0].capitalize(), 'Unknown'
+        return clean_part(parts[0]).capitalize(), 'Unknown'
     else:
         return folder_name[:20], 'Unknown'
 
@@ -144,7 +149,7 @@ def supabase_update(table, match_params, data):
 # ── Main Import Logic ───────────────────────────────────────────
 
 def run_import(csv_folder, dry_run=False):
-    if not SUPABASE_URL or not SUPABASE_KEY:
+    if not dry_run and (not SUPABASE_URL or not SUPABASE_KEY):
         print('ERROR: Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars')
         return
 
