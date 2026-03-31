@@ -76,6 +76,7 @@ export interface QuotePdfData {
   contractMode?: boolean
   leadSource?: string
   notes?: string
+  appointmentDate?: string
 }
 
 // ============================================================
@@ -374,6 +375,7 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
 
   drawLabelValue(doc, 'Date', formatDate(data.weddingDate), margin, y)
   y += labelGap
+  if (data.appointmentDate) { drawLabelValue(doc, 'Appointment Date', formatDate(data.appointmentDate), margin, y); y += labelGap }
   if (data.ceremonyVenue) { drawLabelValue(doc, 'Ceremony', data.ceremonyVenue, margin, y); y += labelGap }
   if (data.receptionVenue) { drawLabelValue(doc, 'Reception', data.receptionVenue, margin, y); y += labelGap }
 

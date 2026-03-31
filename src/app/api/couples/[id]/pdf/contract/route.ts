@@ -24,12 +24,26 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const groom = [couple.groom_first_name, couple.groom_last_name].filter(Boolean).join(' ')
   const names = `${bride} & ${groom}`
 
+  // Fetch appointment date from sales_meetings (matched by bride name)
+  let apptDate: string | null = null
+  if (bride) {
+    const { data: sm } = await supabase
+      .from('sales_meetings')
+      .select('appt_date')
+      .ilike('bride_name', `%${couple.bride_first_name}%`)
+      .order('appt_date', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    apptDate = sm?.appt_date || null
+  }
+
   const ctx = await createPdfContext()
 
   drawHeader(ctx, 'WEDDING CONTRACT', names)
 
   // Wedding info
   drawField(ctx, 'Wedding Date', `${contract?.day_of_week || ''} ${formatDate(couple.wedding_date)}`.trim())
+  if (apptDate) drawField(ctx, 'Appointment Date', formatDate(apptDate))
   if (contract?.start_time && contract?.end_time) {
     drawField(ctx, 'Coverage', `${formatTime(contract.start_time)} to ${formatTime(contract.end_time)}`)
   }
