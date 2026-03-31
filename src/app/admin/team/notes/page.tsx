@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   Plus, X, Search, Trash2, BookOpen, ChevronDown, ChevronUp,
-  AlertCircle, SlidersHorizontal
+  AlertCircle, SlidersHorizontal, ImagePlus, Mail, Send
 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 import type {
   TeamNoteWithTags, NoteIssueTag, CoupleOption, Severity,
 } from '@/types/team-notes'
@@ -40,6 +41,18 @@ export default function TeamNotesPage() {
   const [noteText, setNoteText] = useState('')
   const [isLesson, setIsLesson] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [imageFiles, setImageFiles] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [toast, setToast] = useState('')
+
+  // ── Email state ──────────────────────────────────────────────
+  const [emailPopoverNote, setEmailPopoverNote] = useState<string | null>(null)
+  const [emailRecipients, setEmailRecipients] = useState<Record<string, boolean>>({})
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [shooterEmails, setShooterEmails] = useState<Record<string, string>>({})
+
+  // ── Lightbox state ───────────────────────────────────────────
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
   // ── Data state ─────────────────────────────────────────────────
   const [allTags, setAllTags] = useState<NoteIssueTag[]>([])
@@ -57,6 +70,8 @@ export default function TeamNotesPage() {
 
   const coupleDropdownRef = useRef<HTMLDivElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const emailPopoverRef = useRef<HTMLDivElement>(null)
 
   // ── Load initial data ──────────────────────────────────────────
 
@@ -93,11 +108,30 @@ export default function TeamNotesPage() {
     return () => clearTimeout(timer)
   }, [coupleSearch, fetchCouples])
 
+  // Fetch shooter emails on mount
+  useEffect(() => {
+    async function loadShooterEmails() {
+      const res = await fetch('/api/team-members?fields=first_name,email')
+      const json = await res.json()
+      if (json.data) {
+        const map: Record<string, string> = {}
+        for (const m of json.data) {
+          if (m.first_name && m.email) map[m.first_name] = m.email
+        }
+        setShooterEmails(map)
+      }
+    }
+    loadShooterEmails()
+  }, [])
+
   // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (coupleDropdownRef.current && !coupleDropdownRef.current.contains(e.target as Node)) {
         setCoupleDropdownOpen(false)
+      }
+      if (emailPopoverRef.current && !emailPopoverRef.current.contains(e.target as Node)) {
+        setEmailPopoverNote(null)
       }
     }
     document.addEventListener('mousedown', handler)
@@ -124,6 +158,95 @@ export default function TeamNotesPage() {
       })
       .map(([year, couples]) => ({ year: Number(year), couples }))
   }, [coupleOptions])
+
+  // ── Image handlers ─────────────────────────────────────────────
+
+  const handleImageSelect = (files: FileList | null) => {
+    if (!files) return
+    const newFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
+    const total = imageFiles.length + newFiles.length
+    if (total > 3) {
+      setToast('Maximum 3 images per note')
+      setTimeout(() => setToast(''), 3000)
+      return
+    }
+    const updated = [...imageFiles, ...newFiles]
+    setImageFiles(updated)
+    setImagePreviews(updated.map(f => URL.createObjectURL(f)))
+  }
+
+  const removeImage = (index: number) => {
+    const updated = imageFiles.filter((_, i) => i !== index)
+    setImageFiles(updated)
+    setImagePreviews(updated.map(f => URL.createObjectURL(f)))
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    handleImageSelect(e.dataTransfer.files)
+  }
+
+  const uploadImages = async (): Promise<string[]> => {
+    const urls: string[] = []
+    for (const file of imageFiles) {
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+      const { error } = await supabase.storage
+        .from('team-notes-images')
+        .upload(path, file, { upsert: true })
+      if (error) {
+        console.error('Image upload error:', error)
+        setToast('Error uploading image: ' + error.message)
+        setTimeout(() => setToast(''), 4000)
+        continue
+      }
+      const { data: publicUrl } = supabase.storage
+        .from('team-notes-images')
+        .getPublicUrl(path)
+      urls.push(publicUrl.publicUrl)
+    }
+    return urls
+  }
+
+  // ── Email handler ──────────────────────────────────────────────
+
+  const openEmailPopover = (noteId: string, noteShooters: string[]) => {
+    const recipients: Record<string, boolean> = {}
+    for (const s of noteShooters) {
+      if (shooterEmails[s]) recipients[s] = true
+    }
+    setEmailRecipients(recipients)
+    setEmailPopoverNote(noteId)
+  }
+
+  const handleSendEmail = async () => {
+    if (!emailPopoverNote) return
+    const emails = Object.entries(emailRecipients)
+      .filter(([, checked]) => checked)
+      .map(([name]) => shooterEmails[name])
+      .filter(Boolean)
+    if (emails.length === 0) return
+
+    setSendingEmail(true)
+    const res = await fetch('/api/team-notes/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ noteId: emailPopoverNote, recipientEmails: emails }),
+    })
+
+    if (res.ok) {
+      const names = Object.entries(emailRecipients)
+        .filter(([, checked]) => checked)
+        .map(([name]) => name)
+        .join(', ')
+      setToast(`Note sent to ${names}`)
+    } else {
+      setToast('Error sending email')
+    }
+    setTimeout(() => setToast(''), 4000)
+    setSendingEmail(false)
+    setEmailPopoverNote(null)
+  }
 
   // ── Handlers ───────────────────────────────────────────────────
 
@@ -183,6 +306,12 @@ export default function TeamNotesPage() {
       allShooters.push(otherShooter.trim())
     }
 
+    // Upload images first if any
+    let uploadedUrls: string[] = []
+    if (imageFiles.length > 0) {
+      uploadedUrls = await uploadImages()
+    }
+
     const body = {
       couple_id: coupleId,
       couple_name: coupleName,
@@ -193,6 +322,7 @@ export default function TeamNotesPage() {
       is_lesson: isLesson,
       tag_ids: selectedTagIds,
       new_tags: pendingNewTags,
+      image_urls: uploadedUrls.length > 0 ? uploadedUrls : null,
     }
 
     const res = await fetch('/api/team-notes', {
@@ -211,6 +341,8 @@ export default function TeamNotesPage() {
       setPendingNewTags([])
       setNoteText('')
       setIsLesson(false)
+      setImageFiles([])
+      setImagePreviews([])
       await Promise.all([fetchNotes(), fetchTags()])
     }
 
@@ -441,6 +573,52 @@ export default function TeamNotesPage() {
             className="w-full rounded-lg border border-input bg-background px-3 py-3 text-sm outline-none resize-y transition-colors focus:border-stone-400 min-h-[120px]"
           />
 
+          {/* ── Image Upload ──────────────────────────────── */}
+          <div className="mt-4">
+            <div
+              onDrop={handleDrop}
+              onDragOver={e => e.preventDefault()}
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-input rounded-lg p-4 text-center cursor-pointer hover:border-stone-400 transition-colors"
+            >
+              <ImagePlus size={20} className="mx-auto mb-1.5 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">
+                Drop images here or click to browse
+              </p>
+              <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                Max 3 images (PNG, JPEG, WebP)
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                multiple
+                className="hidden"
+                onChange={e => handleImageSelect(e.target.files)}
+              />
+            </div>
+            {imagePreviews.length > 0 && (
+              <div className="flex gap-2 mt-3">
+                {imagePreviews.map((url, i) => (
+                  <div key={i} className="relative group">
+                    <img
+                      src={url}
+                      alt={`Preview ${i + 1}`}
+                      className="w-20 h-20 object-cover rounded-lg border border-input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(i)}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center justify-between mt-4 flex-wrap gap-3">
             {/* Lesson checkbox */}
             <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -612,6 +790,21 @@ export default function TeamNotesPage() {
                         {note.note}
                       </p>
 
+                      {/* Image thumbnails */}
+                      {note.image_urls && note.image_urls.length > 0 && (
+                        <div className="flex gap-1.5 mt-2">
+                          {note.image_urls.map((url: string, i: number) => (
+                            <img
+                              key={i}
+                              src={url}
+                              alt={`Note image ${i + 1}`}
+                              onClick={(e) => { e.stopPropagation(); setLightboxUrl(url) }}
+                              className="w-[80px] h-[80px] object-cover rounded-lg border border-input cursor-pointer hover:opacity-80 transition-opacity"
+                            />
+                          ))}
+                        </div>
+                      )}
+
                       {/* Inline pills */}
                       <div className="flex flex-wrap gap-1 mt-2">
                         {note.shooters?.map(s => (
@@ -626,9 +819,56 @@ export default function TeamNotesPage() {
                       </div>
                     </div>
 
-                    {/* Expand indicator */}
-                    <div className="pt-0.5 flex-shrink-0 text-muted-foreground">
-                      {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    {/* Email + Expand */}
+                    <div className="pt-0.5 flex-shrink-0 flex items-center gap-1.5">
+                      {note.shooters && note.shooters.some(s => shooterEmails[s]) && (
+                        <div className="relative" ref={emailPopoverNote === note.id ? emailPopoverRef : undefined}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              emailPopoverNote === note.id
+                                ? setEmailPopoverNote(null)
+                                : openEmailPopover(note.id, note.shooters)
+                            }}
+                            className="p-1 rounded text-muted-foreground hover:text-stone-700 hover:bg-accent/50 transition-colors"
+                            title="Email note to shooter"
+                          >
+                            <Mail size={13} />
+                          </button>
+                          {emailPopoverNote === note.id && (
+                            <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-lg border bg-card shadow-lg p-3" onClick={e => e.stopPropagation()}>
+                              <p className="text-xs font-medium text-muted-foreground mb-2">Send to:</p>
+                              <div className="space-y-1.5">
+                                {note.shooters.filter(s => shooterEmails[s]).map(s => (
+                                  <label key={s} className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={emailRecipients[s] || false}
+                                      onChange={e => setEmailRecipients(prev => ({ ...prev, [s]: e.target.checked }))}
+                                      className="rounded border-input"
+                                    />
+                                    <span className="text-sm">{s}</span>
+                                    <span className="text-[10px] text-muted-foreground ml-auto truncate max-w-[100px]">{shooterEmails[s]}</span>
+                                  </label>
+                                ))}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleSendEmail}
+                                disabled={sendingEmail || !Object.values(emailRecipients).some(Boolean)}
+                                className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg bg-stone-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-700 transition-colors disabled:opacity-30"
+                              >
+                                <Send size={11} />
+                                {sendingEmail ? 'Sending...' : 'Send'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <div className="text-muted-foreground">
+                        {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </div>
                     </div>
                   </div>
 
@@ -650,6 +890,34 @@ export default function TeamNotesPage() {
           </div>
         )}
       </div>
+
+      {/* ── Lightbox ─────────────────────────────────────────── */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-8"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white"
+            onClick={() => setLightboxUrl(null)}
+          >
+            <X size={24} />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Full size"
+            className="max-w-full max-h-full rounded-lg object-contain"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
+
+      {/* ── Toast ────────────────────────────────────────────── */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[100] px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium bg-stone-800 text-white">
+          {toast}
+        </div>
+      )}
     </div>
   )
 }

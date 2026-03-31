@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
 // POST /api/team-notes — create a note
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { couple_id, couple_name, shooters, wedding_phase, severity, note, is_lesson, tag_ids, new_tags } = body
+  const { couple_id, couple_name, shooters, wedding_phase, severity, note, is_lesson, tag_ids, new_tags, image_urls } = body
 
   if (!note || !note.trim()) {
     return NextResponse.json({ error: 'Note text is required' }, { status: 400 })
@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
       severity: severity || 'medium',
       note: note.trim(),
       is_lesson: is_lesson || false,
+      image_urls: image_urls && image_urls.length > 0 ? image_urls : null,
     })
     .select()
     .single()

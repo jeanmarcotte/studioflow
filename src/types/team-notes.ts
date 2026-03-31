@@ -9,6 +9,7 @@ export interface TeamNote {
   severity: 'low' | 'medium' | 'high'
   note: string
   is_lesson: boolean
+  image_urls: string[] | null
   created_at: string
   tags?: NoteIssueTag[]
 }
