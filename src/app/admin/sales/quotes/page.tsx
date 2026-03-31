@@ -37,17 +37,26 @@ interface Appointment {
 
 interface LeadSourceConfig {
   name: string
+  slug: string
   defaultShowCost: number
 }
 
+interface LeadSourceRow {
+  id: string
+  slug: string
+  display_name: string
+  show_cost: number
+  is_active: boolean
+}
+
 const LEAD_SOURCES_CONFIG: LeadSourceConfig[] = [
-  { name: 'CBS Jan 2026 (Canada\'s Bridal Show)', defaultShowCost: 3223 },
-  { name: 'HBS Jan 2026 (Hamilton Wedding Ring)', defaultShowCost: 695 },
-  { name: 'NBS Apr 2026 (Newmarket/Uxbridge Wedding Ring)', defaultShowCost: 525 },
-  { name: 'OBS Mar 2026 (Oakville Wedding Ring)', defaultShowCost: 695 },
-  { name: 'MBS Feb 2026 (Modern Wedding Show)', defaultShowCost: 1595 },
-  { name: 'META/Instagram', defaultShowCost: 0 },
-  { name: 'Referrals', defaultShowCost: 0 },
+  { name: 'CBS Jan 2026 (Canada\'s Bridal Show)', slug: 'cbs-jan-2026', defaultShowCost: 3223 },
+  { name: 'HBS Jan 2026 (Hamilton Wedding Ring)', slug: 'hbs-jan-2026', defaultShowCost: 695 },
+  { name: 'NBS Apr 2026 (Newmarket/Uxbridge Wedding Ring)', slug: 'nbs-apr-2026', defaultShowCost: 525 },
+  { name: 'OBS Mar 2026 (Oakville Wedding Ring)', slug: 'obs-mar-2026', defaultShowCost: 695 },
+  { name: 'MBS Feb 2026 (Modern Wedding Show)', slug: 'mbs-feb-2026', defaultShowCost: 1595 },
+  { name: 'META/Instagram', slug: 'meta-instagram', defaultShowCost: 0 },
+  { name: 'Referrals', slug: 'referrals', defaultShowCost: 0 },
 ]
 
 // Map lead_source values from sales_meetings to display names for lead source grouping
@@ -97,8 +106,13 @@ export default function CoupleQuotesPage() {
     LEAD_SOURCES_CONFIG.forEach(s => { init[s.name] = s.defaultShowCost })
     return init
   })
+  const [slugByName, setSlugByName] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {}
+    LEAD_SOURCES_CONFIG.forEach(s => { init[s.name] = s.slug })
+    return init
+  })
 
-  // Load sales meetings from database
+  // Load sales meetings and lead sources from database
   useEffect(() => {
     const loadMeetings = async () => {
       try {
@@ -112,7 +126,28 @@ export default function CoupleQuotesPage() {
         setMeetingsLoading(false)
       }
     }
+
+    const loadLeadSources = async () => {
+      try {
+        const res = await fetch('/api/sales/lead-sources')
+        if (!res.ok) return
+        const data: LeadSourceRow[] = await res.json()
+        const costs: Record<string, number> = {}
+        const slugMap: Record<string, string> = {}
+        data.forEach(row => {
+          costs[row.display_name] = Number(row.show_cost) || 0
+          slugMap[row.display_name] = row.slug
+        })
+        // Merge with defaults (in case DB has new sources not in config)
+        setShowCosts(prev => ({ ...prev, ...costs }))
+        setSlugByName(prev => ({ ...prev, ...slugMap }))
+      } catch (err) {
+        console.error('[loadLeadSources] Failed:', err)
+      }
+    }
+
     loadMeetings()
+    loadLeadSources()
   }, [])
 
   const handleStatusChange = async (meeting: SalesMeeting, newStatus: string) => {
@@ -578,6 +613,20 @@ export default function CoupleQuotesPage() {
                           onChange={(e) => {
                             const val = parseFloat(e.target.value) || 0
                             setShowCosts(prev => ({ ...prev, [row.name]: val }))
+                          }}
+                          onBlur={(e) => {
+                            const val = parseFloat(e.target.value) || 0
+                            const slug = slugByName[row.name]
+                            if (slug) {
+                              fetch('/api/sales/lead-sources', {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ slug, show_cost: val }),
+                              }).catch(err => console.error('[saveShowCost] Failed:', err))
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
                           }}
                           className="w-24 text-right bg-transparent border border-border rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                           placeholder="0.00"
