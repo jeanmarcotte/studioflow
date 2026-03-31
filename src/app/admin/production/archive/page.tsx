@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Search, ChevronDown, ChevronRight, X, HardDrive, Users, Database, CheckCircle, AlertTriangle, Copy, Sparkles } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight, X } from 'lucide-react'
 import { Playfair_Display, Nunito } from 'next/font/google'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
@@ -77,97 +77,11 @@ function formatNumber(n: number | null): string {
   return n.toLocaleString()
 }
 
-// ── Sortable Table Header ────────────────────────────────────────
+type SortDir = 'asc' | 'desc'
 
-function SortHeader({ column, label, sortColumn, sortDirection, onSort, align }: {
-  column: string
-  label: string
-  sortColumn: string | null
-  sortDirection: 'asc' | 'desc'
-  onSort: (col: string) => void
-  align?: 'right'
-}) {
-  return (
-    <th
-      className="px-3 py-2 text-xs font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors select-none"
-      style={align === 'right' ? { textAlign: 'right' } : undefined}
-      onClick={() => onSort(column)}
-    >
-      <span className="inline-flex items-center gap-1">
-        {label}
-        {sortColumn === column && (
-          <span className="text-foreground">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-        )}
-      </span>
-    </th>
-  )
-}
-
-// ── Collapsible Section ──────────────────────────────────────────
-
-function CollapsibleSection({ title, count, defaultOpen, children }: {
-  title: string
-  count: number
-  defaultOpen: boolean
-  children: React.ReactNode
-}) {
-  const [open, setOpen] = useState(defaultOpen)
-
-  return (
-    <div className="mb-8">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 mb-4 group"
-      >
-        {open ? (
-          <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-        ) : (
-          <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-        )}
-        <h2 className={`text-xl ${playfair.className}`} style={{ color: '#0d4f4f', fontWeight: 700 }}>
-          {title}
-        </h2>
-        <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: '#ecfdf5', color: '#0d4f4f' }}>
-          {count}
-        </span>
-      </button>
-      {open && children}
-    </div>
-  )
-}
-
-// ── Search Box ───────────────────────────────────────────────────
-
-function SearchBox({ value, onChange, placeholder }: {
-  value: string
-  onChange: (v: string) => void
-  placeholder: string
-}) {
-  return (
-    <div className="relative mb-4 max-w-md">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      <input
-        type="text"
-        placeholder={placeholder}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="pl-9 pr-8 !w-full"
-      />
-      {value && (
-        <button
-          onClick={() => onChange('')}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
-  )
-}
-
-// ═════════════════════════════════════════════════════════════════
-// PAGE COMPONENT
-// ═════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+// PAGE
+// ══════════════════════════════════════════════════════════════════
 
 export default function ProductionArchivePage() {
   const [drives, setDrives] = useState<ArchiveDrive[]>([])
@@ -175,24 +89,27 @@ export default function ProductionArchivePage() {
   const [milestones, setMilestones] = useState<ArchiveMilestone[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Search states
+  // Search
   const [driveSearch, setDriveSearch] = useState('')
   const [coupleSearch, setCoupleSearch] = useState('')
   const [milestoneSearch, setMilestoneSearch] = useState('')
 
-  // Sort states per section
+  // Sort per section
   const [driveSortCol, setDriveSortCol] = useState<string | null>(null)
-  const [driveSortDir, setDriveSortDir] = useState<'asc' | 'desc'>('asc')
+  const [driveSortDir, setDriveSortDir] = useState<SortDir>('asc')
   const [coupleSortCol, setCoupleSortCol] = useState<string | null>(null)
-  const [coupleSortDir, setCoupleSortDir] = useState<'asc' | 'desc'>('asc')
+  const [coupleSortDir, setCoupleSortDir] = useState<SortDir>('asc')
   const [milestoneSortCol, setMilestoneSortCol] = useState<string | null>(null)
-  const [milestoneSortDir, setMilestoneSortDir] = useState<'asc' | 'desc'>('asc')
+  const [milestoneSortDir, setMilestoneSortDir] = useState<SortDir>('asc')
+
+  // Collapsed lanes
+  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['milestones']))
 
   // Drawer
   const [selectedCoupleId, setSelectedCoupleId] = useState<string | null>(null)
   const [reviewLoading, setReviewLoading] = useState(false)
 
-  // ── Fetch Data ──────────────────────────────────────────────────
+  // ── Fetch ───────────────────────────────────────────────────────
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -210,7 +127,7 @@ export default function ProductionArchivePage() {
     fetchAll()
   }, [])
 
-  // ── Sort Handlers ───────────────────────────────────────────────
+  // ── Sort handlers ───────────────────────────────────────────────
 
   const handleDriveSort = useCallback((col: string) => {
     if (driveSortCol === col) setDriveSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -227,6 +144,15 @@ export default function ProductionArchivePage() {
     else { setMilestoneSortCol(col); setMilestoneSortDir('asc') }
   }, [milestoneSortCol])
 
+  const toggleLane = (key: string) => {
+    setCollapsedLanes(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
   // ── Computed: Stats ─────────────────────────────────────────────
 
   const stats = useMemo(() => {
@@ -234,7 +160,6 @@ export default function ProductionArchivePage() {
     const totalCouples = couples.length
     const totalStorageGB = drives.reduce((sum, d) => sum + (d.total_size_gb || 0), 0)
     const fullyArchived = couples.filter(c => c.fully_archived).length
-    // Missing assets: couples where contracted_services has items not matched in milestones
     const missingAssets = couples.filter(c => {
       if (!c.contracted_services || c.contracted_services.length === 0) return false
       const coupleMilestones = milestones.filter(m => m.couple_id === c.id)
@@ -246,6 +171,32 @@ export default function ProductionArchivePage() {
 
     return { totalDrives, totalCouples, totalStorageGB, fullyArchived, missingAssets, redundantFiles, cfaCleaned }
   }, [drives, couples, milestones])
+
+  // ── Computed: Milestone map per couple ───────────────────────────
+
+  const coupleMilestoneMap = useMemo(() => {
+    const map: Record<string, ArchiveMilestone[]> = {}
+    for (const m of milestones) {
+      if (m.couple_id) {
+        if (!map[m.couple_id]) map[m.couple_id] = []
+        map[m.couple_id].push(m)
+      }
+    }
+    return map
+  }, [milestones])
+
+  // ── Computed: Drive numbers per couple ──────────────────────────
+
+  const coupleDriveNumbers = useMemo(() => {
+    const map: Record<string, Set<number>> = {}
+    for (const m of milestones) {
+      if (m.couple_id) {
+        if (!map[m.couple_id]) map[m.couple_id] = new Set()
+        map[m.couple_id].add(m.drive_number)
+      }
+    }
+    return map
+  }, [milestones])
 
   // ── Computed: Filtered & Sorted Drives ──────────────────────────
 
@@ -278,32 +229,6 @@ export default function ProductionArchivePage() {
     }
     return result
   }, [drives, driveSearch, driveSortCol, driveSortDir])
-
-  // ── Computed: Milestone map per couple ───────────────────────────
-
-  const coupleMilestoneMap = useMemo(() => {
-    const map: Record<string, ArchiveMilestone[]> = {}
-    for (const m of milestones) {
-      if (m.couple_id) {
-        if (!map[m.couple_id]) map[m.couple_id] = []
-        map[m.couple_id].push(m)
-      }
-    }
-    return map
-  }, [milestones])
-
-  // ── Computed: Drive numbers per couple ──────────────────────────
-
-  const coupleDriveNumbers = useMemo(() => {
-    const map: Record<string, Set<number>> = {}
-    for (const m of milestones) {
-      if (m.couple_id) {
-        if (!map[m.couple_id]) map[m.couple_id] = new Set()
-        map[m.couple_id].add(m.drive_number)
-      }
-    }
-    return map
-  }, [milestones])
 
   // ── Computed: Filtered & Sorted Couples ─────────────────────────
 
@@ -419,252 +344,411 @@ export default function ProductionArchivePage() {
     setReviewLoading(false)
   }, [selectedCoupleId])
 
-  // ── Loading ────────────────────────────────────────────────────
+  // ── Sort header helper ──────────────────────────────────────────
+
+  const SortBtn = ({ col, children, sortCol, sortDir: sd, onSort }: {
+    col: string; children: React.ReactNode; sortCol: string | null; sortDir: SortDir; onSort: (c: string) => void
+  }) => (
+    <button
+      onClick={() => onSort(col)}
+      className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wide"
+    >
+      {children}
+      {sortCol === col && (
+        <span className="text-[10px]">{sd === 'asc' ? '↑' : '↓'}</span>
+      )}
+    </button>
+  )
+
+  // ── Loading ─────────────────────────────────────────────────────
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
 
-  // ═════════════════════════════════════════════════════════════════
-  // RENDER
-  // ═════════════════════════════════════════════════════════════════
+  // ── Render ──────────────────────────────────────────────────────
 
   return (
-    <div className={`space-y-0 ${nunito.className}`}>
+    <div className="space-y-0">
       {/* Header */}
       <div className="px-6 pt-6 pb-4">
-        <h1 className={`text-2xl font-bold ${playfair.className}`} style={{ color: '#0d4f4f' }}>
-          PhotoVault Archive
-        </h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl font-bold">PhotoVault Archive</h1>
+        <p className="text-sm text-muted-foreground">
           {drives.length} drives &middot; {couples.length} couples &middot; {formatGB(stats.totalStorageGB)} total
         </p>
       </div>
 
-      {/* Content area: main + sidebar */}
+      {/* Content area: main panel + stats sidebar */}
       <div className="flex">
         {/* Main Panel */}
         <div className="flex-1 overflow-y-auto p-6 border-r border-border">
 
           {/* ══════ SECTION 1: Drive Inventory ══════ */}
-          <CollapsibleSection title="Drive Inventory" count={filteredDrives.length} defaultOpen={true}>
-            <SearchBox value={driveSearch} onChange={setDriveSearch} placeholder="Search drives..." />
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <SortHeader column="drive_number" label="Drive #" sortColumn={driveSortCol} sortDirection={driveSortDir} onSort={handleDriveSort} />
-                    <SortHeader column="drive_name" label="Drive Name" sortColumn={driveSortCol} sortDirection={driveSortDir} onSort={handleDriveSort} />
-                    <SortHeader column="scanned_at" label="Scanned" sortColumn={driveSortCol} sortDirection={driveSortDir} onSort={handleDriveSort} />
-                    <SortHeader column="total_size_gb" label="Size" sortColumn={driveSortCol} sortDirection={driveSortDir} onSort={handleDriveSort} align="right" />
-                    <SortHeader column="total_folders" label="Folders" sortColumn={driveSortCol} sortDirection={driveSortDir} onSort={handleDriveSort} align="right" />
-                    <SortHeader column="total_files" label="Files" sortColumn={driveSortCol} sortDirection={driveSortDir} onSort={handleDriveSort} align="right" />
-                    <SortHeader column="couples_found" label="Couples" sortColumn={driveSortCol} sortDirection={driveSortDir} onSort={handleDriveSort} align="right" />
-                    <SortHeader column="cleaned_cfa_at" label="CFA Cleaned" sortColumn={driveSortCol} sortDirection={driveSortDir} onSort={handleDriveSort} />
-                    <SortHeader column="notes" label="Notes" sortColumn={driveSortCol} sortDirection={driveSortDir} onSort={handleDriveSort} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredDrives.map(d => (
-                    <tr key={d.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                      <td className="px-3 py-2.5 font-semibold">{d.drive_number}</td>
-                      <td className="px-3 py-2.5">{d.drive_name}</td>
-                      <td className="px-3 py-2.5 text-muted-foreground">{formatDate(d.scanned_at)}</td>
-                      <td className="px-3 py-2.5" style={{ textAlign: 'right' }}>{formatGB(d.total_size_gb)}</td>
-                      <td className="px-3 py-2.5" style={{ textAlign: 'right' }}>{formatNumber(d.total_folders)}</td>
-                      <td className="px-3 py-2.5" style={{ textAlign: 'right' }}>{formatNumber(d.total_files)}</td>
-                      <td className="px-3 py-2.5" style={{ textAlign: 'right' }}>{formatNumber(d.couples_found)}</td>
-                      <td className="px-3 py-2.5">
-                        {d.cleaned_cfa_at ? (
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                            {formatDate(d.cleaned_cfa_at)}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5 text-muted-foreground text-xs">{d.notes || '—'}</td>
-                    </tr>
-                  ))}
-                  {filteredDrives.length === 0 && (
-                    <tr><td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">No drives found</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CollapsibleSection>
+          <div className="rounded-xl border bg-card mb-6">
+            <button
+              onClick={() => toggleLane('drives')}
+              className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                {collapsedLanes.has('drives')
+                  ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                }
+                <span className="font-semibold text-sm">Drive Inventory</span>
+                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-gray-100 text-gray-700">
+                  {filteredDrives.length}
+                </span>
+              </div>
+            </button>
+
+            {!collapsedLanes.has('drives') && (
+              <div className="border-t">
+                {/* Search */}
+                <div className="px-4 pt-3 pb-2">
+                  <div className="relative max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      type="text"
+                      value={driveSearch}
+                      onChange={e => setDriveSearch(e.target.value)}
+                      placeholder="Search drives..."
+                      className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-stone-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                  <table className={`${nunito.className} w-full text-sm`}>
+                    <thead>
+                      <tr className="border-b bg-muted/30">
+                        <th className="text-left px-3 py-2.5"><SortBtn col="drive_number" sortCol={driveSortCol} sortDir={driveSortDir} onSort={handleDriveSort}>Drive #</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="drive_name" sortCol={driveSortCol} sortDir={driveSortDir} onSort={handleDriveSort}>Drive Name</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="scanned_at" sortCol={driveSortCol} sortDir={driveSortDir} onSort={handleDriveSort}>Scanned</SortBtn></th>
+                        <th className="text-right px-3 py-2.5"><SortBtn col="total_size_gb" sortCol={driveSortCol} sortDir={driveSortDir} onSort={handleDriveSort}>Size</SortBtn></th>
+                        <th className="text-right px-3 py-2.5"><SortBtn col="total_folders" sortCol={driveSortCol} sortDir={driveSortDir} onSort={handleDriveSort}>Folders</SortBtn></th>
+                        <th className="text-right px-3 py-2.5"><SortBtn col="total_files" sortCol={driveSortCol} sortDir={driveSortDir} onSort={handleDriveSort}>Files</SortBtn></th>
+                        <th className="text-right px-3 py-2.5"><SortBtn col="couples_found" sortCol={driveSortCol} sortDir={driveSortDir} onSort={handleDriveSort}>Couples</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="cleaned_cfa_at" sortCol={driveSortCol} sortDir={driveSortDir} onSort={handleDriveSort}>CFA Cleaned</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="notes" sortCol={driveSortCol} sortDir={driveSortDir} onSort={handleDriveSort}>Notes</SortBtn></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {filteredDrives.map(d => (
+                        <tr key={d.id} className="hover:bg-accent/30 transition-colors">
+                          <td className="px-3 py-2.5 font-semibold">{d.drive_number}</td>
+                          <td className="px-3 py-2.5">{d.drive_name}</td>
+                          <td className="px-3 py-2.5 text-muted-foreground">{formatDate(d.scanned_at)}</td>
+                          <td className="px-3 py-2.5 text-muted-foreground" style={{ textAlign: 'right' }}>{formatGB(d.total_size_gb)}</td>
+                          <td className="px-3 py-2.5 text-muted-foreground" style={{ textAlign: 'right' }}>{formatNumber(d.total_folders)}</td>
+                          <td className="px-3 py-2.5 text-muted-foreground" style={{ textAlign: 'right' }}>{formatNumber(d.total_files)}</td>
+                          <td className="px-3 py-2.5 text-muted-foreground" style={{ textAlign: 'right' }}>{formatNumber(d.couples_found)}</td>
+                          <td className="px-3 py-2.5">
+                            {d.cleaned_cfa_at ? (
+                              <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-green-100 text-green-700">
+                                {formatDate(d.cleaned_cfa_at)}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 text-muted-foreground text-xs">{d.notes || '—'}</td>
+                        </tr>
+                      ))}
+                      {filteredDrives.length === 0 && (
+                        <tr><td colSpan={9} className="px-4 py-6 text-center text-sm text-muted-foreground">No drives found</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* ══════ SECTION 2: Couples Master List ══════ */}
-          <CollapsibleSection title="Couples Master List" count={filteredCouples.length} defaultOpen={true}>
-            <SearchBox value={coupleSearch} onChange={setCoupleSearch} placeholder="Search couples..." />
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <SortHeader column="bride_name" label="Bride" sortColumn={coupleSortCol} sortDirection={coupleSortDir} onSort={handleCoupleSort} />
-                    <SortHeader column="groom_name" label="Groom" sortColumn={coupleSortCol} sortDirection={coupleSortDir} onSort={handleCoupleSort} />
-                    <SortHeader column="wedding_year" label="Year" sortColumn={coupleSortCol} sortDirection={coupleSortDir} onSort={handleCoupleSort} />
-                    <SortHeader column="drives" label="Drive(s)" sortColumn={coupleSortCol} sortDirection={coupleSortDir} onSort={handleCoupleSort} />
-                    <SortHeader column="services" label="Services" sortColumn={coupleSortCol} sortDirection={coupleSortDir} onSort={handleCoupleSort} />
-                    <SortHeader column="total_size_gb" label="Total GB" sortColumn={coupleSortCol} sortDirection={coupleSortDir} onSort={handleCoupleSort} align="right" />
-                    <SortHeader column="studioflow" label="StudioFlow" sortColumn={coupleSortCol} sortDirection={coupleSortDir} onSort={handleCoupleSort} />
-                    <SortHeader column="fully_archived" label="Archived" sortColumn={coupleSortCol} sortDirection={coupleSortDir} onSort={handleCoupleSort} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCouples.map(c => {
-                    const driveNums = coupleDriveNumbers[c.id]
-                    const ms = coupleMilestoneMap[c.id] || []
-                    const contractedCount = c.contracted_services?.length || 0
-                    const serviceCount = ms.length
+          <div className="rounded-xl border bg-card mb-6">
+            <button
+              onClick={() => toggleLane('couples')}
+              className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                {collapsedLanes.has('couples')
+                  ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                }
+                <span className="font-semibold text-sm">Couples Master List</span>
+                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-gray-100 text-gray-700">
+                  {filteredCouples.length}
+                </span>
+              </div>
+            </button>
 
-                    return (
-                      <tr
-                        key={c.id}
-                        className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer"
-                        onClick={() => setSelectedCoupleId(c.id)}
-                      >
-                        <td className="px-3 py-2.5 font-semibold">{c.bride_name}</td>
-                        <td className="px-3 py-2.5">{c.groom_name}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{c.wedding_year || '—'}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground">
-                          {driveNums ? Array.from(driveNums).sort((a, b) => a - b).join(', ') : String(c.drive_number)}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          {contractedCount > 0 ? (
-                            <span className={serviceCount >= contractedCount ? 'text-green-600' : 'text-amber-600'}>
-                              {serviceCount} of {contractedCount}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">{serviceCount}</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5" style={{ textAlign: 'right' }}>{formatGB(c.total_size_gb)}</td>
-                        <td className="px-3 py-2.5">
-                          {c.studioflow_couple_id ? (
-                            <span className="text-green-600 font-semibold">&#x2705;</span>
-                          ) : (
-                            <span className="text-amber-500">&#x26A0;&#xFE0F;</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          {c.fully_archived ? (
-                            <span className="text-green-600 font-semibold">&#x2705;</span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </td>
+            {!collapsedLanes.has('couples') && (
+              <div className="border-t">
+                {/* Search */}
+                <div className="px-4 pt-3 pb-2">
+                  <div className="relative max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      type="text"
+                      value={coupleSearch}
+                      onChange={e => setCoupleSearch(e.target.value)}
+                      placeholder="Search couples..."
+                      className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-stone-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                  <table className={`${nunito.className} w-full text-sm`}>
+                    <thead>
+                      <tr className="border-b bg-muted/30">
+                        <th className="text-left px-3 py-2.5"><SortBtn col="bride_name" sortCol={coupleSortCol} sortDir={coupleSortDir} onSort={handleCoupleSort}>Bride</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="groom_name" sortCol={coupleSortCol} sortDir={coupleSortDir} onSort={handleCoupleSort}>Groom</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="wedding_year" sortCol={coupleSortCol} sortDir={coupleSortDir} onSort={handleCoupleSort}>Year</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="drives" sortCol={coupleSortCol} sortDir={coupleSortDir} onSort={handleCoupleSort}>Drive(s)</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="services" sortCol={coupleSortCol} sortDir={coupleSortDir} onSort={handleCoupleSort}>Services</SortBtn></th>
+                        <th className="text-right px-3 py-2.5"><SortBtn col="total_size_gb" sortCol={coupleSortCol} sortDir={coupleSortDir} onSort={handleCoupleSort}>Total GB</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="studioflow" sortCol={coupleSortCol} sortDir={coupleSortDir} onSort={handleCoupleSort}>StudioFlow</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="fully_archived" sortCol={coupleSortCol} sortDir={coupleSortDir} onSort={handleCoupleSort}>Archived</SortBtn></th>
                       </tr>
-                    )
-                  })}
-                  {filteredCouples.length === 0 && (
-                    <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">No couples found</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CollapsibleSection>
+                    </thead>
+                    <tbody className="divide-y">
+                      {filteredCouples.map(c => {
+                        const driveNums = coupleDriveNumbers[c.id]
+                        const ms = coupleMilestoneMap[c.id] || []
+                        const contractedCount = c.contracted_services?.length || 0
+                        const serviceCount = ms.length
+
+                        return (
+                          <tr
+                            key={c.id}
+                            className="hover:bg-accent/30 transition-colors cursor-pointer"
+                            onClick={() => setSelectedCoupleId(c.id)}
+                          >
+                            <td className="px-3 py-2.5 font-medium">{c.bride_name}</td>
+                            <td className="px-3 py-2.5">{c.groom_name}</td>
+                            <td className="px-3 py-2.5 text-muted-foreground">{c.wedding_year || '—'}</td>
+                            <td className="px-3 py-2.5 text-muted-foreground">
+                              {driveNums ? Array.from(driveNums).sort((a, b) => a - b).join(', ') : String(c.drive_number)}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {contractedCount > 0 ? (
+                                <span className={serviceCount >= contractedCount ? 'text-green-600' : 'text-amber-600'}>
+                                  {serviceCount} of {contractedCount}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">{serviceCount}</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5 text-muted-foreground" style={{ textAlign: 'right' }}>{formatGB(c.total_size_gb)}</td>
+                            <td className="px-3 py-2.5">
+                              {c.studioflow_couple_id
+                                ? <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-green-100 text-green-700">Linked</span>
+                                : <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-amber-100 text-amber-700">Unlinked</span>
+                              }
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {c.fully_archived
+                                ? <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-green-100 text-green-700">Yes</span>
+                                : <span className="text-muted-foreground">—</span>
+                              }
+                            </td>
+                          </tr>
+                        )
+                      })}
+                      {filteredCouples.length === 0 && (
+                        <tr><td colSpan={8} className="px-4 py-6 text-center text-sm text-muted-foreground">No couples found</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* ══════ SECTION 3: Milestone Details ══════ */}
-          <CollapsibleSection title="Milestone Details" count={filteredMilestones.length} defaultOpen={false}>
-            <SearchBox value={milestoneSearch} onChange={setMilestoneSearch} placeholder="Search milestones..." />
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <SortHeader column="couple" label="Couple" sortColumn={milestoneSortCol} sortDirection={milestoneSortDir} onSort={handleMilestoneSort} />
-                    <SortHeader column="service_label" label="Service" sortColumn={milestoneSortCol} sortDirection={milestoneSortDir} onSort={handleMilestoneSort} />
-                    <SortHeader column="drive_number" label="Drive" sortColumn={milestoneSortCol} sortDirection={milestoneSortDir} onSort={handleMilestoneSort} />
-                    <SortHeader column="folder_name" label="Folder Name" sortColumn={milestoneSortCol} sortDirection={milestoneSortDir} onSort={handleMilestoneSort} />
-                    <SortHeader column="size_gb" label="Size GB" sortColumn={milestoneSortCol} sortDirection={milestoneSortDir} onSort={handleMilestoneSort} align="right" />
-                    <SortHeader column="file_count" label="Files" sortColumn={milestoneSortCol} sortDirection={milestoneSortDir} onSort={handleMilestoneSort} align="right" />
-                    <SortHeader column="is_redundant" label="Redundant" sortColumn={milestoneSortCol} sortDirection={milestoneSortDir} onSort={handleMilestoneSort} />
-                    <SortHeader column="status" label="Status" sortColumn={milestoneSortCol} sortDirection={milestoneSortDir} onSort={handleMilestoneSort} />
-                    <SortHeader column="verified" label="Verified" sortColumn={milestoneSortCol} sortDirection={milestoneSortDir} onSort={handleMilestoneSort} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredMilestones.map(m => {
-                    const couple = couples.find(c => c.id === m.couple_id)
-                    return (
-                      <tr key={m.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                        <td className="px-3 py-2.5">
-                          {couple ? `${couple.bride_name} & ${couple.groom_name}` : '—'}
-                        </td>
-                        <td className="px-3 py-2.5">{m.service_label}</td>
-                        <td className="px-3 py-2.5">{m.drive_number}</td>
-                        <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate" title={m.folder_name}>
-                          {m.folder_name}
-                        </td>
-                        <td className="px-3 py-2.5" style={{ textAlign: 'right' }}>{formatGB(m.size_gb)}</td>
-                        <td className="px-3 py-2.5" style={{ textAlign: 'right' }}>{formatNumber(m.file_count)}</td>
-                        <td className="px-3 py-2.5">
-                          {m.is_redundant ? (
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Yes</span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                            {m.status || 'Online'}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          {m.verified ? (
-                            <span className="text-green-600 font-semibold">&#x2705;</span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                  {filteredMilestones.length === 0 && (
-                    <tr><td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">No milestones found</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CollapsibleSection>
-
-        </div>
-
-        {/* ══════ SIDEBAR: Stats ══════ */}
-        <div className="w-72 shrink-0 p-6 space-y-4">
-          <h3 className={`text-sm font-bold uppercase tracking-wider mb-4 ${playfair.className}`} style={{ color: '#0d4f4f' }}>
-            Archive Stats
-          </h3>
-
-          {/* Stat boxes */}
-          {[
-            { label: 'Total Drives', value: stats.totalDrives, icon: HardDrive, color: '#0d4f4f' },
-            { label: 'Total Couples', value: stats.totalCouples, icon: Users, color: '#0d4f4f' },
-            { label: 'Total Storage', value: formatGB(stats.totalStorageGB), icon: Database, color: '#0d4f4f' },
-            { label: 'Fully Archived', value: stats.fullyArchived, icon: CheckCircle, color: '#16a34a' },
-            { label: 'Missing Assets', value: stats.missingAssets, icon: AlertTriangle, color: stats.missingAssets > 0 ? '#d97706' : '#0d4f4f' },
-            { label: 'Redundant Files', value: stats.redundantFiles, icon: Copy, color: '#6366f1' },
-            { label: 'CFA Cleaned', value: stats.cfaCleaned, icon: Sparkles, color: '#0d9488' },
-          ].map((s, i) => (
-            <div
-              key={i}
-              className="rounded-lg border border-border p-3 flex items-center gap-3"
-              style={{ backgroundColor: '#faf8f5' }}
+          <div className="rounded-xl border bg-card">
+            <button
+              onClick={() => toggleLane('milestones')}
+              className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
             >
-              <div className="p-2 rounded-md" style={{ backgroundColor: `${s.color}15` }}>
-                <s.icon className="h-4 w-4" style={{ color: s.color }} />
+              <div className="flex items-center gap-3">
+                {collapsedLanes.has('milestones')
+                  ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                }
+                <span className="font-semibold text-sm">Milestone Details</span>
+                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-gray-100 text-gray-700">
+                  {filteredMilestones.length}
+                </span>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">{s.label}</div>
-                <div className="text-lg font-bold" style={{ color: s.color }}>{s.value}</div>
+            </button>
+
+            {!collapsedLanes.has('milestones') && (
+              <div className="border-t">
+                {/* Search */}
+                <div className="px-4 pt-3 pb-2">
+                  <div className="relative max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      type="text"
+                      value={milestoneSearch}
+                      onChange={e => setMilestoneSearch(e.target.value)}
+                      placeholder="Search milestones..."
+                      className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-stone-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                  <table className={`${nunito.className} w-full text-sm`}>
+                    <thead>
+                      <tr className="border-b bg-muted/30">
+                        <th className="text-left px-3 py-2.5"><SortBtn col="couple" sortCol={milestoneSortCol} sortDir={milestoneSortDir} onSort={handleMilestoneSort}>Couple</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="service_label" sortCol={milestoneSortCol} sortDir={milestoneSortDir} onSort={handleMilestoneSort}>Service</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="drive_number" sortCol={milestoneSortCol} sortDir={milestoneSortDir} onSort={handleMilestoneSort}>Drive</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="folder_name" sortCol={milestoneSortCol} sortDir={milestoneSortDir} onSort={handleMilestoneSort}>Folder Name</SortBtn></th>
+                        <th className="text-right px-3 py-2.5"><SortBtn col="size_gb" sortCol={milestoneSortCol} sortDir={milestoneSortDir} onSort={handleMilestoneSort}>Size GB</SortBtn></th>
+                        <th className="text-right px-3 py-2.5"><SortBtn col="file_count" sortCol={milestoneSortCol} sortDir={milestoneSortDir} onSort={handleMilestoneSort}>Files</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="is_redundant" sortCol={milestoneSortCol} sortDir={milestoneSortDir} onSort={handleMilestoneSort}>Redundant</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="status" sortCol={milestoneSortCol} sortDir={milestoneSortDir} onSort={handleMilestoneSort}>Status</SortBtn></th>
+                        <th className="text-left px-3 py-2.5"><SortBtn col="verified" sortCol={milestoneSortCol} sortDir={milestoneSortDir} onSort={handleMilestoneSort}>Verified</SortBtn></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {filteredMilestones.map(m => {
+                        const couple = couples.find(c => c.id === m.couple_id)
+                        return (
+                          <tr key={m.id} className="hover:bg-accent/30 transition-colors">
+                            <td className="px-3 py-2.5">
+                              {couple ? `${couple.bride_name} & ${couple.groom_name}` : '—'}
+                            </td>
+                            <td className="px-3 py-2.5">{m.service_label}</td>
+                            <td className="px-3 py-2.5">{m.drive_number}</td>
+                            <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate" title={m.folder_name}>
+                              {m.folder_name}
+                            </td>
+                            <td className="px-3 py-2.5 text-muted-foreground" style={{ textAlign: 'right' }}>{formatGB(m.size_gb)}</td>
+                            <td className="px-3 py-2.5 text-muted-foreground" style={{ textAlign: 'right' }}>{formatNumber(m.file_count)}</td>
+                            <td className="px-3 py-2.5">
+                              {m.is_redundant ? (
+                                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-amber-100 text-amber-700">Yes</span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-blue-100 text-blue-700">
+                                {m.status || 'Online'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {m.verified
+                                ? <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-green-100 text-green-700">Yes</span>
+                                : <span className="text-muted-foreground">—</span>
+                              }
+                            </td>
+                          </tr>
+                        )
+                      })}
+                      {filteredMilestones.length === 0 && (
+                        <tr><td colSpan={9} className="px-4 py-6 text-center text-sm text-muted-foreground">No milestones found</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          ))}
+            )}
+          </div>
+
         </div>
+
+        {/* Stats Sidebar */}
+        <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
+          {/* Total Drives */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Total Drives
+            </div>
+            <div className="text-3xl font-bold">
+              {stats.totalDrives}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Physical hard drives scanned</div>
+          </div>
+
+          {/* Total Couples */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Total Couples
+            </div>
+            <div className="text-3xl font-bold">
+              {stats.totalCouples}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Unique couples in archive</div>
+          </div>
+
+          {/* Total Storage */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Total Storage
+            </div>
+            <div className="text-3xl font-bold">
+              {formatGB(stats.totalStorageGB)}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Across all drives</div>
+          </div>
+
+          {/* Fully Archived */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Fully Archived
+            </div>
+            <div className={`text-3xl font-bold ${stats.fullyArchived > 0 ? 'text-green-600' : 'text-foreground'}`}>
+              {stats.fullyArchived}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">All assets verified</div>
+          </div>
+
+          {/* Missing Assets */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Missing Assets
+            </div>
+            <div className={`text-3xl font-bold ${stats.missingAssets > 0 ? 'text-amber-600' : 'text-foreground'}`}>
+              {stats.missingAssets}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Contracted but not found</div>
+          </div>
+
+          {/* Redundant Files */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Redundant Files
+            </div>
+            <div className={`text-3xl font-bold ${stats.redundantFiles > 0 ? 'text-indigo-600' : 'text-foreground'}`}>
+              {stats.redundantFiles}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Same asset on multiple drives</div>
+          </div>
+
+          {/* CFA Cleaned */}
+          <div className="rounded-xl border bg-card p-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              CFA Cleaned
+            </div>
+            <div className={`text-3xl font-bold ${stats.cfaCleaned > 0 ? 'text-teal-600' : 'text-foreground'}`}>
+              {stats.cfaCleaned}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Drives with junk removed</div>
+          </div>
+        </aside>
       </div>
 
       {/* ══════ COUPLE DETAIL DRAWER ══════ */}
@@ -676,9 +760,9 @@ export default function ProductionArchivePage() {
             onClick={() => setSelectedCoupleId(null)}
           />
           {/* Drawer */}
-          <div className="relative w-[480px] max-w-full bg-background shadow-xl overflow-y-auto" style={{ backgroundColor: '#faf8f5' }}>
+          <div className="relative w-[480px] max-w-full bg-card shadow-xl overflow-y-auto border-l">
             <div className="p-6">
-              {/* Close button */}
+              {/* Close */}
               <button
                 onClick={() => setSelectedCoupleId(null)}
                 className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
@@ -687,27 +771,23 @@ export default function ProductionArchivePage() {
               </button>
 
               {/* Header */}
-              <h2 className={`text-xl mb-1 ${playfair.className}`} style={{ color: '#0d4f4f', fontWeight: 700 }}>
+              <h2 className={`text-xl font-bold mb-1 ${playfair.className}`} style={{ color: '#0d4f4f' }}>
                 {selectedCouple.bride_name} &amp; {selectedCouple.groom_name}
               </h2>
               {selectedCouple.event_date && (
-                <p className="text-sm text-muted-foreground mb-2">
-                  {formatDate(selectedCouple.event_date)}
-                </p>
+                <p className="text-sm text-muted-foreground mb-2">{formatDate(selectedCouple.event_date)}</p>
               )}
               {selectedCouple.wedding_year && !selectedCouple.event_date && (
-                <p className="text-sm text-muted-foreground mb-2">
-                  Year: {selectedCouple.wedding_year}
-                </p>
+                <p className="text-sm text-muted-foreground mb-2">Year: {selectedCouple.wedding_year}</p>
               )}
 
-              {/* StudioFlow link status */}
+              {/* StudioFlow link */}
               <div className="flex items-center gap-2 mb-6 text-sm">
                 <span className="font-semibold">StudioFlow:</span>
                 {selectedCouple.studioflow_couple_id ? (
-                  <span className="text-green-600">&#x2705; Linked</span>
+                  <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-green-100 text-green-700">Linked</span>
                 ) : (
-                  <span className="text-amber-500">&#x26A0;&#xFE0F; Unlinked</span>
+                  <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-amber-100 text-amber-700">Unlinked</span>
                 )}
                 {selectedCouple.primary_service && (
                   <>
@@ -717,9 +797,9 @@ export default function ProductionArchivePage() {
                 )}
               </div>
 
-              {/* Checkbox View — The Golden View */}
+              {/* Checkbox View */}
               <div className="mb-6">
-                <h3 className="text-sm font-bold uppercase tracking-wider mb-3" style={{ color: '#0d4f4f' }}>
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
                   What Should Be Here:
                 </h3>
 
@@ -734,7 +814,7 @@ export default function ProductionArchivePage() {
                             Drive {m.drive_number} — {formatGB(m.size_gb)}
                           </span>
                           {m.is_redundant && (
-                            <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+                            <span className="ml-2 text-xs rounded-full px-1.5 py-0.5 font-medium bg-amber-100 text-amber-700">
                               Redundant
                             </span>
                           )}
@@ -746,7 +826,7 @@ export default function ProductionArchivePage() {
                   <p className="text-sm text-muted-foreground">No milestones found for this couple.</p>
                 )}
 
-                {/* Show missing contracted services */}
+                {/* Missing contracted services */}
                 {selectedCouple.contracted_services && selectedCouple.contracted_services.length > 0 && (() => {
                   const foundTypes = new Set(selectedCoupleMilestones.map(m => m.service_type))
                   const missing = selectedCouple.contracted_services!.filter(s => !foundTypes.has(s))
@@ -758,7 +838,7 @@ export default function ProductionArchivePage() {
                           <span className="text-red-500 mt-0.5">&#x2610;</span>
                           <div className="flex-1">
                             <span className="font-medium">{s}</span>
-                            <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700">
+                            <span className="ml-2 text-xs rounded-full px-1.5 py-0.5 font-medium bg-red-100 text-red-700">
                               NOT FOUND
                             </span>
                           </div>
@@ -789,15 +869,14 @@ export default function ProductionArchivePage() {
                 <button
                   onClick={handleMarkReviewed}
                   disabled={reviewLoading}
-                  className="px-4 py-2 rounded-md text-sm font-medium text-white transition-colors"
-                  style={{ backgroundColor: '#0d4f4f' }}
+                  className="rounded-lg bg-stone-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 transition-colors"
                 >
                   {reviewLoading ? 'Saving...' : 'Mark as Reviewed'}
                 </button>
                 {selectedCouple.studioflow_couple_id && (
                   <a
                     href={`/admin/couples/${selectedCouple.studioflow_couple_id}`}
-                    className="px-4 py-2 rounded-md text-sm font-medium border border-border hover:bg-muted transition-colors"
+                    className="rounded-lg border border-input bg-background px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-accent/50 transition-colors"
                   >
                     View in StudioFlow &rarr;
                   </a>
