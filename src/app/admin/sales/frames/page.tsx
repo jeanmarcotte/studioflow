@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase'
 import { Download, Plus } from 'lucide-react'
 import RevenueDashboard from '@/components/sales/frames/RevenueCards'
 import Pipeline from '@/components/sales/frames/Pipeline'
-import ActionAlerts from '@/components/sales/frames/ActionAlerts'
 import { ActivePipelineTable, CompletedSalesTable, type FrameSaleRow } from '@/components/sales/frames/FrameSalesTable'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -52,12 +51,6 @@ const YEARS = [2027, 2026, 2025]
 
 function fmtMoney(n: number): string {
   return '$' + n.toLocaleString('en-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-}
-
-function daysBetween(dateStr: string | null, now: Date): number {
-  if (!dateStr) return 0
-  const d = new Date(dateStr + 'T12:00:00')
-  return Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24))
 }
 
 function getSaleAmount(eo: ExtrasOrder | null): number {
@@ -251,50 +244,6 @@ export default function FrameSalesCommandCenter() {
     }
   }, [extrasOrders, prevExtrasOrders, couples, prevCouples, coupleIds, prevCoupleIds])
 
-  // ── Action alerts ──────────────────────────────────────────────────────────
-
-  const alerts = useMemo(() => {
-    const now = new Date()
-    const urgent: { coupleId: string; coupleName: string; detail: string; daysWaiting: number }[] = []
-    const followUp: typeof urgent = []
-    const ready: typeof urgent = []
-
-    for (const c of enrichedCouples) {
-      const ms = c.milestone
-      const eo = c.eo
-
-      // Urgent: shot but not quoted (30+ days)
-      if (ms?.m06_eng_session_shot && !ms.m10_frame_sale_quote && !eo) {
-        const days = daysBetween(ms.m06_eng_session_date, now)
-        if (days >= 30) {
-          urgent.push({ coupleId: c.id, coupleName: c.couple_name, detail: `${days} days since engagement shot`, daysWaiting: days })
-        }
-      }
-
-      // Follow up: quoted 14+ days ago, still pending/active
-      if (eo && (eo.status === 'pending' || eo.status === 'active') && eo.order_date) {
-        const days = daysBetween(eo.order_date, now)
-        if (days >= 14) {
-          followUp.push({ coupleId: c.id, coupleName: c.couple_name, detail: `Quoted ${days} days ago`, daysWaiting: days })
-        }
-      }
-
-      // Ready: signed with deposit
-      if (eo && eo.status === 'signed' && eo.downpayment && Number(eo.downpayment) > 0) {
-        ready.push({
-          coupleId: c.id,
-          coupleName: c.couple_name,
-          detail: `${fmtMoney(Number(eo.downpayment))} deposit${c.wedding_date ? `, wedding ${c.wedding_date}` : ''}`,
-          daysWaiting: 0,
-        })
-      }
-    }
-
-    urgent.sort((a, b) => b.daysWaiting - a.daysWaiting)
-    followUp.sort((a, b) => b.daysWaiting - a.daysWaiting)
-    return { urgent, followUp, ready }
-  }, [enrichedCouples])
-
   // ── Filtered rows for tables ───────────────────────────────────────────────
 
   const filteredCouples = useMemo(() => {
@@ -454,13 +403,6 @@ export default function FrameSalesCommandCenter() {
         stages={pipelineStages}
         activeStage={pipelineFilter}
         onStageClick={setPipelineFilter}
-      />
-
-      {/* Action Alerts */}
-      <ActionAlerts
-        urgent={alerts.urgent}
-        followUp={alerts.followUp}
-        ready={alerts.ready}
       />
 
       {/* Filters Bar */}
