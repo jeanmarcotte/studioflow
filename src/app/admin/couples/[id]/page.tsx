@@ -1,23 +1,25 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
-import { ClientCard } from './components/ClientCard';
-import { TeamSection } from './components/TeamSection';
-import { FinanceSection } from './components/FinanceSection';
-import { DocumentsSection } from './components/DocumentsSection';
-import { PickupSlipSection } from './components/PickupSlipSection';
 import {
-  ClientJourney,
-  NotesSection,
-  FormsBox,
-  ExtrasSection,
-  FramesAndAlbums,
-  ContractPackage,
+  Q01AlertBanner,
+  Q02Navigation,
+  Q03ClientCard,
+  Q04TeamNotes,
+  Q05ClientJourney,
+  Q06Forms,
+  Q07FinancialSummaryBar,
+  Q08FinanceLedger,
+  Q09ExtrasAddOns,
+  Q10ContractPackage,
+  Q11FramesAndAlbums,
+  Q12Documents,
+  Q13ClientPickupSlip,
 } from '@/components/couples';
 
 export default function CoupleDetailPage() {
@@ -159,7 +161,7 @@ export default function CoupleDetailPage() {
       <div className="p-8">
         <p>Couple not found</p>
         <Link href="/admin/couples" className="text-teal-600 hover:underline">
-          ← Back to couples
+          &larr; Back to couples
         </Link>
       </div>
     );
@@ -169,17 +171,6 @@ export default function CoupleDetailPage() {
   const extrasTotal = parseFloat(couple.extras_total || '0');
   const totalPaid = parseFloat(couple.total_paid || '0');
   const balance = parseFloat(couple.balance_owing || '0');
-  const grandTotal = contractTotal + extrasTotal;
-
-  const framesTotal = extrasOrders
-    .filter(e => e.order_type === 'frames_albums')
-    .reduce((sum: number, e: any) => sum + parseFloat(e.total || '0'), 0);
-  const otherExtrasTotal = Math.max(0, extrasTotal - framesTotal);
-
-  const rawFramesTotal = rawExtrasOrders
-    .reduce((sum: number, o: any) => sum + parseFloat(o.extras_sale_amount || '0'), 0);
-  const rawClientExtrasTotal = clientExtras
-    .reduce((sum: number, e: any) => sum + parseFloat(e.total || '0'), 0);
 
   const framesAlbums = extrasOrders.find(e => e.order_type === 'frames_albums') || null;
   const postWedding = extrasOrders.find(e => e.order_type === 'post_wedding_extras') || null;
@@ -190,41 +181,47 @@ export default function CoupleDetailPage() {
     .filter(e => e.notes)
     .map(e => e.notes as string);
 
+  // C2/C3 totals for Q07 and Q09
+  const c2Total = rawExtrasOrders.reduce((sum: number, o: any) => sum + parseFloat(o.extras_sale_amount || '0'), 0);
+  const c3Total = clientExtras.reduce((sum: number, e: any) => sum + parseFloat(e.total || '0'), 0);
+
   return (
     <div style={{ padding: '1.5rem', maxWidth: '100%' }}>
-      <Link
-        href="/admin/couples"
-        className="inline-flex items-center gap-2 text-slate-500 hover:text-teal-600 mb-4 text-sm"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        All Couples
-      </Link>
+      {/* Q1 — Alert Banner */}
+      <Q01AlertBanner
+        milestones={milestones}
+        payments={payments}
+        weddingDate={couple.wedding_date}
+      />
 
-      <ClientCard
+      {/* Q2 — Navigation */}
+      <Q02Navigation />
+
+      {/* Q3 — Client Card */}
+      <Q03ClientCard
         couple={couple}
         contract={contract}
         extrasOrders={extrasOrders}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <TeamSection
-          assignment={assignment}
-          contract={contract}
-        />
-        <NotesSection
-          coupleNotes={couple.notes}
-          contractNotes={contract?.appointment_notes || null}
-          extrasNotes={extrasNotes}
-          hasSocialMediaRestriction={hasSocialMediaRestriction}
-        />
-      </div>
+      {/* Q4 — Team + Notes */}
+      <Q04TeamNotes
+        assignment={assignment}
+        contract={contract}
+        coupleNotes={couple.notes}
+        contractNotes={contract?.appointment_notes || null}
+        extrasNotes={extrasNotes}
+        hasSocialMediaRestriction={hasSocialMediaRestriction}
+      />
 
-      <ClientJourney
+      {/* Q5 — Client Journey */}
+      <Q05ClientJourney
         milestones={milestones}
         weddingDate={couple.wedding_date}
       />
 
-      <FormsBox
+      {/* Q6 — Forms */}
+      <Q06Forms
         dayFormApproved={milestones?.m15_day_form_approved || false}
         photoOrderIn={milestones?.m24_photo_order_in || false}
         videoOrderIn={milestones?.m25_video_order_in || false}
@@ -232,24 +229,28 @@ export default function CoupleDetailPage() {
         coupleId={coupleId}
       />
 
-      <FinanceSection
+      {/* Q7 — Financial Summary Bar */}
+      <Q07FinancialSummaryBar
+        c1={contractTotal}
+        c2={c2Total}
+        c3={c3Total}
+        totalPaid={payments.reduce((s: number, p: any) => s + (parseFloat(String(p.amount || '0')) || 0), 0)}
+      />
+
+      {/* Q8 — Finance Ledger (C1 + C2 only) */}
+      <Q08FinanceLedger
         contractTotal={contractTotal}
         installments={installments}
         payments={payments}
         extrasOrder={rawExtrasOrders[0] || null}
-        clientExtras={clientExtras}
       />
 
-      <ExtrasSection
-        framesAlbums={framesAlbums}
-        postWedding={postWedding}
-        invoices={invoices}
-      />
+      {/* Q9 — Extras & Add-ons (C3) — SEPARATE SECTION */}
+      <Q09ExtrasAddOns clientExtras={clientExtras} />
 
-      <FramesAndAlbums extrasOrder={rawExtrasOrders[0] || null} />
-
+      {/* Q10 — Contract Package — As Signed */}
       {contract && (
-        <ContractPackage
+        <Q10ContractPackage
           signedDate={contract.signed_date}
           dayOfWeek={contract.day_of_week || 'SATURDAY'}
           startTime={contract.start_time || '12:00'}
@@ -270,8 +271,8 @@ export default function CoupleDetailPage() {
           tax={parseFloat(contract.tax || '0')}
           contractTotal={contractTotal}
           extrasTotal={extrasTotal}
-          c2FramesTotal={rawFramesTotal}
-          c3ExtrasTotal={rawClientExtrasTotal}
+          c2FramesTotal={c2Total}
+          c3ExtrasTotal={c3Total}
           totalPaid={totalPaid}
           balance={balance}
           numGuests={contract.num_guests}
@@ -281,14 +282,19 @@ export default function CoupleDetailPage() {
         />
       )}
 
-      <DocumentsSection
+      {/* Q11 — Frames & Albums */}
+      <Q11FramesAndAlbums extrasOrder={rawExtrasOrders[0] || null} />
+
+      {/* Q12 — Documents */}
+      <Q12Documents
         coupleId={coupleId}
         hasClientExtras={clientExtras.length > 0}
         hasExtrasOrders={rawExtrasOrders.length > 0}
         refreshKey={docsRefreshKey}
       />
 
-      <PickupSlipSection
+      {/* Q13 — Client Pickup Slip */}
+      <Q13ClientPickupSlip
         coupleId={coupleId}
         brideName={[couple.bride_first_name, couple.bride_last_name].filter(Boolean).join(' ')}
         groomName={[couple.groom_first_name, couple.groom_last_name].filter(Boolean).join(' ')}
