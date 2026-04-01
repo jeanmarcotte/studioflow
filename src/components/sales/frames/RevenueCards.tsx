@@ -69,7 +69,7 @@ export default function RevenueDashboard({
 
   const fiveByFiveDiff = fiveByFiveHasData ? (fiveByFiveConvWith - fiveByFiveConvWithout) : 0
   const fiveByFiveLabel = fiveByFiveHasData
-    ? `${fiveByFiveDiff >= 0 ? '+' : ''}${fiveByFiveDiff}% conv with 5\u00d75s`
+    ? `${fiveByFiveDiff >= 0 ? '+' : ''}${fiveByFiveDiff}% conv with 5×5s`
     : null
 
   return (
@@ -100,9 +100,9 @@ export default function RevenueDashboard({
       />
       <RevenueCard
         icon={<Sparkles className="h-4 w-4" />}
-        label="5\u00d75 ROI"
+        label="5×5 ROI"
         value={fiveByFiveHasData ? `${fiveByFiveConvWith}% conv` : 'N/A'}
-        sublabel={fiveByFiveHasData ? 'with 5\u00d75s' : 'Not enough data'}
+        sublabel={fiveByFiveHasData ? 'with 5×5s' : 'Not enough data'}
         yoyLabel={fiveByFiveLabel}
         yoyPositive={fiveByFiveDiff >= 0}
       />

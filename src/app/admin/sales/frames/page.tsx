@@ -495,7 +495,7 @@ export default function FrameSalesCommandCenter() {
           onChange={e => setFiveByFiveFilter(e.target.value)}
           className="!w-auto text-sm"
         >
-          <option value="all">5\u00d75 Printed: All</option>
+          <option value="all">5×5 Printed: All</option>
           <option value="yes">Yes</option>
           <option value="no">No</option>
           <option value="unknown">Unknown</option>

@@ -65,7 +65,7 @@ export function ActivePipelineTable({ rows }: { rows: FrameSaleRow[] }) {
   return (
     <div>
       <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-        <span className="text-amber-500">\u26A1</span> Active Pipeline ({rows.length})
+        <span className="text-amber-500">⚡</span> Active Pipeline ({rows.length})
       </h2>
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className="overflow-x-auto">
@@ -144,7 +144,7 @@ export function CompletedSalesTable({ rows }: { rows: FrameSaleRow[] }) {
   return (
     <div>
       <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-        <span className="text-green-600">\u2713</span> Completed Sales ({rows.length})
+        <span className="text-green-600">✓</span> Completed Sales ({rows.length})
       </h2>
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">No completed frame sales yet.</p>
