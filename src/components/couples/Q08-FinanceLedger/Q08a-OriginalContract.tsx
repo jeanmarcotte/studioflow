@@ -78,7 +78,7 @@ export function Q08aOriginalContract({ installments, payments, contractTotal, c2
       <div style={{ borderRadius: '10px', border: `1px solid ${T.border}`, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: T.cardBgAlt }}>
+            <tr style={{ background: T.tableHeaderBg }}>
               <th style={{ ...thStyle, textAlign: 'center' as const, width: '40px' }}>#</th>
               <th style={thStyle}>Description</th>
               <th style={thStyle}>Due Date</th>
@@ -115,7 +115,7 @@ export function Q08aOriginalContract({ installments, payments, contractTotal, c2
             })}
           </tbody>
           <tfoot>
-            <tr style={{ background: T.cardBgAlt }}>
+            <tr style={{ background: T.tableHeaderBg }}>
               <td colSpan={3} style={{ ...tdStyle, fontWeight: 600, borderBottom: 'none' }}>Contract Total</td>
               <td style={{ ...tdStyle, textAlign: 'center' as const, fontWeight: 600, borderBottom: 'none', color: '#3d7344' }}>
                 {fmt.format(paidTotal)} paid

@@ -115,7 +115,7 @@ export function Q08bAdditionalSale({ extrasOrder, payments, c1Total }: {
       <div style={{ borderRadius: '10px', border: `1px solid ${T.border}`, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: T.cardBgAlt }}>
+            <tr style={{ background: T.tableHeaderBg }}>
               <th style={{ ...thStyle, textAlign: 'center' as const, width: '40px' }}>#</th>
               <th style={thStyle}>Description</th>
               <th style={{ ...thStyle, textAlign: 'center' as const }}>Status</th>

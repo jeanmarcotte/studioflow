@@ -86,7 +86,7 @@ export function Q09ExtrasAddOns({ clientExtras }: Q09ExtrasAddOnsProps) {
         <div style={{ borderRadius: '10px', border: `1px solid ${T.border}`, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: T.cardBgAlt }}>
+              <tr style={{ background: T.tableHeaderBg }}>
                 <th style={thStyle}>Date</th>
                 <th style={thStyle}>Item Type</th>
                 <th style={thStyle}>Description</th>
@@ -114,7 +114,7 @@ export function Q09ExtrasAddOns({ clientExtras }: Q09ExtrasAddOnsProps) {
               ))}
             </tbody>
             <tfoot>
-              <tr style={{ background: T.cardBgAlt }}>
+              <tr style={{ background: T.tableHeaderBg }}>
                 <td colSpan={6} style={{ ...tdStyle, fontWeight: 600, borderBottom: 'none' }}>C3 Total</td>
                 <td style={{ ...tdStyle, textAlign: 'right' as const, fontWeight: 700, borderBottom: 'none', fontVariantNumeric: 'tabular-nums' }}>
                   {fmt.format(c3Total)}

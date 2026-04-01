@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════
    StudioFlow Design Tokens — Couple Detail Page
-   Base: TEAL-DOMINANT — every surface teal-tinted
+   Teal = headers/badges only · White/cream = card bodies
    ══════════════════════════════════════════════════════════ */
 
 export const colors = {
@@ -44,11 +44,16 @@ export const T = {
   accentDark:    colors.primary[700],
   accentLight:   colors.primary[50],
 
-  /* Backgrounds */
+  /* Backgrounds — card bodies */
   pageBg:    '#faf8f5',
   cardBg:    '#ffffff',
   cardBgAlt: '#f8f7f4',
   rowAlt:    '#faf9f6',
+
+  /* Backgrounds — teal headers/table rows */
+  headerBg:      colors.primary[700],
+  headerText:    '#ffffff',
+  tableHeaderBg: colors.primary[50],
 
   /* Borders */
   border:      '#e2e0dc',
