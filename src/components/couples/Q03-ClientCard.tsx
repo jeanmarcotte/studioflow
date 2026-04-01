@@ -114,14 +114,26 @@ export function Q03ClientCard({ couple, contract, extrasOrders }: Q03ClientCardP
   if (bookedStr) meta.push(`Booked ${bookedStr}`);
 
   return (
-    <div style={{ ...card, padding: '2rem 2.25rem' }}>
-      {/* ── Name + Service Type ─────────────────────────────── */}
-      <h1 className={display.className} style={{
-        fontSize: '1.75rem', fontWeight: 400, color: T.text,
-        lineHeight: 1.2, margin: '0 0 0.5rem',
+    <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+      {/* ── Teal Header Bar ─────────────────────────────────── */}
+      <div style={{
+        background: T.headerBg, color: T.headerText,
+        padding: '1.25rem 2.25rem',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        {couple.couple_name} <span style={{ fontSize: '1.1rem', color: T.textSecondary }}>\u2014 {nV > 0 ? 'Photo & Video' : 'Photo Only'}</span>
-      </h1>
+        <h1 className={display.className} style={{
+          fontSize: '1.75rem', fontWeight: 400, color: '#ffffff',
+          lineHeight: 1.2, margin: 0,
+        }}>
+          {couple.couple_name} <span style={{ fontSize: '1.1rem', opacity: 0.8 }}>— {nV > 0 ? 'Photo & Video' : 'Photo Only'}</span>
+        </h1>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Badge v="accent">{status}</Badge>
+          {isPast ? <Badge v="success">Post-Wedding</Badge> : <Badge v="success">Pre-Wedding</Badge>}
+        </div>
+      </div>
+
+      <div style={{ padding: '1.5rem 2.25rem' }}>
 
       {/* ── Wedding date + meta ────────────────────────────── */}
       <div style={{ marginBottom: '1.25rem' }}>
@@ -166,13 +178,12 @@ export function Q03ClientCard({ couple, contract, extrasOrders }: Q03ClientCardP
       </div>
 
       {/* ── Badges ────────────────────────────────────────── */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.25rem' }}>
-        <Badge v="accent">{status}</Badge>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
         <Badge>{nV > 0 ? 'Photo + Video' : 'Photo Only'}</Badge>
-        <Badge v="success">{isPast ? 'Post-Wedding' : 'Pre-Wedding'}</Badge>
         {extrasOrders.length > 0 && <Badge v="warning">Extras Purchased</Badge>}
       </div>
 
+      </div>{/* end body */}
     </div>
   );
 }

@@ -71,7 +71,7 @@ export function Q08aOriginalContract({ installments, payments, contractTotal, c2
           background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px',
           padding: '0.75rem 1rem', marginBottom: '0.75rem', fontSize: '0.875rem', color: '#dc2626', fontWeight: 600,
         }}>
-          {'\u26A0'} PAYMENT OVERDUE \u2014 {overdueItems[0]}. Payment required before next service is delivered.
+          {'\u26A0'} PAYMENT OVERDUE — {overdueItems[0]}. Payment required before next service is delivered.
         </div>
       )}
 

@@ -95,7 +95,7 @@ export function Q08bAdditionalSale({ extrasOrder, payments, c1Total }: {
           <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt.format(balRemaining)}</span>
         </div>
         <div style={ledgerRow}>
-          <span>New purchase \u2014 {itemsDesc.length > 60 ? itemsDesc.slice(0, 60) + '...' : itemsDesc}</span>
+          <span>New purchase — {itemsDesc.length > 60 ? itemsDesc.slice(0, 60) + '...' : itemsDesc}</span>
           <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt.format(saleAmt)}</span>
         </div>
         <div style={ledgerRow}>
