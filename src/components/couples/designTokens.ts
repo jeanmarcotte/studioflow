@@ -45,14 +45,14 @@ export const T = {
   accentLight:   colors.primary[50],
 
   /* Backgrounds */
-  pageBg:    colors.primary[50],
-  cardBg:    '#f0fdfa',
-  cardBgAlt: '#e0f2f1',
-  rowAlt:    '#e6f7f4',
+  pageBg:    '#faf8f5',
+  cardBg:    '#ffffff',
+  cardBgAlt: '#f8f7f4',
+  rowAlt:    '#faf9f6',
 
   /* Borders */
-  border:      '#b2dfdb',
-  borderLight: '#ccfbf1',
+  border:      '#e2e0dc',
+  borderLight: '#eeece8',
 
   /* Semantic */
   successBg:     colors.success[50],

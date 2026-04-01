@@ -92,7 +92,7 @@ export function Q10ContractPackage({
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-4">
       {/* Header */}
       <div className="bg-gradient-to-r from-teal-700 to-teal-800 text-white px-5 py-4 flex justify-between items-center">
-        <h3 className="font-semibold">Contract Package \u2014 As Signed</h3>
+        <h3 className="font-semibold">Contract Package — As Signed</h3>
         <div className="flex items-center gap-3">
           <span className="text-sm text-white/80">{formattedSignedDate}</span>
           <span className={`text-xs font-semibold px-2 py-1 rounded ${
