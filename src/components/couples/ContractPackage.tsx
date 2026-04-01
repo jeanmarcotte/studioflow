@@ -23,6 +23,8 @@ export interface ContractPackageProps {
   tax: number;
   contractTotal: number;
   extrasTotal: number;
+  c2FramesTotal: number;
+  c3ExtrasTotal: number;
   totalPaid: number;
   balance: number;
   numGuests: number | null;
@@ -52,6 +54,8 @@ export function ContractPackage({
   tax,
   contractTotal,
   extrasTotal,
+  c2FramesTotal,
+  c3ExtrasTotal,
   totalPaid,
   balance,
   numGuests,
@@ -164,21 +168,29 @@ export function ContractPackage({
           </h4>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-500">Subtotal</span>
+              <span className="text-slate-500">C1 Subtotal</span>
               <span className="font-medium">${subtotal.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">HST</span>
+              <span className="text-slate-500">C1 HST</span>
               <span className="font-medium">${tax.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Contract</span>
+              <span className="text-slate-500">C1 Contract</span>
               <span className="font-bold">${contractTotal.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Extras</span>
-              <span className="font-medium">${extrasTotal.toLocaleString()}</span>
-            </div>
+            {c2FramesTotal > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-500">C2 Frames & Albums</span>
+                <span className="font-medium">${c2FramesTotal.toLocaleString()}</span>
+              </div>
+            )}
+            {c3ExtrasTotal > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-500">C3 Extras</span>
+                <span className="font-medium">${c3ExtrasTotal.toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-500">Paid</span>
               <span className="font-medium text-green-600">${totalPaid.toLocaleString()}</span>

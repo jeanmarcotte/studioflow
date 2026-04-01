@@ -57,13 +57,27 @@ export function ClientCard({ couple, contract, extrasOrders }: ClientCardProps) 
 
   let coverage: string | null = null;
   if (contract?.start_time && contract?.end_time) {
-    const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    const toMin = (t: string) => {
+      const parts = t.split(':').map(Number);
+      if (parts.length < 2 || parts.some(isNaN)) return NaN;
+      return parts[0] * 60 + parts[1];
+    };
     const fmtT = (t: string) => {
-      const [h, m] = t.split(':').map(Number);
+      const parts = t.split(':').map(Number);
+      if (parts.length < 2 || parts.some(isNaN)) return 'TBD';
+      const [h, m] = parts;
       return `${h > 12 ? h - 12 : h || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
     };
-    const hrs = (toMin(contract.end_time) - toMin(contract.start_time)) / 60;
-    coverage = `${fmtT(contract.start_time)} – ${fmtT(contract.end_time)} (${hrs}h)`;
+    const startMin = toMin(contract.start_time);
+    const endMin = toMin(contract.end_time);
+    const hrs = (endMin - startMin) / 60;
+    const startFmt = fmtT(contract.start_time);
+    const endFmt = fmtT(contract.end_time);
+    if (isNaN(hrs) || startFmt === 'TBD' || endFmt === 'TBD') {
+      coverage = startFmt !== 'TBD' && endFmt !== 'TBD' ? `${startFmt} – ${endFmt}` : 'TBD';
+    } else {
+      coverage = `${startFmt} – ${endFmt} (${hrs}h)`;
+    }
   }
 
   const pkgLabel = couple.package_type

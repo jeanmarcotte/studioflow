@@ -16,6 +16,7 @@ import {
   NotesSection,
   FormsBox,
   ExtrasSection,
+  FramesAndAlbums,
   ContractPackage,
 } from '@/components/couples';
 
@@ -245,6 +246,8 @@ export default function CoupleDetailPage() {
         invoices={invoices}
       />
 
+      <FramesAndAlbums extrasOrder={rawExtrasOrders[0] || null} />
+
       {contract && (
         <ContractPackage
           signedDate={contract.signed_date}
@@ -267,6 +270,8 @@ export default function CoupleDetailPage() {
           tax={parseFloat(contract.tax || '0')}
           contractTotal={contractTotal}
           extrasTotal={extrasTotal}
+          c2FramesTotal={rawFramesTotal}
+          c3ExtrasTotal={rawClientExtrasTotal}
           totalPaid={totalPaid}
           balance={balance}
           numGuests={contract.num_guests}
