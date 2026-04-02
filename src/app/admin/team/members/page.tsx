@@ -377,6 +377,7 @@ export default function TeamMembersPage() {
   const SortHeader = ({ label, sortKeyVal, width }: { label: string; sortKeyVal: SortKey; width: string }) => (
     <th
       onClick={() => handleSort(sortKeyVal)}
+      className="bg-muted text-primary border-border"
       style={{
         width,
         padding: '10px 12px',
@@ -386,12 +387,10 @@ export default function TeamMembersPage() {
         fontSize: '0.75rem',
         textTransform: 'uppercase',
         letterSpacing: '0.05em',
-        color: '#0d4f4f',
         cursor: 'pointer',
         userSelect: 'none',
         whiteSpace: 'nowrap',
-        borderBottom: '2px solid #e7e1d8',
-        background: '#faf8f5',
+        borderBottom: '2px solid',
       }}
     >
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -454,7 +453,7 @@ export default function TeamMembersPage() {
 
   if (loading) {
     return (
-      <div className={nunito.className} style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
+      <div className={`${nunito.className} text-muted-foreground`} style={{ padding: '2rem', textAlign: 'center' }}>
         Loading team members...
       </div>
     )
@@ -463,25 +462,26 @@ export default function TeamMembersPage() {
   // ── Main render ──────────────────────────────────────────────
 
   return (
-    <div className={nunito.className} style={{ padding: '1.5rem 2rem', background: '#faf8f5', minHeight: '100vh' }}>
+    <div className={`${nunito.className} bg-muted`} style={{ padding: '1.5rem 2rem', minHeight: '100vh' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <h1 className={playfair.className} style={{ fontSize: '1.75rem', color: '#1a1a1a', margin: 0, lineHeight: 1.2 }}>
+          <h1 className={`${playfair.className} text-foreground`} style={{ fontSize: '1.75rem', margin: 0, lineHeight: 1.2 }}>
             Team Members
           </h1>
-          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#6b7280', fontWeight: 400 }}>
+          <p className="text-muted-foreground" style={{ margin: '4px 0 0', fontSize: '0.85rem', fontWeight: 400 }}>
             SIGS Photography &middot; {metrics.activeCount} Active Members
           </p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
+          className="bg-primary text-primary-foreground"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
             padding: '8px 16px', borderRadius: '8px', border: 'none',
-            background: '#0d4f4f', color: '#fff', fontWeight: 600,
-            fontSize: '0.85rem', cursor: 'pointer', fontFamily: nunito.style.fontFamily,
+            fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
+            fontFamily: nunito.style.fontFamily,
           }}
         >
           <UserPlus size={16} /> Add Team Member
@@ -491,17 +491,17 @@ export default function TeamMembersPage() {
       {/* Metric Tiles */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
         {[
-          { label: 'Active Members', value: String(metrics.activeCount), color: '#0d4f4f' },
+          { label: 'Active Members', value: String(metrics.activeCount), color: 'var(--primary)' },
           { label: '2026 Weddings Covered', value: String(metrics.totalWeddings), color: '#1e40af' },
           { label: 'Probationary', value: String(metrics.probCount), color: '#92400e' },
           { label: 'Total 2026 Payroll', value: formatCurrency(metrics.totalPayroll), color: '#6d28d9' },
         ].map((tile, i) => (
-          <div key={i} style={{
-            background: '#fff', borderRadius: '10px', padding: '1rem 1.25rem',
-            border: '1px solid #e7e1d8',
+          <div key={i} className="bg-background border-border" style={{
+            borderRadius: '10px', padding: '1rem 1.25rem',
+            border: '1px solid',
             boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', marginBottom: '4px' }}>
+            <div className="text-muted-foreground" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
               {tile.label}
             </div>
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: tile.color, fontFamily: playfair.style.fontFamily }}>
@@ -512,12 +512,12 @@ export default function TeamMembersPage() {
       </div>
 
       {/* Table */}
-      <div style={{ background: '#fff', borderRadius: '10px', border: '1px solid #e7e1d8', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <div className="bg-background border-border" style={{ borderRadius: '10px', border: '1px solid', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: nunito.style.fontFamily }}>
             <thead>
               <tr>
-                <th style={{ width: '50px', padding: '10px 12px', borderBottom: '2px solid #e7e1d8', background: '#faf8f5' }}></th>
+                <th className="bg-muted border-border" style={{ width: '50px', padding: '10px 12px', borderBottom: '2px solid' }}></th>
                 <SortHeader label="Name" sortKeyVal="name" width="180px" />
                 <SortHeader label="Role" sortKeyVal="role" width="120px" />
                 <SortHeader label="Status" sortKeyVal="status" width="110px" />
@@ -534,20 +534,20 @@ export default function TeamMembersPage() {
               {sortedMembers.map((member, idx) => {
                 const stats = memberStats[member.first_name] || { total: 0, earned: 0, nextWedding: null }
                 return (
-                  <tr key={member.id} style={{
-                    borderBottom: '1px solid #f0ece6',
-                    background: idx % 2 === 0 ? '#fff' : '#fdfcfa',
+                  <tr key={member.id} className="border-border" style={{
+                    borderBottom: '1px solid',
+                    background: idx % 2 === 0 ? 'var(--background)' : 'var(--muted)',
                     transition: 'background 0.15s',
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f5f0eb' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = idx % 2 === 0 ? '#fff' : '#fdfcfa' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--accent)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = idx % 2 === 0 ? 'var(--background)' : 'var(--muted)' }}
                   >
                     {/* Avatar */}
                     <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
                       <img
                         src={member.avatar_url || DEFAULT_AVATAR}
                         alt={member.first_name}
-                        style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e7e1d8' }}
+                        style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border)' }}
                         onError={e => { (e.target as HTMLImageElement).src = DEFAULT_AVATAR }}
                       />
                     </td>
@@ -555,9 +555,10 @@ export default function TeamMembersPage() {
                     <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
                       <button
                         onClick={() => { setSelectedMember(member); setEditMode(false) }}
+                        className="text-primary"
                         style={{
                           background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                          fontWeight: 600, fontSize: '0.875rem', color: '#0d4f4f',
+                          fontWeight: 600, fontSize: '0.875rem',
                           fontFamily: nunito.style.fontFamily, textAlign: 'left',
                         }}
                       >
@@ -565,7 +566,7 @@ export default function TeamMembersPage() {
                       </button>
                     </td>
                     {/* Role */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem', color: '#374151' }}>
+                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
                       {ROLE_LABELS[member.role] || member.role}
                     </td>
                     {/* Status — quick toggle */}
@@ -579,9 +580,10 @@ export default function TeamMembersPage() {
                       {statusDropdownId === member.id && (
                         <div
                           onClick={e => e.stopPropagation()}
+                          className="bg-background border-border"
                           style={{
                             position: 'absolute', top: '100%', left: '12px', zIndex: 50,
-                            background: '#fff', borderRadius: '8px', border: '1px solid #e7e1d8',
+                            borderRadius: '8px', border: '1px solid',
                             boxShadow: '0 4px 12px rgba(0,0,0,0.12)', padding: '4px 0',
                             minWidth: '140px',
                           }}
@@ -595,10 +597,10 @@ export default function TeamMembersPage() {
                                 padding: '6px 12px', border: 'none', cursor: 'pointer',
                                 fontSize: '0.8rem', fontFamily: nunito.style.fontFamily,
                                 fontWeight: member.status === opt.value ? 700 : 400,
-                                background: member.status === opt.value ? '#f0ece6' : 'transparent',
-                                color: '#374151',
+                                background: member.status === opt.value ? 'var(--muted)' : 'transparent',
+                                color: 'var(--foreground)',
                               }}
-                              onMouseEnter={e => { if (member.status !== opt.value) (e.target as HTMLElement).style.background = '#faf8f5' }}
+                              onMouseEnter={e => { if (member.status !== opt.value) (e.target as HTMLElement).style.background = 'var(--muted)' }}
                               onMouseLeave={e => { if (member.status !== opt.value) (e.target as HTMLElement).style.background = 'transparent' }}
                             >
                               {opt.label}
@@ -608,11 +610,11 @@ export default function TeamMembersPage() {
                       )}
                     </td>
                     {/* Phone */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem', color: '#374151' }}>
+                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
                       {member.phone || '—'}
                     </td>
                     {/* Pay */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem', color: '#374151' }}>
+                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
                       {getPayLabel(member)}
                     </td>
                     {/* Skills */}
@@ -620,7 +622,7 @@ export default function TeamMembersPage() {
                       <SkillPills skills={member.skills} />
                     </td>
                     {/* Tenure */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem', color: '#374151' }}>
+                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
                       {formatTenure(member.tenure_start)}
                     </td>
                     {/* 2026 Weddings */}
@@ -628,11 +630,11 @@ export default function TeamMembersPage() {
                       {stats.total}
                     </td>
                     {/* 2026 Earned */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem', color: '#374151' }}>
+                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
                       {stats.earned > 0 ? formatCurrency(stats.earned) : '—'}
                     </td>
                     {/* Next Wedding */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem', color: '#374151' }}>
+                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
                       {stats.nextWedding ? format(parseISO(stats.nextWedding), 'MMM d') : '—'}
                     </td>
                   </tr>
@@ -654,15 +656,16 @@ export default function TeamMembersPage() {
         >
           <div
             onClick={e => e.stopPropagation()}
+            className="bg-muted border-border"
             style={{
-              background: '#faf8f5', borderRadius: '16px', width: '90%', maxWidth: '640px',
+              borderRadius: '16px', width: '90%', maxWidth: '640px',
               maxHeight: '85vh', overflow: 'auto', padding: '2rem',
-              boxShadow: '0 25px 50px rgba(0,0,0,0.25)', border: '1px solid #e7e1d8',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.25)', border: '1px solid',
             }}
           >
             {/* Close */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
-              <button onClick={() => { setSelectedMember(null); setEditMode(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
+              <button onClick={() => { setSelectedMember(null); setEditMode(false) }} className="text-muted-foreground" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
@@ -672,15 +675,15 @@ export default function TeamMembersPage() {
               <img
                 src={selectedMember.avatar_url || DEFAULT_AVATAR}
                 alt={selectedMember.first_name}
-                style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', border: '3px solid #e7e1d8' }}
+                style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--border)' }}
                 onError={e => { (e.target as HTMLImageElement).src = DEFAULT_AVATAR }}
               />
               <div>
-                <h2 className={playfair.className} style={{ fontSize: '1.5rem', margin: 0, color: '#1a1a1a' }}>
+                <h2 className={`${playfair.className} text-foreground`} style={{ fontSize: '1.5rem', margin: 0 }}>
                   {selectedMember.first_name} {selectedMember.last_name || ''}
                 </h2>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#374151', fontWeight: 600 }}>
+                  <span className="text-foreground" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
                     {ROLE_LABELS[editMode ? (editData.role ?? selectedMember.role) : selectedMember.role] || selectedMember.role}
                   </span>
                   <StatusPill status={editMode ? (editData.status ?? selectedMember.status) : selectedMember.status} />
@@ -698,43 +701,43 @@ export default function TeamMembersPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {/* Phone & Email */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                     Phone
                     <input type="tel" value={editData.phone ?? selectedMember.phone ?? ''} onChange={e => setEditData(d => ({ ...d, phone: e.target.value }))}
-                      style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                      style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                   </label>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                     Email
                     <input type="email" value={editData.email ?? selectedMember.email ?? ''} onChange={e => setEditData(d => ({ ...d, email: e.target.value }))}
-                      style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                      style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                   </label>
                 </div>
                 {/* Role & Status */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                     Role
                     <select value={editData.role ?? selectedMember.role} onChange={e => setEditData(d => ({ ...d, role: e.target.value }))}
-                      style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }}>
+                      style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }}>
                       {ROLE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   </label>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                     Status
                     <select value={editData.status ?? selectedMember.status} onChange={e => setEditData(d => ({ ...d, status: e.target.value }))}
-                      style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }}>
+                      style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }}>
                       {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   </label>
                 </div>
                 {/* Pay */}
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Pay Per Wedding ($)
                   <input type="number" value={editData.pay_per_wedding ?? selectedMember.pay_per_wedding} onChange={e => setEditData(d => ({ ...d, pay_per_wedding: Number(e.target.value) }))}
-                    style={{ display: 'block', width: '120px', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                    style={{ display: 'block', width: '120px', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                 </label>
                 {/* Skills */}
                 <div>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>Skills</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>Skills</span>
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '4px' }}>
                     {SKILL_OPTIONS.map(skill => {
                       const currentSkills = editData.skills ?? selectedMember.skills ?? []
@@ -753,35 +756,35 @@ export default function TeamMembersPage() {
                 </div>
                 {/* Emergency Contact */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                     Emergency Contact Name
                     <input value={editData.emergency_contact_name ?? selectedMember.emergency_contact_name ?? ''} onChange={e => setEditData(d => ({ ...d, emergency_contact_name: e.target.value }))}
-                      style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                      style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                   </label>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                     Emergency Contact Phone
                     <input value={editData.emergency_contact_phone ?? selectedMember.emergency_contact_phone ?? ''} onChange={e => setEditData(d => ({ ...d, emergency_contact_phone: e.target.value }))}
-                      style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                      style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                   </label>
                 </div>
                 {/* Pair Constraint */}
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Pair Constraint
                   <input value={editData.pair_constraint ?? selectedMember.pair_constraint ?? ''} onChange={e => setEditData(d => ({ ...d, pair_constraint: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                 </label>
                 {/* Notes */}
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Notes
                   <textarea value={editData.notes ?? selectedMember.notes ?? ''} onChange={e => setEditData(d => ({ ...d, notes: e.target.value }))} rows={3}
-                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem', resize: 'vertical' }} />
+                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem', resize: 'vertical' }} />
                 </label>
                 {/* Save / Cancel */}
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
                   <button onClick={() => { setEditMode(false); setEditData({}) }} style={{
                     display: 'inline-flex', alignItems: 'center', gap: '4px',
-                    padding: '8px 16px', borderRadius: '8px', border: '1px solid #e7e1d8',
-                    background: '#fff', color: '#374151', fontWeight: 600, fontSize: '0.85rem',
+                    padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border)',
+                    background: 'var(--background)', color: 'var(--foreground)', fontWeight: 600, fontSize: '0.85rem',
                     cursor: 'pointer', fontFamily: nunito.style.fontFamily,
                   }}>
                     <XCircle size={16} /> Cancel
@@ -789,7 +792,7 @@ export default function TeamMembersPage() {
                   <button onClick={handleSaveEdit} disabled={saving} style={{
                     display: 'inline-flex', alignItems: 'center', gap: '4px',
                     padding: '8px 16px', borderRadius: '8px', border: 'none',
-                    background: '#0d4f4f', color: '#fff', fontWeight: 600, fontSize: '0.85rem',
+                    background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 600, fontSize: '0.85rem',
                     cursor: 'pointer', fontFamily: nunito.style.fontFamily,
                     opacity: saving ? 0.7 : 1,
                   }}>
@@ -800,26 +803,26 @@ export default function TeamMembersPage() {
             ) : (
               <>
                 {/* Contact Section */}
-                <div style={{ marginBottom: '1.25rem', padding: '1rem', background: '#fff', borderRadius: '10px', border: '1px solid #e7e1d8' }}>
-                  <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', marginTop: 0, marginBottom: '10px' }}>Contact</h3>
+                <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'var(--background)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                  <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)', marginTop: 0, marginBottom: '10px' }}>Contact</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem' }}>
                     {selectedMember.phone && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Phone size={14} color="#0d4f4f" />
-                        <a href={`tel:${selectedMember.phone}`} style={{ color: '#0d4f4f', textDecoration: 'none' }}>{selectedMember.phone}</a>
+                        <Phone size={14} className="text-primary" />
+                        <a href={`tel:${selectedMember.phone}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>{selectedMember.phone}</a>
                       </div>
                     )}
                     {selectedMember.email && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Mail size={14} color="#0d4f4f" />
-                        <a href={`mailto:${selectedMember.email}`} style={{ color: '#0d4f4f', textDecoration: 'none' }}>{selectedMember.email}</a>
+                        <Mail size={14} className="text-primary" />
+                        <a href={`mailto:${selectedMember.email}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>{selectedMember.email}</a>
                       </div>
                     )}
                     {selectedMember.emergency_contact_name && (
-                      <div style={{ marginTop: '6px', fontSize: '0.8rem', color: '#6b7280' }}>
+                      <div style={{ marginTop: '6px', fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>
                         <strong>Emergency:</strong> {selectedMember.emergency_contact_name}
                         {selectedMember.emergency_contact_phone && (
-                          <> &middot; <a href={`tel:${selectedMember.emergency_contact_phone}`} style={{ color: '#0d4f4f' }}>{selectedMember.emergency_contact_phone}</a></>
+                          <> &middot; <a href={`tel:${selectedMember.emergency_contact_phone}`} style={{ color: 'var(--primary)' }}>{selectedMember.emergency_contact_phone}</a></>
                         )}
                       </div>
                     )}
@@ -827,14 +830,14 @@ export default function TeamMembersPage() {
                 </div>
 
                 {/* Details Section */}
-                <div style={{ marginBottom: '1.25rem', padding: '1rem', background: '#fff', borderRadius: '10px', border: '1px solid #e7e1d8' }}>
-                  <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', marginTop: 0, marginBottom: '10px' }}>Details</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem', color: '#374151' }}>
+                <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'var(--background)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                  <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)', marginTop: 0, marginBottom: '10px' }}>Details</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem', color: 'var(--foreground)' }}>
                     <div><strong>Joined:</strong> {selectedMember.date_joined ? format(parseISO(selectedMember.date_joined), 'MMMM yyyy') : '—'} &middot; {formatTenureLong(selectedMember.tenure_start)}</div>
                     <div><strong>Pay Rate:</strong> {getPayLabel(selectedMember)}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><strong>Skills:</strong> <SkillPills skills={selectedMember.skills} /></div>
                     {selectedMember.notes && (
-                      <div style={{ marginTop: '6px', padding: '8px 10px', background: '#faf8f5', borderRadius: '6px', fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.5 }}>
+                      <div style={{ marginTop: '6px', padding: '8px 10px', background: 'var(--muted)', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--muted-foreground)', lineHeight: 1.5 }}>
                         {selectedMember.notes}
                       </div>
                     )}
@@ -846,18 +849,18 @@ export default function TeamMembersPage() {
                   const stats = memberStats[selectedMember.first_name] || { total: 0, completed: 0, upcoming: 0, earned: 0, upcomingWeddings: [] }
                   return (
                     <>
-                      <div style={{ marginBottom: '1.25rem', padding: '1rem', background: '#fff', borderRadius: '10px', border: '1px solid #e7e1d8' }}>
-                        <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', marginTop: 0, marginBottom: '10px' }}>2026 Season Stats</h3>
+                      <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'var(--background)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                        <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)', marginTop: 0, marginBottom: '10px' }}>2026 Season Stats</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
                           {[
                             { label: 'Assigned', value: stats.total, color: '#1e40af' },
-                            { label: 'Completed', value: stats.completed, color: '#0d4f4f' },
+                            { label: 'Completed', value: stats.completed, color: 'var(--primary)' },
                             { label: 'Upcoming', value: stats.upcoming, color: '#d97706' },
                             { label: 'Est. YTD', value: formatCurrency(stats.earned), color: '#6d28d9' },
                           ].map((s, i) => (
                             <div key={i} style={{ textAlign: 'center' }}>
                               <div style={{ fontSize: '1.25rem', fontWeight: 700, color: s.color, fontFamily: playfair.style.fontFamily }}>{s.value}</div>
-                              <div style={{ fontSize: '0.7rem', color: '#6b7280', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
                             </div>
                           ))}
                         </div>
@@ -865,22 +868,22 @@ export default function TeamMembersPage() {
 
                       {/* Upcoming Weddings */}
                       {stats.upcomingWeddings.length > 0 && (
-                        <div style={{ marginBottom: '1.25rem', padding: '1rem', background: '#fff', borderRadius: '10px', border: '1px solid #e7e1d8' }}>
-                          <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', marginTop: 0, marginBottom: '10px' }}>Upcoming Weddings</h3>
+                        <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'var(--background)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                          <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)', marginTop: 0, marginBottom: '10px' }}>Upcoming Weddings</h3>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                             <thead>
-                              <tr style={{ borderBottom: '1px solid #e7e1d8' }}>
-                                <th style={{ textAlign: 'left', padding: '6px 0', fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Date</th>
-                                <th style={{ textAlign: 'left', padding: '6px 0', fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Couple</th>
-                                <th style={{ textAlign: 'left', padding: '6px 0', fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Role</th>
+                              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                                <th style={{ textAlign: 'left', padding: '6px 0', fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase' }}>Date</th>
+                                <th style={{ textAlign: 'left', padding: '6px 0', fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase' }}>Couple</th>
+                                <th style={{ textAlign: 'left', padding: '6px 0', fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase' }}>Role</th>
                               </tr>
                             </thead>
                             <tbody>
                               {stats.upcomingWeddings.slice(0, 5).map((w, i) => (
-                                <tr key={i} style={{ borderBottom: '1px solid #f0ece6' }}>
-                                  <td style={{ padding: '6px 0', color: '#374151' }}>{format(parseISO(w.date), 'MMM d')}</td>
-                                  <td style={{ padding: '6px 0', color: '#374151' }}>{w.couple}</td>
-                                  <td style={{ padding: '6px 0', color: '#374151' }}>{w.role}</td>
+                                <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                                  <td style={{ padding: '6px 0', color: 'var(--foreground)' }}>{format(parseISO(w.date), 'MMM d')}</td>
+                                  <td style={{ padding: '6px 0', color: 'var(--foreground)' }}>{w.couple}</td>
+                                  <td style={{ padding: '6px 0', color: 'var(--foreground)' }}>{w.role}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -895,15 +898,15 @@ export default function TeamMembersPage() {
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                   <button onClick={() => { setEditMode(true); setEditData({}) }} style={{
                     display: 'inline-flex', alignItems: 'center', gap: '4px',
-                    padding: '8px 16px', borderRadius: '8px', border: '1px solid #e7e1d8',
-                    background: '#fff', color: '#0d4f4f', fontWeight: 600, fontSize: '0.85rem',
+                    padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border)',
+                    background: 'var(--background)', color: 'var(--primary)', fontWeight: 600, fontSize: '0.85rem',
                     cursor: 'pointer', fontFamily: nunito.style.fontFamily,
                   }}>
                     <Edit2 size={16} /> Edit
                   </button>
                   <button onClick={() => { setSelectedMember(null); setEditMode(false) }} style={{
                     padding: '8px 16px', borderRadius: '8px', border: 'none',
-                    background: '#0d4f4f', color: '#fff', fontWeight: 600, fontSize: '0.85rem',
+                    background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 600, fontSize: '0.85rem',
                     cursor: 'pointer', fontFamily: nunito.style.fontFamily,
                   }}>
                     Close
@@ -927,14 +930,14 @@ export default function TeamMembersPage() {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: '#faf8f5', borderRadius: '16px', width: '90%', maxWidth: '560px',
+              background: 'var(--muted)', borderRadius: '16px', width: '90%', maxWidth: '560px',
               maxHeight: '85vh', overflow: 'auto', padding: '2rem',
-              boxShadow: '0 25px 50px rgba(0,0,0,0.25)', border: '1px solid #e7e1d8',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.25)', border: '1px solid var(--border)',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 className={playfair.className} style={{ fontSize: '1.25rem', margin: 0, color: '#1a1a1a' }}>Add Team Member</h2>
-              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
+              <h2 className={playfair.className} style={{ fontSize: '1.25rem', margin: 0, color: 'var(--foreground)' }}>Add Team Member</h2>
+              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)' }}>
                 <X size={20} />
               </button>
             </div>
@@ -942,63 +945,63 @@ export default function TeamMembersPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {/* Names */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   First Name *
                   <input value={addData.first_name || ''} onChange={e => setAddData(d => ({ ...d, first_name: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                 </label>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Last Name
                   <input value={addData.last_name || ''} onChange={e => setAddData(d => ({ ...d, last_name: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                 </label>
               </div>
               {/* Phone & Email */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Phone
                   <input type="tel" value={addData.phone || ''} onChange={e => setAddData(d => ({ ...d, phone: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                 </label>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Email
                   <input type="email" value={addData.email || ''} onChange={e => setAddData(d => ({ ...d, email: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                 </label>
               </div>
               {/* Role & Status */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Role
                   <select value={addData.role || 'both'} onChange={e => setAddData(d => ({ ...d, role: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }}>
+                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }}>
                     {ROLE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </label>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Status
                   <select value={addData.status || 'interviewing'} onChange={e => setAddData(d => ({ ...d, status: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }}>
+                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }}>
                     {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </label>
               </div>
               {/* Pay & Date Joined */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Pay Per Wedding ($)
                   <input type="number" value={addData.pay_per_wedding ?? 300} onChange={e => setAddData(d => ({ ...d, pay_per_wedding: Number(e.target.value) }))}
-                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                 </label>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Date Joined
                   <input type="date" value={addData.date_joined || ''} onChange={e => setAddData(d => ({ ...d, date_joined: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                 </label>
               </div>
               {/* Skills */}
               <div>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>Skills</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>Skills</span>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '4px' }}>
                   {SKILL_OPTIONS.map(skill => {
                     const currentSkills = addData.skills || []
@@ -1017,35 +1020,35 @@ export default function TeamMembersPage() {
               </div>
               {/* Emergency Contact */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Emergency Contact Name
                   <input value={addData.emergency_contact_name || ''} onChange={e => setAddData(d => ({ ...d, emergency_contact_name: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                 </label>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Emergency Contact Phone
                   <input value={addData.emergency_contact_phone || ''} onChange={e => setAddData(d => ({ ...d, emergency_contact_phone: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                    style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
                 </label>
               </div>
               {/* Avatar URL */}
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                 Avatar URL (optional)
                 <input value={addData.avatar_url || ''} onChange={e => setAddData(d => ({ ...d, avatar_url: e.target.value }))}
                   placeholder="https://..."
-                  style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
+                  style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem' }} />
               </label>
               {/* Notes */}
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                 Notes
                 <textarea value={addData.notes || ''} onChange={e => setAddData(d => ({ ...d, notes: e.target.value }))} rows={2}
-                  style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem', resize: 'vertical' }} />
+                  style={{ display: 'block', width: '100%', marginTop: '4px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.85rem', resize: 'vertical' }} />
               </label>
               {/* Save */}
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
                 <button onClick={() => setShowAddModal(false)} style={{
-                  padding: '8px 16px', borderRadius: '8px', border: '1px solid #e7e1d8',
-                  background: '#fff', color: '#374151', fontWeight: 600, fontSize: '0.85rem',
+                  padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border)',
+                  background: 'var(--background)', color: 'var(--foreground)', fontWeight: 600, fontSize: '0.85rem',
                   cursor: 'pointer', fontFamily: nunito.style.fontFamily,
                 }}>
                   Cancel
@@ -1053,7 +1056,7 @@ export default function TeamMembersPage() {
                 <button onClick={handleAddMember} disabled={saving || !addData.first_name} style={{
                   display: 'inline-flex', alignItems: 'center', gap: '4px',
                   padding: '8px 16px', borderRadius: '8px', border: 'none',
-                  background: '#0d4f4f', color: '#fff', fontWeight: 600, fontSize: '0.85rem',
+                  background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 600, fontSize: '0.85rem',
                   cursor: 'pointer', fontFamily: nunito.style.fontFamily,
                   opacity: (saving || !addData.first_name) ? 0.7 : 1,
                 }}>

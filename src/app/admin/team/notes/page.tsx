@@ -391,7 +391,7 @@ export default function TeamNotesPage() {
                 }}
                 onFocus={() => { setCoupleDropdownOpen(true); fetchCouples(coupleSearch) }}
                 placeholder="Search by couple name..."
-                className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400 ${coupleId ? 'border-stone-800' : 'border-input'}`}
+                className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring ${coupleId ? 'border-primary' : 'border-input'}`}
               />
               {coupleId && (
                 <button
@@ -456,7 +456,7 @@ export default function TeamNotesPage() {
                 value={otherShooter}
                 onChange={e => setOtherShooter(e.target.value)}
                 placeholder="Name..."
-                className="mt-2 rounded-lg border border-input bg-background px-3 py-1.5 text-sm outline-none w-48 focus:border-stone-400"
+                className="mt-2 rounded-lg border border-input bg-background px-3 py-1.5 text-sm outline-none w-48 focus:border-ring"
               />
             )}
           </div>
@@ -515,7 +515,7 @@ export default function TeamNotesPage() {
                       onClick={() => toggleTag(tag.id)}
                       className={`px-2.5 py-1 rounded text-xs border transition-all ${
                         active
-                          ? 'bg-stone-800 text-white border-stone-800'
+                          ? 'bg-primary text-primary-foreground border-primary'
                           : 'border-input text-muted-foreground hover:bg-accent/50'
                       }`}
                     >
@@ -532,7 +532,7 @@ export default function TeamNotesPage() {
                 {pendingNewTags.map(tag => (
                   <span
                     key={tag}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs bg-stone-100 text-stone-700 border border-dashed border-stone-400"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs bg-muted text-foreground border border-dashed border-border"
                   >
                     {tag}
                     <button type="button" onClick={() => removeNewTag(tag)} className="hover:opacity-80">
@@ -549,7 +549,7 @@ export default function TeamNotesPage() {
                 onChange={e => setNewTagInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addNewTag() } }}
                 placeholder="Type new tag + Enter..."
-                className="rounded-lg border border-input bg-background px-3 py-1.5 text-xs outline-none flex-1 max-w-xs focus:border-stone-400"
+                className="rounded-lg border border-input bg-background px-3 py-1.5 text-xs outline-none flex-1 max-w-xs focus:border-ring"
               />
               <button
                 type="button"
@@ -570,7 +570,7 @@ export default function TeamNotesPage() {
             onChange={e => setNoteText(e.target.value)}
             rows={5}
             placeholder="Describe what happened, what should have been done differently, and what the team should learn from this..."
-            className="w-full rounded-lg border border-input bg-background px-3 py-3 text-sm outline-none resize-y transition-colors focus:border-stone-400 min-h-[120px]"
+            className="w-full rounded-lg border border-input bg-background px-3 py-3 text-sm outline-none resize-y transition-colors focus:border-ring min-h-[120px]"
           />
 
           {/* ── Image Upload ──────────────────────────────── */}
@@ -579,7 +579,7 @@ export default function TeamNotesPage() {
               onDrop={handleDrop}
               onDragOver={e => e.preventDefault()}
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-input rounded-lg p-4 text-center cursor-pointer hover:border-stone-400 transition-colors"
+              className="border-2 border-dashed border-input rounded-lg p-4 text-center cursor-pointer hover:border-ring transition-colors"
             >
               <ImagePlus size={20} className="mx-auto mb-1.5 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">
@@ -629,7 +629,7 @@ export default function TeamNotesPage() {
                 className="sr-only peer"
               />
               <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
-                isLesson ? 'bg-stone-800 border-stone-800' : 'border-input bg-background'
+                isLesson ? 'bg-primary border-primary' : 'border-input bg-background'
               }`}>
                 {isLesson && <BookOpen size={12} className="text-white" />}
               </div>
@@ -642,7 +642,7 @@ export default function TeamNotesPage() {
             <button
               type="submit"
               disabled={submitting || !coupleId || !noteText.trim()}
-              className="rounded-lg bg-stone-800 px-6 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               {submitting ? 'Logging...' : 'Log Note'}
             </button>
@@ -667,7 +667,7 @@ export default function TeamNotesPage() {
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-colors ${
               activeFilterCount > 0
-                ? 'bg-stone-800 text-white border-stone-800'
+                ? 'bg-primary text-primary-foreground border-primary'
                 : 'border-input text-muted-foreground hover:bg-accent/50'
             }`}
           >
@@ -717,7 +717,7 @@ export default function TeamNotesPage() {
                   value={filterSearch}
                   onChange={e => setFilterSearch(e.target.value)}
                   placeholder="Search notes..."
-                  className="rounded-lg border border-input bg-background pl-7 pr-3 py-1.5 text-xs outline-none w-[180px] focus:border-stone-400"
+                  className="rounded-lg border border-input bg-background pl-7 pr-3 py-1.5 text-xs outline-none w-[180px] focus:border-ring"
                 />
               </div>
             </div>
@@ -831,7 +831,7 @@ export default function TeamNotesPage() {
                                 ? setEmailPopoverNote(null)
                                 : openEmailPopover(note.id, note.shooters)
                             }}
-                            className="p-1 rounded text-muted-foreground hover:text-stone-700 hover:bg-accent/50 transition-colors"
+                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
                             title="Email note to shooter"
                           >
                             <Mail size={13} />
@@ -857,7 +857,7 @@ export default function TeamNotesPage() {
                                 type="button"
                                 onClick={handleSendEmail}
                                 disabled={sendingEmail || !Object.values(emailRecipients).some(Boolean)}
-                                className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg bg-stone-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-700 transition-colors disabled:opacity-30"
+                                className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-30"
                               >
                                 <Send size={11} />
                                 {sendingEmail ? 'Sending...' : 'Send'}
@@ -914,7 +914,7 @@ export default function TeamNotesPage() {
 
       {/* ── Toast ────────────────────────────────────────────── */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-[100] px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium bg-stone-800 text-white">
+        <div className="fixed bottom-6 right-6 z-[100] px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium bg-primary text-primary-foreground">
           {toast}
         </div>
       )}
@@ -948,7 +948,7 @@ function PillButton({
         sm ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
       } ${
         active
-          ? 'bg-stone-800 text-white border-stone-800'
+          ? 'bg-primary text-primary-foreground border-primary'
           : variant === 'ghost'
             ? 'border-dashed border-muted-foreground/40 text-muted-foreground hover:bg-accent/50'
             : 'border-input text-muted-foreground hover:bg-accent/50'
@@ -962,8 +962,8 @@ function PillButton({
 function MicroPill({ label, variant }: { label: string; variant: 'default' | 'muted' | 'filled' }) {
   const classes = {
     default: 'border-input text-muted-foreground',
-    muted: 'border-stone-300 text-stone-500',
-    filled: 'bg-stone-100 border-stone-300 text-stone-700',
+    muted: 'border-border text-muted-foreground',
+    filled: 'bg-muted border-border text-foreground',
   }
   return (
     <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] border ${classes[variant]}`}>
@@ -986,7 +986,7 @@ function FilterSelect({
         value={value}
         onChange={e => onChange(e.target.value)}
         className={`rounded-lg border bg-background px-3 py-1.5 pr-8 text-xs outline-none cursor-pointer ${
-          value ? 'border-stone-800 text-stone-800' : 'border-input text-muted-foreground'
+          value ? 'border-primary text-primary' : 'border-input text-muted-foreground'
         }`}
       >
         <option value="">All</option>

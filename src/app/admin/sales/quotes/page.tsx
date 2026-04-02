@@ -530,7 +530,7 @@ export default function CoupleQuotesPage() {
         </div>
         <button
           onClick={generatePipelineReport}
-          className="inline-flex items-center gap-2 rounded-lg bg-stone-800 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           <Download className="h-4 w-4" />
           Download Report
@@ -798,7 +798,7 @@ export default function CoupleQuotesPage() {
                             </button>
                             <button
                               onClick={() => router.push(`/admin/contracts/generate?quote_id=${m.client_quote_id}`)}
-                              className="inline-flex items-center gap-1 rounded-md bg-stone-50 border border-stone-200 px-2 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100 transition-colors"
+                              className="inline-flex items-center gap-1 rounded-md bg-muted border border-border px-2 py-1.5 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors"
                               title="Contract"
                             >
                               <FileText className="h-3 w-3" />

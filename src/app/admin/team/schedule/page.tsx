@@ -497,7 +497,7 @@ export default function TeamSchedulePage() {
     const v = a.num_videographers
     const total = p + v
     const tooltip = `Contract: ${p} photographer${p !== 1 ? 's' : ''}${v > 0 ? `, ${v} videographer${v !== 1 ? 's' : ''}` : ''}`
-    const bg = total === 0 ? 'bg-gray-100 text-gray-500' : v > 0 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+    const bg = total === 0 ? 'bg-muted text-muted-foreground' : v > 0 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
 
     return (
       <span title={tooltip} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${bg}`}>
