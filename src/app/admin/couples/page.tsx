@@ -419,7 +419,7 @@ export default function CouplesPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">No Sale</span>
-              <span className="text-sm font-semibold text-gray-500">{stats.byFrame.noSale}</span>
+              <span className="text-sm font-semibold text-muted-foreground">{stats.byFrame.noSale}</span>
             </div>
           </div>
         </div>
