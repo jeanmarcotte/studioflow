@@ -167,18 +167,18 @@ function TimePicker({ value, onChange, label }: { value: string; onChange: (v: s
 
   return (
     <div>
-      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '4px' }}>{label}</span>
+      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: '4px' }}>{label}</span>
       <div style={{
-        display: 'flex', alignItems: 'stretch', border: '1px solid #e7e1d8', borderRadius: '8px',
-        overflow: 'hidden', background: '#fff', height: '38px',
+        display: 'flex', alignItems: 'stretch', border: '1px solid var(--border)', borderRadius: '8px',
+        overflow: 'hidden', background: 'var(--background)', height: '38px',
       }}>
         {/* Down button */}
         <button
           onClick={() => onChange(adjustTime(value || '12:00 PM', -15))}
           style={{
-            width: '32px', border: 'none', background: '#faf8f5', cursor: 'pointer',
+            width: '32px', border: 'none', background: 'var(--muted)', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRight: '1px solid #e7e1d8', color: '#0d4f4f', flexShrink: 0,
+            borderRight: '1px solid var(--border)', color: 'var(--primary)', flexShrink: 0,
           }}
           title="-15 min"
         >
@@ -190,9 +190,9 @@ function TimePicker({ value, onChange, label }: { value: string; onChange: (v: s
           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontFamily: "'Courier New', Courier, monospace",
           fontSize: '1rem', fontWeight: 700,
-          color: hasValue ? '#0d4f4f' : '#9ca3af',
+          color: hasValue ? 'var(--primary)' : 'var(--muted-foreground)',
           letterSpacing: '0.5px',
-          background: hasValue ? '#f0faf9' : '#fff',
+          background: hasValue ? 'var(--accent)' : 'var(--background)',
           minWidth: '90px',
           cursor: 'text',
           position: 'relative',
@@ -205,7 +205,7 @@ function TimePicker({ value, onChange, label }: { value: string; onChange: (v: s
               width: '100%', textAlign: 'center', border: 'none', background: 'transparent',
               fontFamily: "'Courier New', Courier, monospace",
               fontSize: '1rem', fontWeight: 700,
-              color: hasValue ? '#0d4f4f' : '#9ca3af',
+              color: hasValue ? 'var(--primary)' : 'var(--muted-foreground)',
               outline: 'none', padding: '0 4px',
             }}
           />
@@ -215,9 +215,9 @@ function TimePicker({ value, onChange, label }: { value: string; onChange: (v: s
         <button
           onClick={() => onChange(adjustTime(value || '12:00 PM', 15))}
           style={{
-            width: '32px', border: 'none', background: '#faf8f5', cursor: 'pointer',
+            width: '32px', border: 'none', background: 'var(--muted)', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderLeft: '1px solid #e7e1d8', color: '#0d4f4f', flexShrink: 0,
+            borderLeft: '1px solid var(--border)', color: 'var(--primary)', flexShrink: 0,
           }}
           title="+15 min"
         >
@@ -718,37 +718,37 @@ export default function CrewCallSheetPage() {
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '6px 10px', borderRadius: '6px',
-    border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily,
-    fontSize: '0.85rem', background: '#fff',
+    border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily,
+    fontSize: '0.85rem', background: 'var(--background)',
   }
 
-  const labelStyle: React.CSSProperties = { fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '3px' }
+  const labelStyle: React.CSSProperties = { fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: '3px' }
 
   const cardStyle: React.CSSProperties = {
-    background: '#fff', borderRadius: '12px', border: '1px solid #e7e1d8',
+    background: 'var(--background)', borderRadius: '12px', border: '1px solid var(--border)',
     padding: '1.25rem 1.5rem', marginBottom: '1.5rem',
     boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
   }
 
   const sectionTitle = (text: string) => (
-    <h2 className={playfair.className} style={{ fontSize: '1.1rem', color: '#0d4f4f', margin: '0 0 1rem' }}>{text}</h2>
+    <h2 className={playfair.className} style={{ fontSize: '1.1rem', color: 'var(--primary)', margin: '0 0 1rem' }}>{text}</h2>
   )
 
   // ── Loading ────────────────────────────────────────────────────
 
   if (loading) {
-    return <div className={nunito.className} style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>Loading...</div>
+    return <div className={nunito.className} style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>Loading...</div>
   }
 
   // ── Render ─────────────────────────────────────────────────────
 
   return (
-    <div className={nunito.className} style={{ padding: '1.5rem 2rem', background: '#faf8f5', minHeight: '100vh' }}>
+    <div className={nunito.className} style={{ padding: '1.5rem 2rem', background: 'var(--background)', minHeight: '100vh' }}>
 
       {/* Header */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <h1 className={playfair.className} style={{ fontSize: '1.75rem', color: '#1a1a1a', margin: 0 }}>Crew Call Sheet</h1>
-        <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#6b7280' }}>Send wedding details to your team</p>
+        <h1 className={playfair.className} style={{ fontSize: '1.75rem', color: 'var(--foreground)', margin: 0 }}>Crew Call Sheet</h1>
+        <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>Send wedding details to your team</p>
       </div>
 
       {/* Section 1: Wedding Selector */}
@@ -758,8 +758,8 @@ export default function CrewCallSheetPage() {
           onChange={e => setSelectedCoupleId(e.target.value)}
           style={{
             width: '100%', maxWidth: '500px', padding: '10px 14px', borderRadius: '8px',
-            border: '1px solid #e7e1d8', fontFamily: nunito.style.fontFamily, fontSize: '0.9rem',
-            background: '#fff', color: '#1a1a1a', cursor: 'pointer',
+            border: '1px solid var(--border)', fontFamily: nunito.style.fontFamily, fontSize: '0.9rem',
+            background: 'var(--background)', color: 'var(--foreground)', cursor: 'pointer',
           }}
         >
           <option value="">Select an upcoming wedding...</option>
@@ -780,60 +780,60 @@ export default function CrewCallSheetPage() {
           <div style={cardStyle}>
             {sectionTitle('Wedding Details')}
             <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '6px 16px', fontSize: '0.85rem' }}>
-              <span style={{ color: '#6b7280', fontWeight: 600 }}>Couple</span>
-              <span style={{ color: '#1a1a1a', fontWeight: 700 }}>{selectedCouple.couple_name}</span>
+              <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Couple</span>
+              <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>{selectedCouple.couple_name}</span>
 
-              <span style={{ color: '#6b7280', fontWeight: 600 }}>Date</span>
-              <span style={{ color: '#1a1a1a', fontWeight: 700 }}>{formatWeddingDateUpper(selectedCouple.wedding_date)}</span>
+              <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Date</span>
+              <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>{formatWeddingDateUpper(selectedCouple.wedding_date)}</span>
 
-              <span style={{ color: '#6b7280', fontWeight: 600 }}>Weather</span>
-              <span style={{ color: '#374151' }}>
+              <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Weather</span>
+              <span style={{ color: 'var(--foreground)' }}>
                 {weatherLoading ? 'Loading...' : weather.available ? (
                   <>High {weather.high}°C / Low {weather.low}°C | {weather.precipitation}% rain<br />Sunrise {weather.sunrise} | Sunset {weather.sunset}</>
                 ) : 'Available closer to date'}
               </span>
 
               {selectedContract?.reception_venue && <>
-                <span style={{ color: '#6b7280', fontWeight: 600 }}>Reception</span>
-                <span style={{ color: '#374151' }}>
+                <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Reception</span>
+                <span style={{ color: 'var(--foreground)' }}>
                   {selectedContract.reception_venue}
-                  <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
+                  <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
                 </span>
               </>}
 
               {selectedContract?.ceremony_location && <>
-                <span style={{ color: '#6b7280', fontWeight: 600 }}>Ceremony</span>
-                <span style={{ color: '#374151' }}>
+                <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Ceremony</span>
+                <span style={{ color: 'var(--foreground)' }}>
                   {selectedContract.ceremony_location}
-                  <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
+                  <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
                 </span>
               </>}
 
               {selectedCouple.park_location && <>
-                <span style={{ color: '#6b7280', fontWeight: 600 }}>Park</span>
-                <span style={{ color: '#374151' }}>
+                <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Park</span>
+                <span style={{ color: 'var(--foreground)' }}>
                   {selectedCouple.park_location}
-                  <a href={mapsUrl(selectedCouple.park_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
+                  <a href={mapsUrl(selectedCouple.park_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
                 </span>
               </>}
 
               {calcCoverage() && <>
-                <span style={{ color: '#6b7280', fontWeight: 600 }}>Coverage</span>
-                <span style={{ color: '#374151' }}>{calcCoverage()}</span>
+                <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Coverage</span>
+                <span style={{ color: 'var(--foreground)' }}>{calcCoverage()}</span>
               </>}
 
               {selectedCouple.package_type && <>
-                <span style={{ color: '#6b7280', fontWeight: 600 }}>Package</span>
-                <span style={{ color: '#374151' }}>{selectedCouple.package_type === 'photo_only' ? 'Photo Only' : 'Photo & Video'}</span>
+                <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Package</span>
+                <span style={{ color: 'var(--foreground)' }}>{selectedCouple.package_type === 'photo_only' ? 'Photo Only' : 'Photo & Video'}</span>
               </>}
 
-              <span style={{ color: '#6b7280', fontWeight: 600 }}>Team Required</span>
-              <span style={{ color: '#374151' }}>{teamRequired()}</span>
+              <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Team Required</span>
+              <span style={{ color: 'var(--foreground)' }}>{teamRequired()}</span>
 
-              <span style={{ color: '#6b7280', fontWeight: 600 }}>Wedding Day Form</span>
+              <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Wedding Day Form</span>
               <span>{selectedMilestone?.m15_day_form_approved
-                ? <span style={{ color: '#0d4f4f', fontWeight: 700 }}>Received ✅</span>
-                : <span style={{ color: '#dc2626', fontWeight: 700 }}>Missing 🚨</span>
+                ? <span style={{ color: 'var(--primary)', fontWeight: 700 }}>Received ✅</span>
+                : <span style={{ color: 'var(--destructive)', fontWeight: 700 }}>Missing 🚨</span>
               }</span>
             </div>
 
@@ -856,20 +856,20 @@ export default function CrewCallSheetPage() {
             {schedule.length > 0 ? (
               <div style={{ position: 'relative', paddingLeft: '24px' }}>
                 {/* Timeline line */}
-                <div style={{ position: 'absolute', left: '8px', top: '4px', bottom: '4px', width: '2px', background: '#0d4f4f', borderRadius: '1px' }} />
+                <div style={{ position: 'absolute', left: '8px', top: '4px', bottom: '4px', width: '2px', background: 'var(--primary)', borderRadius: '1px' }} />
                 {schedule.map((evt, i) => (
                   <div key={i} style={{ position: 'relative', marginBottom: i < schedule.length - 1 ? '16px' : 0, paddingLeft: '16px' }}>
                     {/* Dot */}
-                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: '#0d4f4f', border: '2px solid #fff', boxShadow: '0 0 0 1px #0d4f4f' }} />
+                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--background)', boxShadow: '0 0 0 1px var(--primary)' }} />
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '2px' }}>
-                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: '#0d4f4f', minWidth: '80px' }}>⏰ {evt.time}</span>
-                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a1a' }}>{evt.label}</span>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', minWidth: '80px' }}>⏰ {evt.time}</span>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>{evt.label}</span>
                     </div>
                     {evt.address && (
-                      <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#374151' }}>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: 'var(--foreground)' }}>
                         📍 {evt.address}
                         {evt.maps_url && (
-                          <a href={evt.maps_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
+                          <a href={evt.maps_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
                         )}
                       </p>
                     )}
@@ -879,58 +879,58 @@ export default function CrewCallSheetPage() {
             ) : selectedContract ? (
               /* Minimal schedule from contracts */
               <div style={{ position: 'relative', paddingLeft: '24px' }}>
-                <div style={{ position: 'absolute', left: '8px', top: '4px', bottom: '4px', width: '2px', background: '#0d4f4f', borderRadius: '1px' }} />
+                <div style={{ position: 'absolute', left: '8px', top: '4px', bottom: '4px', width: '2px', background: 'var(--primary)', borderRadius: '1px' }} />
                 {selectedContract.start_time && (
                   <div style={{ position: 'relative', marginBottom: '16px', paddingLeft: '16px' }}>
-                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: '#0d4f4f', border: '2px solid #fff', boxShadow: '0 0 0 1px #0d4f4f' }} />
+                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--background)', boxShadow: '0 0 0 1px var(--primary)' }} />
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: '#0d4f4f', minWidth: '80px' }}>⏰ {selectedContract.start_time}</span>
-                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a1a' }}>Coverage Begins</span>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', minWidth: '80px' }}>⏰ {selectedContract.start_time}</span>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>Coverage Begins</span>
                     </div>
                   </div>
                 )}
                 {selectedContract.ceremony_location && (
                   <div style={{ position: 'relative', marginBottom: '16px', paddingLeft: '16px' }}>
-                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: '#0d4f4f', border: '2px solid #fff', boxShadow: '0 0 0 1px #0d4f4f' }} />
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#374151' }}>
+                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--background)', boxShadow: '0 0 0 1px var(--primary)' }} />
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--foreground)' }}>
                       📍 Ceremony: {selectedContract.ceremony_location}
-                      <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
+                      <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
                     </p>
                   </div>
                 )}
                 {selectedContract.reception_venue && (
                   <div style={{ position: 'relative', marginBottom: '16px', paddingLeft: '16px' }}>
-                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: '#0d4f4f', border: '2px solid #fff', boxShadow: '0 0 0 1px #0d4f4f' }} />
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#374151' }}>
+                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--background)', boxShadow: '0 0 0 1px var(--primary)' }} />
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--foreground)' }}>
                       📍 Reception: {selectedContract.reception_venue}
-                      <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
+                      <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
                     </p>
                   </div>
                 )}
                 {selectedContract.end_time && (
                   <div style={{ position: 'relative', paddingLeft: '16px' }}>
-                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: '#0d4f4f', border: '2px solid #fff', boxShadow: '0 0 0 1px #0d4f4f' }} />
+                    <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--background)', boxShadow: '0 0 0 1px var(--primary)' }} />
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: '#0d4f4f', minWidth: '80px' }}>⏰ {selectedContract.end_time}</span>
-                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a1a' }}>Coverage Ends</span>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', minWidth: '80px' }}>⏰ {selectedContract.end_time}</span>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>Coverage Ends</span>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <p style={{ margin: 0, fontSize: '0.85rem', color: '#9ca3af' }}>No schedule data available</p>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>No schedule data available</p>
             )}
           </div>
 
           {/* Section 3: Crew Assignment Cards */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h2 className={playfair.className} style={{ fontSize: '1.1rem', color: '#0d4f4f', margin: 0 }}>Crew Assignments</h2>
+              <h2 className={playfair.className} style={{ fontSize: '1.1rem', color: 'var(--primary)', margin: 0 }}>Crew Assignments</h2>
               <div style={{ position: 'relative' }}>
                 <button onClick={() => setShowAddCrew(!showAddCrew)} style={{
                   display: 'inline-flex', alignItems: 'center', gap: '4px',
-                  padding: '6px 12px', borderRadius: '6px', border: '1px solid #e7e1d8',
-                  background: '#fff', color: '#0d4f4f', fontWeight: 600, fontSize: '0.8rem',
+                  padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)',
+                  background: 'var(--background)', color: 'var(--primary)', fontWeight: 600, fontSize: '0.8rem',
                   cursor: 'pointer', fontFamily: nunito.style.fontFamily,
                 }}>
                   <Plus size={14} /> Add Crew Member
@@ -938,7 +938,7 @@ export default function CrewCallSheetPage() {
                 {showAddCrew && availableMembers.length > 0 && (
                   <div style={{
                     position: 'absolute', top: '100%', right: 0, zIndex: 50,
-                    background: '#fff', borderRadius: '8px', border: '1px solid #e7e1d8',
+                    background: 'var(--background)', borderRadius: '8px', border: '1px solid var(--border)',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.12)', padding: '4px 0',
                     minWidth: '200px', marginTop: '4px',
                   }}>
@@ -947,9 +947,9 @@ export default function CrewCallSheetPage() {
                         display: 'block', width: '100%', textAlign: 'left',
                         padding: '8px 12px', border: 'none', cursor: 'pointer',
                         fontSize: '0.85rem', fontFamily: nunito.style.fontFamily,
-                        background: 'transparent', color: '#374151',
+                        background: 'transparent', color: 'var(--foreground)',
                       }}
-                        onMouseEnter={e => { (e.target as HTMLElement).style.background = '#faf8f5' }}
+                        onMouseEnter={e => { (e.target as HTMLElement).style.background = 'var(--muted)' }}
                         onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent' }}
                       >{m.first_name} {m.last_name || ''}</button>
                     ))}
@@ -960,7 +960,7 @@ export default function CrewCallSheetPage() {
 
             {crewEntries.map((entry, idx) => (
               <div key={entry.team_member_id} style={{
-                background: '#fff', borderRadius: '10px', border: '1px solid #e7e1d8',
+                background: 'var(--background)', borderRadius: '10px', border: '1px solid var(--border)',
                 marginBottom: '0.75rem', overflow: 'hidden',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                 opacity: entry.checked ? 1 : 0.5,
@@ -968,21 +968,21 @@ export default function CrewCallSheetPage() {
                 {/* Card header */}
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '10px 14px', background: '#faf8f5', borderBottom: '1px solid #e7e1d8',
+                  padding: '10px 14px', background: 'var(--muted)', borderBottom: '1px solid var(--border)',
                 }}>
                   <input type="checkbox" checked={entry.checked}
                     onChange={e => updateEntry(idx, 'checked', e.target.checked)}
                     style={{ width: 18, height: 18, cursor: 'pointer' }} />
-                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a1a', flex: 1 }}>{entry.member_name}</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)', flex: 1 }}>{entry.member_name}</span>
                   <select value={entry.role} onChange={e => updateEntry(idx, 'role', e.target.value)} style={{
-                    padding: '4px 8px', borderRadius: '6px', border: '1px solid #e7e1d8',
-                    fontSize: '0.8rem', fontFamily: nunito.style.fontFamily, background: '#fff',
+                    padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)',
+                    fontSize: '0.8rem', fontFamily: nunito.style.fontFamily, background: 'var(--background)',
                   }}>
                     <option>Lead Photographer</option>
                     <option>2nd Photographer</option>
                     <option>Videographer</option>
                   </select>
-                  <button onClick={() => removeCrew(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '2px' }}>
+                  <button onClick={() => removeCrew(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: '2px' }}>
                     <X size={16} />
                   </button>
                 </div>
@@ -1027,17 +1027,17 @@ export default function CrewCallSheetPage() {
                       {/* ── Address Display Card ── */}
                       {entry.meeting_point_address && (
                         <div style={{
-                          background: '#f0faf9', border: '2px solid #0d4f4f', borderRadius: '10px',
+                          background: 'var(--accent)', border: '2px solid var(--primary)', borderRadius: '10px',
                           padding: '14px 16px', marginTop: '4px',
                         }}>
                           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                             <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>📍</span>
                             <div style={{ flex: 1 }}>
                               <p style={{
-                                margin: 0, fontWeight: 700, fontSize: '0.95rem', color: '#0d4f4f',
+                                margin: 0, fontWeight: 700, fontSize: '0.95rem', color: 'var(--primary)',
                               }}>{entry.meeting_point.split(' — ')[0]}</p>
                               <p style={{
-                                margin: '3px 0 0', fontSize: '0.9rem', color: '#374151', lineHeight: 1.4,
+                                margin: '3px 0 0', fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.4,
                               }}>{entry.meeting_point_address}</p>
                             </div>
                           </div>
@@ -1049,7 +1049,7 @@ export default function CrewCallSheetPage() {
                               style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                                 marginTop: '10px', padding: '8px 16px', borderRadius: '6px',
-                                background: '#0d4f4f', color: '#fff', textDecoration: 'none',
+                                background: 'var(--primary)', color: 'var(--primary-foreground)', textDecoration: 'none',
                                 fontWeight: 700, fontSize: '0.85rem', fontFamily: nunito.style.fontFamily,
                               }}
                             >
@@ -1064,11 +1064,11 @@ export default function CrewCallSheetPage() {
                     {!showAddMeetingPoint ? (
                       <button onClick={() => setShowAddMeetingPoint(true)} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
-                        fontSize: '0.75rem', color: '#0d4f4f', fontWeight: 600,
+                        fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600,
                         padding: '0 0 8px', fontFamily: nunito.style.fontFamily,
                       }}>+ Add Meeting Point</button>
                     ) : (
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', marginBottom: '8px', padding: '8px', background: '#faf8f5', borderRadius: '6px' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', marginBottom: '8px', padding: '8px', background: 'var(--muted)', borderRadius: '6px' }}>
                         <div style={{ flex: 1 }}>
                           <span style={labelStyle}>Name</span>
                           <input value={newMpName} onChange={e => setNewMpName(e.target.value)} placeholder="Tim Hortons — Location" style={inputStyle} />
@@ -1077,8 +1077,8 @@ export default function CrewCallSheetPage() {
                           <span style={labelStyle}>Address</span>
                           <input value={newMpAddress} onChange={e => setNewMpAddress(e.target.value)} placeholder="123 Street, City" style={inputStyle} />
                         </div>
-                        <button onClick={handleAddMeetingPoint} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: '#0d4f4f', color: '#fff', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', fontFamily: nunito.style.fontFamily, whiteSpace: 'nowrap' }}>Save</button>
-                        <button onClick={() => setShowAddMeetingPoint(false)} style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e7e1d8', background: '#fff', color: '#6b7280', fontSize: '0.8rem', cursor: 'pointer', fontFamily: nunito.style.fontFamily }}>Cancel</button>
+                        <button onClick={handleAddMeetingPoint} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', fontFamily: nunito.style.fontFamily, whiteSpace: 'nowrap' }}>Save</button>
+                        <button onClick={() => setShowAddMeetingPoint(false)} style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--background)', color: 'var(--muted-foreground)', fontSize: '0.8rem', cursor: 'pointer', fontFamily: nunito.style.fontFamily }}>Cancel</button>
                       </div>
                     )}
 
@@ -1087,7 +1087,7 @@ export default function CrewCallSheetPage() {
                       <button onClick={() => updateEntry(idx, 'showEquipment', !entry.showEquipment)} style={{
                         display: 'flex', alignItems: 'center', gap: '4px', background: 'none',
                         border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
-                        color: '#6b7280', padding: '4px 0', fontFamily: nunito.style.fontFamily,
+                        color: 'var(--muted-foreground)', padding: '4px 0', fontFamily: nunito.style.fontFamily,
                       }}>
                         {entry.showEquipment ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         Equipment Instructions
@@ -1125,7 +1125,7 @@ export default function CrewCallSheetPage() {
             ))}
 
             {crewEntries.length === 0 && (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.85rem', background: '#fff', borderRadius: '10px', border: '1px solid #e7e1d8' }}>
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted-foreground)', fontSize: '0.85rem', background: 'var(--background)', borderRadius: '10px', border: '1px solid var(--border)' }}>
                 No crew assigned to this wedding yet. Check wedding assignments or add crew members manually.
               </div>
             )}
@@ -1143,8 +1143,8 @@ export default function CrewCallSheetPage() {
               display: 'flex', alignItems: 'center', gap: '6px', background: 'none',
               border: 'none', cursor: 'pointer', padding: 0, width: '100%',
             }}>
-              {showVendors ? <ChevronDown size={16} style={{ color: '#0d4f4f' }} /> : <ChevronRight size={16} style={{ color: '#0d4f4f' }} />}
-              <h2 className={playfair.className} style={{ fontSize: '1.1rem', color: '#0d4f4f', margin: 0 }}>Key Vendors</h2>
+              {showVendors ? <ChevronDown size={16} style={{ color: 'var(--primary)' }} /> : <ChevronRight size={16} style={{ color: 'var(--primary)' }} />}
+              <h2 className={playfair.className} style={{ fontSize: '1.1rem', color: 'var(--primary)', margin: 0 }}>Key Vendors</h2>
             </button>
             {showVendors && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '12px' }}>
@@ -1184,17 +1184,17 @@ export default function CrewCallSheetPage() {
             <div
               style={{
                 border: '2px dashed #e7e1d8', borderRadius: '8px', padding: '1.5rem',
-                textAlign: 'center', cursor: 'pointer', background: '#faf8f5',
+                textAlign: 'center', cursor: 'pointer', background: 'var(--muted)',
                 marginBottom: (uploadedDocs.length || uploadError) ? '12px' : 0,
                 transition: 'border-color 0.2s',
               }}
               onClick={() => fileInputRef.current?.click()}
-              onDragOver={e => { e.preventDefault(); e.stopPropagation(); (e.currentTarget as HTMLElement).style.borderColor = '#0d4f4f' }}
-              onDragLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#e7e1d8' }}
-              onDrop={e => { e.preventDefault(); e.stopPropagation(); (e.currentTarget as HTMLElement).style.borderColor = '#e7e1d8'; handleFileUpload(e.dataTransfer.files) }}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); (e.currentTarget as HTMLElement).style.borderColor = 'var(--primary)' }}
+              onDragLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
+              onDrop={e => { e.preventDefault(); e.stopPropagation(); (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; handleFileUpload(e.dataTransfer.files) }}
             >
-              <Upload size={24} style={{ color: '#9ca3af', marginBottom: '6px' }} />
-              <p style={{ margin: 0, fontSize: '0.85rem', color: '#6b7280' }}>
+              <Upload size={24} style={{ color: 'var(--muted-foreground)', marginBottom: '6px' }} />
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>
                 {uploading ? 'Uploading...' : 'Drag & drop PDFs here or click to upload'}
               </p>
               <input ref={fileInputRef} type="file" accept=".pdf" multiple style={{ display: 'none' }}
@@ -1202,7 +1202,7 @@ export default function CrewCallSheetPage() {
             </div>
 
             {uploadError && (
-              <p style={{ margin: '0 0 8px', fontSize: '0.8rem', color: '#dc2626', fontWeight: 600 }}>{uploadError}</p>
+              <p style={{ margin: '0 0 8px', fontSize: '0.8rem', color: 'var(--destructive)', fontWeight: 600 }}>{uploadError}</p>
             )}
 
             {uploadedDocs.length > 0 && (
@@ -1212,15 +1212,15 @@ export default function CrewCallSheetPage() {
                     display: 'flex', alignItems: 'center', gap: '10px',
                     padding: '8px 0', borderBottom: '1px solid #f0ece6', fontSize: '0.85rem',
                   }}>
-                    <FileText size={16} style={{ color: '#0d4f4f', flexShrink: 0 }} />
-                    <span style={{ flex: 1, color: '#374151', fontWeight: 600 }}>{doc.name}</span>
-                    <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>
+                    <FileText size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                    <span style={{ flex: 1, color: 'var(--foreground)', fontWeight: 600 }}>{doc.name}</span>
+                    <span style={{ color: 'var(--muted-foreground)', fontSize: '0.75rem' }}>
                       {doc.uploaded_at ? format(new Date(doc.uploaded_at), 'MMM d') : ''}
                     </span>
-                    <button onClick={() => handleDownloadDoc(doc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '2px' }} title="Download"><Download size={14} /></button>
-                    <button onClick={() => handleViewDoc(doc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '2px' }} title="View"><ExternalLink size={14} /></button>
-                    <button onClick={() => handleDeleteDoc(doc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '2px' }} title="Delete"><Trash2 size={14} /></button>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', color: '#6b7280' }}>
+                    <button onClick={() => handleDownloadDoc(doc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: '2px' }} title="Download"><Download size={14} /></button>
+                    <button onClick={() => handleViewDoc(doc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: '2px' }} title="View"><ExternalLink size={14} /></button>
+                    <button onClick={() => handleDeleteDoc(doc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--destructive)', padding: '2px' }} title="Delete"><Trash2 size={14} /></button>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
                       <input type="checkbox" checked={doc.attachToEmail}
                         onChange={e => setUploadedDocs(prev => prev.map(d => d.path === doc.path ? { ...d, attachToEmail: e.target.checked } : d))}
                         style={{ width: 14, height: 14 }} />
@@ -1238,8 +1238,8 @@ export default function CrewCallSheetPage() {
               disabled={!crewEntries.some(e => e.checked)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '10px 20px', borderRadius: '8px', border: '1px solid #e7e1d8',
-                background: '#fff', color: '#0d4f4f', fontWeight: 600, fontSize: '0.85rem',
+                padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--border)',
+                background: 'var(--background)', color: 'var(--primary)', fontWeight: 600, fontSize: '0.85rem',
                 cursor: 'pointer', fontFamily: nunito.style.fontFamily,
                 opacity: crewEntries.some(e => e.checked) ? 1 : 0.5,
               }}>
@@ -1250,7 +1250,7 @@ export default function CrewCallSheetPage() {
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                 padding: '10px 20px', borderRadius: '8px', border: 'none',
-                background: '#e6f4f1', color: '#0d4f4f', fontWeight: 700, fontSize: '0.85rem',
+                background: 'var(--accent)', color: 'var(--primary)', fontWeight: 700, fontSize: '0.85rem',
                 fontFamily: nunito.style.fontFamily,
               }}>
                 <Check size={16} /> Sent {sentTimestamp}
@@ -1261,7 +1261,7 @@ export default function CrewCallSheetPage() {
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   padding: '10px 24px', borderRadius: '8px', border: 'none',
-                  background: '#0d4f4f', color: '#fff', fontWeight: 700, fontSize: '0.9rem',
+                  background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 700, fontSize: '0.9rem',
                   cursor: 'pointer', fontFamily: nunito.style.fontFamily,
                   opacity: (sending || !crewEntries.some(e => e.checked)) ? 0.6 : 1,
                 }}>
@@ -1273,14 +1273,14 @@ export default function CrewCallSheetPage() {
           {/* History */}
           {history.length > 0 && (
             <div style={{
-              background: '#fff', borderRadius: '12px', border: '1px solid #e7e1d8',
+              background: 'var(--background)', borderRadius: '12px', border: '1px solid var(--border)',
               overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
             }}>
               <button onClick={() => setShowHistory(!showHistory)} style={{
                 display: 'flex', alignItems: 'center', gap: '6px', width: '100%',
-                padding: '12px 16px', border: 'none', background: '#faf8f5',
+                padding: '12px 16px', border: 'none', background: 'var(--muted)',
                 cursor: 'pointer', fontFamily: nunito.style.fontFamily,
-                fontSize: '0.85rem', fontWeight: 700, color: '#0d4f4f',
+                fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)',
               }}>
                 {showHistory ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 Previous Call Sheets ({history.length})
@@ -1289,7 +1289,7 @@ export default function CrewCallSheetPage() {
                 <div style={{ padding: '0 16px 16px' }}>
                   {history.map(h => (
                     <div key={h.id} style={{ padding: '12px', borderBottom: '1px solid #f0ece6', fontSize: '0.85rem' }}>
-                      <div style={{ fontWeight: 700, color: '#1a1a1a', marginBottom: '6px' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--foreground)', marginBottom: '6px' }}>
                         Sent {h.sent_at ? format(new Date(h.sent_at), 'MMM d, yyyy h:mm a') : '—'}
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -1297,8 +1297,8 @@ export default function CrewCallSheetPage() {
                           <span key={i} style={{
                             display: 'inline-flex', alignItems: 'center', gap: '4px',
                             padding: '3px 8px', borderRadius: '6px', fontSize: '0.8rem',
-                            background: m.confirmed ? '#e6f4f1' : m.email_sent ? '#fef3c7' : '#f3f4f6',
-                            color: m.confirmed ? '#0d4f4f' : m.email_sent ? '#92400e' : '#6b7280',
+                            background: m.confirmed ? 'var(--accent)' : m.email_sent ? '#fef3c7' : 'var(--muted)',
+                            color: m.confirmed ? 'var(--primary)' : m.email_sent ? '#92400e' : 'var(--muted-foreground)',
                             fontWeight: 600,
                           }}>
                             {m.confirmed ? <Check size={12} /> : m.email_sent ? <Clock size={12} /> : <Mail size={12} />}
@@ -1323,13 +1323,13 @@ export default function CrewCallSheetPage() {
           background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)',
         }} onClick={() => setShowPreview(false)}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: '#faf8f5', borderRadius: '16px', width: '90%', maxWidth: '700px',
+            background: 'var(--muted)', borderRadius: '16px', width: '90%', maxWidth: '700px',
             maxHeight: '85vh', overflow: 'auto', padding: '2rem',
-            boxShadow: '0 25px 50px rgba(0,0,0,0.25)', border: '1px solid #e7e1d8',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.25)', border: '1px solid var(--border)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 className={playfair.className} style={{ fontSize: '1.25rem', color: '#1a1a1a', margin: 0 }}>Email Preview</h2>
-              <button onClick={() => setShowPreview(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+              <h2 className={playfair.className} style={{ fontSize: '1.25rem', color: 'var(--foreground)', margin: 0 }}>Email Preview</h2>
+              <button onClick={() => setShowPreview(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)' }}><X size={20} /></button>
             </div>
 
             {/* Tabs */}
@@ -1337,9 +1337,9 @@ export default function CrewCallSheetPage() {
               {crewEntries.filter(e => e.checked).map((entry, idx) => (
                 <button key={entry.team_member_id} onClick={() => setPreviewTab(idx)} style={{
                   padding: '6px 14px', borderRadius: '6px',
-                  border: previewTab === idx ? '2px solid #0d4f4f' : '1px solid #e7e1d8',
-                  background: previewTab === idx ? '#e6f4f1' : '#fff',
-                  color: previewTab === idx ? '#0d4f4f' : '#374151',
+                  border: previewTab === idx ? '2px solid var(--primary)' : '1px solid var(--border)',
+                  background: previewTab === idx ? 'var(--accent)' : 'var(--background)',
+                  color: previewTab === idx ? 'var(--primary)' : 'var(--foreground)',
                   fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', fontFamily: nunito.style.fontFamily,
                 }}>{entry.member_name}</button>
               ))}
@@ -1353,94 +1353,94 @@ export default function CrewCallSheetPage() {
               const dateStr = selectedCouple?.wedding_date ? formatWeddingDateUpper(selectedCouple.wedding_date) : '—'
 
               return (
-                <div style={{ background: '#fff', borderRadius: '10px', border: '1px solid #e7e1d8', overflow: 'hidden' }}>
-                  <div style={{ background: '#0d4f4f', padding: '20px 24px', color: '#fff' }}>
+                <div style={{ background: 'var(--background)', borderRadius: '10px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+                  <div style={{ background: 'var(--primary)', padding: '20px 24px', color: 'var(--primary-foreground)' }}>
                     <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', opacity: 0.7 }}>SIGS Photography</p>
                     <h3 style={{ margin: '4px 0 0', fontSize: '1.1rem', fontFamily: 'Georgia, serif' }}>Crew Call Sheet</h3>
                   </div>
                   <div style={{ padding: '20px 24px', fontSize: '0.85rem' }}>
                     {/* Jean's phone — TOP */}
-                    <div style={{ background: '#e6f4f1', borderRadius: '6px', padding: '8px 14px', marginBottom: '16px', textAlign: 'center' }}>
-                      <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#0d4f4f' }}>📞 Questions? Call Jean: (416) 731-6748</p>
+                    <div style={{ background: 'var(--accent)', borderRadius: '6px', padding: '8px 14px', marginBottom: '16px', textAlign: 'center' }}>
+                      <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>📞 Questions? Call Jean: (416) 731-6748</p>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '4px 12px', marginBottom: '16px' }}>
-                      <span style={{ color: '#6b7280' }}>Couple</span>
+                      <span style={{ color: 'var(--muted-foreground)' }}>Couple</span>
                       <span style={{ fontWeight: 700 }}>{selectedCouple?.couple_name}</span>
-                      <span style={{ color: '#6b7280' }}>Date</span>
+                      <span style={{ color: 'var(--muted-foreground)' }}>Date</span>
                       <span style={{ fontWeight: 700 }}>{dateStr}</span>
                       {weather.available && <>
-                        <span style={{ color: '#6b7280' }}>Weather</span>
+                        <span style={{ color: 'var(--muted-foreground)' }}>Weather</span>
                         <span>High {weather.high}°C / Low {weather.low}°C | {weather.precipitation}% rain</span>
                       </>}
                       {weather.available && <>
-                        <span style={{ color: '#6b7280' }}></span>
+                        <span style={{ color: 'var(--muted-foreground)' }}></span>
                         <span>Sunrise {weather.sunrise} | Sunset {weather.sunset}</span>
                       </>}
                       {selectedContract?.ceremony_location && <>
-                        <span style={{ color: '#6b7280' }}>Ceremony</span>
-                        <span>{selectedContract.ceremony_location} <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem' }}>📍 Open in Google Maps</a></span>
+                        <span style={{ color: 'var(--muted-foreground)' }}>Ceremony</span>
+                        <span>{selectedContract.ceremony_location} <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem' }}>📍 Open in Google Maps</a></span>
                       </>}
                       {selectedContract?.reception_venue && <>
-                        <span style={{ color: '#6b7280' }}>Reception</span>
-                        <span>{selectedContract.reception_venue} <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem' }}>📍 Open in Google Maps</a></span>
+                        <span style={{ color: 'var(--muted-foreground)' }}>Reception</span>
+                        <span>{selectedContract.reception_venue} <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem' }}>📍 Open in Google Maps</a></span>
                       </>}
                       {selectedCouple?.park_location && <>
-                        <span style={{ color: '#6b7280' }}>Park</span>
-                        <span>{selectedCouple.park_location} <a href={mapsUrl(selectedCouple.park_location)} target="_blank" rel="noopener noreferrer" style={{ color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem' }}>📍 Open in Google Maps</a></span>
+                        <span style={{ color: 'var(--muted-foreground)' }}>Park</span>
+                        <span>{selectedCouple.park_location} <a href={mapsUrl(selectedCouple.park_location)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem' }}>📍 Open in Google Maps</a></span>
                       </>}
                       {(bridesmaids || groomsmen) && <>
-                        <span style={{ color: '#6b7280' }}>Bridal Party</span>
+                        <span style={{ color: 'var(--muted-foreground)' }}>Bridal Party</span>
                         <span>{bridesmaids || '0'} bridesmaids + {groomsmen || '0'} groomsmen</span>
                       </>}
                     </div>
 
                     {dressCode && (
-                      <div style={{ background: '#faf8f5', borderRadius: '6px', padding: '10px 14px', border: '1px solid #e7e1d8', marginBottom: '16px' }}>
-                        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#1a1a1a' }}>👔 DRESS CODE: {dressCode}</p>
+                      <div style={{ background: 'var(--muted)', borderRadius: '6px', padding: '10px 14px', border: '1px solid var(--border)', marginBottom: '16px' }}>
+                        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>👔 DRESS CODE: {dressCode}</p>
                       </div>
                     )}
 
                     <div style={{ borderTop: '3px solid #0d4f4f', paddingTop: '16px' }}>
-                      <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', color: '#0d4f4f', margin: '0 0 10px' }}>Your Assignment</p>
+                      <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--primary)', margin: '0 0 10px' }}>Your Assignment</p>
                       <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '4px 12px' }}>
-                        <span style={{ color: '#6b7280' }}>Name</span><span style={{ fontWeight: 700 }}>{entry.member_name}</span>
-                        <span style={{ color: '#6b7280' }}>Role</span><span style={{ fontWeight: 700 }}>{entry.role}</span>
-                        {entry.call_time && <><span style={{ color: '#6b7280' }}>Meet Jean at:</span><span style={{ fontWeight: 700 }}>{entry.call_time}</span></>}
+                        <span style={{ color: 'var(--muted-foreground)' }}>Name</span><span style={{ fontWeight: 700 }}>{entry.member_name}</span>
+                        <span style={{ color: 'var(--muted-foreground)' }}>Role</span><span style={{ fontWeight: 700 }}>{entry.role}</span>
+                        {entry.call_time && <><span style={{ color: 'var(--muted-foreground)' }}>Meet Jean at:</span><span style={{ fontWeight: 700 }}>{entry.call_time}</span></>}
                       </div>
 
                       {/* Meeting point with prominent address */}
                       {entry.meeting_point && (
-                        <div style={{ marginTop: '12px', background: '#f0faf9', border: '2px solid #0d4f4f', borderRadius: '8px', padding: '12px 14px' }}>
-                          <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: '#0d4f4f' }}>
+                        <div style={{ marginTop: '12px', background: 'var(--accent)', border: '2px solid var(--primary)', borderRadius: '8px', padding: '12px 14px' }}>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)' }}>
                             📍 {entry.meeting_point.split(' — ')[0]}
                           </p>
                           {entry.meeting_point_address && entry.meeting_point_address !== entry.meeting_point.split(' — ')[0] && (
-                            <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: '#374151' }}>{entry.meeting_point_address}</p>
+                            <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: 'var(--foreground)' }}>{entry.meeting_point_address}</p>
                           )}
                           {entry.meeting_point_maps_url && (
-                            <a href={entry.meeting_point_maps_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '6px', color: '#0d4f4f', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
+                            <a href={entry.meeting_point_maps_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '6px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
                           )}
-                          {entry.call_time && <p style={{ margin: '4px 0 0', color: '#374151', fontWeight: 600 }}>⏰ Arrive by {entry.call_time}</p>}
+                          {entry.call_time && <p style={{ margin: '4px 0 0', color: 'var(--foreground)', fontWeight: 600 }}>⏰ Arrive by {entry.call_time}</p>}
                         </div>
                       )}
 
                       {(entry.equipment_pickup_location || entry.equipment_dropoff_location) && (
                         <div style={{ marginTop: '12px', borderTop: '1px solid #e7e1d8', paddingTop: '10px' }}>
-                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#0d4f4f', margin: '0 0 6px' }}>Equipment</p>
-                          {entry.equipment_pickup_location && <p style={{ margin: '2px 0', color: '#374151' }}>Pickup: {entry.equipment_pickup_location}{entry.equipment_pickup_time ? ` — ${entry.equipment_pickup_time}` : ''}</p>}
-                          {entry.equipment_dropoff_location && <p style={{ margin: '2px 0', color: '#374151' }}>Dropoff: {entry.equipment_dropoff_location}{entry.equipment_dropoff_time ? ` — ${entry.equipment_dropoff_time}` : ''}</p>}
+                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--primary)', margin: '0 0 6px' }}>Equipment</p>
+                          {entry.equipment_pickup_location && <p style={{ margin: '2px 0', color: 'var(--foreground)' }}>Pickup: {entry.equipment_pickup_location}{entry.equipment_pickup_time ? ` — ${entry.equipment_pickup_time}` : ''}</p>}
+                          {entry.equipment_dropoff_location && <p style={{ margin: '2px 0', color: 'var(--foreground)' }}>Dropoff: {entry.equipment_dropoff_location}{entry.equipment_dropoff_time ? ` — ${entry.equipment_dropoff_time}` : ''}</p>}
                         </div>
                       )}
 
                       {entry.special_notes && (
-                        <div style={{ marginTop: '10px' }}><p style={{ margin: 0, color: '#374151' }}><strong>Notes:</strong> {entry.special_notes}</p></div>
+                        <div style={{ marginTop: '10px' }}><p style={{ margin: 0, color: 'var(--foreground)' }}><strong>Notes:</strong> {entry.special_notes}</p></div>
                       )}
 
                       {/* Schedule preview */}
                       {(schedule.length > 0 || selectedContract) && (
                         <div style={{ marginTop: '16px', borderTop: '2px solid #e7e1d8', paddingTop: '12px' }}>
-                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', color: '#0d4f4f', margin: '0 0 10px' }}>Wedding Day Schedule</p>
+                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--primary)', margin: '0 0 10px' }}>Wedding Day Schedule</p>
                           {(schedule.length > 0 ? schedule : [
                             ...(selectedContract?.start_time ? [{ time: selectedContract.start_time, label: 'Coverage Begins', address: '', maps_url: '' }] : []),
                             ...(selectedContract?.ceremony_location ? [{ time: '', label: 'Ceremony', address: selectedContract.ceremony_location, maps_url: mapsUrl(selectedContract.ceremony_location) }] : []),
@@ -1449,10 +1449,10 @@ export default function CrewCallSheetPage() {
                           ]).map((evt, i) => (
                             <div key={i} style={{ marginBottom: '8px', paddingLeft: '12px', borderLeft: '2px solid #0d4f4f' }}>
                               <p style={{ margin: 0, fontSize: '0.85rem' }}>
-                                {evt.time && <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, color: '#0d4f4f' }}>⏰ {evt.time} — </span>}
+                                {evt.time && <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, color: 'var(--primary)' }}>⏰ {evt.time} — </span>}
                                 <strong>{evt.label}</strong>
                               </p>
-                              {evt.address && <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#374151' }}>📍 {evt.address}{evt.maps_url && <a href={evt.maps_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '6px', color: '#0d4f4f', textDecoration: 'underline' }}>Open in Google Maps</a>}</p>}
+                              {evt.address && <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: 'var(--foreground)' }}>📍 {evt.address}{evt.maps_url && <a href={evt.maps_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '6px', color: 'var(--primary)', textDecoration: 'underline' }}>Open in Google Maps</a>}</p>}
                             </div>
                           ))}
                         </div>
@@ -1460,13 +1460,13 @@ export default function CrewCallSheetPage() {
 
                       {Object.values(vendors).some(v => v) && (
                         <div style={{ marginTop: '12px', borderTop: '1px solid #e7e1d8', paddingTop: '10px' }}>
-                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#0d4f4f', margin: '0 0 6px' }}>Key Vendors</p>
-                          {vendors.dj_mc && <p style={{ margin: '2px 0', color: '#374151', fontSize: '0.85rem' }}>DJ/MC: {vendors.dj_mc}</p>}
-                          {vendors.florist && <p style={{ margin: '2px 0', color: '#374151', fontSize: '0.85rem' }}>Florist: {vendors.florist}</p>}
-                          {vendors.makeup && <p style={{ margin: '2px 0', color: '#374151', fontSize: '0.85rem' }}>Makeup: {vendors.makeup}</p>}
-                          {vendors.hair && <p style={{ margin: '2px 0', color: '#374151', fontSize: '0.85rem' }}>Hair: {vendors.hair}</p>}
-                          {vendors.planner && <p style={{ margin: '2px 0', color: '#374151', fontSize: '0.85rem' }}>Planner: {vendors.planner}</p>}
-                          {vendors.transport && <p style={{ margin: '2px 0', color: '#374151', fontSize: '0.85rem' }}>Transport: {vendors.transport}</p>}
+                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--primary)', margin: '0 0 6px' }}>Key Vendors</p>
+                          {vendors.dj_mc && <p style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>DJ/MC: {vendors.dj_mc}</p>}
+                          {vendors.florist && <p style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>Florist: {vendors.florist}</p>}
+                          {vendors.makeup && <p style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>Makeup: {vendors.makeup}</p>}
+                          {vendors.hair && <p style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>Hair: {vendors.hair}</p>}
+                          {vendors.planner && <p style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>Planner: {vendors.planner}</p>}
+                          {vendors.transport && <p style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>Transport: {vendors.transport}</p>}
                         </div>
                       )}
 
@@ -1474,25 +1474,25 @@ export default function CrewCallSheetPage() {
                         <div style={{ marginTop: '12px', background: '#fffbeb', borderRadius: '6px', padding: '10px 14px', border: '1px solid #fde68a' }}>
                           <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#92400e', margin: '0 0 6px' }}>📸 Must-Capture Moments</p>
                           {keyMoments.split('\n').filter(Boolean).map((line, i) => (
-                            <p key={i} style={{ margin: '2px 0', color: '#374151', fontSize: '0.85rem' }}>• {line.replace(/^[-•]\s*/, '')}</p>
+                            <p key={i} style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>• {line.replace(/^[-•]\s*/, '')}</p>
                           ))}
                         </div>
                       )}
 
                       {generalNotes && (
                         <div style={{ marginTop: '10px', borderTop: '1px solid #e7e1d8', paddingTop: '10px' }}>
-                          <p style={{ margin: 0, color: '#374151' }}><strong>General Notes:</strong> {generalNotes}</p>
+                          <p style={{ margin: 0, color: 'var(--foreground)' }}><strong>General Notes:</strong> {generalNotes}</p>
                         </div>
                       )}
                     </div>
 
                     <div style={{ textAlign: 'center', margin: '20px 0 10px' }}>
-                      <span style={{ display: 'inline-block', padding: '12px 32px', background: '#0d4f4f', color: '#fff', borderRadius: '8px', fontWeight: 700 }}>
+                      <span style={{ display: 'inline-block', padding: '12px 32px', background: 'var(--primary)', color: 'var(--primary-foreground)', borderRadius: '8px', fontWeight: 700 }}>
                         ✅ Click Here to Confirm
                       </span>
                     </div>
 
-                    <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#6b7280', margin: '10px 0 0' }}>
+                    <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--muted-foreground)', margin: '10px 0 0' }}>
                       📞 Questions? Call Jean: (416) 731-6748
                     </p>
                   </div>

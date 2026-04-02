@@ -140,7 +140,7 @@ function trendArrow(current: number, previous: number | null) {
   if (previous === null) return null
   if (current > previous) return <span className="text-green-600 ml-1">↑</span>
   if (current < previous) return <span className="text-red-600 ml-1">↓</span>
-  return <span className="text-gray-400 ml-1">→</span>
+  return <span className="text-muted-foreground ml-1">→</span>
 }
 
 export default function SigsSeoPage() {
@@ -734,7 +734,7 @@ export default function SigsSeoPage() {
                     {item.time_estimate}
                   </span>
                   {impactBadge(item.impact)}
-                  <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 text-gray-600 px-2 py-0.5 text-xs">
+                  <span className="inline-flex items-center rounded-full border border-border bg-muted text-muted-foreground px-2 py-0.5 text-xs">
                     {item.category}
                   </span>
                 </div>

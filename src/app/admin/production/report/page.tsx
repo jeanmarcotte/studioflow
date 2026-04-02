@@ -171,18 +171,18 @@ const STATUS_PILL: Record<string, { bg: string; text: string; label: string }> =
 // ── Color Palette ────────────────────────────────────────────────
 
 const C = {
-  teal: '#0d4f4f',
+  teal: 'var(--primary, #0d4f4f)',
   tealLight: '#0d9488',
-  cream: '#faf8f5',
-  white: '#ffffff',
-  border: '#e7e1d8',
-  textPrimary: '#1c1917',
-  textSecondary: '#44403c',
-  textMuted: '#78716c',
-  textSubtle: '#a8a29e',
-  rowAlt: '#fafaf9',
-  summaryLight: '#f5f5f4',
-  summaryMed: '#f0f0ef',
+  cream: 'var(--background, #faf8f5)',
+  white: 'var(--background, #ffffff)',
+  border: 'var(--border, #e7e1d8)',
+  textPrimary: 'var(--foreground, #1c1917)',
+  textSecondary: 'var(--foreground, #44403c)',
+  textMuted: 'var(--muted-foreground, #78716c)',
+  textSubtle: 'var(--muted-foreground, #a8a29e)',
+  rowAlt: 'var(--muted, #fafaf9)',
+  summaryLight: 'var(--muted, #f5f5f4)',
+  summaryMed: 'var(--muted, #f0f0ef)',
   amber: '#92400e',
   amberBg: '#fef3c7',
   amberBorder: '#fde68a',
@@ -402,7 +402,7 @@ export default function ProductionReportPage() {
                 <button
                   onClick={sendTestEmail}
                   disabled={emailStatus === 'sending'}
-                  className="flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-semibold transition-all hover:bg-white/80"
+                  className="flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-semibold transition-all hover:bg-background/80"
                   style={{ borderColor: C.border, color: C.textSecondary }}
                 >
                   {emailStatus === 'sending' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
@@ -410,7 +410,7 @@ export default function ProductionReportPage() {
                 </button>
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90"
+                  className="flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90"
                   style={{ background: C.teal }}
                 >
                   <Printer className="h-4 w-4" />
@@ -536,7 +536,7 @@ export default function ProductionReportPage() {
                       const color = days > 180 ? C.redBold : days > 90 ? C.red : C.textMuted
                       const bold = days > 180
                       return (
-                        <tr key={couple.id} style={{ borderBottom: '1px solid #f3f0ed' }}>
+                        <tr key={couple.id} style={{ borderBottom: '1px solid var(--border, #f3f0ed)' }}>
                           <td className="px-5 py-2.5" style={{ color, fontWeight: bold ? 700 : 400 }}>{couple.couple_name}</td>
                           <td className="px-5 py-2.5" style={{ color: C.textSubtle }}>{formatDate(couple.wedding_date)}</td>
                           <td className="text-right px-5 py-2.5 font-semibold" style={{ color }}>{days} days</td>
@@ -589,7 +589,7 @@ export default function ProductionReportPage() {
                     const remaining = tp > 0 ? tp - esf : pt - esf
                     const deleted = safeDeleted(pt, tp)
                     return (
-                      <tr key={job.id} style={{ borderBottom: '1px solid #f3f0ed', background: i % 2 === 1 ? C.rowAlt : C.white }}>
+                      <tr key={job.id} style={{ borderBottom: '1px solid var(--border, #f3f0ed)', background: i % 2 === 1 ? C.rowAlt : C.white }}>
                         <td className="px-4 py-2.5">
                           <div className="font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</div>
                           {job.couples?.wedding_date && <div className="text-[11px]" style={{ color: C.textSubtle }}>{formatDate(job.couples.wedding_date)}</div>}
@@ -610,7 +610,7 @@ export default function ProductionReportPage() {
                   )}
                   <SummaryRow label="Currently Due ASAP" totals={asapTotals} bg={C.summaryLight} textColor={C.textSecondary} />
                   <SummaryRow label="Completed 2026" totals={cemeteryTotals} bg={C.summaryMed} textColor={C.textMuted} />
-                  <tr style={{ background: C.teal, fontSize: '14px' }} className="text-white font-bold">
+                  <tr style={{ background: C.teal, fontSize: '14px' }} className="text-primary-foreground font-bold">
                     <td className="px-4 py-3 font-bold">Year to Date</td>
                     <td></td>
                     <td className="text-right px-3 py-3 tabular-nums">{ytdTotals.pt.toLocaleString()}</td>
@@ -650,7 +650,7 @@ export default function ProductionReportPage() {
                   </thead>
                   <tbody>
                     {sectionJobs.map(job => (
-                      <tr key={job.id} style={{ borderBottom: '1px solid #f3f0ed' }}>
+                      <tr key={job.id} style={{ borderBottom: '1px solid var(--border, #f3f0ed)' }}>
                         <td className="px-5 py-2.5 font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</td>
                         <td className="px-4 py-2.5" style={{ color: C.textSubtle }}>{formatDate(job.couples?.wedding_date ?? null)}</td>
                         <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{formatJobType(job.job_type)}</td>
@@ -744,18 +744,18 @@ export default function ProductionReportPage() {
 
           {/* Video Metric Tiles */}
           <div className="grid grid-cols-3 gap-4 mb-8 card-grid">
-            <div className="rounded-xl p-5" style={{ background: '#f9fafb', border: `1px solid ${C.border}` }}>
+            <div className="rounded-xl p-5" style={{ background: 'var(--muted, #f9fafb)', border: `1px solid ${C.border}` }}>
               <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: C.textMuted }}>In Production</div>
               <div className="font-bold tabular-nums leading-none mb-2" style={{ fontSize: '24px', color: C.textPrimary }}>
                 {videoSegmentStats.done}/{videoSegmentStats.total}
               </div>
               <div className="text-[11px] mb-1" style={{ color: C.textSubtle }}>segments complete</div>
               <div className="text-[10px] mb-2" style={{ color: C.textSubtle }}>Each wedding video has 6 parts: ceremony, reception, park, prep, groom &amp; bride</div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#e5e7eb' }}>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border, #e5e7eb)' }}>
                 <div className="h-full rounded-full" style={{ background: C.tealLight, width: `${videoSegmentStats.total > 0 ? Math.round((videoSegmentStats.done / videoSegmentStats.total) * 100) : 0}%` }} />
               </div>
             </div>
-            <div className="rounded-xl p-5" style={{ background: '#f9fafb', border: `1px solid ${C.border}` }}>
+            <div className="rounded-xl p-5" style={{ background: 'var(--muted, #f9fafb)', border: `1px solid ${C.border}` }}>
               <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: C.textMuted }}>Incoming Work</div>
               <div className="font-bold tabular-nums leading-none mb-2" style={{ fontSize: '24px', color: '#d97706' }}>
                 {waitingOrderCouples.length}
@@ -763,7 +763,7 @@ export default function ProductionReportPage() {
               <div className="text-[11px]" style={{ color: C.textMuted }}>couples awaiting photo order</div>
               <div className="text-[11px]" style={{ color: C.textSubtle }}>{videoNotStarted.length} not-started jobs</div>
             </div>
-            <div className="rounded-xl p-5" style={{ background: '#f9fafb', border: `1px solid ${C.border}` }}>
+            <div className="rounded-xl p-5" style={{ background: 'var(--muted, #f9fafb)', border: `1px solid ${C.border}` }}>
               <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: C.textMuted }}>2026 Velocity</div>
               <div className="font-bold tabular-nums leading-none mb-2" style={{ fontSize: '24px', color: C.tealLight }}>
                 {videoCompleted2026.length}
@@ -797,7 +797,7 @@ export default function ProductionReportPage() {
                 </thead>
                 <tbody>
                   {videoNotStarted.map(job => (
-                    <tr key={job.id} style={{ borderBottom: '1px solid #f3f0ed' }}>
+                    <tr key={job.id} style={{ borderBottom: '1px solid var(--border, #f3f0ed)' }}>
                       <td className="px-5 py-2.5 font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</td>
                       <td className="px-4 py-2.5" style={{ color: C.textSubtle }}>{formatDate(job.couples?.wedding_date ?? null)}</td>
                       <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{formatVideoJobType(job.job_type)}</td>
@@ -831,7 +831,7 @@ export default function ProductionReportPage() {
                 </thead>
                 <tbody>
                   {videoCompleted2026.map(job => (
-                    <tr key={job.id} style={{ borderBottom: '1px solid #f3f0ed' }}>
+                    <tr key={job.id} style={{ borderBottom: '1px solid var(--border, #f3f0ed)' }}>
                       <td className="px-5 py-2.5 font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</td>
                       <td className="px-4 py-2.5" style={{ color: C.textSubtle }}>{formatDate(job.couples?.wedding_date ?? null)}</td>
                       <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{formatVideoJobType(job.job_type)}</td>
@@ -873,7 +873,7 @@ function TH({ children, align = 'left', px = 'px-5' }: { children: React.ReactNo
   return (
     <th
       className={`text-${align} ${px} py-2.5 text-[11px] font-semibold uppercase tracking-wider`}
-      style={{ color: '#0d4f4f' }}
+      style={{ color: 'var(--primary, #0d4f4f)' }}
     >
       {children}
     </th>
@@ -892,17 +892,17 @@ function MetricCard({ label, value, sublabel, valueColor, progress }: {
   return (
     <div
       className="rounded-xl p-5"
-      style={{ background: '#ffffff', border: '1px solid #e7e1d8', boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}
+      style={{ background: 'var(--background, #ffffff)', border: '1px solid var(--border, #e7e1d8)', boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}
     >
-      <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: '#78716c' }}>
+      <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--muted-foreground, #78716c)' }}>
         {label}
       </div>
       <div className="font-bold tabular-nums leading-none mb-1.5" style={{ fontSize: '28px', color: valueColor }}>
         {value}
       </div>
-      <div className="text-[12px] mb-2" style={{ color: '#a8a29e' }}>{sublabel}</div>
+      <div className="text-[12px] mb-2" style={{ color: 'var(--muted-foreground, #a8a29e)' }}>{sublabel}</div>
       {progress !== undefined && (
-        <div className="h-1.5 rounded-full overflow-hidden mt-1" style={{ background: '#e7e1d8' }}>
+        <div className="h-1.5 rounded-full overflow-hidden mt-1" style={{ background: 'var(--border, #e7e1d8)' }}>
           <div className="h-full rounded-full transition-all" style={{ background: '#0d9488', width: `${progress}%` }} />
         </div>
       )}
@@ -921,7 +921,7 @@ function SummaryRow({ label, totals, bg, textColor }: {
   const pctD = totals.deleted > 0 && totals.pt > 0 ? ((totals.deleted / totals.pt) * 100).toFixed(1) + '%' : '\u2014'
   const pctC = totals.pt > 0 ? ((totals.esf / totals.pt) * 100).toFixed(1) + '%' : '\u2014'
   return (
-    <tr style={{ background: bg, borderTop: '2px solid #e7e1d8' }}>
+    <tr style={{ background: bg, borderTop: '2px solid var(--border, #e7e1d8)' }}>
       <td className="px-4 py-2.5 font-bold text-[13px]" style={{ color: textColor }}>{label}</td>
       <td></td>
       <td className="text-right px-3 py-2.5 font-semibold tabular-nums" style={{ color: textColor }}>{totals.pt.toLocaleString()}</td>

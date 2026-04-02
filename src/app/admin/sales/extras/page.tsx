@@ -220,13 +220,13 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 px-4" onClick={onClose}>
       <div className="fixed inset-0 bg-black/40" />
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border"
+        className="relative bg-background rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+        <div className="sticky top-0 bg-background border-b px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
           <h2 className="text-lg font-bold">New Extras Sale</h2>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-muted"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="p-6 space-y-5">
@@ -236,7 +236,7 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
             <select
               value={coupleId}
               onChange={e => setCoupleId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="">Select a couple...</option>
               {couples.map(c => (
@@ -252,9 +252,9 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
             <label className="block text-sm font-medium mb-2">Items</label>
             <div className="space-y-3">
               {items.map((item, i) => (
-                <div key={i} className="rounded-xl border bg-gray-50 p-4 space-y-3">
+                <div key={i} className="rounded-xl border bg-muted p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-400 uppercase">Item {i + 1}</span>
+                    <span className="text-xs font-semibold text-muted-foreground uppercase">Item {i + 1}</span>
                     {items.length > 1 && (
                       <button onClick={() => removeItem(i)} className="p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600">
                         <Trash2 className="h-4 w-4" />
@@ -263,45 +263,45 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Item Type</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Item Type</label>
                       <select
                         value={item.item_type}
                         onChange={e => updateItem(i, { item_type: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       >
                         <option value="">Select...</option>
                         {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Description</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Description</label>
                       <input
                         type="text"
                         value={item.description}
                         onChange={e => updateItem(i, { description: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                         placeholder="Description"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Quantity</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Quantity</label>
                       <input
                         type="number"
                         min={1}
                         value={item.quantity}
                         onChange={e => updateItem(i, { quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Unit Price</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Unit Price</label>
                       <input
                         type="number"
                         min={0}
                         step={0.01}
                         value={item.unit_price || ''}
                         onChange={e => updateItem(i, { unit_price: parseFloat(e.target.value) || 0 })}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                         placeholder="0.00"
                       />
                     </div>
@@ -315,8 +315,8 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
                           onClick={() => updateItem(i, { tax_mode: val })}
                           className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                             item.tax_mode === val
-                              ? 'bg-teal-600 text-white border-teal-600'
-                              : 'bg-white text-gray-600 border-gray-300 hover:border-teal-400'
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background text-foreground border-border hover:border-ring'
                           }`}
                         >
                           {label}
@@ -325,15 +325,15 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
                     </div>
                   </div>
                   {/* Item line total */}
-                  <div className="text-right text-sm text-gray-500">
-                    Line total: <span className="font-semibold text-gray-800">{fmtMoney(calcItemTotals(item).total)}</span>
+                  <div className="text-right text-sm text-muted-foreground">
+                    Line total: <span className="font-semibold text-foreground">{fmtMoney(calcItemTotals(item).total)}</span>
                   </div>
                 </div>
               ))}
             </div>
             <button
               onClick={() => setItems(prev => [...prev, emptyItem()])}
-              className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-teal-600 hover:text-teal-700"
+              className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
             >
               <Plus className="h-4 w-4" /> Add Item
             </button>
@@ -352,7 +352,7 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
                   setDiscountValue(parseFloat(e.target.value) || 0)
                   if (!discountType) setDiscountType('fixed')
                 }}
-                className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-32 rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="0"
               />
               <div className="flex gap-1">
@@ -362,8 +362,8 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
                     onClick={() => setDiscountType(val)}
                     className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
                       discountType === val
-                        ? 'bg-teal-600 text-white border-teal-600'
-                        : 'bg-white text-gray-600 border-gray-300 hover:border-teal-400'
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background text-foreground border-border hover:border-ring'
                     }`}
                   >
                     {label}
@@ -380,19 +380,19 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
               type="text"
               value={paymentNote}
               onChange={e => setPaymentNote(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="When / How will they pay?"
             />
           </div>
 
           {/* Running Total */}
-          <div className="rounded-xl bg-gray-50 border p-4 space-y-1">
+          <div className="rounded-xl bg-muted border p-4 space-y-1">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Subtotal</span>
+              <span className="text-muted-foreground">Subtotal</span>
               <span>{fmtMoney(totals.subtotal)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">HST (13%)</span>
+              <span className="text-muted-foreground">HST (13%)</span>
               <span>{fmtMoney(totals.hst)}</span>
             </div>
             {totals.discountAmt > 0 && (
@@ -409,7 +409,7 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex items-center justify-between rounded-b-2xl">
+        <div className="sticky bottom-0 bg-background border-t px-6 py-4 flex items-center justify-between rounded-b-2xl">
           {toast ? (
             <span className={`text-sm font-medium ${toast.includes('Error') ? 'text-red-600' : 'text-green-600'}`}>{toast}</span>
           ) : (
@@ -418,7 +418,7 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
           <button
             onClick={handleSubmit}
             disabled={saving || !coupleId || items.some(i => !i.item_type || i.unit_price <= 0)}
-            className="inline-flex items-center gap-2 rounded-lg bg-teal-600 text-white px-5 py-2.5 text-sm font-semibold hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-5 py-2.5 text-sm font-semibold hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? 'Saving...' : 'Save Sale'}
           </button>
@@ -588,7 +588,7 @@ export default function ExtrasSalesPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowNewSale(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-teal-600 text-white px-4 py-2 text-sm font-semibold hover:bg-teal-700 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold hover:bg-primary/90 transition-colors"
           >
             <Plus className="h-4 w-4" />
             New Sale

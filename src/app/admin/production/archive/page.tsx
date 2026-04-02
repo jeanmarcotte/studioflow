@@ -399,7 +399,7 @@ export default function ProductionArchivePage() {
                   : <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 }
                 <span className="font-semibold text-sm">Drive Inventory</span>
-                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-gray-100 text-gray-700">
+                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-muted text-muted-foreground">
                   {filteredDrives.length}
                 </span>
               </div>
@@ -416,7 +416,7 @@ export default function ProductionArchivePage() {
                       value={driveSearch}
                       onChange={e => setDriveSearch(e.target.value)}
                       placeholder="Search drives..."
-                      className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-stone-400"
+                      className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-ring"
                     />
                   </div>
                 </div>
@@ -481,7 +481,7 @@ export default function ProductionArchivePage() {
                   : <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 }
                 <span className="font-semibold text-sm">Couples Master List</span>
-                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-gray-100 text-gray-700">
+                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-muted text-muted-foreground">
                   {filteredCouples.length}
                 </span>
               </div>
@@ -498,7 +498,7 @@ export default function ProductionArchivePage() {
                       value={coupleSearch}
                       onChange={e => setCoupleSearch(e.target.value)}
                       placeholder="Search couples..."
-                      className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-stone-400"
+                      className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-ring"
                     />
                   </div>
                 </div>
@@ -584,7 +584,7 @@ export default function ProductionArchivePage() {
                   : <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 }
                 <span className="font-semibold text-sm">Milestone Details</span>
-                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-gray-100 text-gray-700">
+                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-muted text-muted-foreground">
                   {filteredMilestones.length}
                 </span>
               </div>
@@ -601,7 +601,7 @@ export default function ProductionArchivePage() {
                       value={milestoneSearch}
                       onChange={e => setMilestoneSearch(e.target.value)}
                       placeholder="Search milestones..."
-                      className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-stone-400"
+                      className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-ring"
                     />
                   </div>
                 </div>
@@ -771,7 +771,7 @@ export default function ProductionArchivePage() {
               </button>
 
               {/* Header */}
-              <h2 className={`text-xl font-bold mb-1 ${playfair.className}`} style={{ color: '#0d4f4f' }}>
+              <h2 className={`text-xl font-bold mb-1 ${playfair.className} text-primary`}>
                 {selectedCouple.bride_name} &amp; {selectedCouple.groom_name}
               </h2>
               {selectedCouple.event_date && (

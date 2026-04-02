@@ -248,7 +248,7 @@ export default function AddEditingJobPage() {
             </button>
             <button
               onClick={() => router.push(category === 'video' ? '/admin/production/video' : '/admin/production/photo')}
-              className="rounded-lg bg-stone-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 transition-colors"
+              className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               Go to Production
             </button>
@@ -284,7 +284,7 @@ export default function AddEditingJobPage() {
                 }}
                 onFocus={() => { setCoupleDropdownOpen(true); fetchCouples(coupleSearch) }}
                 placeholder="Search by couple name..."
-                className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400 ${coupleId ? 'border-stone-800' : 'border-input'}`}
+                className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring ${coupleId ? 'border-stone-800' : 'border-input'}`}
               />
               {coupleId && (
                 <button
@@ -335,7 +335,7 @@ export default function AddEditingJobPage() {
                   onClick={() => handleCategoryChange(cat)}
                   className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
                     category === cat
-                      ? 'bg-stone-800 text-white border-stone-800'
+                      ? 'bg-primary text-primary-foreground border-primary'
                       : 'border-input hover:bg-accent/50'
                   }`}
                 >
@@ -351,7 +351,7 @@ export default function AddEditingJobPage() {
             <select
               value={jobType}
               onChange={(e) => handleJobTypeChange(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
             >
               <option value="">Select job type...</option>
               {JOB_TYPES[category].map(jt => (
@@ -367,7 +367,7 @@ export default function AddEditingJobPage() {
               <select
                 value={vendor}
                 onChange={(e) => setVendor(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
               >
                 <option value="">None</option>
                 {VENDORS.map(v => (
@@ -388,7 +388,7 @@ export default function AddEditingJobPage() {
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value === '' ? '' : Math.max(1, Number(e.target.value)))}
                 readOnly={jobType in AUTO_FILL_QUANTITY}
-                className={`w-24 rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400 ${jobType in AUTO_FILL_QUANTITY ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''}`}
+                className={`w-24 rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring ${jobType in AUTO_FILL_QUANTITY ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''}`}
               />
             </div>
           )}
@@ -402,7 +402,7 @@ export default function AddEditingJobPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="e.g., Parent Album - Mom's side"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-stone-400"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
               />
             </div>
           )}
@@ -415,7 +415,7 @@ export default function AddEditingJobPage() {
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Optional notes..."
-              className="w-full rounded-lg border border-input bg-background px-3 py-3 text-sm outline-none resize-y transition-colors focus:border-stone-400"
+              className="w-full rounded-lg border border-input bg-background px-3 py-3 text-sm outline-none resize-y transition-colors focus:border-ring"
             />
           </div>
 
@@ -430,7 +430,7 @@ export default function AddEditingJobPage() {
           <button
             type="submit"
             disabled={submitting || !coupleId || !jobType}
-            className="rounded-lg bg-stone-800 px-6 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {submitting ? 'Creating...' : 'Create Job'}
           </button>

@@ -13,10 +13,10 @@ export default function WeddingDayCoordinationPage() {
         <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>
           Wedding Day Coordination
         </h1>
-        <p style={{ color: '#6b7280', marginBottom: '1rem' }}>
+        <p style={{ color: 'var(--muted-foreground)', marginBottom: '1rem' }}>
           Under Construction
         </p>
-        <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>
           Five green checkmarks before Jean leaves the house — crew, gear, form, times, meeting point.
         </p>
       </div>
