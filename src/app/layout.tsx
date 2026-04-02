@@ -3,6 +3,7 @@ import { Manrope } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import './globals.css'
 import { cn } from "@/lib/utils"
+import { Toaster } from "@/components/ui/sonner"
 
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-sans' })
 
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body className={cn("font-sans antialiased", manrope.variable)}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
