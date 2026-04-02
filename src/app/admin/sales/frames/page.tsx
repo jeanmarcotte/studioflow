@@ -337,7 +337,7 @@ export default function FrameSalesPage() {
           <p className="text-muted-foreground">C2 engagement session extras and frame orders</p>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={year} onValueChange={setYear}>
+          <Select value={year} onValueChange={(val) => val && setYear(val)}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="Year" />
             </SelectTrigger>

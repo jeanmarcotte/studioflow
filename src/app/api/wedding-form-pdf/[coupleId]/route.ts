@@ -150,8 +150,8 @@ class PdfBuilder {
 
 // ─── Route Handler ────────────────────────────────────────────────────────────
 
-export async function GET(request: Request, { params }: { params: { coupleId: string } }) {
-  const { coupleId } = params
+export async function GET(request: Request, { params }: { params: Promise<{ coupleId: string }> }) {
+  const { coupleId } = await params
   const supabase = getServiceClient()
 
   const [{ data: form, error: formError }, { data: couple }, { data: contract }] = await Promise.all([
