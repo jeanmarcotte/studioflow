@@ -120,22 +120,22 @@ export default function FinanceDashboardPage() {
     <div className="p-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">💰 Finance — Income Tracker</h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">💰 Finance — Income Tracker</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           {FY_LABEL} (May 1, 2025 — Apr 30, 2026)
         </p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 mb-6 border-b border-slate-200">
+      <div className="flex gap-1 mb-6 border-b border-border">
         {TABS.map(tab => (
           <Link
             key={tab.label}
             href={tab.href}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               tab.active
-                ? 'bg-white border border-b-white border-slate-200 text-teal-600 -mb-px'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                ? 'bg-background border border-b-background border-border text-teal-600 -mb-px'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
           >
             {tab.label}
@@ -151,7 +151,7 @@ export default function FinanceDashboardPage() {
             className={`rounded-xl border p-5 shadow-sm ${card.bg}`}
           >
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-slate-500 uppercase">{card.label}</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase">{card.label}</span>
               <card.icon className={`w-5 h-5 ${card.color}`} />
             </div>
             <div className={`text-2xl font-bold font-mono ${card.color}`}>
@@ -162,9 +162,9 @@ export default function FinanceDashboardPage() {
       </div>
 
       {/* Recent Payments */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-          <h2 className="text-sm font-bold text-slate-700">Recent Payments</h2>
+      <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-border bg-muted flex justify-between items-center">
+          <h2 className="text-sm font-bold text-foreground">Recent Payments</h2>
           <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 transition-colors">
             + Record Payment
           </button>
@@ -172,23 +172,23 @@ export default function FinanceDashboardPage() {
 
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/50">
-              <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase">Date</th>
-              <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase">Couple</th>
-              <th className="text-right py-3 px-5 text-xs font-semibold text-slate-500 uppercase">Amount</th>
-              <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase">Method</th>
-              <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase">From</th>
+            <tr className="border-b border-border bg-muted/50">
+              <th className="text-left py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">Date</th>
+              <th className="text-left py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">Couple</th>
+              <th className="text-right py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">Amount</th>
+              <th className="text-left py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">Method</th>
+              <th className="text-left py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">From</th>
             </tr>
           </thead>
           <tbody>
             {recentPayments.map((payment, idx) => (
               <tr
                 key={payment.id}
-                className={`border-b border-slate-100 hover:bg-teal-50/30 transition-colors ${
-                  idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'
+                className={`border-b border-border hover:bg-teal-50/30 transition-colors ${
+                  idx % 2 === 0 ? 'bg-background' : 'bg-muted/30'
                 }`}
               >
-                <td className="py-3 px-5 font-mono text-slate-600">
+                <td className="py-3 px-5 font-mono text-muted-foreground">
                   {payment.payment_date ? format(new Date(payment.payment_date), 'MMM d, yyyy') : '—'}
                 </td>
                 <td className="py-3 px-5">
@@ -200,23 +200,23 @@ export default function FinanceDashboardPage() {
                       {payment.couples.couple_name}
                     </Link>
                   ) : (
-                    <span className="text-slate-400">Unknown</span>
+                    <span className="text-muted-foreground">Unknown</span>
                   )}
                 </td>
                 <td className="py-3 px-5 text-right font-mono font-semibold text-green-600">
                   ${parseFloat(payment.amount).toLocaleString()}
                 </td>
-                <td className="py-3 px-5 text-slate-500 capitalize">
+                <td className="py-3 px-5 text-muted-foreground capitalize">
                   {payment.method || '—'}
                 </td>
-                <td className="py-3 px-5 text-slate-600">
+                <td className="py-3 px-5 text-foreground">
                   {payment.from_name || '—'}
                 </td>
               </tr>
             ))}
             {recentPayments.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-400">
+                <td colSpan={5} className="py-8 text-center text-muted-foreground">
                   No payments found
                 </td>
               </tr>

@@ -262,20 +262,20 @@ export default function FinanceUploadPage() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">💰 Finance — Upload Payments</h1>
-        <p className="text-sm text-slate-500 mt-1">Import e-transfer payments from CSV</p>
+        <h1 className="text-2xl font-bold text-foreground">💰 Finance — Upload Payments</h1>
+        <p className="text-sm text-muted-foreground mt-1">Import e-transfer payments from CSV</p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 mb-6 border-b border-slate-200">
+      <div className="flex gap-1 mb-6 border-b border-border">
         {TABS.map(tab => (
           <Link
             key={tab.label}
             href={tab.href}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               tab.active
-                ? 'bg-white border border-b-white border-slate-200 text-teal-600 -mb-px'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                ? 'bg-background border border-b-background border-border text-teal-600 -mb-px'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
           >
             {tab.label}
@@ -291,13 +291,13 @@ export default function FinanceUploadPage() {
           const isDone = step > stepNum;
           return (
             <div key={label} className="flex items-center gap-2">
-              {idx > 0 && <div className={`w-8 h-px ${isDone ? 'bg-teal-400' : 'bg-slate-200'}`} />}
+              {idx > 0 && <div className={`w-8 h-px ${isDone ? 'bg-teal-400' : 'bg-border'}`} />}
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                isDone ? 'bg-teal-500 text-white' : isActive ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-500'
+                isDone ? 'bg-teal-500 text-white' : isActive ? 'bg-teal-600 text-white' : 'bg-muted text-muted-foreground'
               }`}>
                 {isDone ? '✓' : stepNum}
               </div>
-              <span className={`text-sm ${isActive ? 'font-semibold text-slate-800' : 'text-slate-400'}`}>
+              <span className={`text-sm ${isActive ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
                 {label}
               </span>
             </div>
@@ -313,14 +313,14 @@ export default function FinanceUploadPage() {
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors ${
-              dragOver ? 'border-teal-400 bg-teal-50' : 'border-slate-300 bg-white hover:border-slate-400'
+              dragOver ? 'border-teal-400 bg-teal-50' : 'border-border bg-background hover:border-ring'
             }`}
           >
-            <Upload className="w-10 h-10 text-slate-400 mx-auto mb-4" />
-            <p className="text-lg font-medium text-slate-600 mb-2">
+            <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
+            <p className="text-lg font-medium text-foreground mb-2">
               Drop your CSV file here
             </p>
-            <p className="text-sm text-slate-400 mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               Expected columns: &quot;Date Deposited&quot;, &quot;Received From&quot;, &quot;Amount&quot;
             </p>
             <label className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-semibold rounded-lg hover:bg-teal-700 cursor-pointer transition-colors">
@@ -330,16 +330,16 @@ export default function FinanceUploadPage() {
           </div>
 
           {csvRows.length > 0 && (
-            <div className="mt-6 bg-white rounded-xl border border-slate-200 p-5">
+            <div className="mt-6 bg-background rounded-xl border border-border p-5">
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <p className="font-semibold text-slate-800">
+                  <p className="font-semibold text-foreground">
                     Found {csvRows.length} rows
                   </p>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-muted-foreground">
                     Date range: {csvRows[0]?.date} to {csvRows[csvRows.length - 1]?.date}
                   </p>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-muted-foreground">
                     Total: ${csvRows.reduce((s, r) => s + r.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                 </div>
@@ -354,23 +354,23 @@ export default function FinanceUploadPage() {
               {/* Preview */}
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left py-2 text-xs font-semibold text-slate-500 uppercase">Date</th>
-                    <th className="text-left py-2 text-xs font-semibold text-slate-500 uppercase">From</th>
-                    <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">Amount</th>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-2 text-xs font-semibold text-muted-foreground uppercase">Date</th>
+                    <th className="text-left py-2 text-xs font-semibold text-muted-foreground uppercase">From</th>
+                    <th className="text-right py-2 text-xs font-semibold text-muted-foreground uppercase">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   {csvRows.slice(0, 10).map((row, idx) => (
-                    <tr key={idx} className="border-b border-slate-100">
-                      <td className="py-2 font-mono text-slate-600">{row.date}</td>
+                    <tr key={idx} className="border-b border-border">
+                      <td className="py-2 font-mono text-muted-foreground">{row.date}</td>
                       <td className="py-2">{row.from}</td>
                       <td className="py-2 text-right font-mono text-green-600">${row.amount.toLocaleString()}</td>
                     </tr>
                   ))}
                   {csvRows.length > 10 && (
                     <tr>
-                      <td colSpan={3} className="py-2 text-center text-slate-400 text-xs">
+                      <td colSpan={3} className="py-2 text-center text-muted-foreground text-xs">
                         ... and {csvRows.length - 10} more rows
                       </td>
                     </tr>
@@ -387,7 +387,7 @@ export default function FinanceUploadPage() {
         <div>
           <button
             onClick={() => setStep(1)}
-            className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-teal-600 mb-4"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-teal-600 mb-4"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Upload
           </button>
@@ -410,8 +410,8 @@ export default function FinanceUploadPage() {
               </span>
             </div>
             {duplicateCount > 0 && (
-              <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm">
-                <span className="font-semibold text-slate-600">
+              <div className="bg-muted border border-border rounded-lg px-4 py-3 text-sm">
+                <span className="font-semibold text-muted-foreground">
                   {duplicateCount} duplicate{duplicateCount !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -419,7 +419,7 @@ export default function FinanceUploadPage() {
           </div>
 
           {/* Filter Buttons */}
-          <div className="flex gap-1 bg-slate-100 rounded-lg p-1 mb-6 w-fit">
+          <div className="flex gap-1 bg-muted rounded-lg p-1 mb-6 w-fit">
             {([
               { key: 'all' as const, label: 'Show All' },
               { key: 'unmatched' as const, label: 'Unmatched Only' },
@@ -430,8 +430,8 @@ export default function FinanceUploadPage() {
                 onClick={() => setReviewFilter(tab.key)}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
                   reviewFilter === tab.key
-                    ? 'bg-white text-teal-600 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-background text-teal-600 shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {tab.label}
@@ -440,15 +440,15 @@ export default function FinanceUploadPage() {
           </div>
 
           {/* Match Table */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/50">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Date</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">From (CSV)</th>
-                  <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Amount</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Matched Couple</th>
-                  <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-24">Status</th>
+                <tr className="border-b border-border bg-muted/50">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Date</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">From (CSV)</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Amount</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Matched Couple</th>
+                  <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase w-24">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -458,14 +458,14 @@ export default function FinanceUploadPage() {
                   return (
                   <tr
                     key={idx}
-                    className={`border-b border-slate-100 ${
-                      row.isDuplicate ? 'bg-slate-50 opacity-60' :
+                    className={`border-b border-border ${
+                      row.isDuplicate ? 'bg-muted opacity-60' :
                       row.confidence === 'high' ? 'bg-green-50/40' :
                       row.confidence === 'review' ? 'bg-amber-50/40' :
                       'bg-red-50/40'
                     }`}
                   >
-                    <td className="py-3 px-4 font-mono text-slate-600">{row.date}</td>
+                    <td className="py-3 px-4 font-mono text-muted-foreground">{row.date}</td>
                     <td className="py-3 px-4">{row.from}</td>
                     <td className="py-3 px-4 text-right font-mono text-green-600">${row.amount.toLocaleString()}</td>
                     <td className="py-3 px-4">
@@ -479,20 +479,20 @@ export default function FinanceUploadPage() {
                               const c = couples.find(c => c.id === e.target.value);
                               if (c) selectCouple(idx, c.id, c.couple_name);
                             }}
-                            className="w-full text-sm border border-slate-300 rounded-lg px-3 py-1.5 bg-white appearance-none pr-8"
+                            className="w-full text-sm border border-border rounded-lg px-3 py-1.5 bg-background appearance-none pr-8"
                           >
                             <option value="">Select couple...</option>
                             {(row.candidates.length > 0 ? row.candidates : couples).map(c => (
                               <option key={c.id} value={c.id}>{c.couple_name}</option>
                             ))}
                           </select>
-                          <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2 top-2 pointer-events-none" />
+                          <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-2 top-2 pointer-events-none" />
                         </div>
                       )}
                     </td>
                     <td className="py-3 px-4 text-center">
                       {row.isDuplicate ? (
-                        <span className="text-xs font-semibold text-slate-500 bg-slate-200 px-2 py-1 rounded">DUPE</span>
+                        <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded">DUPE</span>
                       ) : row.confidence === 'high' ? (
                         <CheckCircle className="w-5 h-5 text-green-500 mx-auto" />
                       ) : row.confidence === 'review' ? (
@@ -516,7 +516,7 @@ export default function FinanceUploadPage() {
               className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
                 allMatched
                   ? 'bg-teal-600 text-white hover:bg-teal-700'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed'
               }`}
             >
               Continue to Import ({importableCount} payments) →
@@ -530,14 +530,14 @@ export default function FinanceUploadPage() {
         <div>
           <button
             onClick={() => setStep(2)}
-            className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-teal-600 mb-4"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-teal-600 mb-4"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Review
           </button>
 
-          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center max-w-lg mx-auto">
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Ready to Import</h2>
-            <p className="text-slate-500 mb-6">
+          <div className="bg-background rounded-xl border border-border p-8 text-center max-w-lg mx-auto">
+            <h2 className="text-xl font-bold text-foreground mb-2">Ready to Import</h2>
+            <p className="text-muted-foreground mb-6">
               {importableCount} payment{importableCount !== 1 ? 's' : ''} totaling{' '}
               <span className="font-mono font-bold text-green-600">
                 ${importableTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -550,7 +550,7 @@ export default function FinanceUploadPage() {
               </p>
             )}
 
-            <div className="text-xs text-slate-400 mb-6">
+            <div className="text-xs text-muted-foreground mb-6">
               Method: e-transfer · Batch ID will be assigned for rollback
             </div>
 
@@ -573,14 +573,14 @@ export default function FinanceUploadPage() {
 
       {/* ─── Success Screen ─── */}
       {importResult && (
-        <div className="bg-white rounded-xl border border-slate-200 p-8 text-center max-w-lg mx-auto">
+        <div className="bg-background rounded-xl border border-border p-8 text-center max-w-lg mx-auto">
           <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Import Complete</h2>
-          <p className="text-slate-600 mb-1">
+          <h2 className="text-xl font-bold text-foreground mb-2">Import Complete</h2>
+          <p className="text-foreground mb-1">
             ✅ Imported <span className="font-bold">{importResult.imported}</span> payment{importResult.imported !== 1 ? 's' : ''}
           </p>
           {importResult.duplicates > 0 && (
-            <p className="text-slate-500 text-sm mb-4">
+            <p className="text-muted-foreground text-sm mb-4">
               Skipped {importResult.duplicates} duplicate{importResult.duplicates !== 1 ? 's' : ''}
             </p>
           )}
@@ -593,7 +593,7 @@ export default function FinanceUploadPage() {
             </Link>
             <button
               onClick={() => { setStep(1); setCsvRows([]); setMatchedRows([]); setImportResult(null); }}
-              className="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-lg hover:bg-slate-200 transition-colors"
+              className="px-4 py-2 bg-muted text-foreground text-sm font-semibold rounded-lg hover:bg-muted/80 transition-colors"
             >
               Upload Another
             </button>

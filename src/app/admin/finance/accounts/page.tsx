@@ -111,7 +111,7 @@ export default function FinanceAccountsPage() {
     const isActive = sortKey === field;
     return (
       <th
-        className="py-3 px-5 text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-slate-700 select-none"
+        className="py-3 px-5 text-xs font-semibold text-muted-foreground uppercase cursor-pointer hover:text-foreground select-none"
         onClick={() => handleSort(field)}
       >
         <span className="inline-flex items-center gap-1">
@@ -126,20 +126,20 @@ export default function FinanceAccountsPage() {
     <div className="p-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">💰 Finance — Accounts</h1>
-        <p className="text-sm text-slate-500 mt-1">All couple accounts with financial summary</p>
+        <h1 className="text-2xl font-bold text-foreground">💰 Finance — Accounts</h1>
+        <p className="text-sm text-muted-foreground mt-1">All couple accounts with financial summary</p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 mb-6 border-b border-slate-200">
+      <div className="flex gap-1 mb-6 border-b border-border">
         {TABS.map(tab => (
           <Link
             key={tab.label}
             href={tab.href}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               tab.active
-                ? 'bg-white border border-b-white border-slate-200 text-teal-600 -mb-px'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                ? 'bg-background border border-b-background border-border text-teal-600 -mb-px'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
           >
             {tab.label}
@@ -148,20 +148,20 @@ export default function FinanceAccountsPage() {
       </div>
 
       {/* Summary Card */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6 flex items-center justify-between">
+      <div className="bg-background rounded-xl border border-border shadow-sm p-5 mb-6 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <div>
-            <div className="text-xs font-semibold text-slate-500 uppercase">Couples Shown</div>
-            <div className="text-2xl font-bold text-slate-800">{filtered.length}</div>
+            <div className="text-xs font-semibold text-muted-foreground uppercase">Couples Shown</div>
+            <div className="text-2xl font-bold text-foreground">{filtered.length}</div>
           </div>
-          <div className="w-px h-10 bg-slate-200" />
+          <div className="w-px h-10 bg-border" />
           <div>
-            <div className="text-xs font-semibold text-slate-500 uppercase">With Balance</div>
+            <div className="text-xs font-semibold text-muted-foreground uppercase">With Balance</div>
             <div className="text-2xl font-bold text-red-600">{owingCount}</div>
           </div>
-          <div className="w-px h-10 bg-slate-200" />
+          <div className="w-px h-10 bg-border" />
           <div>
-            <div className="text-xs font-semibold text-slate-500 uppercase">Total Owing</div>
+            <div className="text-xs font-semibold text-muted-foreground uppercase">Total Owing</div>
             <div className="text-2xl font-bold font-mono text-red-600">
               ${totalOwing.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
@@ -169,15 +169,15 @@ export default function FinanceAccountsPage() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+        <div className="flex gap-1 bg-muted rounded-lg p-1">
           {FILTER_TABS.map(tab => (
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key)}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
                 filter === tab.key
-                  ? 'bg-white text-teal-600 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-background text-teal-600 shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {tab.label}
@@ -187,16 +187,16 @@ export default function FinanceAccountsPage() {
       </div>
 
       {/* Accounts Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/50">
+            <tr className="border-b border-border bg-muted/50">
               <SortHeader label="Couple" field="couple_name" />
               <SortHeader label="Wedding Date" field="wedding_date" />
               <SortHeader label="Contract + Extras" field="contract_total" />
               <SortHeader label="Paid" field="total_paid" />
               <SortHeader label="Balance" field="balance_owing" />
-              <th className="py-3 px-5 text-xs font-semibold text-slate-500 uppercase w-16">Status</th>
+              <th className="py-3 px-5 text-xs font-semibold text-muted-foreground uppercase w-16">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -211,10 +211,10 @@ export default function FinanceAccountsPage() {
               return (
                 <tr
                   key={couple.id}
-                  className={`border-b border-slate-100 hover:bg-teal-50/30 transition-colors ${
+                  className={`border-b border-border hover:bg-teal-50/30 transition-colors ${
                     isPaid
                       ? idx % 2 === 0 ? 'bg-green-50/30' : 'bg-green-50/20'
-                      : idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'
+                      : idx % 2 === 0 ? 'bg-background' : 'bg-muted/30'
                   }`}
                 >
                   <td className="py-3 px-5">
@@ -225,7 +225,7 @@ export default function FinanceAccountsPage() {
                       {couple.couple_name}
                     </Link>
                   </td>
-                  <td className="py-3 px-5 font-mono text-slate-600">
+                  <td className="py-3 px-5 font-mono text-muted-foreground">
                     {couple.wedding_date ? format(new Date(couple.wedding_date), 'MMM d, yyyy') : '—'}
                   </td>
                   <td className="py-3 px-5 text-right font-mono">
@@ -249,7 +249,7 @@ export default function FinanceAccountsPage() {
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-400">
+                <td colSpan={6} className="py-8 text-center text-muted-foreground">
                   No couples found
                 </td>
               </tr>

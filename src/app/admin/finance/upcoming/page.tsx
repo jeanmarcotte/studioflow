@@ -23,9 +23,9 @@ type TimeGroup = 'overdue' | 'this_week' | 'this_month' | 'coming_up' | 'milesto
 const GROUP_CONFIG: Record<TimeGroup, { label: string; rowBg: string; headerBg: string }> = {
   overdue: { label: '⚠️ Overdue', rowBg: 'bg-red-50', headerBg: 'bg-red-100 text-red-800' },
   this_week: { label: '🔥 Due This Week', rowBg: 'bg-amber-50', headerBg: 'bg-amber-100 text-amber-800' },
-  this_month: { label: '📅 Due This Month', rowBg: 'bg-white', headerBg: 'bg-slate-100 text-slate-700' },
-  coming_up: { label: '📆 Coming Up (31–90 days)', rowBg: 'bg-white', headerBg: 'bg-slate-50 text-slate-500' },
-  milestone: { label: '🎯 Milestone-Based (No Date)', rowBg: 'bg-white', headerBg: 'bg-slate-50 text-slate-500' },
+  this_month: { label: '📅 Due This Month', rowBg: 'bg-background', headerBg: 'bg-muted text-foreground' },
+  coming_up: { label: '📆 Coming Up (31–90 days)', rowBg: 'bg-background', headerBg: 'bg-muted/50 text-muted-foreground' },
+  milestone: { label: '🎯 Milestone-Based (No Date)', rowBg: 'bg-background', headerBg: 'bg-muted/50 text-muted-foreground' },
 };
 
 const TABS = [
@@ -154,8 +154,8 @@ export default function FinanceUpcomingPage() {
       value: monthTotal,
       count: groups.this_month.length,
       icon: Calendar,
-      color: 'text-slate-600',
-      bg: 'bg-white border-slate-200',
+      color: 'text-muted-foreground',
+      bg: 'bg-background border-border',
     },
     {
       label: 'Total Upcoming',
@@ -173,20 +173,20 @@ export default function FinanceUpcomingPage() {
     <div className="p-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">💰 Finance — Upcoming</h1>
-        <p className="text-sm text-slate-500 mt-1">Installments due for couples with outstanding balances</p>
+        <h1 className="text-2xl font-bold text-foreground">💰 Finance — Upcoming</h1>
+        <p className="text-sm text-muted-foreground mt-1">Installments due for couples with outstanding balances</p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 mb-6 border-b border-slate-200">
+      <div className="flex gap-1 mb-6 border-b border-border">
         {TABS.map(tab => (
           <Link
             key={tab.label}
             href={tab.href}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               tab.active
-                ? 'bg-white border border-b-white border-slate-200 text-teal-600 -mb-px'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                ? 'bg-background border border-b-background border-border text-teal-600 -mb-px'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
           >
             {tab.label}
@@ -199,27 +199,27 @@ export default function FinanceUpcomingPage() {
         {cards.map(card => (
           <div key={card.label} className={`rounded-xl border p-5 shadow-sm ${card.bg}`}>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-slate-500 uppercase">{card.label}</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase">{card.label}</span>
               <card.icon className={`w-5 h-5 ${card.color}`} />
             </div>
             <div className={`text-2xl font-bold font-mono ${card.color}`}>
               ${card.value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </div>
-            <div className="text-xs text-slate-400 mt-1">{card.count} installment{card.count !== 1 ? 's' : ''}</div>
+            <div className="text-xs text-muted-foreground mt-1">{card.count} installment{card.count !== 1 ? 's' : ''}</div>
           </div>
         ))}
       </div>
 
       {/* Grouped Installments */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/50">
-              <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase">Couple</th>
-              <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase">Wedding</th>
-              <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase">Due Date</th>
-              <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase">Description</th>
-              <th className="text-right py-3 px-5 text-xs font-semibold text-slate-500 uppercase">Amount</th>
+            <tr className="border-b border-border bg-muted/50">
+              <th className="text-left py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">Couple</th>
+              <th className="text-left py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">Wedding</th>
+              <th className="text-left py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">Due Date</th>
+              <th className="text-left py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">Description</th>
+              <th className="text-right py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -240,7 +240,7 @@ export default function FinanceUpcomingPage() {
                   {items.map(inst => (
                     <tr
                       key={inst.id}
-                      className={`border-b border-slate-100 hover:bg-teal-50/30 transition-colors ${config.rowBg}`}
+                      className={`border-b border-border hover:bg-teal-50/30 transition-colors ${config.rowBg}`}
                     >
                       <td className="py-3 px-5">
                         <Link
@@ -250,19 +250,19 @@ export default function FinanceUpcomingPage() {
                           {inst.couple_name}
                         </Link>
                       </td>
-                      <td className="py-3 px-5 font-mono text-slate-600">
+                      <td className="py-3 px-5 font-mono text-muted-foreground">
                         {inst.wedding_date ? format(new Date(inst.wedding_date), 'MMM d, yyyy') : '—'}
                       </td>
                       <td className="py-3 px-5">
                         {inst.due_date ? (
-                          <span className="font-mono text-slate-600">{format(new Date(inst.due_date), 'MMM d, yyyy')}</span>
+                          <span className="font-mono text-muted-foreground">{format(new Date(inst.due_date), 'MMM d, yyyy')}</span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-200 text-slate-600">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-muted text-foreground">
                             Milestone
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-5 text-slate-600">{inst.due_description}</td>
+                      <td className="py-3 px-5 text-foreground">{inst.due_description}</td>
                       <td className="py-3 px-5 text-right font-mono font-semibold">
                         ${num(inst.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
@@ -273,7 +273,7 @@ export default function FinanceUpcomingPage() {
             })}
             {installments.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-400">
+                <td colSpan={5} className="py-8 text-center text-muted-foreground">
                   No upcoming installments
                 </td>
               </tr>
