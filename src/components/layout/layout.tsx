@@ -7,6 +7,7 @@ import { supabase, getCurrentUser } from '@/lib/supabase'
 import { SidebarConfig, SidebarItem } from '@/config/sidebar'
 import { cn } from '@/lib/utils'
 import { Menu, Settings, LogOut, ChevronDown, ChevronRight } from 'lucide-react'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -261,6 +262,8 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
               <Menu className="h-4 w-4" />
             </button>
           </div>
+
+          <ThemeToggle />
 
           {/* User Profile Dropdown */}
           <div className="relative">
