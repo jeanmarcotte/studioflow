@@ -384,7 +384,7 @@ export default function NewClientQuotePage() {
     <Suspense fallback={
       <Layout sidebarConfig={studioflowClientConfig}>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
         </div>
       </Layout>
     }>
@@ -1116,17 +1116,17 @@ function QuoteBuilderInner() {
   // ============================================================
   return (
     <Layout sidebarConfig={studioflowClientConfig}>
-      <div className="min-h-screen bg-stone-50">
+      <div className="min-h-screen bg-muted">
         {loadingQuote && (
-          <div className="fixed inset-0 bg-white/80 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900 mx-auto mb-3"></div>
-              <p className="text-stone-600 text-sm">Loading quote...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto mb-3"></div>
+              <p className="text-muted-foreground text-sm">Loading quote...</p>
             </div>
           </div>
         )}
         {/* Header */}
-        <div className="bg-stone-900 text-white py-6 px-8 mb-8">
+        <div className="bg-primary text-primary-foreground py-6 px-8 mb-8">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img
@@ -1135,14 +1135,14 @@ function QuoteBuilderInner() {
                 className="h-14 w-auto object-contain"
               />
               <div>
-                <p className="text-stone-400 text-sm">Wedding Package Quote</p>
+                <p className="text-muted-foreground text-sm">Wedding Package Quote</p>
                 {editingVersion && (
                   <p className="text-amber-400 text-xs font-medium">Editing v{editingVersion} — changes will save as v{editingVersion + 1}</p>
                 )}
               </div>
             </div>
             <div className="text-right text-sm">
-              <p className="text-stone-400">E-Transfer</p>
+              <p className="text-muted-foreground">E-Transfer</p>
               <p className="font-medium">info@sigsphoto.ca</p>
             </div>
           </div>
@@ -1151,16 +1151,16 @@ function QuoteBuilderInner() {
         <form onSubmit={handleSubmit(onSubmit)} className="max-w-6xl mx-auto px-8 pb-12 space-y-8">
           
           {/* Lead Source & BridalFlow Alert */}
-          <div className="bg-white rounded border border-stone-200 p-6">
+          <div className="bg-background rounded border border-border p-6">
             <div className="flex items-start justify-between gap-8">
               <div className="flex-1 grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-stone-500 uppercase tracking-wide mb-1">
+                  <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
                     Lead Source
                   </label>
                   <select 
                     {...register('leadSource')}
-                    className="w-full px-3 py-2 border border-stone-300 rounded text-sm bg-white focus:outline-none focus:border-stone-500"
+                    className="w-full px-3 py-2 border border-border rounded text-sm bg-background focus:outline-none focus:border-ring"
                   >
                     <option value="">Select lead source...</option>
                     <optgroup label="Online">
@@ -1189,13 +1189,13 @@ function QuoteBuilderInner() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-stone-500 uppercase tracking-wide mb-1">
+                  <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
                     Referral Name (if applicable)
                   </label>
                   <input
                     {...register('referralName')}
                     placeholder="Who referred them?"
-                    className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500"
+                    className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring"
                   />
                 </div>
               </div>
@@ -1214,8 +1214,8 @@ function QuoteBuilderInner() {
           </div>
 
           {/* Couple Information */}
-          <div className="bg-white rounded border border-stone-200 p-6">
-            <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+          <div className="bg-background rounded border border-border p-6">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
               <Heart className="h-4 w-4 text-rose-400" />
               Couple Information
             </h2>
@@ -1227,11 +1227,11 @@ function QuoteBuilderInner() {
                   Bride
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <input {...register('brideFirstName')} placeholder="First Name *" className="px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
-                  <input {...register('brideLastName')} placeholder="Last Name *" className="px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                  <input {...register('brideFirstName')} placeholder="First Name *" className="px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
+                  <input {...register('brideLastName')} placeholder="Last Name *" className="px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
                 </div>
-                <input {...register('brideEmail')} type="email" placeholder="Email" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
-                <input {...register('bridePhone')} onChange={handlePhoneChange('bridePhone')} placeholder="(416) 555-1234" type="tel" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                <input {...register('brideEmail')} type="email" placeholder="Email" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
+                <input {...register('bridePhone')} onChange={handlePhoneChange('bridePhone')} placeholder="(416) 555-1234" type="tel" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
               </div>
               
               {/* Groom */}
@@ -1240,63 +1240,63 @@ function QuoteBuilderInner() {
                   Groom
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <input {...register('groomFirstName')} placeholder="First Name *" className="px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
-                  <input {...register('groomLastName')} placeholder="Last Name *" className="px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                  <input {...register('groomFirstName')} placeholder="First Name *" className="px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
+                  <input {...register('groomLastName')} placeholder="Last Name *" className="px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
                 </div>
-                <input {...register('groomEmail')} type="email" placeholder="Email" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
-                <input {...register('groomPhone')} onChange={handlePhoneChange('groomPhone')} placeholder="(416) 555-1234" type="tel" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                <input {...register('groomEmail')} type="email" placeholder="Email" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
+                <input {...register('groomPhone')} onChange={handlePhoneChange('groomPhone')} placeholder="(416) 555-1234" type="tel" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
               </div>
             </div>
           </div>
 
           {/* Wedding Details */}
-          <div className="bg-white rounded border border-stone-200 p-6">
-            <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+          <div className="bg-background rounded border border-border p-6">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
               <Calendar className="h-4 w-4 text-amber-500" />
               Wedding Details
             </h2>
             
             <div className="grid grid-cols-4 gap-4 mb-4">
               <div>
-                <label className="block text-xs text-stone-500 mb-1">Wedding Date *</label>
-                <input type="date" {...register('weddingDate')} className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                <label className="block text-xs text-muted-foreground mb-1">Wedding Date *</label>
+                <input type="date" {...register('weddingDate')} className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
               </div>
               <div>
-                <label className="block text-xs text-stone-500 mb-1"># of Guests</label>
-                <input type="number" {...register('guestCount', { valueAsNumber: true })} placeholder="150" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                <label className="block text-xs text-muted-foreground mb-1"># of Guests</label>
+                <input type="number" {...register('guestCount', { valueAsNumber: true })} placeholder="150" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
               </div>
               <div>
-                <label className="block text-xs text-stone-500 mb-1"># in Bridal Party</label>
-                <input type="number" {...register('bridalPartyCount', { valueAsNumber: true })} placeholder="8" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                <label className="block text-xs text-muted-foreground mb-1"># in Bridal Party</label>
+                <input type="number" {...register('bridalPartyCount', { valueAsNumber: true })} placeholder="8" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs text-stone-500 mb-1">Flower Girl</label>
-                  <input type="number" {...register('flowerGirl', { valueAsNumber: true })} placeholder="0" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                  <label className="block text-xs text-muted-foreground mb-1">Flower Girl</label>
+                  <input type="number" {...register('flowerGirl', { valueAsNumber: true })} placeholder="0" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
                 </div>
                 <div>
-                  <label className="block text-xs text-stone-500 mb-1">Ring Bearer</label>
-                  <input type="number" {...register('ringBearer', { valueAsNumber: true })} placeholder="0" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                  <label className="block text-xs text-muted-foreground mb-1">Ring Bearer</label>
+                  <input type="number" {...register('ringBearer', { valueAsNumber: true })} placeholder="0" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
                 </div>
               </div>
             </div>
             
             <div className="grid grid-cols-4 gap-4">
               <div>
-                <label className="block text-xs text-stone-500 mb-1">Ceremony Location</label>
-                <input {...register('ceremonyVenue')} placeholder="Church / Venue" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                <label className="block text-xs text-muted-foreground mb-1">Ceremony Location</label>
+                <input {...register('ceremonyVenue')} placeholder="Church / Venue" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
               </div>
               <div>
-                <label className="block text-xs text-stone-500 mb-1">Reception Venue</label>
-                <input {...register('receptionVenue')} placeholder="Venue Name" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                <label className="block text-xs text-muted-foreground mb-1">Reception Venue</label>
+                <input {...register('receptionVenue')} placeholder="Venue Name" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
               </div>
               <div>
-                <label className="block text-xs text-stone-500 mb-1">DJ</label>
-                <input {...register('djName')} placeholder="DJ Name" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                <label className="block text-xs text-muted-foreground mb-1">DJ</label>
+                <input {...register('djName')} placeholder="DJ Name" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
               </div>
               <div>
-                <label className="block text-xs text-stone-500 mb-1">Planner</label>
-                <input {...register('plannerName')} placeholder="Planner Name" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                <label className="block text-xs text-muted-foreground mb-1">Planner</label>
+                <input {...register('plannerName')} placeholder="Planner Name" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
               </div>
             </div>
           </div>
@@ -1337,35 +1337,35 @@ function QuoteBuilderInner() {
               'text-emerald-700 bg-emerald-50 border-emerald-200'
 
             return (
-              <div className="bg-white rounded border border-stone-200 p-6">
-                <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+              <div className="bg-background rounded border border-border p-6">
+                <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
                   <Clock className="h-4 w-4 text-emerald-600" />
                   Coverage Hours
                 </h2>
                 <div className="flex items-end gap-6">
                   <div className="flex-1">
-                    <label className="block text-xs text-stone-500 mb-1">Start Time</label>
+                    <label className="block text-xs text-muted-foreground mb-1">Start Time</label>
                     <select
                       value={startVal}
                       onChange={e => setValue('coverageStartTime', e.target.value)}
-                      className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500"
+                      className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring"
                     >
                       <option value="">—</option>
                       {startSlots.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                   <div className="flex-1">
-                    <label className="block text-xs text-stone-500 mb-1">End Time</label>
+                    <label className="block text-xs text-muted-foreground mb-1">End Time</label>
                     <select
                       value={endVal}
                       onChange={e => setValue('coverageEndTime', e.target.value)}
-                      className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500"
+                      className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring"
                     >
                       <option value="">—</option>
                       {endSlots.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
-                  <div className={`flex-1 text-center rounded border px-4 py-2 ${totalHours !== null ? hoursColor : 'bg-stone-50 border-stone-200'}`}>
+                  <div className={`flex-1 text-center rounded border px-4 py-2 ${totalHours !== null ? hoursColor : 'bg-muted border-border'}`}>
                     <div className="text-xs uppercase tracking-wide opacity-70">Total Hours</div>
                     <div className="text-3xl font-bold leading-tight">
                       {totalHours !== null ? totalHours : '—'}
@@ -1377,20 +1377,20 @@ function QuoteBuilderInner() {
           })()}
 
           {/* Timeline - Unified Sortable */}
-          <div className="bg-white rounded border border-stone-200 p-6">
+          <div className="bg-background rounded border border-border p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
                 <Clock className="h-4 w-4 text-indigo-500" />
                 Wedding Day Timeline
               </h2>
-              <p className="text-xs text-stone-400">Use arrows to reorder locations</p>
+              <p className="text-xs text-muted-foreground">Use arrows to reorder locations</p>
             </div>
 
             {/* First Look Toggle */}
-            <div className="flex items-center justify-between p-3 mb-4 bg-stone-50 border border-stone-200 rounded">
+            <div className="flex items-center justify-between p-3 mb-4 bg-muted border border-border rounded">
               <div>
-                <span className="text-sm font-medium text-stone-800">First Look</span>
-                <p className="text-xs text-stone-500">Couple sees each other before the ceremony</p>
+                <span className="text-sm font-medium text-foreground">First Look</span>
+                <p className="text-xs text-muted-foreground">Couple sees each other before the ceremony</p>
               </div>
               <button
                 type="button"
@@ -1406,10 +1406,10 @@ function QuoteBuilderInner() {
                   }
                 }}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  watchedValues.firstLook ? 'bg-indigo-500' : 'bg-stone-300'
+                  watchedValues.firstLook ? 'bg-indigo-500' : 'bg-muted'
                 }`}
               >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
                   watchedValues.firstLook ? 'translate-x-6' : 'translate-x-1'
                 }`} />
               </button>
@@ -1433,38 +1433,38 @@ function QuoteBuilderInner() {
                   <div key={locId}>
                     {/* Photo/Video Arrival — auto-calculated, read-only */}
                     {showArrivalRow && (
-                      <div className="flex items-center gap-2 p-3 bg-stone-100 rounded border border-stone-300 mb-3 opacity-90">
+                      <div className="flex items-center gap-2 p-3 bg-muted rounded border border-border mb-3 opacity-90">
                         <div className="w-[52px]" /> {/* spacer to align with arrow buttons */}
-                        <span className="text-xs font-semibold text-stone-600 w-28">Photo/Video Arrival</span>
-                        <span className="px-2 py-1.5 border border-stone-200 rounded text-xs bg-stone-50 text-stone-600">
+                        <span className="text-xs font-semibold text-muted-foreground w-28">Photo/Video Arrival</span>
+                        <span className="px-2 py-1.5 border border-border rounded text-xs bg-muted text-muted-foreground">
                           {arrivalStartMins !== null ? minutesToTime(arrivalStartMins - 30) : '—'}
                         </span>
-                        <span className="text-stone-400 text-xs">to</span>
-                        <span className="px-2 py-1.5 border border-stone-200 rounded text-xs bg-stone-50 text-stone-600">
+                        <span className="text-muted-foreground text-xs">to</span>
+                        <span className="px-2 py-1.5 border border-border rounded text-xs bg-muted text-muted-foreground">
                           {ceremonyStartVal || '—'}
                         </span>
-                        <span className="text-[10px] text-stone-400 italic ml-1">30 min before ceremony</span>
+                        <span className="text-[10px] text-muted-foreground italic ml-1">30 min before ceremony</span>
                       </div>
                     )}
                     {/* Location Row */}
                     <div className={`flex items-center gap-2 p-3 ${loc.bgColor} rounded border ${loc.borderColor}`}>
                       {/* Move Arrows */}
-                      <div className="flex flex-col bg-white rounded border border-stone-200">
+                      <div className="flex flex-col bg-background rounded border border-border">
                         <button 
                           type="button" 
                           onClick={() => moveTimelineLocation(index, 'up')}
                           disabled={index === 0}
-                          className="px-1.5 py-0.5 hover:bg-stone-100 disabled:opacity-30 rounded-t border-b border-stone-200"
+                          className="px-1.5 py-0.5 hover:bg-muted disabled:opacity-30 rounded-t border-b border-border"
                         >
-                          <ChevronUp className="h-4 w-4 text-stone-600" />
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
                         </button>
                         <button 
                           type="button" 
                           onClick={() => moveTimelineLocation(index, 'down')}
                           disabled={index === timelineOrder.length - 1}
-                          className="px-1.5 py-0.5 hover:bg-stone-100 disabled:opacity-30 rounded-b"
+                          className="px-1.5 py-0.5 hover:bg-muted disabled:opacity-30 rounded-b"
                         >
-                          <ChevronDown className="h-4 w-4 text-stone-600" />
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
                         </button>
                       </div>
                       
@@ -1475,7 +1475,7 @@ function QuoteBuilderInner() {
                           value={customData?.name || ''}
                           onChange={(e) => updateCustomLocation(locId, 'name', e.target.value)}
                           placeholder="Location name"
-                          className={`w-28 px-2 py-1 text-xs font-semibold ${loc.color} bg-white border border-stone-300 rounded`}
+                          className={`w-28 px-2 py-1 text-xs font-semibold ${loc.color} bg-background border border-border rounded`}
                         />
                       ) : (
                         <span className={`text-xs font-semibold ${loc.color} w-28`}>{locId === 'park' && watchedValues.firstLook ? 'First Look + Park' : loc.label}</span>
@@ -1503,11 +1503,11 @@ function QuoteBuilderInner() {
                                 }
                               }
                             }}
-                            className="px-2 py-1.5 border border-stone-300 rounded text-xs bg-white"
+                            className="px-2 py-1.5 border border-border rounded text-xs bg-background"
                           >
                             {TIME_SLOTS.map(t => <option key={`${locId}-s-${t}`} value={t}>{t || '—'}</option>)}
                           </select>
-                          <span className="text-stone-400 text-xs">to</span>
+                          <span className="text-muted-foreground text-xs">to</span>
                           <select 
                             value={customData?.endTime || ''}
                             onChange={(e) => updateCustomLocation(locId, 'endTime', e.target.value)}
@@ -1522,7 +1522,7 @@ function QuoteBuilderInner() {
                                 }
                               }
                             }}
-                            className="px-2 py-1.5 border border-stone-300 rounded text-xs bg-white"
+                            className="px-2 py-1.5 border border-border rounded text-xs bg-background"
                           >
                             {TIME_SLOTS.map(t => <option key={`${locId}-e-${t}`} value={t}>{t || '—'}</option>)}
                           </select>
@@ -1548,11 +1548,11 @@ function QuoteBuilderInner() {
                                 }
                               }
                             }}
-                            className="px-2 py-1.5 border border-stone-300 rounded text-xs bg-white"
+                            className="px-2 py-1.5 border border-border rounded text-xs bg-background"
                           >
                             {TIME_SLOTS.map(t => <option key={`${locId}-s-${t}`} value={t}>{t || '—'}</option>)}
                           </select>
-                          <span className="text-stone-400 text-xs">to</span>
+                          <span className="text-muted-foreground text-xs">to</span>
                           <select 
                             {...register(loc.endField as any)}
                             onFocus={() => {
@@ -1577,7 +1577,7 @@ function QuoteBuilderInner() {
                                 }
                               }
                             }}
-                            className="px-2 py-1.5 border border-stone-300 rounded text-xs bg-white"
+                            className="px-2 py-1.5 border border-border rounded text-xs bg-background"
                           >
                             {TIME_SLOTS.map(t => <option key={`${locId}-e-${t}`} value={t}>{t || '—'}</option>)}
                           </select>
@@ -1599,25 +1599,25 @@ function QuoteBuilderInner() {
                     {/* Drive Time (if not last) */}
                     {nextLoc && (
                       <div className="flex items-center gap-2 pl-12 py-2">
-                        <Car className="h-3 w-3 text-stone-400" />
-                        <ArrowRight className="h-3 w-3 text-stone-300" />
+                        <Car className="h-3 w-3 text-muted-foreground" />
+                        <ArrowRight className="h-3 w-3 text-muted-foreground" />
                         {isCustom ? (
                           <select 
                             value={customData?.driveTime || ''}
                             onChange={(e) => updateCustomLocation(locId, 'driveTime', e.target.value)}
-                            className="px-2 py-1 border border-stone-200 rounded text-xs bg-stone-50 text-stone-600"
+                            className="px-2 py-1 border border-border rounded text-xs bg-muted text-muted-foreground"
                           >
                             {DRIVE_TIMES.map(t => <option key={`${locId}-d-${t}`} value={t}>{t || 'Drive time'}</option>)}
                           </select>
                         ) : loc.driveField ? (
                           <select 
                             {...register(loc.driveField as any)}
-                            className="px-2 py-1 border border-stone-200 rounded text-xs bg-stone-50 text-stone-600"
+                            className="px-2 py-1 border border-border rounded text-xs bg-muted text-muted-foreground"
                           >
                             {DRIVE_TIMES.map(t => <option key={`${locId}-d-${t}`} value={t}>{t || 'Drive time'}</option>)}
                           </select>
                         ) : null}
-                        <span className="text-xs text-stone-400">to {nextLoc.name}</span>
+                        <span className="text-xs text-muted-foreground">to {nextLoc.name}</span>
                       </div>
                     )}
                   </div>
@@ -1626,11 +1626,11 @@ function QuoteBuilderInner() {
             </div>
             
             {/* Add Location Button */}
-            <div className="mt-4 pt-4 border-t border-stone-200">
+            <div className="mt-4 pt-4 border-t border-border">
               <button
                 type="button"
                 onClick={addCustomLocation}
-                className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-700 transition-colors py-2"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
               >
                 <Plus className="h-4 w-4" />
                 Add Custom Location
@@ -1660,24 +1660,24 @@ function QuoteBuilderInner() {
 
               if (startTime || endTime) {
                 return (
-                  <div className="mt-4 pt-4 border-t border-stone-200 flex items-center justify-between">
+                  <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
                     <div className="flex items-center gap-6 text-sm">
                       {startTime && (
                         <div>
-                          <span className="text-stone-500">Start:</span>
-                          <span className="font-semibold text-stone-800 ml-2">{startTime}</span>
+                          <span className="text-muted-foreground">Start:</span>
+                          <span className="font-semibold text-foreground ml-2">{startTime}</span>
                         </div>
                       )}
                       {endTime && (
                         <div>
-                          <span className="text-stone-500">Finish:</span>
-                          <span className="font-semibold text-stone-800 ml-2">{endTime}</span>
+                          <span className="text-muted-foreground">Finish:</span>
+                          <span className="font-semibold text-foreground ml-2">{endTime}</span>
                         </div>
                       )}
                     </div>
                     {totalHours !== null && totalHours > 0 && (
-                      <div className="bg-stone-800 text-white px-4 py-2 rounded">
-                        <span className="text-stone-400 text-xs uppercase tracking-wide">Total Coverage:</span>
+                      <div className="bg-primary text-primary-foreground px-4 py-2 rounded">
+                        <span className="text-muted-foreground text-xs uppercase tracking-wide">Total Coverage:</span>
                         <span className="font-bold text-lg ml-2">{totalHours} hours</span>
                       </div>
                     )}
@@ -1689,55 +1689,55 @@ function QuoteBuilderInner() {
           </div>
 
           {/* Package Selection */}
-          <div className="bg-white rounded border border-stone-200 p-6">
-            <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+          <div className="bg-background rounded border border-border p-6">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
               <Camera className="h-4 w-4 text-violet-500" />
               Package Selection
             </h2>
             
             {/* Photo Only */}
-            <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Photo Only</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Photo Only</p>
             <div className="grid grid-cols-2 gap-4 mb-5">
               {(['bella', 'eleganza'] as const).map(key => {
                 const pkg = PACKAGES[key]
                 const sel = watchedValues.selectedPackage === key
                 const teamLabel = `${pkg.photographers}P`
                 return (
-                  <label key={key} className={`relative flex flex-col p-4 border-2 rounded cursor-pointer transition-all ${sel ? 'border-stone-800 bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                  <label key={key} className={`relative flex flex-col p-4 border-2 rounded cursor-pointer transition-all ${sel ? 'border-primary bg-muted' : 'border-border hover:border-border'}`}>
                     <input type="radio" {...register('selectedPackage')} value={key} className="sr-only" />
                     <div className="flex items-center gap-3 mb-2">
-                      <Camera className={`h-6 w-6 ${sel ? 'text-stone-800' : 'text-stone-400'}`} />
+                      <Camera className={`h-6 w-6 ${sel ? 'text-foreground' : 'text-muted-foreground'}`} />
                       <div>
-                        <div className="font-semibold text-stone-800">{pkg.name}</div>
-                        <div className="text-xs text-stone-500">Photo Only · {pkg.hours} hrs · {teamLabel}</div>
+                        <div className="font-semibold text-foreground">{pkg.name}</div>
+                        <div className="text-xs text-muted-foreground">Photo Only · {pkg.hours} hrs · {teamLabel}</div>
                       </div>
                     </div>
-                    <div className="text-2xl font-bold text-stone-800 mt-auto">${pkg.price.toLocaleString()}</div>
-                    {sel && <Check className="absolute top-3 right-3 h-5 w-5 text-stone-800" />}
+                    <div className="text-2xl font-bold text-foreground mt-auto">${pkg.price.toLocaleString()}</div>
+                    {sel && <Check className="absolute top-3 right-3 h-5 w-5 text-foreground" />}
                   </label>
                 )
               })}
             </div>
 
             {/* Photo + Video */}
-            <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Photo + Video</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Photo + Video</p>
             <div className="grid grid-cols-2 gap-4">
               {(['silver', 'gold', 'platinum', 'diamond'] as const).map(key => {
                 const pkg = PACKAGES[key]
                 const sel = watchedValues.selectedPackage === key
                 const teamLabel = `${pkg.photographers}P+${pkg.videographers}V`
                 return (
-                  <label key={key} className={`relative flex flex-col p-4 border-2 rounded cursor-pointer transition-all ${sel ? 'border-stone-800 bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                  <label key={key} className={`relative flex flex-col p-4 border-2 rounded cursor-pointer transition-all ${sel ? 'border-primary bg-muted' : 'border-border hover:border-border'}`}>
                     <input type="radio" {...register('selectedPackage')} value={key} className="sr-only" />
                     <div className="flex items-center gap-3 mb-2">
-                      <Video className={`h-6 w-6 ${sel ? 'text-stone-800' : 'text-stone-400'}`} />
+                      <Video className={`h-6 w-6 ${sel ? 'text-foreground' : 'text-muted-foreground'}`} />
                       <div>
-                        <div className="font-semibold text-stone-800">{pkg.name}</div>
-                        <div className="text-xs text-stone-500">Photo + Video · {pkg.hours} hrs · {teamLabel}</div>
+                        <div className="font-semibold text-foreground">{pkg.name}</div>
+                        <div className="text-xs text-muted-foreground">Photo + Video · {pkg.hours} hrs · {teamLabel}</div>
                       </div>
                     </div>
-                    <div className="text-2xl font-bold text-stone-800 mt-auto">${pkg.price.toLocaleString()}</div>
-                    {sel && <Check className="absolute top-3 right-3 h-5 w-5 text-stone-800" />}
+                    <div className="text-2xl font-bold text-foreground mt-auto">${pkg.price.toLocaleString()}</div>
+                    {sel && <Check className="absolute top-3 right-3 h-5 w-5 text-foreground" />}
                   </label>
                 )
               })}
@@ -1745,13 +1745,13 @@ function QuoteBuilderInner() {
             
             {/* Package Details */}
             {watchedValues.selectedPackage && (
-              <div className="mt-4 p-4 bg-stone-50 rounded border border-stone-200">
-                <h3 className="text-xs font-semibold text-stone-600 uppercase tracking-wide mb-2">
+              <div className="mt-4 p-4 bg-muted rounded border border-border">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                   {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.name} Includes:
                 </h3>
                 <div className="grid grid-cols-2 gap-1">
                   {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.features.map((feature, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs text-stone-600">
+                    <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
                       <Check className="h-3 w-3 text-emerald-500 mt-0.5 flex-shrink-0" />
                       <span>{feature}</span>
                     </div>
@@ -1762,37 +1762,37 @@ function QuoteBuilderInner() {
             
             {/* Extra Photographer Option */}
             <label className={`mt-4 flex items-center gap-3 p-4 border-2 rounded cursor-pointer transition-all ${
-              watchedValues.extraPhotographer ? 'border-stone-800 bg-stone-50' : 'border-stone-200 hover:border-stone-300'
+              watchedValues.extraPhotographer ? 'border-primary bg-muted' : 'border-border hover:border-border'
             }`}>
               <input type="checkbox" {...register('extraPhotographer')} className="sr-only" />
               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                watchedValues.extraPhotographer ? 'border-stone-800 bg-stone-800' : 'border-stone-300'
+                watchedValues.extraPhotographer ? 'border-primary bg-primary' : 'border-border'
               }`}>
-                {watchedValues.extraPhotographer && <Check className="h-3 w-3 text-white" />}
+                {watchedValues.extraPhotographer && <Check className="h-3 w-3 text-primary-foreground" />}
               </div>
               <div className="flex-1">
-                <span className="text-sm font-medium text-stone-800">Add Extra Photographer</span>
-                <p className="text-xs text-stone-500">Additional coverage for larger weddings</p>
+                <span className="text-sm font-medium text-foreground">Add Extra Photographer</span>
+                <p className="text-xs text-muted-foreground">Additional coverage for larger weddings</p>
               </div>
-              <span className="text-lg font-bold text-stone-800">+$500</span>
+              <span className="text-lg font-bold text-foreground">+$500</span>
             </label>
             
             {/* Extra Hours */}
-            <div className="mt-4 p-4 border-2 border-stone-200 rounded">
+            <div className="mt-4 p-4 border-2 border-border rounded">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
-                    <Clock className="h-5 w-5 text-stone-600" />
+                    <Clock className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <span className="text-sm font-medium text-stone-800">Extra Hours</span>
-                      <p className="text-xs text-stone-500">$350 per additional hour</p>
+                      <span className="text-sm font-medium text-foreground">Extra Hours</span>
+                      <p className="text-xs text-muted-foreground">$350 per additional hour</p>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <select 
                     {...register('extraHours', { valueAsNumber: true })}
-                    className="px-3 py-2 border border-stone-300 rounded text-sm bg-white focus:outline-none focus:border-stone-500"
+                    className="px-3 py-2 border border-border rounded text-sm bg-background focus:outline-none focus:border-ring"
                   >
                     <option value={0}>None</option>
                     <option value={0.5}>+30 min</option>
@@ -1809,14 +1809,14 @@ function QuoteBuilderInner() {
                     <option value={6}>+6 hours</option>
                   </select>
                   {(watchedValues.extraHours || 0) > 0 && (
-                    <span className="text-lg font-bold text-stone-800">
+                    <span className="text-lg font-bold text-foreground">
                       +${((watchedValues.extraHours || 0) * 350).toLocaleString()}
                     </span>
                   )}
                 </div>
               </div>
               {(watchedValues.extraHours || 0) > 0 && (
-                <div className="mt-2 text-xs text-stone-500 text-right">
+                <div className="mt-2 text-xs text-muted-foreground text-right">
                   Total coverage: {(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours || 8) + (watchedValues.extraHours || 0)} hours
                 </div>
               )}
@@ -1824,8 +1824,8 @@ function QuoteBuilderInner() {
           </div>
 
           {/* Engagement Location */}
-          <div className="bg-white rounded border border-stone-200 p-6">
-            <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+          <div className="bg-background rounded border border-border p-6">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
               <MapPin className="h-4 w-4 text-emerald-500" />
               Engagement Session Location
             </h2>
@@ -1833,37 +1833,37 @@ function QuoteBuilderInner() {
             <div className="space-y-2">
               {/* Default: Mill Pond */}
               <label className={`flex items-center gap-3 p-3 border rounded cursor-pointer transition-all ${
-                watchedValues.engagementLocation === 'mill_pond' ? 'border-stone-800 bg-stone-50' : 'border-stone-200 hover:border-stone-300'
+                watchedValues.engagementLocation === 'mill_pond' ? 'border-primary bg-muted' : 'border-border hover:border-border'
               }`}>
                 <input type="radio" {...register('engagementLocation')} value="mill_pond" className="sr-only" />
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${watchedValues.engagementLocation === 'mill_pond' ? 'border-stone-800' : 'border-stone-300'}`}>
-                  {watchedValues.engagementLocation === 'mill_pond' && <div className="w-2 h-2 rounded-full bg-stone-800" />}
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${watchedValues.engagementLocation === 'mill_pond' ? 'border-primary' : 'border-border'}`}>
+                  {watchedValues.engagementLocation === 'mill_pond' && <div className="w-2 h-2 rounded-full bg-primary" />}
                 </div>
                 <div className="flex-1">
-                  <span className="text-sm font-medium text-stone-800">Mill Pond Park, Richmond Hill</span>
-                  <span className="text-xs text-stone-500 ml-2">Mon-Thurs 9am-3pm</span>
+                  <span className="text-sm font-medium text-foreground">Mill Pond Park, Richmond Hill</span>
+                  <span className="text-xs text-muted-foreground ml-2">Mon-Thurs 9am-3pm</span>
                 </div>
                 <span className="text-xs text-emerald-600 font-medium">Default</span>
               </label>
               
-              <button type="button" onClick={() => setShowOtherLocations(!showOtherLocations)} className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-700 transition-colors py-2">
+              <button type="button" onClick={() => setShowOtherLocations(!showOtherLocations)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
                 <ChevronDown className={`h-4 w-4 transition-transform ${showOtherLocations ? 'rotate-180' : ''}`} />
                 {showOtherLocations ? 'Hide other locations' : 'Show other locations'}
               </button>
               
               {showOtherLocations && (
-                <div className="space-y-2 pl-4 border-l-2 border-stone-200">
+                <div className="space-y-2 pl-4 border-l-2 border-border">
                   {ENGAGEMENT_LOCATIONS.filter(loc => loc.value !== 'mill_pond').map(location => (
                     <label key={location.value} className={`flex items-center gap-3 p-3 border rounded cursor-pointer transition-all ${
-                      watchedValues.engagementLocation === location.value ? 'border-stone-800 bg-stone-50' : 'border-stone-200 hover:border-stone-300'
+                      watchedValues.engagementLocation === location.value ? 'border-primary bg-muted' : 'border-border hover:border-border'
                     }`}>
                       <input type="radio" {...register('engagementLocation')} value={location.value} className="sr-only" />
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${watchedValues.engagementLocation === location.value ? 'border-stone-800' : 'border-stone-300'}`}>
-                        {watchedValues.engagementLocation === location.value && <div className="w-2 h-2 rounded-full bg-stone-800" />}
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${watchedValues.engagementLocation === location.value ? 'border-primary' : 'border-border'}`}>
+                        {watchedValues.engagementLocation === location.value && <div className="w-2 h-2 rounded-full bg-primary" />}
                       </div>
                       <div className="flex-1">
-                        <span className="text-sm font-medium text-stone-800">{location.label}</span>
-                        {location.sublabel && <span className="text-xs text-stone-500 ml-2">{location.sublabel}</span>}
+                        <span className="text-sm font-medium text-foreground">{location.label}</span>
+                        {location.sublabel && <span className="text-xs text-muted-foreground ml-2">{location.sublabel}</span>}
                       </div>
                       {location.value === 'brides_choice' && <span className="text-xs font-medium text-amber-600">+$200</span>}
                     </label>
@@ -1873,12 +1873,12 @@ function QuoteBuilderInner() {
 
               {watchedValues.engagementLocation === 'brides_choice' && (
                 <div className="mt-2">
-                  <label className="text-xs font-medium text-stone-600 mb-1 block">Preferred Location</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Preferred Location</label>
                   <input
                     type="text"
                     {...register('bridesChoiceLocation')}
                     placeholder="Enter preferred location..."
-                    className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500"
+                    className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring"
                   />
                 </div>
               )}
@@ -1886,12 +1886,12 @@ function QuoteBuilderInner() {
           </div>
 
           {/* Work Included - Photo */}
-          <div className="bg-white rounded border border-stone-200 p-6">
-            <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+          <div className="bg-background rounded border border-border p-6">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
               <Image className="h-4 w-4 text-rose-500" />
               Work Included — Photography
             </h2>
-            <p className="text-xs text-stone-500 mb-4">Check off as you explain each inclusion to the couple</p>
+            <p className="text-xs text-muted-foreground mb-4">Check off as you explain each inclusion to the couple</p>
             
             <div className="grid grid-cols-2 gap-3 mb-6">
               {[
@@ -1901,28 +1901,28 @@ function QuoteBuilderInner() {
                 { key: 'dronePhoto', label: 'Drone Photography', sublabel: 'Aerial shots (weather permitting) — Included' },
               ].map(item => (
                 <label key={item.key} className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-all ${
-                  photoInclusions[item.key as keyof typeof photoInclusions] ? 'border-emerald-300 bg-emerald-50' : 'border-stone-200 hover:border-stone-300'
+                  photoInclusions[item.key as keyof typeof photoInclusions] ? 'border-emerald-300 bg-emerald-50' : 'border-border hover:border-border'
                 }`}>
                   <input type="checkbox" checked={photoInclusions[item.key as keyof typeof photoInclusions]} onChange={(e) => setPhotoInclusions({...photoInclusions, [item.key]: e.target.checked})} className="sr-only" />
                   <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                    photoInclusions[item.key as keyof typeof photoInclusions] ? 'border-emerald-500 bg-emerald-500' : 'border-stone-300'
+                    photoInclusions[item.key as keyof typeof photoInclusions] ? 'border-emerald-500 bg-emerald-500' : 'border-border'
                   }`}>
-                    {photoInclusions[item.key as keyof typeof photoInclusions] && <Check className="h-3 w-3 text-white" />}
+                    {photoInclusions[item.key as keyof typeof photoInclusions] && <Check className="h-3 w-3 text-primary-foreground" />}
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-stone-800">{item.label}</div>
-                    <div className="text-xs text-stone-500">{item.sublabel}</div>
+                    <div className="text-sm font-medium text-foreground">{item.label}</div>
+                    <div className="text-xs text-muted-foreground">{item.sublabel}</div>
                   </div>
                 </label>
               ))}
             </div>
             
             {/* Prints Section */}
-            <div className="border-t border-stone-200 pt-4">
-              <p className="text-xs text-stone-500 mb-3">
+            <div className="border-t border-border pt-4">
+              <p className="text-xs text-muted-foreground mb-3">
                 *All weddings on USB/Dropbox, ready to print. 300 DPI 4x6, no watermarks
               </p>
-              <h3 className="text-xs font-semibold text-stone-600 uppercase tracking-wide mb-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
                 Post Card style Thank You Cards & Prints
               </h3>
               <div className="grid grid-cols-3 gap-4 mb-4">
@@ -1934,10 +1934,10 @@ function QuoteBuilderInner() {
                   { size: '20x24', label: '20×24', price: 295 },
                   { size: '24x30', label: '24×30', price: 295 },
                 ].map(item => (
-                  <div key={item.size} className="flex items-center gap-2 p-2 border border-stone-200 rounded">
+                  <div key={item.size} className="flex items-center gap-2 p-2 border border-border rounded">
                     <div className="flex-1">
-                      <span className="text-sm font-medium text-stone-800">{item.label}</span>
-                      <span className="text-xs text-stone-500 ml-2">${item.price}</span>
+                      <span className="text-sm font-medium text-foreground">{item.label}</span>
+                      <span className="text-xs text-muted-foreground ml-2">${item.price}</span>
                     </div>
                     <input
                       type="number"
@@ -1948,7 +1948,7 @@ function QuoteBuilderInner() {
                         setPrintOrders({...printOrders, [item.size]: val})
                       }}
                       placeholder="0"
-                      className="w-16 px-2 py-1.5 border border-stone-300 rounded text-sm text-center focus:outline-none focus:border-stone-500"
+                      className="w-16 px-2 py-1.5 border border-border rounded text-sm text-center focus:outline-none focus:border-ring"
                     />
                   </div>
                 ))}
@@ -1956,10 +1956,10 @@ function QuoteBuilderInner() {
               
               {/* Prints Total & Add Button */}
               {printsTotal > 0 && (
-                <div className="flex items-center justify-between p-3 bg-stone-100 rounded border border-stone-200">
+                <div className="flex items-center justify-between p-3 bg-muted rounded border border-border">
                   <div>
-                    <span className="text-sm text-stone-600">Prints Total:</span>
-                    <span className={`text-lg font-bold ml-2 ${printsIncluded === 'free' ? 'text-emerald-600 line-through' : 'text-stone-800'}`}>
+                    <span className="text-sm text-muted-foreground">Prints Total:</span>
+                    <span className={`text-lg font-bold ml-2 ${printsIncluded === 'free' ? 'text-emerald-600 line-through' : 'text-foreground'}`}>
                       ${printsTotal.toLocaleString()}
                     </span>
                     {printsIncluded === 'free' && (
@@ -1973,7 +1973,7 @@ function QuoteBuilderInner() {
                       className={`px-4 py-2 rounded text-sm font-medium transition-all ${
                         printsIncluded === 'paid'
                           ? 'bg-emerald-600 text-white' 
-                          : 'bg-stone-800 text-white hover:bg-stone-900'
+                          : 'bg-primary text-primary-foreground hover:bg-primary/90'
                       }`}
                     >
                       {printsIncluded === 'paid' ? '✓ Added' : 'Add'}
@@ -1984,7 +1984,7 @@ function QuoteBuilderInner() {
                       className={`px-4 py-2 rounded text-sm font-medium transition-all ${
                         printsIncluded === 'free'
                           ? 'bg-emerald-600 text-white' 
-                          : 'bg-stone-600 text-white hover:bg-stone-700'
+                          : 'bg-primary/80 text-primary-foreground hover:bg-primary/70'
                       }`}
                     >
                       {printsIncluded === 'free' ? '✓ Included' : 'Include'}
@@ -1997,12 +1997,12 @@ function QuoteBuilderInner() {
 
           {/* Work Included - Video */}
           {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.type === 'photo_video' && (
-            <div className="bg-white rounded border border-stone-200 p-6">
-              <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+            <div className="bg-background rounded border border-border p-6">
+              <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
                 <Video className="h-4 w-4 text-indigo-500" />
                 Work Included — Video
               </h2>
-              <p className="text-xs text-stone-500 mb-4">Check off as you explain each inclusion to the couple</p>
+              <p className="text-xs text-muted-foreground mb-4">Check off as you explain each inclusion to the couple</p>
               
               <div className="grid grid-cols-4 gap-2">
                 {[
@@ -2024,15 +2024,15 @@ function QuoteBuilderInner() {
                   { key: 'highlightClips', label: '10 Highlight Clips' },
                 ].map(item => (
                   <label key={item.key} className={`flex items-center gap-2 p-2 border rounded cursor-pointer text-xs transition-all ${
-                    videoInclusions[item.key as keyof typeof videoInclusions] ? 'border-emerald-300 bg-emerald-50' : 'border-stone-200 hover:border-stone-300'
+                    videoInclusions[item.key as keyof typeof videoInclusions] ? 'border-emerald-300 bg-emerald-50' : 'border-border hover:border-border'
                   }`}>
                     <input type="checkbox" checked={videoInclusions[item.key as keyof typeof videoInclusions]} onChange={(e) => setVideoInclusions({...videoInclusions, [item.key]: e.target.checked})} className="sr-only" />
                     <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                      videoInclusions[item.key as keyof typeof videoInclusions] ? 'border-emerald-500 bg-emerald-500' : 'border-stone-300'
+                      videoInclusions[item.key as keyof typeof videoInclusions] ? 'border-emerald-500 bg-emerald-500' : 'border-border'
                     }`}>
-                      {videoInclusions[item.key as keyof typeof videoInclusions] && <Check className="h-2.5 w-2.5 text-white" />}
+                      {videoInclusions[item.key as keyof typeof videoInclusions] && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
                     </div>
-                    <span className="text-stone-700">{item.label}</span>
+                    <span className="text-foreground">{item.label}</span>
                   </label>
                 ))}
               </div>
@@ -2040,8 +2040,8 @@ function QuoteBuilderInner() {
           )}
 
           {/* Work Included - Web */}
-          <div className="bg-white rounded border border-stone-200 p-6">
-            <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+          <div className="bg-background rounded border border-border p-6">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
               <Globe className="h-4 w-4 text-sky-500" />
               Work Included — Web
             </h2>
@@ -2053,23 +2053,23 @@ function QuoteBuilderInner() {
                 { key: 'weddingGallery', label: 'Wedding Photo Gallery (50 pics)' },
               ].map(item => (
                 <label key={item.key} className={`flex items-center gap-3 p-3 border rounded cursor-pointer transition-all ${
-                  webInclusions[item.key as keyof typeof webInclusions] ? 'border-emerald-300 bg-emerald-50' : 'border-stone-200 hover:border-stone-300'
+                  webInclusions[item.key as keyof typeof webInclusions] ? 'border-emerald-300 bg-emerald-50' : 'border-border hover:border-border'
                 }`}>
                   <input type="checkbox" checked={webInclusions[item.key as keyof typeof webInclusions]} onChange={(e) => setWebInclusions({...webInclusions, [item.key]: e.target.checked})} className="sr-only" />
                   <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                    webInclusions[item.key as keyof typeof webInclusions] ? 'border-emerald-500 bg-emerald-500' : 'border-stone-300'
+                    webInclusions[item.key as keyof typeof webInclusions] ? 'border-emerald-500 bg-emerald-500' : 'border-border'
                   }`}>
-                    {webInclusions[item.key as keyof typeof webInclusions] && <Check className="h-3 w-3 text-white" />}
+                    {webInclusions[item.key as keyof typeof webInclusions] && <Check className="h-3 w-3 text-primary-foreground" />}
                   </div>
-                  <span className="text-sm font-medium text-stone-800">{item.label}</span>
+                  <span className="text-sm font-medium text-foreground">{item.label}</span>
                 </label>
               ))}
             </div>
           </div>
 
           {/* Albums */}
-          <div className="bg-white rounded border border-stone-200 p-6">
-            <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+          <div className="bg-background rounded border border-border p-6">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-amber-500" />
               Albums
             </h2>
@@ -2078,13 +2078,13 @@ function QuoteBuilderInner() {
               {/* Couple Album - Left Side */}
               <div className="space-y-3">
                 <div>
-                  <h3 className="text-xs font-semibold text-stone-600 uppercase tracking-wide mb-1">Bride & Groom Album</h3>
-                  <p className="text-xs text-stone-500">*Omakase style if purchased — $500 discount on layflat pro</p>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Bride & Groom Album</h3>
+                  <p className="text-xs text-muted-foreground">*Omakase style if purchased — $500 discount on layflat pro</p>
                 </div>
                 
                 <div>
-                  <label className="block text-xs text-stone-500 mb-1">Album Type</label>
-                  <select {...register('albumType')} className="w-full px-3 py-2 border border-stone-300 rounded text-sm bg-white focus:outline-none focus:border-stone-500">
+                  <label className="block text-xs text-muted-foreground mb-1">Album Type</label>
+                  <select {...register('albumType')} className="w-full px-3 py-2 border border-border rounded text-sm bg-background focus:outline-none focus:border-ring">
                     <option value="none">No Album</option>
                     <option value="standard">Standard Album</option>
                     <option value="premium">Premium Album</option>
@@ -2094,8 +2094,8 @@ function QuoteBuilderInner() {
                 {watchedValues.albumType !== 'none' && (
                   <>
                     <div>
-                      <label className="block text-xs text-stone-500 mb-1">Album Size</label>
-                      <select {...register('albumSize')} className="w-full px-3 py-2 border border-stone-300 rounded text-sm bg-white focus:outline-none focus:border-stone-500">
+                      <label className="block text-xs text-muted-foreground mb-1">Album Size</label>
+                      <select {...register('albumSize')} className="w-full px-3 py-2 border border-border rounded text-sm bg-background focus:outline-none focus:border-ring">
                         <option value="10x8">10" × 8" (Standard)</option>
                         <option value="14x11">14" × 11" (Large)</option>
                       </select>
@@ -2103,12 +2103,12 @@ function QuoteBuilderInner() {
                     
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs text-stone-500 mb-1"># of Spreads</label>
-                        <input type="number" {...register('albumSpreads', { valueAsNumber: true })} placeholder="15" className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
+                        <label className="block text-xs text-muted-foreground mb-1"># of Spreads</label>
+                        <input type="number" {...register('albumSpreads', { valueAsNumber: true })} placeholder="15" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
                       </div>
                       <div>
-                        <label className="block text-xs text-stone-500 mb-1">Cover</label>
-                        <select {...register('albumCover')} className="w-full px-3 py-2 border border-stone-300 rounded text-sm bg-white focus:outline-none focus:border-stone-500">
+                        <label className="block text-xs text-muted-foreground mb-1">Cover</label>
+                        <select {...register('albumCover')} className="w-full px-3 py-2 border border-border rounded text-sm bg-background focus:outline-none focus:border-ring">
                           <option value="black_leather">Black Leather</option>
                           <option value="white_leather">White Leather</option>
                           <option value="brown_leather">Brown Leather</option>
@@ -2119,19 +2119,19 @@ function QuoteBuilderInner() {
                     </div>
                     
                     <label className={`flex items-center gap-3 p-3 border rounded cursor-pointer transition-all ${
-                      watchedValues.acrylicCover ? 'border-stone-800 bg-stone-50' : 'border-stone-200 hover:border-stone-300'
+                      watchedValues.acrylicCover ? 'border-primary bg-muted' : 'border-border hover:border-border'
                     }`}>
                       <input type="checkbox" {...register('acrylicCover')} className="sr-only" />
                       <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                        watchedValues.acrylicCover ? 'border-stone-800 bg-stone-800' : 'border-stone-300'
+                        watchedValues.acrylicCover ? 'border-primary bg-primary' : 'border-border'
                       }`}>
-                        {watchedValues.acrylicCover && <Check className="h-3 w-3 text-white" />}
+                        {watchedValues.acrylicCover && <Check className="h-3 w-3 text-primary-foreground" />}
                       </div>
                       <div className="flex-1">
-                        <span className="text-sm font-medium text-stone-800">Acrylic Cover</span>
-                        <p className="text-xs text-stone-500">Crystal-clear cover with favorite photo</p>
+                        <span className="text-sm font-medium text-foreground">Acrylic Cover</span>
+                        <p className="text-xs text-muted-foreground">Crystal-clear cover with favorite photo</p>
                       </div>
-                      <span className="text-sm font-semibold text-stone-800">+$200</span>
+                      <span className="text-sm font-semibold text-foreground">+$200</span>
                     </label>
                   </>
                 )}
@@ -2140,13 +2140,13 @@ function QuoteBuilderInner() {
               {/* Parent Albums - Right Side */}
               <div className="space-y-3">
                 <div>
-                  <h3 className="text-xs font-semibold text-stone-600 uppercase tracking-wide mb-1">Parent Albums</h3>
-                  <p className="text-xs text-stone-500">10"×8" • 6 spreads • 30 photos • Linen cover — $295 each</p>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Parent Albums</h3>
+                  <p className="text-xs text-muted-foreground">10"×8" • 6 spreads • 30 photos • Linen cover — $295 each</p>
                 </div>
                 
                 <div>
-                  <label className="block text-xs text-stone-500 mb-1">Quantity</label>
-                  <select {...register('parentAlbumQty', { valueAsNumber: true })} className="w-full px-3 py-2 border border-stone-300 rounded text-sm bg-white focus:outline-none focus:border-stone-500">
+                  <label className="block text-xs text-muted-foreground mb-1">Quantity</label>
+                  <select {...register('parentAlbumQty', { valueAsNumber: true })} className="w-full px-3 py-2 border border-border rounded text-sm bg-background focus:outline-none focus:border-ring">
                     <option value={0}>None</option>
                     <option value={1}>1 Album</option>
                     <option value={2}>2 Albums</option>
@@ -2157,10 +2157,10 @@ function QuoteBuilderInner() {
                 
                 {/* Add/Include buttons for parent albums */}
                 {(watchedValues.parentAlbumQty || 0) > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-stone-100 rounded border border-stone-200">
+                  <div className="flex items-center justify-between p-3 bg-muted rounded border border-border">
                     <div>
-                      <span className="text-sm text-stone-600">Total:</span>
-                      <span className={`text-lg font-bold ml-2 ${parentAlbumsIncluded === 'free' ? 'text-emerald-600 line-through' : 'text-stone-800'}`}>
+                      <span className="text-sm text-muted-foreground">Total:</span>
+                      <span className={`text-lg font-bold ml-2 ${parentAlbumsIncluded === 'free' ? 'text-emerald-600 line-through' : 'text-foreground'}`}>
                         ${((watchedValues.parentAlbumQty || 0) * 295).toLocaleString()}
                       </span>
                       {parentAlbumsIncluded === 'free' && (
@@ -2174,7 +2174,7 @@ function QuoteBuilderInner() {
                         className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
                           parentAlbumsIncluded === 'paid'
                             ? 'bg-emerald-600 text-white' 
-                            : 'bg-stone-800 text-white hover:bg-stone-900'
+                            : 'bg-primary text-primary-foreground hover:bg-primary/90'
                         }`}
                       >
                         {parentAlbumsIncluded === 'paid' ? '✓ Added' : 'Add'}
@@ -2185,7 +2185,7 @@ function QuoteBuilderInner() {
                         className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
                           parentAlbumsIncluded === 'free'
                             ? 'bg-emerald-600 text-white' 
-                            : 'bg-stone-600 text-white hover:bg-stone-700'
+                            : 'bg-primary/80 text-primary-foreground hover:bg-primary/70'
                         }`}
                       >
                         {parentAlbumsIncluded === 'free' ? '✓ Included' : 'Include'}
@@ -2198,13 +2198,13 @@ function QuoteBuilderInner() {
           </div>
 
           {/* Notes */}
-          <div className="bg-white rounded border border-stone-200 p-6">
-            <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide mb-4">Notes</h2>
-            <textarea {...register('notes')} rows={3} placeholder="Special requests, vision for the day, additional details..." className="w-full px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500 resize-none" />
+          <div className="bg-background rounded border border-border p-6">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4">Notes</h2>
+            <textarea {...register('notes')} rows={3} placeholder="Special requests, vision for the day, additional details..." className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring resize-none" />
           </div>
 
           {/* Pricing Summary */}
-          <div className="bg-stone-800 text-white rounded p-6">
+          <div className="bg-primary text-primary-foreground rounded p-6">
             <h2 className="text-sm font-semibold uppercase tracking-wide mb-4 flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-emerald-400" />
               Pricing Summary
@@ -2212,7 +2212,7 @@ function QuoteBuilderInner() {
             
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-stone-400">
+                <span className="text-muted-foreground">
                   {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.name} ({PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours}hr)
                 </span>
                 <span>${pricing.basePrice.toLocaleString()}</span>
@@ -2220,77 +2220,77 @@ function QuoteBuilderInner() {
               
               {pricing.extraPhotographerPrice > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Extra Photographer</span>
+                  <span className="text-muted-foreground">Extra Photographer</span>
                   <span>${pricing.extraPhotographerPrice.toLocaleString()}</span>
                 </div>
               )}
               
               {pricing.extraHoursPrice > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Extra Hours ({watchedValues.extraHours})</span>
+                  <span className="text-muted-foreground">Extra Hours ({watchedValues.extraHours})</span>
                   <span>${pricing.extraHoursPrice.toLocaleString()}</span>
                 </div>
               )}
               
               {pricing.albumPrice > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Wedding Album ({watchedValues.albumSize === '10x8' ? '10"×8"' : '14"×11"'} {watchedValues.albumType})</span>
+                  <span className="text-muted-foreground">Wedding Album ({watchedValues.albumSize === '10x8' ? '10"×8"' : '14"×11"'} {watchedValues.albumType})</span>
                   <span>${pricing.albumPrice.toLocaleString()}</span>
                 </div>
               )}
               
               {pricing.acrylicCoverPrice > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Acrylic Cover</span>
+                  <span className="text-muted-foreground">Acrylic Cover</span>
                   <span>${pricing.acrylicCoverPrice.toLocaleString()}</span>
                 </div>
               )}
               
               {pricing.parentAlbumsPrice > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Parent Albums ({watchedValues.parentAlbumQty})</span>
+                  <span className="text-muted-foreground">Parent Albums ({watchedValues.parentAlbumQty})</span>
                   <span>${pricing.parentAlbumsPrice.toLocaleString()}</span>
                 </div>
               )}
               
               {parentAlbumsIncluded === 'free' && (watchedValues.parentAlbumQty || 0) > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Parent Albums ({watchedValues.parentAlbumQty}) (included)</span>
+                  <span className="text-muted-foreground">Parent Albums ({watchedValues.parentAlbumQty}) (included)</span>
                   <span className="text-emerald-400">$0</span>
                 </div>
               )}
               
               {pricing.locationFee > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Bride's Choice Location</span>
+                  <span className="text-muted-foreground">Bride's Choice Location</span>
                   <span>${pricing.locationFee.toLocaleString()}</span>
                 </div>
               )}
               
               {pricing.printsPrice > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Prints</span>
+                  <span className="text-muted-foreground">Prints</span>
                   <span>${pricing.printsPrice.toLocaleString()}</span>
                 </div>
               )}
               
               {printsIncluded === 'free' && printsTotal > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Prints (included)</span>
+                  <span className="text-muted-foreground">Prints (included)</span>
                   <span className="text-emerald-400">$0</span>
                 </div>
               )}
               
-              <div className="border-t border-stone-600 pt-3 mt-3">
+              <div className="border-t border-border/50 pt-3 mt-3">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
                   <span>${(pricing.basePrice + pricing.extraPhotographerPrice + pricing.extraHoursPrice + pricing.albumPrice + pricing.acrylicCoverPrice + pricing.parentAlbumsPrice + pricing.locationFee + pricing.printsPrice).toLocaleString()}</span>
                 </div>
                 
                 {/* Discount Controls - inside pricing summary */}
-                <div className="flex justify-between items-center mt-2 py-2 border-y border-stone-600">
+                <div className="flex justify-between items-center mt-2 py-2 border-y border-border/50">
                   <div className="flex items-center gap-2">
-                    <span className="text-stone-400">Discount 1</span>
+                    <span className="text-muted-foreground">Discount 1</span>
                     <select 
                       {...register('discountType')}
                       onChange={(e) => {
@@ -2301,7 +2301,7 @@ function QuoteBuilderInner() {
                           setValue('discountAmount', 50)
                         }
                       }}
-                      className="px-2 py-1 text-xs bg-stone-700 border border-stone-600 rounded text-white focus:outline-none"
+                      className="px-2 py-1 text-xs bg-primary/80 border border-border/50 rounded text-primary-foreground focus:outline-none"
                     >
                       <option value="none">—</option>
                       <option value="percent">%</option>
@@ -2312,11 +2312,11 @@ function QuoteBuilderInner() {
                         type="number"
                         {...register('discountAmount', { valueAsNumber: true })}
                         placeholder={watchedValues.discountType === 'percent' ? '10' : '500'}
-                        className="w-20 px-2 py-1 text-xs bg-white border border-stone-400 rounded text-stone-900 focus:outline-none"
+                        className="w-20 px-2 py-1 text-xs bg-background border border-ring rounded text-foreground focus:outline-none"
                       />
                     )}
                   </div>
-                  <span className={watchedValues.discountAmount && watchedValues.discountType !== 'none' ? 'text-emerald-400' : 'text-stone-500'}>
+                  <span className={watchedValues.discountAmount && watchedValues.discountType !== 'none' ? 'text-emerald-400' : 'text-muted-foreground'}>
                     {watchedValues.discountAmount && watchedValues.discountType !== 'none' 
                       ? watchedValues.discountType === 'percent' 
                         ? `-${watchedValues.discountAmount}%`
@@ -2326,27 +2326,27 @@ function QuoteBuilderInner() {
                 </div>
                 
                 {/* Discount 2 - Always flat $ */}
-                <div className="flex justify-between items-center py-2 border-b border-stone-600">
+                <div className="flex justify-between items-center py-2 border-b border-border/50">
                   <div className="flex items-center gap-2">
-                    <span className="text-stone-400">Discount 2</span>
-                    <span className="text-stone-500 text-xs">$</span>
+                    <span className="text-muted-foreground">Discount 2</span>
+                    <span className="text-muted-foreground text-xs">$</span>
                     <input
                       type="number"
                       {...register('discount2Amount', { valueAsNumber: true })}
                       placeholder="0"
-                      className="w-20 px-2 py-1 text-xs bg-white border border-stone-400 rounded text-stone-900 focus:outline-none"
+                      className="w-20 px-2 py-1 text-xs bg-background border border-ring rounded text-foreground focus:outline-none"
                     />
                   </div>
-                  <span className={(watchedValues.discount2Amount || 0) > 0 ? 'text-emerald-400' : 'text-stone-500'}>
+                  <span className={(watchedValues.discount2Amount || 0) > 0 ? 'text-emerald-400' : 'text-muted-foreground'}>
                     {(watchedValues.discount2Amount || 0) > 0 ? `-$${watchedValues.discount2Amount?.toLocaleString()}` : '$0'}
                   </span>
                 </div>
                 
-                <div className="flex justify-between text-stone-400 mt-2">
+                <div className="flex justify-between text-muted-foreground mt-2">
                   <span>HST (13%)</span>
                   <span>${pricing.hst.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-                <div className="flex justify-between text-xl font-bold mt-2 pt-2 border-t border-stone-600">
+                <div className="flex justify-between text-xl font-bold mt-2 pt-2 border-t border-border/50">
                   <span>Total</span>
                   <span className="text-emerald-400">${pricing.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
@@ -2355,14 +2355,14 @@ function QuoteBuilderInner() {
           </div>
 
           {/* Installment Schedule */}
-          <div className="bg-white rounded border border-stone-200 p-6">
+          <div className="bg-background rounded border border-border p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-stone-800 uppercase tracking-wide">Installment Schedule</h2>
+              <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Installment Schedule</h2>
               <div className="flex gap-2">
-                <button type="button" onClick={() => switchSchedule('spring')} className={`px-3 py-1 text-xs rounded transition-all ${installmentSchedule === 'spring' ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+                <button type="button" onClick={() => switchSchedule('spring')} className={`px-3 py-1 text-xs rounded transition-all ${installmentSchedule === 'spring' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
                   Spring/Summer
                 </button>
-                <button type="button" onClick={() => switchSchedule('fall')} className={`px-3 py-1 text-xs rounded transition-all ${installmentSchedule === 'fall' ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+                <button type="button" onClick={() => switchSchedule('fall')} className={`px-3 py-1 text-xs rounded transition-all ${installmentSchedule === 'fall' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
                   Fall/Winter
                 </button>
               </div>
@@ -2371,10 +2371,10 @@ function QuoteBuilderInner() {
             <div className="space-y-2">
               {installments.map((inst, index) => (
                 <div key={index} className="flex items-center gap-3">
-                  <span className="text-xs text-stone-500 w-6">{index + 1}.</span>
-                  <input type="text" value={inst.label} onChange={(e) => updateInstallment(index, 'label', e.target.value)} className="flex-1 px-3 py-2 border border-stone-300 rounded text-sm focus:outline-none focus:border-stone-500" />
-                  <div className="flex items-center border border-stone-300 rounded">
-                    <span className="px-2 py-2 bg-stone-100 text-stone-500 text-sm border-r border-stone-300">$</span>
+                  <span className="text-xs text-muted-foreground w-6">{index + 1}.</span>
+                  <input type="text" value={inst.label} onChange={(e) => updateInstallment(index, 'label', e.target.value)} className="flex-1 px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
+                  <div className="flex items-center border border-border rounded">
+                    <span className="px-2 py-2 bg-muted text-muted-foreground text-sm border-r border-border">$</span>
                     <input type="number" value={inst.amount || ''} onChange={(e) => updateInstallment(index, 'amount', parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" className="w-28 px-2 py-2 text-sm focus:outline-none rounded-r" />
                   </div>
                   <div className="flex flex-col">
@@ -2382,7 +2382,7 @@ function QuoteBuilderInner() {
                       type="button" 
                       onClick={() => moveInstallment(index, 'up')}
                       disabled={index === 0}
-                      className="p-0.5 text-stone-400 hover:text-stone-600 disabled:opacity-30"
+                      className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
                     >
                       <ChevronUp className="h-3 w-3" />
                     </button>
@@ -2390,31 +2390,31 @@ function QuoteBuilderInner() {
                       type="button" 
                       onClick={() => moveInstallment(index, 'down')}
                       disabled={index === installments.length - 1}
-                      className="p-0.5 text-stone-400 hover:text-stone-600 disabled:opacity-30"
+                      className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
                     >
                       <ChevronDown className="h-3 w-3" />
                     </button>
                   </div>
-                  <button type="button" onClick={() => removeInstallment(index)} className="p-2 text-stone-400 hover:text-red-500 transition-colors" disabled={installments.length <= 1}>
+                  <button type="button" onClick={() => removeInstallment(index)} className="p-2 text-muted-foreground hover:text-red-500 transition-colors" disabled={installments.length <= 1}>
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               ))}
             </div>
             
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-stone-200">
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
               <div className="flex gap-2">
-                <button type="button" onClick={addInstallment} className="flex items-center gap-1 text-sm text-stone-600 hover:text-stone-800 transition-colors">
+                <button type="button" onClick={addInstallment} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
                   <Plus className="h-4 w-4" />
                   Add Installment
                 </button>
-                <button type="button" onClick={redistributeInstallments} className="flex items-center gap-1 text-sm text-stone-500 hover:text-stone-700 transition-colors ml-4">
+                <button type="button" onClick={redistributeInstallments} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors ml-4">
                   Redistribute Evenly
                 </button>
               </div>
               
               <div className="text-right">
-                <div className="text-xs text-stone-500">Installments Total</div>
+                <div className="text-xs text-muted-foreground">Installments Total</div>
                 <div className={`text-lg font-bold ${Math.abs(installmentTotal - pricing.total) < 0.01 ? 'text-emerald-600' : 'text-amber-600'}`}>
                   ${installmentTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   {Math.abs(installmentTotal - pricing.total) >= 0.01 && (
@@ -2570,7 +2570,7 @@ function QuoteBuilderInner() {
                   leadSource: watchedValues.leadSource || '',
                 })
               }}
-              className="flex-1 bg-stone-800 text-white hover:bg-stone-900 px-6 py-3 rounded font-medium flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded font-medium flex items-center justify-center gap-2 transition-colors"
             >
               <FileText className="h-4 w-4" />
               Download PDF
@@ -2578,13 +2578,13 @@ function QuoteBuilderInner() {
           </div>
           
           {/* Booking Instructions */}
-          <div className="bg-white rounded border border-stone-200 p-8 text-center">
+          <div className="bg-background rounded border border-border p-8 text-center">
             <img 
               src="/images/sigslogo.png" 
               alt="SIGS Photography" 
               className="h-24 w-auto object-contain mx-auto mb-4"
             />
-            <p className="text-stone-600 text-sm leading-relaxed max-w-2xl mx-auto">
+            <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl mx-auto">
               We like to keep things easy and pressure-free. If you're ready to move forward, just shoot a text to Marianna at <span className="font-semibold">416-831-8942</span> to let her know. We'll do a quick happy dance on this end, then send a DocuSign agreement your way. Once you've reviewed and signed, the system will automatically email you a PDF copy for your records. You can send the e-transfer to <span className="font-semibold">info@sigsphoto.ca</span> to get everything finalized!
             </p>
           </div>

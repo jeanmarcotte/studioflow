@@ -182,22 +182,22 @@ export default function PhotoOrderPublicPage() {
                     isCompleted
                       ? 'bg-[#4a7c9b] text-white'
                       : isActive
-                        ? 'bg-[#333] text-white'
-                        : 'bg-[#e0dbd3] text-[#888]'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
                   }`}
                 >
                   {isCompleted ? <CheckCircle className="w-4 h-4" /> : stepNum}
                 </div>
                 <span
                   className={`text-xs hidden sm:inline ${
-                    isActive ? 'font-semibold text-[#333]' : 'text-[#888]'
+                    isActive ? 'font-semibold text-foreground' : 'text-muted-foreground'
                   }`}
                 >
                   {label}
                 </span>
               </div>
               {i < steps.length - 1 && (
-                <ChevronRight className="w-4 h-4 text-[#888] mx-1" />
+                <ChevronRight className="w-4 h-4 text-muted-foreground mx-1" />
               )}
             </div>
           )
@@ -233,7 +233,7 @@ export default function PhotoOrderPublicPage() {
             <div className="text-center mb-6">
               <Camera className="w-10 h-10 text-[#4a7c9b] mx-auto mb-3" />
               <h1 className="text-2xl font-bold">Photo Order Form</h1>
-              <p className="text-[#888] mt-1">Tell us about your wedding</p>
+              <p className="text-muted-foreground mt-1">Tell us about your wedding</p>
             </div>
 
             <div className="space-y-4">
@@ -296,7 +296,7 @@ export default function PhotoOrderPublicPage() {
         {step === 2 && (
           <div className="space-y-6">
             {/* Instructions */}
-            <div className="bg-[#eef3f7] border border-[#c5d5e0] rounded-lg px-4 py-3 text-sm">
+            <div className="bg-muted border border-border rounded-lg px-4 py-3 text-sm">
               Before completing this form, please review your package details to ensure accuracy. If you have any questions about what&apos;s included, Marianna is happy to help at{' '}
               <a href="tel:4168318942" className="font-medium underline text-[#4a7c9b]">416-831-8942</a>.
             </div>
@@ -306,7 +306,7 @@ export default function PhotoOrderPublicPage() {
               <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
                 <span>📷</span> Wedding Album
               </h2>
-              <p className="text-xs text-[#888] mb-4">
+              <p className="text-xs text-muted-foreground mb-4">
                 Not everyone has a wedding album in their package. If you&apos;d like to add one, contact Marianna at{' '}
                 <a href="tel:4168318942" className="underline text-[#4a7c9b]">416-831-8942</a> to discuss options.
               </p>
@@ -314,7 +314,7 @@ export default function PhotoOrderPublicPage() {
               <div className="space-y-3 mb-4">
                 <p className="text-sm font-medium">Do you have a wedding album in your package?</p>
                 {(['yes', 'no', 'not_sure'] as const).map(val => (
-                  <label key={val} className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                  <label key={val} className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                     <input type="radio" name="hasAlbum" checked={hasWeddingAlbum === val} onChange={() => setHasWeddingAlbum(val)} className="w-4 h-4 accent-[#4a7c9b]" />
                     <span className="text-sm font-medium">
                       {val === 'yes' ? 'Yes' : val === 'no' ? 'No' : 'Not sure — contact Marianna'}
@@ -329,18 +329,18 @@ export default function PhotoOrderPublicPage() {
                   <div>
                     <p className="text-sm font-medium mb-2">Album Design Preference</p>
                     <div className="space-y-2">
-                      <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                      <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                         <input type="radio" name="designPref" checked={designPref === 'omakase'} onChange={() => setDesignPref('omakase')} className="mt-0.5 w-4 h-4 accent-[#4a7c9b]" />
                         <div>
                           <span className="text-sm font-medium">Omakase</span>
-                          <p className="text-xs text-[#888]">Jean selects photos, you review the design</p>
+                          <p className="text-xs text-muted-foreground">Jean selects photos, you review the design</p>
                         </div>
                       </label>
-                      <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                      <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                         <input type="radio" name="designPref" checked={designPref === 'custom'} onChange={() => setDesignPref('custom')} className="mt-0.5 w-4 h-4 accent-[#4a7c9b]" />
                         <div>
                           <span className="text-sm font-medium">Custom</span>
-                          <p className="text-xs text-[#888]">You select photos, Jean designs the album</p>
+                          <p className="text-xs text-muted-foreground">You select photos, Jean designs the album</p>
                         </div>
                       </label>
                     </div>
@@ -349,7 +349,7 @@ export default function PhotoOrderPublicPage() {
                   {/* Cover Photo */}
                   <div>
                     <label className="block text-sm font-medium mb-1">Cover Photo</label>
-                    <p className="text-xs text-[#888] mb-2">Select a horizontal photo for your album cover</p>
+                    <p className="text-xs text-muted-foreground mb-2">Select a horizontal photo for your album cover</p>
                     <input type="text" value={coverPhoto} onChange={(e) => setCoverPhoto(e.target.value)} placeholder="e.g. Amanda_KyleWEDPROOFS_-732" />
                   </div>
 
@@ -357,7 +357,7 @@ export default function PhotoOrderPublicPage() {
                   {designPref === 'custom' && (
                     <div>
                       <h3 className="text-sm font-medium mb-1">Your Wedding Album — Select 70 photos</h3>
-                      <p className="text-xs text-[#888] mb-2">Enter filenames, one per line or comma-separated</p>
+                      <p className="text-xs text-muted-foreground mb-2">Enter filenames, one per line or comma-separated</p>
                       <textarea
                         value={mainAlbumPhotos}
                         onChange={(e) => setMainAlbumPhotos(e.target.value)}
@@ -393,7 +393,7 @@ export default function PhotoOrderPublicPage() {
                   {[...Array(numParentAlbums)].map((_, i) => (
                     <div key={i}>
                       <h3 className="text-sm font-medium mb-1">Parent Album {i + 1} — Select 30 photos</h3>
-                      <p className="text-xs text-[#888] mb-2">Enter filenames, one per line or comma-separated</p>
+                      <p className="text-xs text-muted-foreground mb-2">Enter filenames, one per line or comma-separated</p>
                       <textarea
                         value={parentAlbumPhotos[i]}
                         onChange={(e) => updateParentPhotos(i, e.target.value)}
@@ -414,11 +414,11 @@ export default function PhotoOrderPublicPage() {
               </h2>
               <p className="text-sm font-medium mb-2">Do you have parent portraits in your package?</p>
               <div className="space-y-2 mb-4">
-                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                   <input type="radio" name="hasParentPortraits" checked={hasParentPortraits === true} onChange={() => setHasParentPortraits(true)} className="w-4 h-4 accent-[#4a7c9b]" />
                   <span className="text-sm font-medium">Yes</span>
                 </label>
-                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                   <input type="radio" name="hasParentPortraits" checked={hasParentPortraits === false} onChange={() => setHasParentPortraits(false)} className="w-4 h-4 accent-[#4a7c9b]" />
                   <span className="text-sm font-medium">No</span>
                 </label>
@@ -439,11 +439,11 @@ export default function PhotoOrderPublicPage() {
                   <div>
                     <p className="text-sm font-medium mb-2">Do you want to upgrade to canvas? (+$100 each)</p>
                     <div className="space-y-2">
-                      <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                      <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                         <input type="radio" name="canvasUpgrade" checked={parentPortraitCanvas === true} onChange={() => setParentPortraitCanvas(true)} className="w-4 h-4 accent-[#4a7c9b]" />
                         <span className="text-sm font-medium">Yes</span>
                       </label>
-                      <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                      <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                         <input type="radio" name="canvasUpgrade" checked={parentPortraitCanvas === false} onChange={() => setParentPortraitCanvas(false)} className="w-4 h-4 accent-[#4a7c9b]" />
                         <span className="text-sm font-medium">No</span>
                       </label>
@@ -454,17 +454,17 @@ export default function PhotoOrderPublicPage() {
                     <div key={i} className="border rounded-lg p-3 space-y-2">
                       <span className="text-sm font-medium">Parent Portrait {i + 1}</span>
                       <div>
-                        <label className="block text-xs text-[#888] mb-1">Size</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Size</label>
                         <select value={parentPortraitRows[i].size} onChange={(e) => setParentPortraitRows(prev => prev.map((r, idx) => idx === i ? { ...r, size: e.target.value } : r))} className="text-sm">
                           {PORTRAIT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs text-[#888] mb-1">Filename</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Filename</label>
                         <input type="text" value={parentPortraitRows[i].filename} onChange={(e) => setParentPortraitRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: e.target.value } : r))} placeholder="e.g. Amanda_KyleWEDPROOFS_-732" className="text-sm" />
                       </div>
                       <div>
-                        <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Notes (optional)</label>
                         <input type="text" value={parentPortraitRows[i].notes} onChange={(e) => setParentPortraitRows(prev => prev.map((r, idx) => idx === i ? { ...r, notes: e.target.value } : r))} placeholder="Special instructions..." className="text-sm" />
                       </div>
                     </div>
@@ -480,11 +480,11 @@ export default function PhotoOrderPublicPage() {
               </h2>
               <p className="text-sm font-medium mb-2">Do you have a Bride &amp; Groom portrait in your package?</p>
               <div className="space-y-2 mb-4">
-                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                   <input type="radio" name="hasBGPortrait" checked={hasBGPortrait === true} onChange={() => setHasBGPortrait(true)} className="w-4 h-4 accent-[#4a7c9b]" />
                   <span className="text-sm font-medium">Yes</span>
                 </label>
-                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                   <input type="radio" name="hasBGPortrait" checked={hasBGPortrait === false} onChange={() => setHasBGPortrait(false)} className="w-4 h-4 accent-[#4a7c9b]" />
                   <span className="text-sm font-medium">No</span>
                 </label>
@@ -497,28 +497,28 @@ export default function PhotoOrderPublicPage() {
                       <div>
                         <p className="text-sm font-medium mb-2">Do you want to upgrade to canvas? (+$100 each)</p>
                         <div className="space-y-2">
-                          <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                          <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                             <input type="radio" name="bgCanvasUpgrade" checked={bgPortraitCanvas === true} onChange={() => setBGPortraitCanvas(true)} className="w-4 h-4 accent-[#4a7c9b]" />
                             <span className="text-sm font-medium">Yes</span>
                           </label>
-                          <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                          <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                             <input type="radio" name="bgCanvasUpgrade" checked={bgPortraitCanvas === false} onChange={() => setBGPortraitCanvas(false)} className="w-4 h-4 accent-[#4a7c9b]" />
                             <span className="text-sm font-medium">No</span>
                           </label>
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs text-[#888] mb-1">Size</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Size</label>
                         <select value={bgPortraitSize} onChange={(e) => setBGPortraitSize(e.target.value)} className="text-sm">
                           {PORTRAIT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs text-[#888] mb-1">Filename</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Filename</label>
                         <input type="text" value={bgPortraitFilename} onChange={(e) => setBGPortraitFilename(e.target.value)} placeholder="e.g. Amanda_KyleWEDPROOFS_-732" className="text-sm" />
                       </div>
                       <div>
-                        <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Notes (optional)</label>
                         <input type="text" value={bgPortraitNotes} onChange={(e) => setBGPortraitNotes(e.target.value)} placeholder="Special instructions..." className="text-sm" />
                       </div>
                     </>
@@ -539,21 +539,21 @@ export default function PhotoOrderPublicPage() {
               </h2>
               <p className="text-sm font-medium mb-2">Do you have Thank You cards in your package?</p>
               <div className="space-y-2 mb-4">
-                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                   <input type="radio" name="hasTYC" checked={hasTYC === 'yes'} onChange={() => setHasTYC('yes')} className="w-4 h-4 accent-[#4a7c9b]" />
                   <span className="text-sm font-medium">Yes</span>
                 </label>
-                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                   <input type="radio" name="hasTYC" checked={hasTYC === 'no'} onChange={() => setHasTYC('no')} className="w-4 h-4 accent-[#4a7c9b]" />
                   <span className="text-sm font-medium">No</span>
                 </label>
-                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                   <input type="radio" name="hasTYC" checked={hasTYC === 'add'} onChange={() => setHasTYC('add')} className="w-4 h-4 accent-[#4a7c9b]" />
                   <span className="text-sm font-medium">No, but I&apos;d like to add some</span>
                 </label>
               </div>
               {hasTYC === 'add' && (
-                <div className="bg-[#eef3f7] border border-[#c5d5e0] rounded-lg px-4 py-3 text-sm mb-4">
+                <div className="bg-muted border border-border rounded-lg px-4 py-3 text-sm mb-4">
                   Thank You cards are $5 each and include envelope.
                 </div>
               )}
@@ -578,11 +578,11 @@ export default function PhotoOrderPublicPage() {
               </h2>
               <p className="text-sm font-medium mb-2">Do you have any additional photos in your package?</p>
               <div className="space-y-2 mb-4">
-                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                   <input type="radio" name="hasAdditional" checked={hasAdditionalPhotos === true} onChange={() => { setHasAdditionalPhotos(true); if (additionalPhotoRows.length === 0) addAdditionalPhotoRow() }} className="w-4 h-4 accent-[#4a7c9b]" />
                   <span className="text-sm font-medium">Yes</span>
                 </label>
-                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                   <input type="radio" name="hasAdditional" checked={hasAdditionalPhotos === false} onChange={() => setHasAdditionalPhotos(false)} className="w-4 h-4 accent-[#4a7c9b]" />
                   <span className="text-sm font-medium">No</span>
                 </label>
@@ -599,17 +599,17 @@ export default function PhotoOrderPublicPage() {
                         </button>
                       </div>
                       <div>
-                        <label className="block text-xs text-[#888] mb-1">Size</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Size</label>
                         <select value={row.size} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, size: e.target.value } : r))} className="text-sm">
                           {ADDITIONAL_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs text-[#888] mb-1">Filename</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Filename</label>
                         <input type="text" value={row.filename} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: e.target.value } : r))} placeholder="e.g. Amanda_KyleWEDPROOFS_-732" className="text-sm" />
                       </div>
                       <div>
-                        <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Notes (optional)</label>
                         <input type="text" value={row.notes} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, notes: e.target.value } : r))} placeholder="Special instructions..." className="text-sm" />
                       </div>
                     </div>
@@ -623,13 +623,13 @@ export default function PhotoOrderPublicPage() {
 
               {hasAdditionalPhotos === false && (
                 <div className="border-t pt-4">
-                  <p className="text-sm text-[#888] mb-2">Would you like to order some? Marianna will confirm pricing.</p>
+                  <p className="text-sm text-muted-foreground mb-2">Would you like to order some? Marianna will confirm pricing.</p>
                   <div className="space-y-2 mb-4">
-                    <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                    <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                       <input type="radio" name="wantToOrder" checked={wantToOrderPhotos === true} onChange={() => { setWantToOrderPhotos(true); if (additionalPhotoRows.length === 0) addAdditionalPhotoRow() }} className="w-4 h-4 accent-[#4a7c9b]" />
                       <span className="text-sm font-medium">Yes</span>
                     </label>
-                    <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[#faf8f5] transition-colors">
+                    <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors">
                       <input type="radio" name="wantToOrder" checked={wantToOrderPhotos === false} onChange={() => setWantToOrderPhotos(false)} className="w-4 h-4 accent-[#4a7c9b]" />
                       <span className="text-sm font-medium">No</span>
                     </label>
@@ -645,17 +645,17 @@ export default function PhotoOrderPublicPage() {
                             </button>
                           </div>
                           <div>
-                            <label className="block text-xs text-[#888] mb-1">Size</label>
+                            <label className="block text-xs text-muted-foreground mb-1">Size</label>
                             <select value={row.size} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, size: e.target.value } : r))} className="text-sm">
                               {ADDITIONAL_SIZES_PRICED.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                             </select>
                           </div>
                           <div>
-                            <label className="block text-xs text-[#888] mb-1">Filename</label>
+                            <label className="block text-xs text-muted-foreground mb-1">Filename</label>
                             <input type="text" value={row.filename} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, filename: e.target.value } : r))} placeholder="e.g. Amanda_KyleWEDPROOFS_-732" className="text-sm" />
                           </div>
                           <div>
-                            <label className="block text-xs text-[#888] mb-1">Notes (optional)</label>
+                            <label className="block text-xs text-muted-foreground mb-1">Notes (optional)</label>
                             <input type="text" value={row.notes} onChange={(e) => setAdditionalPhotoRows(prev => prev.map((r, idx) => idx === i ? { ...r, notes: e.target.value } : r))} placeholder="Special instructions..." className="text-sm" />
                           </div>
                         </div>
@@ -685,7 +685,7 @@ export default function PhotoOrderPublicPage() {
             </div>
 
             {/* Pre-submit note */}
-            <div className="bg-[#eef3f7] border border-[#c5d5e0] rounded-lg px-4 py-3 text-sm">
+            <div className="bg-muted border border-border rounded-lg px-4 py-3 text-sm">
               Once submitted, Jean will personally review your selections and confirm all details before we begin. If you have any questions or need to make changes, reach out to us at{' '}
               <a href="mailto:info@sigsphoto.ca" className="font-medium underline text-[#4a7c9b]">info@sigsphoto.ca</a> or call{' '}
               <a href="tel:4168318942" className="font-medium underline text-[#4a7c9b]">416-831-8942</a> — we&apos;re here to help.
@@ -712,19 +712,19 @@ export default function PhotoOrderPublicPage() {
           <div className="rounded-xl border p-8 shadow-sm text-center" style={{ backgroundColor: '#fff' }}>
             <CheckCircle className="w-16 h-16 text-[#4a7c9b] mx-auto mb-4" />
             <h1 className="text-2xl font-bold mb-2">Photo Order Submitted!</h1>
-            <p className="text-[#888] mb-6 max-w-md mx-auto">
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
               Your photo order has been submitted! Marianna will review and confirm your order details before processing.
             </p>
-            <div className="bg-[#faf8f5] rounded-lg p-4 text-left max-w-sm mx-auto">
+            <div className="bg-muted rounded-lg p-4 text-left max-w-sm mx-auto">
               <h3 className="text-sm font-semibold mb-2">What happens next?</h3>
-              <ul className="space-y-1.5 text-sm text-[#888]">
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
                 <li>1. Marianna will review your order details</li>
                 <li>2. She&apos;ll confirm sizes and any upgrades</li>
                 <li>3. Jean will begin designing your albums</li>
                 <li>4. You&apos;ll receive a proof for review</li>
               </ul>
             </div>
-            <div className="mt-6 flex items-center justify-center gap-2 text-sm text-[#888]">
+            <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Mail className="w-4 h-4" />
               <span>Questions? Contact us at info@sigsphoto.ca or call <a href="tel:4168318942" className="underline">416-831-8942</a></span>
             </div>

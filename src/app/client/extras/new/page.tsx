@@ -124,14 +124,14 @@ export default function NewExtraPage() {
             Back to form
           </button>
 
-          <div className="bg-white rounded-lg border p-8 print:border-0 print:shadow-none" id="invoice-preview">
+          <div className="bg-background rounded-lg border p-8 print:border-0 print:shadow-none" id="invoice-preview">
             {/* Invoice Header */}
             <div className="flex justify-between items-start mb-8">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">SIGS Photography</h1>
-                <p className="text-sm text-gray-500 mt-1">Additional Services Invoice</p>
+                <h1 className="text-2xl font-bold text-foreground">SIGS Photography</h1>
+                <p className="text-sm text-muted-foreground mt-1">Additional Services Invoice</p>
               </div>
-              <div className="text-right text-sm text-gray-600">
+              <div className="text-right text-sm text-muted-foreground">
                 <p className="font-medium">Invoice Date</p>
                 <p>{new Date().toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
               </div>
@@ -139,17 +139,17 @@ export default function NewExtraPage() {
 
             {/* Client Info */}
             <div className="border-t border-b py-4 mb-6">
-              <p className="text-sm text-gray-500">Bill To</p>
-              <p className="font-medium text-gray-900">{selectedCouple?.couple_name || '—'}</p>
+              <p className="text-sm text-muted-foreground">Bill To</p>
+              <p className="font-medium text-foreground">{selectedCouple?.couple_name || '—'}</p>
               {selectedCouple?.wedding_date && (
-                <p className="text-sm text-gray-500">Wedding: {formatDate(selectedCouple.wedding_date)}</p>
+                <p className="text-sm text-muted-foreground">Wedding: {formatDate(selectedCouple.wedding_date)}</p>
               )}
             </div>
 
             {/* Line Items */}
             <table className="w-full text-sm mb-6">
               <thead>
-                <tr className="border-b text-left text-gray-500">
+                <tr className="border-b text-left text-muted-foreground">
                   <th className="pb-2 font-medium">Item</th>
                   <th className="pb-2 font-medium text-center">Qty</th>
                   <th className="pb-2 font-medium text-right">Unit Price</th>
@@ -159,8 +159,8 @@ export default function NewExtraPage() {
               <tbody>
                 <tr className="border-b">
                   <td className="py-3">
-                    <p className="font-medium text-gray-900">{itemType || '—'}</p>
-                    {description && <p className="text-gray-500 text-xs mt-0.5">{description}</p>}
+                    <p className="font-medium text-foreground">{itemType || '—'}</p>
+                    {description && <p className="text-muted-foreground text-xs mt-0.5">{description}</p>}
                   </td>
                   <td className="py-3 text-center">{quantity}</td>
                   <td className="py-3 text-right">{formatCurrency(parseFloat(unitPrice) || 0)}</td>
@@ -173,11 +173,11 @@ export default function NewExtraPage() {
             <div className="flex justify-end">
               <div className="w-64 space-y-1 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Subtotal</span>
+                  <span className="text-muted-foreground">Subtotal</span>
                   <span>{formatCurrency(calc.subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">HST (13%)</span>
+                  <span className="text-muted-foreground">HST (13%)</span>
                   <span>{formatCurrency(calc.hst)}</span>
                 </div>
                 <div className="flex justify-between border-t pt-2 font-bold text-base">
@@ -190,13 +190,13 @@ export default function NewExtraPage() {
             {/* Payment Note */}
             {paymentNote && (
               <div className="mt-8 pt-4 border-t">
-                <p className="text-xs text-gray-500">Payment Note</p>
-                <p className="text-sm text-gray-700">{paymentNote}</p>
+                <p className="text-xs text-muted-foreground">Payment Note</p>
+                <p className="text-sm text-foreground">{paymentNote}</p>
               </div>
             )}
 
             {/* Footer */}
-            <div className="mt-12 pt-4 border-t text-center text-xs text-gray-400">
+            <div className="mt-12 pt-4 border-t text-center text-xs text-muted-foreground">
               <p>SIGS Photography &middot; studio.sigsphoto.ca</p>
             </div>
           </div>

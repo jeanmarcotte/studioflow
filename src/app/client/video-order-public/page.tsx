@@ -279,7 +279,7 @@ export default function VideoOrderPublicPage() {
         {step === 2 && (
           <div className="space-y-6">
             {/* Instructions */}
-            <div className="bg-[#eef3f7] border border-[#c5d5e0] rounded-lg px-4 py-3 text-sm text-[#333] space-y-2">
+            <div className="bg-muted border border-border rounded-lg px-4 py-3 text-sm text-foreground space-y-2">
               <p className="font-medium">Here&apos;s how to get your full-length wedding video and 8-11 minute highlight reel:</p>
               <ol className="list-decimal list-inside space-y-1">
                 <li>Fill out the form below with your must-have moments and music ideas.</li>

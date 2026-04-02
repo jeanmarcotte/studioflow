@@ -173,17 +173,17 @@ export default function FramesAlbumsQuotePage() {
   return (
     <Layout sidebarConfig={studioflowClientConfig}>
       {/* Dark Banner - Frames & Albums */}
-      <div className="bg-zinc-900 text-white -mx-6 -mt-6 px-6 py-4 mb-6">
+      <div className="bg-primary text-primary-foreground -mx-6 -mt-6 px-6 py-4 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/10 rounded flex items-center justify-center">
+            <div className="w-12 h-12 bg-primary-foreground/10 rounded flex items-center justify-center">
               <Frame className="w-6 h-6" />
             </div>
             <div>
               <h1 className="text-xl font-semibold">
                 {coupleName ? `${coupleName} — Frames & Albums` : 'Frames & Albums'}
               </h1>
-              <p className="text-zinc-400 text-sm">
+              <p className="text-muted-foreground text-sm">
                 {weddingDate ? weddingDate : 'Engagement Photo Presentation'}
               </p>
             </div>
@@ -202,7 +202,7 @@ export default function FramesAlbumsQuotePage() {
               </a>
             )}
             <div className="text-right">
-              <div className="text-sm text-zinc-400">E-Transfer</div>
+              <div className="text-sm text-muted-foreground">E-Transfer</div>
               <div className="font-medium">info@sigsphoto.ca</div>
             </div>
           </div>
@@ -214,8 +214,8 @@ export default function FramesAlbumsQuotePage() {
         {/* ============================================================ */}
         {/* COLLAGE OPTIONS */}
         {/* ============================================================ */}
-        <div className="bg-white border rounded-lg overflow-hidden">
-          <div className="bg-zinc-900 text-white px-6 py-4">
+        <div className="bg-background border rounded-lg overflow-hidden">
+          <div className="bg-primary text-primary-foreground px-6 py-4">
             <h2 className="text-xl font-semibold">Collage</h2>
           </div>
           
@@ -224,7 +224,7 @@ export default function FramesAlbumsQuotePage() {
             <div 
               onClick={() => setCollageType('A')}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                collageType === 'A' ? 'border-green-500 bg-green-50' : 'border-zinc-200 hover:border-zinc-300'
+                collageType === 'A' ? 'border-green-500 bg-green-50' : 'border-border hover:border-border'
               }`}
             >
               <div className="flex justify-between items-start mb-2">
@@ -233,15 +233,15 @@ export default function FramesAlbumsQuotePage() {
               </div>
               <ul className="space-y-1 text-sm ml-4">
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>3 16x16 custom-edited prints with editing</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>All 3 mounted on canvas stretcher</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>All 3 framed with black float-frame</span>
                 </li>
               </ul>
@@ -251,7 +251,7 @@ export default function FramesAlbumsQuotePage() {
             <div 
               onClick={() => setCollageType('B')}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                collageType === 'B' ? 'border-green-500 bg-green-50' : 'border-zinc-200 hover:border-zinc-300'
+                collageType === 'B' ? 'border-green-500 bg-green-50' : 'border-border hover:border-border'
               }`}
             >
               <div className="flex justify-between items-start mb-2">
@@ -260,27 +260,27 @@ export default function FramesAlbumsQuotePage() {
               </div>
               <ul className="space-y-1 text-sm ml-4">
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>Big Michelle Frame 50x18</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>3 14x14 edited matt portraits</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>3 14x14 photos mounted on masonite with UV spray protection</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>1 acid-free cut for 3 photos with ⅛" allowance</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>1 low glare glass cut to fit 50x18</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>Assembly including D rings and wire</span>
                 </li>
               </ul>
@@ -290,7 +290,7 @@ export default function FramesAlbumsQuotePage() {
             <div 
               onClick={() => setCollageType('C')}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                collageType === 'C' ? 'border-green-500 bg-green-50' : 'border-zinc-200 hover:border-zinc-300'
+                collageType === 'C' ? 'border-green-500 bg-green-50' : 'border-border hover:border-border'
               }`}
             >
               <div className="flex justify-between items-start mb-2">
@@ -299,27 +299,27 @@ export default function FramesAlbumsQuotePage() {
               </div>
               <ul className="space-y-1 text-sm ml-4">
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>3 10x10 custom-edited prints with editing</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>Small Michelle Frame 38x14</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>3 10x10 photos mounted on masonite with UV spray protection</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>1 acid-free cut for 3 photos with ⅛" allowance</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>1 low glare glass cut to fit 38x14</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>Assembly including D rings and wire</span>
                 </li>
               </ul>
@@ -329,7 +329,7 @@ export default function FramesAlbumsQuotePage() {
             <div 
               onClick={() => setCollageType('single')}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                collageType === 'single' ? 'border-green-500 bg-green-50' : 'border-zinc-200 hover:border-zinc-300'
+                collageType === 'single' ? 'border-green-500 bg-green-50' : 'border-border hover:border-border'
               }`}
             >
               <div className="flex justify-between items-start mb-2">
@@ -338,15 +338,15 @@ export default function FramesAlbumsQuotePage() {
               </div>
               <ul className="space-y-1 text-sm ml-4">
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>1 16x16 custom-edited print</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>Mounted on canvas stretcher</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>Black float-frame</span>
                 </li>
               </ul>
@@ -356,12 +356,12 @@ export default function FramesAlbumsQuotePage() {
             <div 
               onClick={() => setCollageType('none')}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                collageType === 'none' ? 'border-zinc-500 bg-zinc-100' : 'border-zinc-200 hover:border-zinc-300'
+                collageType === 'none' ? 'border-primary bg-muted' : 'border-border hover:border-border'
               }`}
             >
               <div className="flex justify-between items-start">
-                <h3 className="font-medium text-zinc-500">No Collage</h3>
-                {collageType === 'none' && <Check className="w-5 h-5 text-zinc-500" />}
+                <h3 className="font-medium text-muted-foreground">No Collage</h3>
+                {collageType === 'none' && <Check className="w-5 h-5 text-muted-foreground" />}
               </div>
             </div>
 
@@ -370,7 +370,7 @@ export default function FramesAlbumsQuotePage() {
               <div 
                 onClick={() => setInclude5x5(!include5x5)}
                 className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  include5x5 ? 'border-green-500 bg-green-50' : 'border-zinc-200'
+                  include5x5 ? 'border-green-500 bg-green-50' : 'border-border'
                 }`}
               >
                 <div className="flex justify-between items-center">
@@ -379,7 +379,7 @@ export default function FramesAlbumsQuotePage() {
                     <p className="text-sm text-green-600">FREE with your purchase!</p>
                   </div>
                   <div className={`w-6 h-6 rounded flex items-center justify-center ${
-                    include5x5 ? 'bg-green-500 text-white' : 'bg-zinc-200'
+                    include5x5 ? 'bg-green-500 text-white' : 'bg-muted'
                   }`}>
                     {include5x5 && <Check className="w-4 h-4" />}
                   </div>
@@ -473,8 +473,8 @@ export default function FramesAlbumsQuotePage() {
         {/* ============================================================ */}
         {/* ALBUMS */}
         {/* ============================================================ */}
-        <div className="bg-white border rounded-lg overflow-hidden">
-          <div className="bg-zinc-900 text-white px-6 py-4">
+        <div className="bg-background border rounded-lg overflow-hidden">
+          <div className="bg-primary text-primary-foreground px-6 py-4">
             <h2 className="text-xl font-semibold">Albums</h2>
           </div>
           
@@ -488,7 +488,7 @@ export default function FramesAlbumsQuotePage() {
                 <div 
                   onClick={() => setAlbumType('none')}
                   className={`p-4 rounded-lg border-2 cursor-pointer text-center transition-all ${
-                    albumType === 'none' ? 'border-zinc-500 bg-zinc-100' : 'border-zinc-200 hover:border-zinc-300'
+                    albumType === 'none' ? 'border-primary bg-muted' : 'border-border hover:border-border'
                   }`}
                 >
                   <div className="font-medium">No Album</div>
@@ -496,7 +496,7 @@ export default function FramesAlbumsQuotePage() {
                 <div 
                   onClick={() => setAlbumType('standard')}
                   className={`p-4 rounded-lg border-2 cursor-pointer text-center transition-all ${
-                    albumType === 'standard' ? 'border-green-500 bg-green-50' : 'border-zinc-200 hover:border-zinc-300'
+                    albumType === 'standard' ? 'border-green-500 bg-green-50' : 'border-border hover:border-border'
                   }`}
                 >
                   <div className="font-medium">Standard Album</div>
@@ -506,7 +506,7 @@ export default function FramesAlbumsQuotePage() {
                 <div 
                   onClick={() => setAlbumType('premium')}
                   className={`p-4 rounded-lg border-2 cursor-pointer text-center transition-all ${
-                    albumType === 'premium' ? 'border-green-500 bg-green-50' : 'border-zinc-200 hover:border-zinc-300'
+                    albumType === 'premium' ? 'border-green-500 bg-green-50' : 'border-border hover:border-border'
                   }`}
                 >
                   <div className="font-medium">Premium Album</div>
@@ -528,8 +528,8 @@ export default function FramesAlbumsQuotePage() {
                     onClick={() => setParentAlbumQty(qty)}
                     className={`p-4 rounded-lg border-2 cursor-pointer text-center transition-all ${
                       parentAlbumQty === qty 
-                        ? qty === 0 ? 'border-zinc-500 bg-zinc-100' : 'border-green-500 bg-green-50'
-                        : 'border-zinc-200 hover:border-zinc-300'
+                        ? qty === 0 ? 'border-primary bg-muted' : 'border-green-500 bg-green-50'
+                        : 'border-border hover:border-border'
                     }`}
                   >
                     <div className="font-medium">{qty === 0 ? 'None' : `${qty} Album${qty > 1 ? 's' : ''}`}</div>
@@ -544,8 +544,8 @@ export default function FramesAlbumsQuotePage() {
         {/* ============================================================ */}
         {/* WEDDING FRAME */}
         {/* ============================================================ */}
-        <div className="bg-white border rounded-lg overflow-hidden">
-          <div className="bg-zinc-900 text-white px-6 py-4">
+        <div className="bg-background border rounded-lg overflow-hidden">
+          <div className="bg-primary text-primary-foreground px-6 py-4">
             <h2 className="text-xl font-semibold">Wedding Frame</h2>
           </div>
           
@@ -554,7 +554,7 @@ export default function FramesAlbumsQuotePage() {
             <div 
               onClick={() => setFrameType('A')}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                frameType === 'A' ? 'border-green-500 bg-green-50' : 'border-zinc-200 hover:border-zinc-300'
+                frameType === 'A' ? 'border-green-500 bg-green-50' : 'border-border hover:border-border'
               }`}
             >
               <div className="flex justify-between items-start mb-2">
@@ -563,15 +563,15 @@ export default function FramesAlbumsQuotePage() {
               </div>
               <ul className="space-y-1 text-sm ml-4">
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>Black floating frame same style as Eng portraits</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>24x30 photo (in wedding package) mounted on canvas stretcher</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>Assembly including D rings and wire</span>
                 </li>
               </ul>
@@ -581,7 +581,7 @@ export default function FramesAlbumsQuotePage() {
             <div 
               onClick={() => setFrameType('B')}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                frameType === 'B' ? 'border-green-500 bg-green-50' : 'border-zinc-200 hover:border-zinc-300'
+                frameType === 'B' ? 'border-green-500 bg-green-50' : 'border-border hover:border-border'
               }`}
             >
               <div className="flex justify-between items-start mb-2">
@@ -590,19 +590,19 @@ export default function FramesAlbumsQuotePage() {
               </div>
               <ul className="space-y-1 text-sm ml-4">
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>Black small michelle frame</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>24x30 photo (in wedding package) mounted on foam core for lightness</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>24x30 glass</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>Assembly including D rings and wire</span>
                 </li>
               </ul>
@@ -612,7 +612,7 @@ export default function FramesAlbumsQuotePage() {
             <div 
               onClick={() => setFrameType('C')}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                frameType === 'C' ? 'border-green-500 bg-green-50' : 'border-zinc-200 hover:border-zinc-300'
+                frameType === 'C' ? 'border-green-500 bg-green-50' : 'border-border hover:border-border'
               }`}
             >
               <div className="flex justify-between items-start mb-2">
@@ -621,19 +621,19 @@ export default function FramesAlbumsQuotePage() {
               </div>
               <ul className="space-y-1 text-sm ml-4">
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>Large michelle frame</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>24x30 photo (in wedding package) mounted on foam core for lightness</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>24x30 glass</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-zinc-400 mt-0.5">●</span>
+                  <span className="text-muted-foreground mt-0.5">●</span>
                   <span>Assembly including D rings and wire</span>
                 </li>
               </ul>
@@ -643,12 +643,12 @@ export default function FramesAlbumsQuotePage() {
             <div 
               onClick={() => setFrameType('none')}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                frameType === 'none' ? 'border-zinc-500 bg-zinc-100' : 'border-zinc-200 hover:border-zinc-300'
+                frameType === 'none' ? 'border-primary bg-muted' : 'border-border hover:border-border'
               }`}
             >
               <div className="flex justify-between items-start">
-                <h3 className="font-medium text-zinc-500">No Wedding Frame</h3>
-                {frameType === 'none' && <Check className="w-5 h-5 text-zinc-500" />}
+                <h3 className="font-medium text-muted-foreground">No Wedding Frame</h3>
+                {frameType === 'none' && <Check className="w-5 h-5 text-muted-foreground" />}
               </div>
             </div>
           </div>
@@ -657,8 +657,8 @@ export default function FramesAlbumsQuotePage() {
         {/* ============================================================ */}
         {/* EXTRAS */}
         {/* ============================================================ */}
-        <div className="bg-white border rounded-lg overflow-hidden">
-          <div className="bg-zinc-900 text-white px-6 py-4">
+        <div className="bg-background border rounded-lg overflow-hidden">
+          <div className="bg-primary text-primary-foreground px-6 py-4">
             <h2 className="text-xl font-semibold">Extras</h2>
           </div>
           
@@ -667,7 +667,7 @@ export default function FramesAlbumsQuotePage() {
             <div 
               onClick={() => setIncludeEngProofs(!includeEngProofs)}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                includeEngProofs ? 'border-green-500 bg-green-50' : 'border-zinc-200'
+                includeEngProofs ? 'border-green-500 bg-green-50' : 'border-border'
               }`}
             >
               <div className="flex justify-between items-center">
@@ -676,7 +676,7 @@ export default function FramesAlbumsQuotePage() {
                   <p className="text-sm text-muted-foreground">Download link of all Engagement Proof files Dropbox without watermark</p>
                 </div>
                 <div className={`w-6 h-6 rounded flex items-center justify-center ${
-                  includeEngProofs ? 'bg-green-500 text-white' : 'bg-zinc-200'
+                  includeEngProofs ? 'bg-green-500 text-white' : 'bg-muted'
                 }`}>
                   {includeEngProofs && <Check className="w-4 h-4" />}
                 </div>
@@ -687,7 +687,7 @@ export default function FramesAlbumsQuotePage() {
             <div 
               onClick={() => setIncludeHiRes(!includeHiRes)}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                includeHiRes ? 'border-green-500 bg-green-50' : 'border-zinc-200'
+                includeHiRes ? 'border-green-500 bg-green-50' : 'border-border'
               }`}
             >
               <div className="flex justify-between items-center">
@@ -697,7 +697,7 @@ export default function FramesAlbumsQuotePage() {
                   <p className="text-xs text-green-600">Retail value ${PRICING.hiResFiles.retailPrice.toLocaleString()} — included with package</p>
                 </div>
                 <div className={`w-6 h-6 rounded flex items-center justify-center ${
-                  includeHiRes ? 'bg-green-500 text-white' : 'bg-zinc-200'
+                  includeHiRes ? 'bg-green-500 text-white' : 'bg-muted'
                 }`}>
                   {includeHiRes && <Check className="w-4 h-4" />}
                 </div>
@@ -705,8 +705,8 @@ export default function FramesAlbumsQuotePage() {
             </div>
 
             {/* Online Proofing - always included */}
-            <div className="p-4 rounded-lg border bg-zinc-50">
-              <span className="font-medium text-zinc-600">Online proofing and download share and customer gallery</span>
+            <div className="p-4 rounded-lg border bg-muted">
+              <span className="font-medium text-muted-foreground">Online proofing and download share and customer gallery</span>
               <span className="text-sm text-green-600 ml-2">INCLUDED</span>
             </div>
 
@@ -728,7 +728,7 @@ export default function FramesAlbumsQuotePage() {
         {/* EXPENSE BREAKDOWN */}
         {/* ============================================================ */}
         <div className="bg-card border rounded-lg overflow-hidden">
-          <div className="bg-zinc-100 px-4 py-3 border-b">
+          <div className="bg-muted px-4 py-3 border-b">
             <h2 className="font-semibold flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               Expense Breakdown
@@ -838,7 +838,7 @@ export default function FramesAlbumsQuotePage() {
             </div>
             
             {includeHiRes && (
-              <p className="text-sm text-muted-foreground mt-4 p-3 bg-zinc-50 rounded">
+              <p className="text-sm text-muted-foreground mt-4 p-3 bg-muted rounded">
                 <strong>Note:</strong> The cost for Engagement and Wedding High-Resolution files is listed as $0.00 CAD, 
                 however, the retail price is ${PRICING.hiResFiles.retailPrice.toLocaleString()} plus tax. When purchasing 
                 the above package there is no additional charge for these files. SIGS Customer Discount (25%) applies 
@@ -852,7 +852,7 @@ export default function FramesAlbumsQuotePage() {
         {/* PAYMENT SCHEDULE */}
         {/* ============================================================ */}
         <div className="bg-card border rounded-lg overflow-hidden">
-          <div className="bg-zinc-100 px-4 py-3 border-b">
+          <div className="bg-muted px-4 py-3 border-b">
             <h2 className="font-semibold flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               Payment Schedule
@@ -869,7 +869,7 @@ export default function FramesAlbumsQuotePage() {
               </div>
             )}
             
-            <div className="p-4 bg-zinc-50 border rounded-lg">
+            <div className="p-4 bg-muted border rounded-lg">
               <div className="flex justify-between items-center">
                 <span className="font-medium">Frames & Albums Package (including tax)</span>
                 <span className="font-semibold">${calculations.total.toFixed(2)}</span>
@@ -919,11 +919,11 @@ export default function FramesAlbumsQuotePage() {
         {/* ACTION BUTTONS */}
         {/* ============================================================ */}
         <div className="flex gap-4 justify-end py-4">
-          <button className="px-6 py-3 border rounded-lg hover:bg-zinc-50 flex items-center gap-2">
+          <button className="px-6 py-3 border rounded-lg hover:bg-muted flex items-center gap-2">
             <Save className="w-4 h-4" />
             Save Quote
           </button>
-          <button className="px-6 py-3 border rounded-lg hover:bg-zinc-50 flex items-center gap-2">
+          <button className="px-6 py-3 border rounded-lg hover:bg-muted flex items-center gap-2">
             <Printer className="w-4 h-4" />
             Print / Save PDF
           </button>
@@ -936,9 +936,9 @@ export default function FramesAlbumsQuotePage() {
         {/* ============================================================ */}
         {/* PRE-APPOINTMENT SETUP (at bottom) */}
         {/* ============================================================ */}
-        <div className="bg-card border rounded-lg overflow-hidden border-dashed border-zinc-300">
-          <div className="bg-zinc-50 px-4 py-3 border-b border-dashed">
-            <h2 className="font-semibold flex items-center gap-2 text-zinc-600">
+        <div className="bg-card border rounded-lg overflow-hidden border-dashed border-border">
+          <div className="bg-muted px-4 py-3 border-b border-dashed">
+            <h2 className="font-semibold flex items-center gap-2 text-muted-foreground">
               <FileText className="w-4 h-4" />
               Pre-Appointment Setup
             </h2>
