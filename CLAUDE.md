@@ -22,7 +22,7 @@ StudioFlow is the business management CRM for SIGS Photography (Toronto/Vaughan,
 |-------|------------|
 | Framework | Next.js 14 (App Router) |
 | Language | TypeScript (loosely typed — see Rule 6) |
-| Styling | Tailwind CSS (NO shadcn components — see Rule 3) |
+| Styling | Tailwind CSS + shadcn/ui component library (see Rule 2 & 3) |
 | Fonts | Playfair Display (headings) + Nunito (body) — not all pages use them |
 | Icons | Lucide React ONLY |
 | Database | Supabase (PostgreSQL) |
@@ -48,24 +48,25 @@ Page files (`page.tsx`) must be thin shells — max ~200 lines. They fetch data,
 **New pages:** Create as shell, components go in `src/components/{feature}/`.
 **Existing monolithic pages:** Do NOT refactor unprompted. Patch in-place. Extract only if adding a major new section.
 
-### Rule 2: No Shared UI Primitives Exist Yet
+### Rule 2: Use shadcn/ui for Shared UI Primitives
 
-There is no `src/components/ui/` folder. Every page builds its own buttons, badges, tables, cards, modals from raw HTML + Tailwind.
+shadcn/ui is the component library for StudioFlow. Components live in `src/components/ui/`.
 
-Do NOT create shared UI primitives unless explicitly asked. Match the inline Tailwind pattern the codebase uses.
+- **New pages:** Use shadcn components (Button, Badge, Table, Card, Dialog, Select, Collapsible, etc.) instead of building from raw HTML + Tailwind
+- **Old pages:** Still use inline Tailwind — do NOT refactor them to shadcn unless doing a full page rebuild
+- **Adding shadcn components:** Use `npx shadcn-ui@latest add <component>` to install new ones as needed
+- **Customization:** shadcn copies components as regular files into `src/components/ui/` — you can edit them freely
 
-**Collapsible sections:** No `<CollapsibleSection>` component exists. Each page uses `Set<string>` state + `ChevronDown`/`ChevronRight` toggle. Follow this pattern.
+**Note:** shadcn uses the CSS variables already configured in `tailwind.config.js` (`--primary`, `--muted`, `--border`, etc.), so components will match the existing color system automatically.
 
-**Exception:** If explicitly asked to create a reusable component, place it in `src/components/ui/`.
+### Rule 3: Styling — Tailwind + shadcn/ui + CSS Variables
 
-### Rule 3: Styling — Tailwind + CSS Variables (No shadcn)
+`tailwind.config.js` has CSS variable mappings (`--primary`, `--muted`, `--border`, etc.) that shadcn components consume automatically.
 
-`tailwind.config.js` has shadcn-style CSS variable mappings (`--primary`, `--muted`, `--border`, etc.) but **zero shadcn components are installed**. No `components.json` exists.
-
-- Use Tailwind utility classes for all styling
-- CSS variable classes work (`text-muted-foreground`, `bg-background`, etc.)
-- Do NOT import from `@/components/ui/*` — that folder doesn't exist
-- Hardcoded hex values (`bg-[#faf8f5]`, `text-[#0d4f4f]`) are the established pattern outside couple detail page
+- **New pages:** Use shadcn components from `@/components/ui/*` + Tailwind utility classes
+- **Old pages:** Still use raw Tailwind + hardcoded hex values — match their existing style when patching
+- CSS variable classes work everywhere (`text-muted-foreground`, `bg-background`, etc.)
+- When building new UI, prefer shadcn components over hand-building from raw HTML
 
 ### Rule 4: Design Tokens — Couples Page Only
 
@@ -296,13 +297,13 @@ All entity pages follow: **List → Production → Detail**
 ## REFERENCE DESIGN: PHOTO PRODUCTION PAGE
 
 File: `src/app/admin/production/photo/page.tsx` (1,164 lines)
-- Pure Tailwind CSS — NO shadcn
+- Legacy page — raw Tailwind CSS (pre-shadcn)
 - Playfair Display + Nunito fonts
 - Lucide React icons
 - Collapsible sections via `collapsedLanes` state (Set<string>)
 - Two-column flexbox: main panel + stats sidebar
 
-**New production/sales pages should match this design language.**
+**New production/sales pages should match this design language but use shadcn components instead of raw HTML.**
 
 ---
 
@@ -384,4 +385,5 @@ File: `src/app/admin/production/photo/page.tsx` (1,164 lines)
 
 1. **Couple detail Q-components** (Q01-Q13) — the right extraction pattern
 2. **designTokens.ts structure** — good for its scope, just don't expand without asking
-3. **Photo Production collapsible lanes** — good UX pattern to replicate
+3. **Photo Production collapsible lanes** — good UX pattern, use shadcn Collapsible for new pages
+4. **shadcn/ui** — use for all new shared UI (Button, Badge, Table, Card, Dialog, Select, etc.)
