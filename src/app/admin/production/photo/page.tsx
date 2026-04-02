@@ -508,7 +508,7 @@ export default function PhotoProductionPage() {
           </button>
           <button
             onClick={() => router.push('/admin/production/editing/new')}
-            className="flex items-center gap-2 rounded-lg bg-stone-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 transition-colors"
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             <Plus className="h-4 w-4" />
             Add Job
@@ -539,7 +539,7 @@ export default function PhotoProductionPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search couples, job types..."
-                className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-stone-400"
+                className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-ring"
               />
             </div>
 
@@ -551,7 +551,7 @@ export default function PhotoProductionPage() {
                   onClick={() => setFilterCategory(cat)}
                   className={`px-3 py-2 text-xs font-medium transition-colors ${
                     filterCategory === cat
-                      ? 'bg-stone-800 text-white'
+                      ? 'bg-primary text-primary-foreground'
                       : 'bg-background hover:bg-accent/50'
                   }`}
                 >
@@ -564,7 +564,7 @@ export default function PhotoProductionPage() {
             <select
               value={filterVendor}
               onChange={(e) => setFilterVendor(e.target.value)}
-              className="rounded-lg border border-input bg-background px-3 py-2 text-xs outline-none transition-colors focus:border-stone-400"
+              className="rounded-lg border border-input bg-background px-3 py-2 text-xs outline-none transition-colors focus:border-ring"
             >
               <option value="">All Vendors</option>
               {Object.entries(VENDOR_LABELS).map(([val, label]) => (
@@ -574,17 +574,17 @@ export default function PhotoProductionPage() {
           </div>
 
           {/* Currently Editing Section */}
-          <div className="rounded-xl border border-[#e7e1d8] mb-4" style={{ background: '#faf8f5', boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
+          <div className="rounded-xl border border-border mb-4 bg-muted" style={{ boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
             <button
               onClick={() => toggleLane('in_progress')}
-              className="w-full px-5 py-4 flex items-center justify-between hover:bg-[#f5f0eb] transition-colors rounded-t-xl"
+              className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted transition-colors rounded-t-xl"
             >
               <div className="flex items-center gap-3">
                 {collapsedLanes.has('in_progress')
-                  ? <ChevronRight className="h-4 w-4 text-[#0d4f4f]" />
-                  : <ChevronDown className="h-4 w-4 text-[#0d4f4f]" />
+                  ? <ChevronRight className="h-4 w-4 text-primary" />
+                  : <ChevronDown className="h-4 w-4 text-primary" />
                 }
-                <span className={`${playfair.className} text-lg text-[#0d4f4f]`}>Currently Editing</span>
+                <span className={`${playfair.className} text-lg text-primary`}>Currently Editing</span>
                 <span className="text-xs rounded-full px-2.5 py-0.5 font-semibold bg-[#dbeafe] text-[#1e40af]">
                   {inProgressJobs.length}
                 </span>
@@ -595,43 +595,43 @@ export default function PhotoProductionPage() {
               <>
                 {/* ── Metric Tiles ── */}
                 <div className="grid grid-cols-4 gap-3 px-5 pb-4">
-                  <div className="rounded-lg bg-[#f9fafb] border border-[#e7e1d8] p-3.5">
-                    <div className={`${nunito.className} text-[11px] font-semibold uppercase tracking-wider text-[#78716c]`}>Photos Remaining</div>
-                    <div className={`${nunito.className} text-2xl font-bold text-[#0d4f4f] mt-1`}>{asapTotals.remaining.toLocaleString()}</div>
-                    <div className={`${nunito.className} text-[11px] text-[#a8a29e] mt-0.5`}>{asapTotals.editedSoFar.toLocaleString()} of {(asapTotals.totalProofs || asapTotals.photosTaken).toLocaleString()} edited</div>
+                  <div className="rounded-lg bg-muted border border-border p-3.5">
+                    <div className={`${nunito.className} text-[11px] font-semibold uppercase tracking-wider text-muted-foreground`}>Photos Remaining</div>
+                    <div className={`${nunito.className} text-2xl font-bold text-primary mt-1`}>{asapTotals.remaining.toLocaleString()}</div>
+                    <div className={`${nunito.className} text-[11px] text-muted-foreground mt-0.5`}>{asapTotals.editedSoFar.toLocaleString()} of {(asapTotals.totalProofs || asapTotals.photosTaken).toLocaleString()} edited</div>
                   </div>
-                  <div className="rounded-lg bg-[#f9fafb] border border-[#e7e1d8] p-3.5">
-                    <div className={`${nunito.className} text-[11px] font-semibold uppercase tracking-wider text-[#78716c]`}>Awaiting Order</div>
-                    <div className={`${nunito.className} text-2xl font-bold mt-1 ${waitingOrderCouples.length > 0 ? 'text-[#92400e]' : 'text-[#0d4f4f]'}`}>{waitingOrderCouples.length}</div>
-                    <div className={`${nunito.className} text-[11px] text-[#a8a29e] mt-0.5`}>Past weddings, no order</div>
+                  <div className="rounded-lg bg-muted border border-border p-3.5">
+                    <div className={`${nunito.className} text-[11px] font-semibold uppercase tracking-wider text-muted-foreground`}>Awaiting Order</div>
+                    <div className={`${nunito.className} text-2xl font-bold mt-1 ${waitingOrderCouples.length > 0 ? 'text-amber-700' : 'text-primary'}`}>{waitingOrderCouples.length}</div>
+                    <div className={`${nunito.className} text-[11px] text-muted-foreground mt-0.5`}>Past weddings, no order</div>
                   </div>
-                  <div className="rounded-lg bg-[#f9fafb] border border-[#e7e1d8] p-3.5">
-                    <div className={`${nunito.className} text-[11px] font-semibold uppercase tracking-wider text-[#78716c]`}>At Lab</div>
-                    <div className={`${nunito.className} text-2xl font-bold mt-1 ${sidebarStats.atLabCount > 0 ? 'text-[#4338ca]' : 'text-[#0d4f4f]'}`}>{sidebarStats.atLabCount}</div>
-                    <div className={`${nunito.className} text-[11px] text-[#a8a29e] mt-0.5`}>Prints & albums in production</div>
+                  <div className="rounded-lg bg-muted border border-border p-3.5">
+                    <div className={`${nunito.className} text-[11px] font-semibold uppercase tracking-wider text-muted-foreground`}>At Lab</div>
+                    <div className={`${nunito.className} text-2xl font-bold mt-1 ${sidebarStats.atLabCount > 0 ? 'text-indigo-700' : 'text-primary'}`}>{sidebarStats.atLabCount}</div>
+                    <div className={`${nunito.className} text-[11px] text-muted-foreground mt-0.5`}>Prints & albums in production</div>
                   </div>
-                  <div className="rounded-lg bg-[#f9fafb] border border-[#e7e1d8] p-3.5">
-                    <div className={`${nunito.className} text-[11px] font-semibold uppercase tracking-wider text-[#78716c]`}>2026 Progress</div>
-                    <div className={`${nunito.className} text-2xl font-bold text-[#0d4f4f] mt-1`}>{completedCount}</div>
-                    <div className={`${nunito.className} text-[11px] text-[#a8a29e] mt-0.5`}>Jobs completed YTD</div>
+                  <div className="rounded-lg bg-muted border border-border p-3.5">
+                    <div className={`${nunito.className} text-[11px] font-semibold uppercase tracking-wider text-muted-foreground`}>2026 Progress</div>
+                    <div className={`${nunito.className} text-2xl font-bold text-primary mt-1`}>{completedCount}</div>
+                    <div className={`${nunito.className} text-[11px] text-muted-foreground mt-0.5`}>Jobs completed YTD</div>
                   </div>
                 </div>
 
                 {/* ── Data Table ── */}
-                <div className="border-t border-[#e7e1d8] overflow-x-auto">
+                <div className="border-t border-border overflow-x-auto">
                   <table className={`${nunito.className} w-full text-sm min-w-[1100px]`}>
                     <thead>
-                      <tr style={{ background: 'rgba(13,79,79,0.05)' }} className="border-b border-[#e7e1d8]">
-                        <th className="text-left px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#0d4f4f] min-w-[180px]">Couple</th>
-                        <th className="text-left px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#0d4f4f] min-w-[130px]">Job</th>
-                        <th className="text-right px-2 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#0d4f4f] w-[90px]">Photos Taken</th>
-                        <th className="text-right px-2 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#0d4f4f] w-[90px]">Edited So Far</th>
-                        <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#0d4f4f] w-[80px]">Remaining</th>
-                        <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#0d4f4f] w-[70px]">Deleted</th>
-                        <th className="text-right px-2 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#0d4f4f] w-[90px]">Total Proofs</th>
-                        <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#0d4f4f] w-[80px]">% Deleted</th>
-                        <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#0d4f4f] w-[90px]">% Completed</th>
-                        <th className="text-left px-2 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#0d4f4f] w-[150px]">Status</th>
+                      <tr className="border-b border-border bg-primary/5">
+                        <th className="text-left px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary min-w-[180px]">Couple</th>
+                        <th className="text-left px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary min-w-[130px]">Job</th>
+                        <th className="text-right px-2 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary w-[90px]">Photos Taken</th>
+                        <th className="text-right px-2 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary w-[90px]">Edited So Far</th>
+                        <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary w-[80px]">Remaining</th>
+                        <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary w-[70px]">Deleted</th>
+                        <th className="text-right px-2 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary w-[90px]">Total Proofs</th>
+                        <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary w-[80px]">% Deleted</th>
+                        <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary w-[90px]">% Completed</th>
+                        <th className="text-left px-2 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary w-[150px]">Status</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -645,16 +645,16 @@ export default function PhotoProductionPage() {
                         const pctCompleted = pt > 0 ? ((esf / pt) * 100).toFixed(1) : null
 
                         return (
-                          <tr key={job.id} className="border-b border-[#e7e1d8]/60 hover:bg-[#f5f0eb]/50 transition-colors">
+                          <tr key={job.id} className="border-b border-border/60 hover:bg-muted/50 transition-colors">
                             <td className="px-3 py-2.5">
-                              <div className={`${nunito.className} font-semibold text-sm text-[#1c1917]`}>{job.couples?.couple_name || 'Unknown'}</div>
+                              <div className={`${nunito.className} font-semibold text-sm text-foreground`}>{job.couples?.couple_name || 'Unknown'}</div>
                               {job.couples?.wedding_date && (
-                                <div className="text-[11px] text-[#a8a29e]">
+                                <div className="text-[11px] text-muted-foreground">
                                   {format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')}
                                 </div>
                               )}
                             </td>
-                            <td className="px-3 py-2.5 text-[#78716c]">
+                            <td className="px-3 py-2.5 text-muted-foreground">
                               {JOB_TYPE_LABELS[job.job_type] || job.job_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                             </td>
                             <td className="px-1 py-1 text-right">
@@ -666,7 +666,7 @@ export default function PhotoProductionPage() {
                                   const val = parseInt(e.target.value.replace(/,/g, '')) || 0
                                   if (val !== (job.photos_taken || 0)) updateJobField(job.id, 'photos_taken', val)
                                 }}
-                                className={`w-[80px] text-right text-sm border border-[#e7e1d8] rounded-md px-2 py-1.5 outline-none transition-all duration-300 focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20 ${savedFields.has(`${job.id}_photos_taken`) ? 'bg-green-100' : 'bg-white'}`}
+                                className={`w-[80px] text-right text-sm border border-border rounded-md px-2 py-1.5 outline-none transition-all duration-300 focus:border-primary focus:ring-1 focus:ring-primary/20 ${savedFields.has(`${job.id}_photos_taken`) ? 'bg-green-100' : 'bg-background'}`}
                               />
                             </td>
                             <td className="px-1 py-1 text-right">
@@ -678,11 +678,11 @@ export default function PhotoProductionPage() {
                                   const val = parseInt(e.target.value.replace(/,/g, '')) || 0
                                   if (val !== (job.edited_so_far || 0)) updateJobField(job.id, 'edited_so_far', val)
                                 }}
-                                className={`w-[80px] text-right text-sm border border-[#e7e1d8] rounded-md px-2 py-1.5 outline-none transition-all duration-300 focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20 ${savedFields.has(`${job.id}_edited_so_far`) ? 'bg-green-100' : 'bg-white'}`}
+                                className={`w-[80px] text-right text-sm border border-border rounded-md px-2 py-1.5 outline-none transition-all duration-300 focus:border-primary focus:ring-1 focus:ring-primary/20 ${savedFields.has(`${job.id}_edited_so_far`) ? 'bg-green-100' : 'bg-background'}`}
                               />
                             </td>
-                            <td className="px-3 py-2.5 text-right text-[#78716c]">{remaining.toLocaleString()}</td>
-                            <td className="px-3 py-2.5 text-right text-[#78716c]">{deleted > 0 ? deleted.toLocaleString() : '\u2014'}</td>
+                            <td className="px-3 py-2.5 text-right text-muted-foreground">{remaining.toLocaleString()}</td>
+                            <td className="px-3 py-2.5 text-right text-muted-foreground">{deleted > 0 ? deleted.toLocaleString() : '\u2014'}</td>
                             <td className="px-1 py-1 text-right">
                               <input
                                 key={`tp_${job.id}_${job.total_proofs}`}
@@ -692,16 +692,16 @@ export default function PhotoProductionPage() {
                                   const val = parseInt(e.target.value.replace(/,/g, '')) || 0
                                   if (val !== (job.total_proofs || 0)) updateJobField(job.id, 'total_proofs', val)
                                 }}
-                                className={`w-[80px] text-right text-sm border border-[#e7e1d8] rounded-md px-2 py-1.5 outline-none transition-all duration-300 focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20 ${savedFields.has(`${job.id}_total_proofs`) ? 'bg-green-100' : 'bg-white'}`}
+                                className={`w-[80px] text-right text-sm border border-border rounded-md px-2 py-1.5 outline-none transition-all duration-300 focus:border-primary focus:ring-1 focus:ring-primary/20 ${savedFields.has(`${job.id}_total_proofs`) ? 'bg-green-100' : 'bg-background'}`}
                               />
                             </td>
-                            <td className="px-3 py-2.5 text-right text-[#78716c]">{pctDeleted !== null ? `${pctDeleted}%` : '\u2014'}</td>
-                            <td className="px-3 py-2.5 text-right text-[#78716c]">{pctCompleted !== null ? `${pctCompleted}%` : '\u2014'}</td>
+                            <td className="px-3 py-2.5 text-right text-muted-foreground">{pctDeleted !== null ? `${pctDeleted}%` : '\u2014'}</td>
+                            <td className="px-3 py-2.5 text-right text-muted-foreground">{pctCompleted !== null ? `${pctCompleted}%` : '\u2014'}</td>
                             <td className="px-2 py-1">
                               <select
                                 value={job.status}
                                 onChange={(e) => updateStatus(job.id, e.target.value)}
-                                className={`${nunito.className} text-xs rounded-lg border border-[#e7e1d8] bg-white px-2 py-1.5 outline-none transition-colors focus:border-[#0d4f4f] cursor-pointer`}
+                                className={`${nunito.className} text-xs rounded-lg border border-border bg-background px-2 py-1.5 outline-none transition-colors focus:border-primary cursor-pointer`}
                               >
                                 {STATUS_OPTIONS.map(s => (
                                   <option key={s.value} value={s.value}>{s.label}</option>
@@ -714,42 +714,42 @@ export default function PhotoProductionPage() {
 
                       {inProgressJobs.length === 0 && (
                         <tr>
-                          <td colSpan={10} className="px-4 py-6 text-center text-sm text-[#a8a29e]">
+                          <td colSpan={10} className="px-4 py-6 text-center text-sm text-muted-foreground">
                             No jobs currently being edited
                           </td>
                         </tr>
                       )}
 
                       {/* Currently Due ASAP Summary */}
-                      <tr style={{ background: '#f5f5f4' }} className="border-t-2 border-[#e7e1d8]">
-                        <td className={`px-3 py-2.5 font-bold text-sm text-[#44403c] ${nunito.className}`}>Currently Due ASAP</td>
+                      <tr className="border-t-2 border-border bg-muted">
+                        <td className={`px-3 py-2.5 font-bold text-sm text-foreground ${nunito.className}`}>Currently Due ASAP</td>
                         <td></td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#44403c]">{asapTotals.photosTaken.toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#44403c]">{asapTotals.editedSoFar.toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#44403c]">{asapTotals.remaining.toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#44403c]">{asapTotals.deleted > 0 ? asapTotals.deleted.toLocaleString() : '\u2014'}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#44403c]">{asapTotals.totalProofs.toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#44403c]">{asapTotals.pctDeleted !== null ? `${asapTotals.pctDeleted}%` : '\u2014'}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#44403c]">{asapTotals.pctCompleted !== null ? `${asapTotals.pctCompleted}%` : '\u2014'}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-foreground">{asapTotals.photosTaken.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-foreground">{asapTotals.editedSoFar.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-foreground">{asapTotals.remaining.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-foreground">{asapTotals.deleted > 0 ? asapTotals.deleted.toLocaleString() : '\u2014'}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-foreground">{asapTotals.totalProofs.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-foreground">{asapTotals.pctDeleted !== null ? `${asapTotals.pctDeleted}%` : '\u2014'}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-foreground">{asapTotals.pctCompleted !== null ? `${asapTotals.pctCompleted}%` : '\u2014'}</td>
                         <td></td>
                       </tr>
 
                       {/* Completed 2026 */}
-                      <tr style={{ background: '#f0f0ef' }} className="border-t border-[#e7e1d8]">
-                        <td className={`px-3 py-2.5 font-bold text-sm text-[#78716c] ${nunito.className}`}>Completed 2026</td>
+                      <tr className="border-t border-border bg-muted/60">
+                        <td className={`px-3 py-2.5 font-bold text-sm text-muted-foreground ${nunito.className}`}>Completed 2026</td>
                         <td></td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#78716c]">{cemeteryProofsTotals.photosTaken.toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#78716c]">{cemeteryProofsTotals.editedSoFar.toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#78716c]">{cemeteryProofsTotals.remaining.toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#78716c]">{cemeteryProofsTotals.deleted > 0 ? cemeteryProofsTotals.deleted.toLocaleString() : '\u2014'}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#78716c]">{cemeteryProofsTotals.totalProofs.toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#78716c]">{cemeteryProofsTotals.pctDeleted !== null ? `${cemeteryProofsTotals.pctDeleted}%` : '\u2014'}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-[#78716c]">{cemeteryProofsTotals.pctCompleted !== null ? `${cemeteryProofsTotals.pctCompleted}%` : '\u2014'}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.photosTaken.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.editedSoFar.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.remaining.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.deleted > 0 ? cemeteryProofsTotals.deleted.toLocaleString() : '\u2014'}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.totalProofs.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.pctDeleted !== null ? `${cemeteryProofsTotals.pctDeleted}%` : '\u2014'}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.pctCompleted !== null ? `${cemeteryProofsTotals.pctCompleted}%` : '\u2014'}</td>
                         <td></td>
                       </tr>
 
                       {/* Year to Date Summary — TEAL */}
-                      <tr style={{ background: '#0d4f4f', fontSize: '15px' }} className="text-white font-bold">
+                      <tr style={{ fontSize: '15px' }} className="bg-primary text-primary-foreground font-bold">
                         <td className={`px-3 py-3 font-bold rounded-bl-xl ${nunito.className}`}>Year to Date</td>
                         <td></td>
                         <td className="px-3 py-3 text-right">{ytdTotals.photosTaken.toLocaleString()}</td>
@@ -856,7 +856,7 @@ export default function PhotoProductionPage() {
                           <select
                             value={job.status}
                             onChange={(e) => updateStatus(job.id, e.target.value)}
-                            className="text-xs rounded-lg border border-input bg-background px-2 py-1.5 outline-none transition-colors focus:border-stone-400 cursor-pointer"
+                            className="text-xs rounded-lg border border-input bg-background px-2 py-1.5 outline-none transition-colors focus:border-ring cursor-pointer"
                           >
                             {STATUS_OPTIONS.map(s => (
                               <option key={s.value} value={s.value}>{s.label}</option>
@@ -879,18 +879,18 @@ export default function PhotoProductionPage() {
           </div>
 
           {/* Completed 2026 */}
-          <div className="mt-6 rounded-xl border border-gray-200 bg-card">
+          <div className="mt-6 rounded-xl border border-border bg-card">
             <button
               onClick={() => setCemeteryOpen(!cemeteryOpen)}
               className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
             >
               <div className="flex items-center gap-3">
                 {cemeteryOpen
-                  ? <ChevronDown className="h-4 w-4 text-gray-400" />
-                  : <ChevronRight className="h-4 w-4 text-gray-400" />
+                  ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  : <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 }
-                <span className="font-semibold text-sm text-gray-400">Completed 2026</span>
-                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-gray-100 text-gray-500">
+                <span className="font-semibold text-sm text-muted-foreground">Completed 2026</span>
+                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-muted text-muted-foreground">
                   {cemeteryJobs.length}
                 </span>
               </div>
@@ -900,16 +900,16 @@ export default function PhotoProductionPage() {
               <div className="border-t overflow-x-auto">
                 <table className="w-full text-sm min-w-[1000px]">
                   <thead>
-                    <tr className="bg-gray-50 border-b">
-                      <th className="text-left px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Couple</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Job Type</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Photos Taken</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Edited So Far</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Total Proofs</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Deleted</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">% Deleted</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Vendor</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Status</th>
+                    <tr className="bg-muted border-b">
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Couple</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Job Type</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Photos Taken</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Edited So Far</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Proofs</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Deleted</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">% Deleted</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Vendor</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -921,26 +921,26 @@ export default function PhotoProductionPage() {
                       const vendorInfo = getVendorInfo(job.vendor)
 
                       return (
-                        <tr key={job.id} className={`border-b border-gray-100 ${i % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
+                        <tr key={job.id} className={`border-b border-border ${i % 2 === 1 ? 'bg-muted/50' : ''}`}>
                           <td className="px-3 py-2">
-                            <div className="font-medium text-sm text-gray-500">{job.couples?.couple_name || 'Unknown'}</div>
+                            <div className="font-medium text-sm text-muted-foreground">{job.couples?.couple_name || 'Unknown'}</div>
                             {job.couples?.wedding_date && (
-                              <div className="text-[11px] text-gray-400">
+                              <div className="text-[11px] text-muted-foreground">
                                 {format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')}
                               </div>
                             )}
                           </td>
-                          <td className="px-3 py-2 text-gray-400">
+                          <td className="px-3 py-2 text-muted-foreground">
                             {JOB_TYPE_LABELS[job.job_type] || job.job_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                           </td>
-                          <td className="px-3 py-2 text-right text-gray-400">{pt > 0 ? pt.toLocaleString() : '—'}</td>
-                          <td className="px-3 py-2 text-right text-gray-400">{(job.edited_so_far || 0) > 0 ? (job.edited_so_far || 0).toLocaleString() : '—'}</td>
-                          <td className="px-3 py-2 text-right text-gray-400">{tp > 0 ? tp.toLocaleString() : '—'}</td>
-                          <td className="px-3 py-2 text-right text-gray-400">{deleted > 0 ? deleted.toLocaleString() : '—'}</td>
-                          <td className="px-3 py-2 text-right text-gray-400">{pctDeleted !== null ? `${pctDeleted}%` : '—'}</td>
-                          <td className="px-3 py-2 text-gray-400">{vendorInfo.label}</td>
+                          <td className="px-3 py-2 text-right text-muted-foreground">{pt > 0 ? pt.toLocaleString() : '—'}</td>
+                          <td className="px-3 py-2 text-right text-muted-foreground">{(job.edited_so_far || 0) > 0 ? (job.edited_so_far || 0).toLocaleString() : '—'}</td>
+                          <td className="px-3 py-2 text-right text-muted-foreground">{tp > 0 ? tp.toLocaleString() : '—'}</td>
+                          <td className="px-3 py-2 text-right text-muted-foreground">{deleted > 0 ? deleted.toLocaleString() : '—'}</td>
+                          <td className="px-3 py-2 text-right text-muted-foreground">{pctDeleted !== null ? `${pctDeleted}%` : '—'}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{vendorInfo.label}</td>
                           <td className="px-3 py-2">
-                            <span className="text-xs text-gray-400 italic">
+                            <span className="text-xs text-muted-foreground italic">
                               {job.status === 'picked_up' ? 'Picked Up' : 'Completed'}
                             </span>
                           </td>
@@ -957,14 +957,14 @@ export default function PhotoProductionPage() {
                       const pctDel = deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null
                       const pctComp = pt > 0 ? ((esf / pt) * 100).toFixed(1) : null
                       return (
-                        <tr className="bg-gray-100 border-t-2 border-gray-300">
-                          <td className="px-3 py-2 font-bold text-sm text-gray-500">Completed 2026</td>
+                        <tr className="bg-muted border-t-2 border-border">
+                          <td className="px-3 py-2 font-bold text-sm text-muted-foreground">Completed 2026</td>
                           <td></td>
-                          <td className="px-3 py-2 text-right font-semibold text-sm text-gray-500">{pt.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-sm text-gray-500">{esf.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-sm text-gray-500">{tp.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-sm text-gray-500">{deleted > 0 ? deleted.toLocaleString() : '—'}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-sm text-gray-500">{pctDel !== null ? `${pctDel}%` : '—'}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{pt.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{esf.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{tp.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{deleted > 0 ? deleted.toLocaleString() : '—'}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{pctDel !== null ? `${pctDel}%` : '—'}</td>
                           <td></td>
                           <td></td>
                         </tr>
@@ -976,7 +976,7 @@ export default function PhotoProductionPage() {
             )}
 
             {cemeteryOpen && cemeteryJobs.length === 0 && (
-              <div className="border-t px-4 py-6 text-center text-sm text-gray-400">
+              <div className="border-t px-4 py-6 text-center text-sm text-muted-foreground">
                 No completed jobs
               </div>
             )}
@@ -987,7 +987,7 @@ export default function PhotoProductionPage() {
         <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
           {/* Active Jobs */}
           <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
             onClick={() => setPopupStatus('active')}
           >
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
@@ -1003,7 +1003,7 @@ export default function PhotoProductionPage() {
 
           {/* Waiting for Order */}
           <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
             onClick={() => setPopupStatus('waiting_order')}
           >
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
@@ -1017,7 +1017,7 @@ export default function PhotoProductionPage() {
 
           {/* In Progress */}
           <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
             onClick={() => setPopupStatus('in_progress')}
           >
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
@@ -1031,7 +1031,7 @@ export default function PhotoProductionPage() {
 
           {/* Waiting for Bride */}
           <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
             onClick={() => setPopupStatus('waiting_approval')}
           >
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
@@ -1045,7 +1045,7 @@ export default function PhotoProductionPage() {
 
           {/* Re-edits */}
           <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
             onClick={() => setPopupStatus('reedits')}
           >
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
@@ -1059,7 +1059,7 @@ export default function PhotoProductionPage() {
 
           {/* At Lab */}
           <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
             onClick={() => setPopupStatus('at_lab')}
           >
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
@@ -1073,7 +1073,7 @@ export default function PhotoProductionPage() {
 
           {/* Ready to Order */}
           <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-stone-400 transition-colors"
+            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
             onClick={() => setPopupStatus('ready_to_order')}
           >
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
