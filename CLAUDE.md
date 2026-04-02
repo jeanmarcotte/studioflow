@@ -52,12 +52,14 @@ Page files (`page.tsx`) must be thin shells — max ~200 lines. They fetch data,
 
 shadcn/ui is the component library for StudioFlow. Components live in `src/components/ui/`.
 
-- **New pages:** Use shadcn components (Button, Badge, Table, Card, Dialog, Select, Collapsible, etc.) instead of building from raw HTML + Tailwind
-- **Old pages:** Still use inline Tailwind — do NOT refactor them to shadcn unless doing a full page rebuild
-- **Adding shadcn components:** Use `npx shadcn-ui@latest add <component>` to install new ones as needed
-- **Customization:** shadcn copies components as regular files into `src/components/ui/` — you can edit them freely
+**Installed components:** Button, Badge, Table, Card, Collapsible, Select, Input
 
-**Note:** shadcn uses the CSS variables already configured in `tailwind.config.js` (`--primary`, `--muted`, `--border`, etc.), so components will match the existing color system automatically.
+- **New pages:** Use shadcn components from `@/components/ui/*` instead of building from raw HTML + Tailwind
+- **Old pages:** Still use inline Tailwind — do NOT refactor them to shadcn unless doing a full page rebuild
+- **Adding new shadcn components:** We use Tailwind 3 + Radix UI. The shadcn v4 CLI is NOT compatible (it generates Tailwind v4 code). Create new components manually following the patterns in `src/components/ui/button.tsx` using `@radix-ui/*` primitives + `cva` + `cn()`.
+- **Customization:** Components are regular files in `src/components/ui/` — edit them freely
+
+**Note:** Components use CSS variables from `tailwind.config.js` via `hsl(var(--primary))` etc., defined in `globals.css`.
 
 ### Rule 3: Styling — Tailwind + shadcn/ui + CSS Variables
 
@@ -303,7 +305,7 @@ File: `src/app/admin/production/photo/page.tsx` (1,164 lines)
 - Collapsible sections via `collapsedLanes` state (Set<string>)
 - Two-column flexbox: main panel + stats sidebar
 
-**New production/sales pages should match this design language but use shadcn components instead of raw HTML.**
+**New pages should match this layout pattern but use shadcn components (Card, Table, Badge, Collapsible, etc.) instead of raw HTML.** See `src/app/admin/sales/frames/page.tsx` for the first shadcn-based page.
 
 ---
 
