@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { DollarSign, TrendingUp, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
 import { formatDateCompact, formatCurrency } from '@/lib/formatters';
 
 const FY_START = '2025-05-01';
@@ -86,6 +88,45 @@ export default function FinanceDashboardPage() {
     );
   }
 
+  const paymentColumns: ColumnDef<any>[] = useMemo(() => [
+    {
+      accessorKey: "payment_date",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Date" />,
+      cell: ({ row }) => <span className="font-mono text-muted-foreground">{row.original.payment_date ? formatDateCompact(row.original.payment_date) : '—'}</span>,
+    },
+    {
+      accessorKey: "couple_name",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+      accessorFn: (row) => row.couples?.couple_name || 'Unknown',
+      cell: ({ row }) => row.original.couples ? (
+        <Link
+          href={`/admin/couples/${row.original.couples.id}`}
+          className="text-primary hover:text-primary/80 font-medium hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {row.original.couples.couple_name}
+        </Link>
+      ) : (
+        <span className="text-muted-foreground">Unknown</span>
+      ),
+    },
+    {
+      accessorKey: "amount",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Amount" />,
+      cell: ({ row }) => <span className="font-mono font-semibold text-green-600" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(row.original.amount)}</span>,
+    },
+    {
+      accessorKey: "method",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Method" />,
+      cell: ({ row }) => <span className="text-muted-foreground capitalize">{row.original.method || '—'}</span>,
+    },
+    {
+      accessorKey: "from_name",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="From" />,
+      cell: ({ row }) => row.original.from_name || '—',
+    },
+  ], []);
+
   const cards = [
     {
       label: `${FY_LABEL} Income`,
@@ -163,67 +204,19 @@ export default function FinanceDashboardPage() {
       </div>
 
       {/* Recent Payments */}
-      <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-border bg-muted flex justify-between items-center">
+      <div>
+        <div className="flex justify-between items-center mb-3">
           <h2 className="text-sm font-bold text-foreground">Recent Payments</h2>
           <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 transition-colors">
             + Record Payment
           </button>
         </div>
-
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="text-left py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">Date</th>
-              <th className="text-left py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">Couple</th>
-              <th className="text-right py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">Amount</th>
-              <th className="text-left py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">Method</th>
-              <th className="text-left py-3 px-5 text-xs font-semibold text-muted-foreground uppercase">From</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentPayments.map((payment, idx) => (
-              <tr
-                key={payment.id}
-                className={`border-b border-border hover:bg-teal-50/30 transition-colors ${
-                  idx % 2 === 0 ? 'bg-background' : 'bg-muted/30'
-                }`}
-              >
-                <td className="py-3 px-5 font-mono text-muted-foreground">
-                  {payment.payment_date ? formatDateCompact(payment.payment_date) : '—'}
-                </td>
-                <td className="py-3 px-5">
-                  {payment.couples ? (
-                    <Link
-                      href={`/admin/couples/${payment.couples.id}`}
-                      className="text-teal-600 hover:text-teal-700 font-medium hover:underline"
-                    >
-                      {payment.couples.couple_name}
-                    </Link>
-                  ) : (
-                    <span className="text-muted-foreground">Unknown</span>
-                  )}
-                </td>
-                <td className="py-3 px-5 text-right font-mono font-semibold text-green-600">
-                  {formatCurrency(payment.amount)}
-                </td>
-                <td className="py-3 px-5 text-muted-foreground capitalize">
-                  {payment.method || '—'}
-                </td>
-                <td className="py-3 px-5 text-foreground">
-                  {payment.from_name || '—'}
-                </td>
-              </tr>
-            ))}
-            {recentPayments.length === 0 && (
-              <tr>
-                <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                  No payments found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          columns={paymentColumns}
+          data={recentPayments}
+          emptyMessage="No payments found"
+          showPagination={false}
+        />
       </div>
     </div>
   );
