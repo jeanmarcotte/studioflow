@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Manrope } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import './globals.css'
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/sonner"
@@ -21,7 +22,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={cn("font-sans antialiased", manrope.variable)}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          {children}
+          <NuqsAdapter>
+            {children}
+          </NuqsAdapter>
           <Toaster />
         </ThemeProvider>
       </body>
