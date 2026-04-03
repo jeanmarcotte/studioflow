@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { ColumnDef } from '@tanstack/react-table'
 import { supabase } from '@/lib/supabase'
+import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
 import { Users, Search, Filter, ChevronUp, ChevronDown, Calendar, Camera, Frame, FileText, Package } from 'lucide-react'
 import { formatWeddingDate, formatCurrency } from '@/lib/formatters'
 import PdfImporter from '@/components/admin/PdfImporter'
@@ -25,9 +27,6 @@ interface Couple {
   payments_count: number
   eng_pipeline: string
 }
-
-type SortField = 'couple_name' | 'wedding_date' | 'balance_owing' | 'package_type' | 'reception_venue' | 'contract_price' | 'frames_total' | 'extras_total' | 'payments_count' | 'eng_pipeline'
-type SortDir = 'asc' | 'desc'
 
 const YEARS = [2027, 2026, 2025]
 const ENG_STATES = [
@@ -106,8 +105,6 @@ export default function CouplesPage() {
   const [yearFilter, setYearFilter] = useState<number | 'all'>('all')
   const [engFilter, setEngFilter] = useState<string>('all')
   const [packageFilter, setPackageFilter] = useState<string>('all')
-  const [sortField, setSortField] = useState<SortField>('wedding_date')
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [refreshKey, setRefreshKey] = useState(0)
   const [activeImporter, setActiveImporter] = useState<'none' | 'contract' | 'extras'>('none')
 
@@ -183,15 +180,6 @@ export default function CouplesPage() {
     fetchCouples()
   }, [refreshKey])
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDir('asc')
-    }
-  }
-
   const filtered = useMemo(() => {
     let result = [...couples]
 
@@ -220,65 +208,80 @@ export default function CouplesPage() {
       result = result.filter(c => c.package_type === packageFilter)
     }
 
-    // Sort
-    const yearPriority = (date: string | null) => {
-      if (!date) return 99
-      const year = new Date(date).getFullYear()
-      if (year === 2026) return 1
-      if (year === 2027) return 2
-      if (year === 2028) return 3
-      if (year === 2025) return 4
-      return 5
-    }
-
-    result.sort((a, b) => {
-      let cmp = 0
-      switch (sortField) {
-        case 'couple_name':
-          cmp = a.couple_name.localeCompare(b.couple_name)
-          break
-        case 'wedding_date': {
-          const yp = yearPriority(a.wedding_date) - yearPriority(b.wedding_date)
-          cmp = yp !== 0 ? yp : (a.wedding_date || '').localeCompare(b.wedding_date || '')
-          break
-        }
-        case 'balance_owing':
-          cmp = (Number(a.balance_owing) || 0) - (Number(b.balance_owing) || 0)
-          break
-        case 'package_type':
-          cmp = (a.package_type || '').localeCompare(b.package_type || '')
-          break
-        case 'reception_venue':
-          cmp = (a.reception_venue || '').localeCompare(b.reception_venue || '')
-          break
-        case 'contract_price':
-          cmp = (Number(a.contract_price) || 0) - (Number(b.contract_price) || 0)
-          break
-        case 'frames_total':
-          cmp = a.frames_total - b.frames_total
-          break
-        case 'extras_total':
-          cmp = a.extras_total - b.extras_total
-          break
-        case 'payments_count':
-          cmp = a.payments_count - b.payments_count
-          break
-        case 'eng_pipeline':
-          cmp = (ENG_SORT_ORDER[a.eng_pipeline] ?? 99) - (ENG_SORT_ORDER[b.eng_pipeline] ?? 99)
-          break
-      }
-      return sortDir === 'asc' ? cmp : -cmp
-    })
-
     return result
-  }, [couples, search, yearFilter, engFilter, packageFilter, sortField, sortDir])
+  }, [couples, search, yearFilter, engFilter, packageFilter])
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30" />
-    return sortDir === 'asc'
-      ? <ChevronUp className="h-3 w-3" />
-      : <ChevronDown className="h-3 w-3" />
-  }
+  // Column definitions for DataTable
+  const columns: ColumnDef<Couple>[] = useMemo(() => [
+    {
+      accessorKey: "couple_name",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+      cell: ({ row }) => <span className="font-medium">{row.original.couple_name}</span>,
+    },
+    {
+      accessorKey: "wedding_date",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Date" />,
+      cell: ({ row }) => row.original.wedding_date
+        ? <span style={{ whiteSpace: 'nowrap' }}>{formatWeddingDate(row.original.wedding_date)}</span>
+        : <span className="text-muted-foreground/40">—</span>,
+    },
+    {
+      accessorKey: "eng_pipeline",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Eng" />,
+      cell: ({ row }) => engBadge(row.original.eng_pipeline),
+      sortingFn: (a, b) => (ENG_SORT_ORDER[a.original.eng_pipeline] ?? 99) - (ENG_SORT_ORDER[b.original.eng_pipeline] ?? 99),
+    },
+    {
+      accessorKey: "package_type",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Package" />,
+      cell: ({ row }) => <span className="text-muted-foreground">{formatPackage(row.original.package_type)}</span>,
+    },
+    {
+      accessorKey: "reception_venue",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Venue" />,
+      cell: ({ row }) => row.original.reception_venue
+        ? <span className="text-muted-foreground truncate block max-w-[180px]" title={row.original.reception_venue}>{row.original.reception_venue}</span>
+        : <span className="text-muted-foreground/40">—</span>,
+    },
+    {
+      accessorKey: "contract_price",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Contract" />,
+      cell: ({ row }) => row.original.contract_price
+        ? <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(Number(row.original.contract_price)))}</span>
+        : <span className="text-muted-foreground/40" style={{ textAlign: 'right', display: 'block' }}>—</span>,
+    },
+    {
+      accessorKey: "frames_total",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Frames" />,
+      cell: ({ row }) => row.original.frames_total > 0
+        ? <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.frames_total))}</span>
+        : <span className="text-muted-foreground/40" style={{ textAlign: 'right', display: 'block' }}>—</span>,
+    },
+    {
+      accessorKey: "extras_total",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Extras" />,
+      cell: ({ row }) => row.original.extras_total > 0
+        ? <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.extras_total))}</span>
+        : <span className="text-muted-foreground/40" style={{ textAlign: 'right', display: 'block' }}>—</span>,
+    },
+    {
+      accessorKey: "payments_count",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Pmts" />,
+      cell: ({ row }) => row.original.payments_count > 0
+        ? <span className="text-muted-foreground" style={{ textAlign: 'center', display: 'block' }}>{row.original.payments_count}</span>
+        : <span className="text-muted-foreground/50" style={{ textAlign: 'center', display: 'block' }}>—</span>,
+    },
+    {
+      accessorKey: "balance_owing",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Balance" />,
+      cell: ({ row }) => {
+        const bal = Number(row.original.balance_owing) || 0
+        return bal > 0
+          ? <span className="font-semibold text-red-600" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(bal))}</span>
+          : <span className="text-muted-foreground/50 font-normal" style={{ textAlign: 'right', display: 'block' }}>$0</span>
+      },
+    },
+  ], [])
 
   // Stats computed from loaded data
   const stats = useMemo(() => {
@@ -483,136 +486,13 @@ export default function CouplesPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm" style={{ tableLayout: 'fixed', minWidth: 1100 }}>
-            <colgroup>
-              <col style={{ width: '16%' }} />
-              <col style={{ width: '12%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '9%' }} />
-              <col style={{ width: '15%' }} />
-              <col style={{ width: '9%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '11%' }} />
-            </colgroup>
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="p-3 font-medium" style={{ textAlign: 'left' }}>
-                  <button onClick={() => handleSort('couple_name')} className="w-full group flex items-center gap-1 hover:text-foreground">
-                    Couple <SortIcon field="couple_name" />
-                  </button>
-                </th>
-                <th className="p-3 font-medium" style={{ textAlign: 'left' }}>
-                  <button onClick={() => handleSort('wedding_date')} className="w-full group flex items-center gap-1 hover:text-foreground" style={{ whiteSpace: 'nowrap' }}>
-                    Date <SortIcon field="wedding_date" />
-                  </button>
-                </th>
-                <th className="p-3 font-medium" style={{ textAlign: 'center' }}>
-                  <button onClick={() => handleSort('eng_pipeline')} className="w-full group flex items-center gap-1 justify-center hover:text-foreground">
-                    Eng <SortIcon field="eng_pipeline" />
-                  </button>
-                </th>
-                <th className="p-3 font-medium" style={{ textAlign: 'left' }}>
-                  <button onClick={() => handleSort('package_type')} className="w-full group flex items-center gap-1 hover:text-foreground">
-                    Package <SortIcon field="package_type" />
-                  </button>
-                </th>
-                <th className="p-3 font-medium" style={{ textAlign: 'left' }}>
-                  <button onClick={() => handleSort('reception_venue')} className="w-full group flex items-center gap-1 hover:text-foreground">
-                    Venue <SortIcon field="reception_venue" />
-                  </button>
-                </th>
-                <th className="p-3 font-medium" style={{ textAlign: 'right' }}>
-                  <button onClick={() => handleSort('contract_price')} className="w-full group flex items-center gap-1 justify-end hover:text-foreground">
-                    Contract <SortIcon field="contract_price" />
-                  </button>
-                </th>
-                <th className="p-3 font-medium" style={{ textAlign: 'right' }}>
-                  <button onClick={() => handleSort('frames_total')} className="w-full group flex items-center gap-1 justify-end hover:text-foreground">
-                    Frames <SortIcon field="frames_total" />
-                  </button>
-                </th>
-                <th className="p-3 font-medium" style={{ textAlign: 'right' }}>
-                  <button onClick={() => handleSort('extras_total')} className="w-full group flex items-center gap-1 justify-end hover:text-foreground">
-                    Extras <SortIcon field="extras_total" />
-                  </button>
-                </th>
-                <th className="p-3 font-medium" style={{ textAlign: 'center' }}>
-                  <button onClick={() => handleSort('payments_count')} className="w-full group flex items-center gap-1 justify-center hover:text-foreground">
-                    Pmts <SortIcon field="payments_count" />
-                  </button>
-                </th>
-                <th className="p-3 font-medium" style={{ textAlign: 'right' }}>
-                  <button onClick={() => handleSort('balance_owing')} className="w-full group flex items-center gap-1 justify-end hover:text-foreground">
-                    Balance <SortIcon field="balance_owing" />
-                  </button>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={10} className="p-8 text-muted-foreground" style={{ textAlign: 'center' }}>
-                    No couples found matching your filters.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((couple) => {
-                  const bal = Number(couple.balance_owing) || 0
-                  return (
-                    <tr
-                      key={couple.id}
-                      onClick={() => router.push(`/admin/couples/${couple.id}`)}
-                      className="hover:bg-accent/50 cursor-pointer transition-colors"
-                    >
-                      <td className="p-3 truncate" title={couple.couple_name} style={{ textAlign: 'left' }}>
-                        <span className="font-medium">{couple.couple_name}</span>
-                      </td>
-                      <td className="p-3" style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
-                        {couple.wedding_date
-                          ? formatWeddingDate(couple.wedding_date)
-                          : <span className="text-muted-foreground/40">—</span>
-                        }
-                      </td>
-                      <td className="p-3" style={{ textAlign: 'center' }}>
-                        {engBadge(couple.eng_pipeline)}
-                      </td>
-                      <td className="p-3 text-muted-foreground truncate" style={{ textAlign: 'left' }}>
-                        {formatPackage(couple.package_type)}
-                      </td>
-                      <td className="p-3 text-muted-foreground truncate" title={couple.reception_venue || undefined} style={{ textAlign: 'left' }}>
-                        {couple.reception_venue || <span className="text-muted-foreground/40">—</span>}
-                      </td>
-                      <td className="p-3 text-muted-foreground" style={{ textAlign: 'right' }}>
-                        {couple.contract_price ? formatCurrency(Math.round(Number(couple.contract_price))) : <span className="text-muted-foreground/40">—</span>}
-                      </td>
-                      <td className="p-3 text-muted-foreground" style={{ textAlign: 'right' }}>
-                        {couple.frames_total > 0 ? formatCurrency(Math.round(couple.frames_total)) : <span className="text-muted-foreground/40">—</span>}
-                      </td>
-                      <td className="p-3 text-muted-foreground" style={{ textAlign: 'right' }}>
-                        {couple.extras_total > 0 ? formatCurrency(Math.round(couple.extras_total)) : <span className="text-muted-foreground/40">—</span>}
-                      </td>
-                      <td className="p-3 text-muted-foreground" style={{ textAlign: 'center' }}>
-                        {couple.payments_count > 0 ? couple.payments_count : <span className="text-muted-foreground/50">—</span>}
-                      </td>
-                      <td className="p-3 font-semibold" style={{ textAlign: 'right' }}>
-                        {bal > 0 ? (
-                          <span className="text-red-600">{formatCurrency(Math.round(bal))}</span>
-                        ) : (
-                          <span className="text-muted-foreground/50 font-normal">$0</span>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        columns={columns}
+        data={filtered}
+        onRowClick={(row) => router.push(`/admin/couples/${row.id}`)}
+        emptyMessage="No couples found matching your filters."
+        pageSize={50}
+      />
     </div>
   )
 }
