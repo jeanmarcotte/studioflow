@@ -5,3 +5,6 @@ export { StatsRow } from "./stats-row"
 export { StatsSidebar } from "./stats-sidebar"
 export { CollapsibleSection } from "./collapsible-section"
 export { FilterBar } from "./filter-bar"
+
+// DataTable (WO-297)
+export { DataTable, DataTableColumnHeader, DataTablePagination } from "./data-table"
