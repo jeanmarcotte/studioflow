@@ -1,16 +1,20 @@
-'use client'
+"use client"
 
-import React, { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
-import { Layout } from '@/components/layout/layout'
-import { studioflowClientConfig } from '@/config/sidebar'
-import { supabase } from '@/lib/supabase'
-import { cn } from '@/lib/utils'
+import { useState, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
+import { ColumnDef } from "@tanstack/react-table"
+import { Layout } from "@/components/layout/layout"
+import { studioflowClientConfig } from "@/config/sidebar"
+import { supabase } from "@/lib/supabase"
+import { InfoPageTemplate } from "@/components/templates"
 import {
-  Plus, ArrowUpDown, ArrowUp, ArrowDown,
-  Package, DollarSign, Calendar, FileText,
-} from 'lucide-react'
-import { formatWeddingDate, formatDateCompact, formatCurrency } from '@/lib/formatters'
+  DataTable,
+  DataTableColumnHeader,
+  StatusBadge,
+  StatCard,
+} from "@/components/ui"
+import { Package, DollarSign, FileText, Plus } from "lucide-react"
+import { formatWeddingDate, formatDateCompact, formatCurrency } from "@/lib/formatters"
 
 interface Extra {
   id: string
@@ -30,32 +34,97 @@ interface Extra {
   wedding_date: string | null
 }
 
-type SortField = 'couple_name' | 'wedding_date' | 'item_type' | 'description' | 'quantity' | 'total' | 'status' | 'invoice_date'
-type SortDir = 'asc' | 'desc'
+const columns: ColumnDef<Extra>[] = [
+  {
+    accessorKey: "couple_name",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Couple" />
+    ),
+    cell: ({ row }) => (
+      <span className="font-medium">{row.original.couple_name}</span>
+    ),
+  },
+  {
+    accessorKey: "wedding_date",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Wedding Date" />
+    ),
+    cell: ({ row }) => formatWeddingDate(row.original.wedding_date),
+  },
+  {
+    accessorKey: "item_type",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Item Type" />
+    ),
+  },
+  {
+    accessorKey: "description",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Description" />
+    ),
+    cell: ({ row }) => (
+      <span className="text-muted-foreground max-w-[200px] truncate block">
+        {row.original.description || "—"}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "quantity",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Qty" />
+    ),
+    cell: ({ row }) => (
+      <span className="text-center block">{row.original.quantity}</span>
+    ),
+  },
+  {
+    accessorKey: "total",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Total" />
+    ),
+    cell: ({ row }) => (
+      <span className="font-medium">{formatCurrency(row.original.total)}</span>
+    ),
+  },
+  {
+    accessorKey: "status",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Status" />
+    ),
+    cell: ({ row }) => <StatusBadge status={row.original.status} />,
+  },
+  {
+    accessorKey: "invoice_date",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Invoice Date" />
+    ),
+    cell: ({ row }) => formatDateCompact(row.original.invoice_date),
+  },
+]
 
 export default function ExtrasListPage() {
   const router = useRouter()
   const [extras, setExtras] = useState<Extra[]>([])
   const [loading, setLoading] = useState(true)
-  const [sortField, setSortField] = useState<SortField>('invoice_date')
-  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState("")
 
   useEffect(() => {
-    const fetchExtras = async () => {
+    async function fetchExtras() {
       const { data, error } = await supabase
-        .from('client_extras')
-        .select('*, couples(couple_name, wedding_date)')
-        .order('created_at', { ascending: false })
+        .from("client_extras")
+        .select("*, couples(couple_name, wedding_date)")
+        .order("created_at", { ascending: false })
 
       if (error) {
-        console.error('Error fetching extras:', error)
+        setError(error.message)
         setLoading(false)
         return
       }
 
       const mapped = (data || []).map((row: any) => ({
         ...row,
-        couple_name: row.couples?.couple_name || 'Unknown',
+        couple_name: row.couples?.couple_name || "Unknown",
         wedding_date: row.couples?.wedding_date || null,
       }))
 
@@ -66,132 +135,62 @@ export default function ExtrasListPage() {
     fetchExtras()
   }, [])
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDir('asc')
+  const stats = useMemo(() => {
+    const totalRevenue = extras.reduce((sum, e) => sum + (e.total || 0), 0)
+    return {
+      count: extras.length,
+      totalRevenue,
     }
-  }
+  }, [extras])
 
-  const sorted = useMemo(() => {
-    return [...extras].sort((a, b) => {
-      const dir = sortDir === 'asc' ? 1 : -1
-      const valA = a[sortField]
-      const valB = b[sortField]
-
-      if (valA == null && valB == null) return 0
-      if (valA == null) return 1
-      if (valB == null) return -1
-
-      if (typeof valA === 'number' && typeof valB === 'number') {
-        return (valA - valB) * dir
-      }
-
-      return String(valA).localeCompare(String(valB)) * dir
-    })
-  }, [extras, sortField, sortDir])
-
-  const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
-    <th
-      className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground select-none"
-      onClick={() => handleSort(field)}
-    >
-      <span className="inline-flex items-center gap-1">
-        {label}
-        {sortField === field ? (
-          sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-        ) : (
-          <ArrowUpDown className="h-3 w-3 opacity-30" />
-        )}
-      </span>
-    </th>
-  )
-
-  const statusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'paid': return 'bg-green-100 text-green-800'
-      case 'sent': return 'bg-blue-100 text-blue-800'
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
+  const filteredExtras = useMemo(() => {
+    if (!search) return extras
+    const lower = search.toLowerCase()
+    return extras.filter(
+      (e) =>
+        e.couple_name.toLowerCase().includes(lower) ||
+        e.item_type?.toLowerCase().includes(lower) ||
+        e.description?.toLowerCase().includes(lower)
+    )
+  }, [extras, search])
 
   return (
     <Layout sidebarConfig={studioflowClientConfig}>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Extras</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {extras.length} extra{extras.length !== 1 ? 's' : ''} total
-            </p>
-          </div>
-          <button
-            onClick={() => router.push('/client/extras/new')}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            New Extra
-          </button>
-        </div>
-
-        {/* Table */}
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        ) : extras.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <Package className="h-12 w-12 mx-auto mb-3 opacity-40" />
-            <p className="text-lg font-medium">No extras yet</p>
-            <p className="text-sm">Click "New Extra" to create your first one.</p>
-          </div>
-        ) : (
-          <div className="rounded-lg border bg-card overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b bg-muted/50">
-                <tr>
-                  <SortHeader field="couple_name" label="Couple" />
-                  <SortHeader field="wedding_date" label="Wedding Date" />
-                  <SortHeader field="item_type" label="Item Type" />
-                  <SortHeader field="description" label="Description" />
-                  <SortHeader field="quantity" label="Qty" />
-                  <SortHeader field="total" label="Total" />
-                  <SortHeader field="status" label="Status" />
-                  <SortHeader field="invoice_date" label="Invoice Date" />
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {sorted.map(extra => (
-                  <tr
-                    key={extra.id}
-                    className="hover:bg-muted/30 cursor-pointer transition-colors"
-                    onClick={() => router.push(`/client/extras/${extra.id}`)}
-                  >
-                    <td className="px-4 py-3 font-medium">{extra.couple_name}</td>
-                    <td className="px-4 py-3">{formatWeddingDate(extra.wedding_date)}</td>
-                    <td className="px-4 py-3">{extra.item_type}</td>
-                    <td className="px-4 py-3 text-muted-foreground max-w-[200px] truncate">{extra.description || '—'}</td>
-                    <td className="px-4 py-3 text-center">{extra.quantity}</td>
-                    <td className="px-4 py-3 font-medium">{formatCurrency(extra.total)}</td>
-                    <td className="px-4 py-3">
-                      <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize', statusColor(extra.status))}>
-                        {extra.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">{formatDateCompact(extra.invoice_date)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <InfoPageTemplate
+        title="Extras"
+        subtitle={`${extras.length} extra${extras.length !== 1 ? "s" : ""} total`}
+        primaryAction={{
+          label: "New Extra",
+          onClick: () => router.push("/client/extras/new"),
+          icon: <Plus className="h-4 w-4 mr-2" />,
+        }}
+        statsRow={
+          <>
+            <StatCard
+              label="Total Extras"
+              value={stats.count}
+              icon={<Package className="h-4 w-4" />}
+            />
+            <StatCard
+              label="Total Revenue"
+              value={formatCurrency(stats.totalRevenue)}
+              icon={<DollarSign className="h-4 w-4" />}
+            />
+          </>
+        }
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search couples, items..."
+        isLoading={loading}
+        error={error}
+      >
+        <DataTable
+          columns={columns}
+          data={filteredExtras}
+          onRowClick={(row) => router.push(`/client/extras/${row.id}`)}
+          emptyMessage="No extras yet. Click 'New Extra' to create your first one."
+        />
+      </InfoPageTemplate>
     </Layout>
   )
 }
