@@ -96,7 +96,8 @@ const quoteSchema = z.object({
   // Package
   selectedPackage: z.enum(['bella', 'eleganza', 'silver', 'gold', 'platinum', 'diamond']),
   extraPhotographer: z.boolean(),
-  extraHours: z.number().min(0).max(6),
+  splitMorningTeam: z.boolean(),
+  extraHours: z.number().min(0).max(10),
   
   // Engagement
   engagementLocation: z.string(),
@@ -297,16 +298,33 @@ const PACKAGES = {
   },
 }
 
+// Tiered extra hours pricing (volume discount)
+const EXTRA_HOURS_PRICING: Record<number, number> = {
+  0.5: 175, 1.0: 350, 1.5: 425, 2.0: 500, 2.5: 575, 3.0: 650,
+  3.5: 725, 4.0: 800, 4.5: 850, 5.0: 900, 5.5: 950, 6.0: 1000,
+}
+
+function getExtraHoursPrice(hours: number): number {
+  if (hours <= 0) return 0
+  // Round up to nearest 0.5
+  const rounded = Math.ceil(hours * 2) / 2
+  if (rounded <= 6) return EXTRA_HOURS_PRICING[rounded] || 0
+  // Beyond 6 hours: $1,000 + $167 per additional hour
+  return 1000 + Math.ceil((rounded - 6) * 2) / 2 * 167
+}
+
 const PRICING = {
   albums: {
     standard: { '10x8': 800, '14x11': 1200 },
     premium: { '10x8': 1200, '14x11': 1600 },
   },
+  premiumAlbumFull: 2000,
   acrylicCover: 200,
   parentAlbum: 295,
   bridesChoiceLocation: 200,
   extraPhotographer: 500,
-  extraHour: 350,
+  splitMorningTeam: 800,
+  thankYouCard: 5,
   hstRate: 0.13,
 }
 
@@ -469,6 +487,12 @@ function QuoteBuilderInner() {
   
   // Parent albums included state (for 2 free albums)
   const [parentAlbumsIncluded, setParentAlbumsIncluded] = useState<'paid' | 'free' | false>(false)
+
+  // Thank you cards
+  const [thankYouCardQty, setThankYouCardQty] = useState(0)
+
+  // Album included with package (Diamond, Eleganza)
+  const [albumIncluded, setAlbumIncluded] = useState(false)
   
   // Calculate prints total
   const printsTotal = Object.entries(printOrders).reduce((sum, [size, qty]) => {
@@ -505,11 +529,13 @@ function QuoteBuilderInner() {
     basePrice: 0,
     extraPhotographerPrice: 0,
     extraHoursPrice: 0,
+    splitMorningTeamPrice: 0,
     albumPrice: 0,
     acrylicCoverPrice: 0,
     parentAlbumsPrice: 0,
     locationFee: 0,
     printsPrice: 0,
+    thankYouCardsPrice: 0,
     subtotal: 0,
     discount: 0,
     hst: 0,
@@ -521,6 +547,7 @@ function QuoteBuilderInner() {
     defaultValues: {
       selectedPackage: 'bella',
       extraPhotographer: false,
+      splitMorningTeam: false,
       extraHours: 0,
       engagementLocation: 'mill_pond',
       coverageStartTime: '',
@@ -794,50 +821,60 @@ function QuoteBuilderInner() {
   const calculatePricing = useCallback(() => {
     const selectedPkg = PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]
     const basePrice = selectedPkg?.price || 0
+    const pkgKey = watchedValues.selectedPackage
 
     // Extra photographer
     const extraPhotographerPrice = watchedValues.extraPhotographer ? PRICING.extraPhotographer : 0
-    
-    // Extra hours
-    const extraHoursPrice = (watchedValues.extraHours || 0) * PRICING.extraHour
 
-    // Album pricing
+    // Extra hours — tiered pricing
+    const extraHoursPrice = getExtraHoursPrice(watchedValues.extraHours || 0)
+
+    // Split morning team
+    const splitMorningTeamPrice = watchedValues.splitMorningTeam ? PRICING.splitMorningTeam : 0
+
+    // Album pricing — included for Diamond/Eleganza
     let albumPrice = 0
-    if (watchedValues.albumType === 'standard') {
-      albumPrice = PRICING.albums.standard[watchedValues.albumSize as keyof typeof PRICING.albums.standard] || 0
-    } else if (watchedValues.albumType === 'premium') {
-      albumPrice = PRICING.albums.premium[watchedValues.albumSize as keyof typeof PRICING.albums.premium] || 0
+    const isAlbumIncluded = pkgKey === 'diamond' || pkgKey === 'eleganza'
+    if (!isAlbumIncluded) {
+      if (watchedValues.albumType === 'standard') {
+        albumPrice = PRICING.albums.standard[watchedValues.albumSize as keyof typeof PRICING.albums.standard] || 0
+      } else if (watchedValues.albumType === 'premium') {
+        albumPrice = PRICING.albums.premium[watchedValues.albumSize as keyof typeof PRICING.albums.premium] || 0
+      }
     }
 
-    const acrylicCoverPrice = (watchedValues.acrylicCover && watchedValues.albumType !== 'none') 
-      ? PRICING.acrylicCover 
+    const acrylicCoverPrice = (watchedValues.acrylicCover && (watchedValues.albumType !== 'none' || isAlbumIncluded) && !isAlbumIncluded)
+      ? PRICING.acrylicCover
       : 0
 
-    const parentAlbumsPrice = parentAlbumsIncluded === 'paid' 
-      ? (watchedValues.parentAlbumQty || 0) * PRICING.parentAlbum 
+    const parentAlbumsPrice = parentAlbumsIncluded === 'paid'
+      ? (watchedValues.parentAlbumQty || 0) * PRICING.parentAlbum
       : 0
     const locationFee = watchedValues.engagementLocation === 'brides_choice' ? PRICING.bridesChoiceLocation : 0
-    
+
     // Prints (only if included and paid)
     const printsPrice = printsIncluded === 'paid' ? printsTotal : 0
 
-    // Discount 1 applies to BASE PRICE ONLY - only when type is selected and amount is valid
+    // Thank you cards
+    const thankYouCardsPrice = thankYouCardQty * PRICING.thankYouCard
+
+    // Discount 1 applies to BASE PRICE ONLY
     let discount = 0
     if (watchedValues.discountType === 'percent' && watchedValues.discountAmount && watchedValues.discountAmount > 0) {
       discount = basePrice * (watchedValues.discountAmount / 100)
     } else if (watchedValues.discountType === 'flat' && watchedValues.discountAmount && watchedValues.discountAmount > 0) {
-      discount = Math.min(watchedValues.discountAmount, basePrice) // Can't discount more than base price
+      discount = Math.min(watchedValues.discountAmount, basePrice)
     }
-    
+
     // Discount 2 - always flat $ amount
     let discount2 = 0
     if (watchedValues.discount2Amount && watchedValues.discount2Amount > 0) {
       discount2 = watchedValues.discount2Amount
     }
-    
+
     const totalDiscount = discount + discount2
     const discountedBase = basePrice - discount
-    const subtotal = discountedBase + extraPhotographerPrice + extraHoursPrice + albumPrice + acrylicCoverPrice + parentAlbumsPrice + locationFee + printsPrice - discount2
+    const subtotal = discountedBase + extraPhotographerPrice + extraHoursPrice + splitMorningTeamPrice + albumPrice + acrylicCoverPrice + parentAlbumsPrice + locationFee + printsPrice + thankYouCardsPrice - discount2
     const hst = subtotal * PRICING.hstRate
     const total = subtotal + hst
 
@@ -845,17 +882,20 @@ function QuoteBuilderInner() {
       basePrice,
       extraPhotographerPrice,
       extraHoursPrice,
+      splitMorningTeamPrice,
       albumPrice,
       acrylicCoverPrice,
       parentAlbumsPrice,
       locationFee,
       printsPrice,
+      thankYouCardsPrice,
       subtotal,
       discount: totalDiscount,
       hst,
       total
     })
-  }, [watchedValues.selectedPackage, watchedValues.extraPhotographer, watchedValues.extraHours, watchedValues.albumType, watchedValues.albumSize, watchedValues.acrylicCover, watchedValues.parentAlbumQty, watchedValues.engagementLocation, watchedValues.discountType, watchedValues.discountAmount, watchedValues.discount2Amount, printsIncluded, printsTotal, parentAlbumsIncluded])
+    setAlbumIncluded(isAlbumIncluded)
+  }, [watchedValues.selectedPackage, watchedValues.extraPhotographer, watchedValues.extraHours, watchedValues.splitMorningTeam, watchedValues.albumType, watchedValues.albumSize, watchedValues.acrylicCover, watchedValues.parentAlbumQty, watchedValues.engagementLocation, watchedValues.discountType, watchedValues.discountAmount, watchedValues.discount2Amount, printsIncluded, printsTotal, parentAlbumsIncluded, thankYouCardQty])
 
   useEffect(() => {
     calculatePricing()
@@ -877,8 +917,22 @@ function QuoteBuilderInner() {
       if (Object.values(portraits).some(q => q > 0)) {
         setPrintsIncluded('free')
       }
+
+      // Auto-fill album for Diamond/Eleganza (Fix 3)
+      if (pkg === 'diamond' || pkg === 'eleganza') {
+        setValue('albumType', 'premium')
+        setValue('albumSize', '14x11')
+        setValue('albumSpreads', 15)
+        setValue('acrylicCover', false) // Don't auto-check upgrade
+      }
+
+      // Auto-fill parent albums for Eleganza
+      if (pkg === 'eleganza') {
+        setValue('parentAlbumQty', 2)
+        setParentAlbumsIncluded('free')
+      }
     }
-  }, [watchedValues.selectedPackage])
+  }, [watchedValues.selectedPackage, setValue])
 
   // Auto-divide installments when total changes - with proper rounding
   // Only auto-update when total changes, not when installments change (to allow manual edits)
@@ -1939,7 +1993,7 @@ function QuoteBuilderInner() {
               <span className="text-lg font-bold text-foreground">+$500</span>
             </label>
             
-            {/* Extra Hours */}
+            {/* Extra Hours — Tiered Pricing */}
             <div className="mt-4 p-4 border-2 border-border rounded">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -1947,32 +2001,32 @@ function QuoteBuilderInner() {
                     <Clock className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <span className="text-sm font-medium text-foreground">Extra Hours</span>
-                      <p className="text-xs text-muted-foreground">$350 per additional hour</p>
+                      <p className="text-xs text-muted-foreground">Volume-discounted pricing</p>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <select 
+                  <select
                     {...register('extraHours', { valueAsNumber: true })}
                     className="px-3 py-2 border border-border rounded text-sm bg-background focus:outline-none focus:border-ring"
                   >
                     <option value={0}>None</option>
-                    <option value={0.5}>+30 min</option>
-                    <option value={1}>+1 hour</option>
-                    <option value={1.5}>+1.5 hours</option>
-                    <option value={2}>+2 hours</option>
-                    <option value={2.5}>+2.5 hours</option>
-                    <option value={3}>+3 hours</option>
-                    <option value={3.5}>+3.5 hours</option>
-                    <option value={4}>+4 hours</option>
-                    <option value={4.5}>+4.5 hours</option>
-                    <option value={5}>+5 hours</option>
-                    <option value={5.5}>+5.5 hours</option>
-                    <option value={6}>+6 hours</option>
+                    <option value={0.5}>+30 min ($175)</option>
+                    <option value={1}>+1 hr ($350)</option>
+                    <option value={1.5}>+1.5 hrs ($425)</option>
+                    <option value={2}>+2 hrs ($500)</option>
+                    <option value={2.5}>+2.5 hrs ($575)</option>
+                    <option value={3}>+3 hrs ($650)</option>
+                    <option value={3.5}>+3.5 hrs ($725)</option>
+                    <option value={4}>+4 hrs ($800)</option>
+                    <option value={4.5}>+4.5 hrs ($850)</option>
+                    <option value={5}>+5 hrs ($900)</option>
+                    <option value={5.5}>+5.5 hrs ($950)</option>
+                    <option value={6}>+6 hrs ($1,000)</option>
                   </select>
                   {(watchedValues.extraHours || 0) > 0 && (
                     <span className="text-lg font-bold text-foreground">
-                      +${((watchedValues.extraHours || 0) * 350).toLocaleString()}
+                      +${getExtraHoursPrice(watchedValues.extraHours || 0).toLocaleString()}
                     </span>
                   )}
                 </div>
@@ -1981,6 +2035,23 @@ function QuoteBuilderInner() {
                 Coverage: {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours || 8}hr base{(watchedValues.extraHours || 0) > 0 ? ` + ${watchedValues.extraHours}hr extra = ${(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours || 8) + (watchedValues.extraHours || 0)}hr total` : ''} — {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.photographers || 0} photographer{(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.photographers || 0) !== 1 ? 's' : ''}{(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers || 0) > 0 ? ` + ${PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers} videographer` : ''}
               </div>
             </div>
+
+            {/* Split Morning Team */}
+            <label className={`mt-4 flex items-center gap-3 p-4 border-2 rounded cursor-pointer transition-all ${
+              watchedValues.splitMorningTeam ? 'border-primary bg-muted' : 'border-border hover:border-border'
+            }`}>
+              <input type="checkbox" {...register('splitMorningTeam')} className="sr-only" />
+              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                watchedValues.splitMorningTeam ? 'border-primary bg-primary' : 'border-border'
+              }`}>
+                {watchedValues.splitMorningTeam && <Check className="h-3 w-3 text-primary-foreground" />}
+              </div>
+              <div className="flex-1">
+                <span className="text-sm font-medium text-foreground">Split the Morning Team</span>
+                <p className="text-xs text-muted-foreground">1 photographer + 1 videographer at the groom's house while another photographer and videographer are at the bride's. 4th team member for 2 hours. Morning sessions extended from 1:15 to 2 hours.</p>
+              </div>
+              <span className="text-lg font-bold text-foreground">+$800</span>
+            </label>
           </div>
 
           {/* Engagement Location */}
@@ -2077,53 +2148,90 @@ function QuoteBuilderInner() {
               ))}
             </div>
             
+            {/* Thank You Cards */}
+            <div className="border-t-2 border-primary/20 pt-4 mt-4">
+              <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r p-4 mb-4">
+                <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-1 flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-amber-500" />
+                  Thank You Cards
+                </h3>
+                <p className="text-xs text-muted-foreground mb-3">Post Card style — includes 4×6 envelope. Customizable design.</p>
+                <div className="flex items-center gap-4">
+                  <label className="text-sm text-foreground font-medium">Quantity:</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={thankYouCardQty || ''}
+                    onChange={(e) => setThankYouCardQty(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                    placeholder="0"
+                    className="w-20 px-3 py-2 border border-border rounded text-sm text-center focus:outline-none focus:border-ring"
+                  />
+                  <span className="text-xs text-muted-foreground">$5.00 per card</span>
+                  {thankYouCardQty > 0 && (
+                    <span className="text-sm font-bold text-foreground ml-auto">${(thankYouCardQty * 5).toLocaleString()}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Prints Section */}
-            <div className="border-t border-border pt-4">
+            <div className="bg-muted/50 border border-border rounded-lg p-4">
               <p className="text-xs text-muted-foreground mb-3">
                 *All weddings on USB/Dropbox, ready to print. 300 DPI 4x6, no watermarks
               </p>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                Post Card style Thank You Cards & Prints
+              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
+                <Image className="h-4 w-4 text-primary" />
+                Portraits & Prints
               </h3>
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                {[
-                  { size: '5x7', label: '5×7', price: 20 },
-                  { size: '8x10', label: '8×10', price: 30 },
-                  { size: '11x14', label: '11×14', price: 100 },
-                  { size: '16x20', label: '16×20', price: 295 },
-                  { size: '20x24', label: '20×24', price: 295 },
-                  { size: '24x30', label: '24×30', price: 295 },
-                ].map(item => (
-                  <div key={item.size} className="flex items-center gap-2 p-2 border border-border rounded">
-                    <div className="flex-1">
-                      <span className="text-sm font-medium text-foreground">{item.label}</span>
-                      <span className="text-xs text-muted-foreground ml-2">${item.price}</span>
-                    </div>
-                    <input
-                      type="number"
-                      min="0"
-                      value={printOrders[item.size] || ''}
-                      onChange={(e) => {
-                        const val = e.target.value === '' ? 0 : parseInt(e.target.value)
-                        setPrintOrders({...printOrders, [item.size]: val})
-                      }}
-                      placeholder="0"
-                      className="w-16 px-2 py-1.5 border border-border rounded text-sm text-center focus:outline-none focus:border-ring"
-                    />
-                  </div>
-                ))}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {(() => {
+                  const pkgPortraits = PACKAGE_PORTRAITS[watchedValues.selectedPackage] || {}
+                  return [
+                    { size: '5x7', label: '5×7', price: 20 },
+                    { size: '8x10', label: '8×10', price: 30 },
+                    { size: '11x14', label: '11×14', price: 100 },
+                    { size: '16x20', label: '16×20', price: 295 },
+                    { size: '20x24', label: '20×24', price: 295 },
+                    { size: '24x30', label: '24×30', price: 295 },
+                  ].map(item => {
+                    const includedQty = pkgPortraits[item.size] || 0
+                    const currentQty = printOrders[item.size] || 0
+                    return (
+                      <div key={item.size} className={`flex items-center gap-2 p-2 border rounded ${includedQty > 0 && currentQty === includedQty ? 'border-emerald-300 bg-emerald-50' : 'border-border bg-background'}`}>
+                        <div className="flex-1">
+                          <span className="text-sm font-medium text-foreground">{item.label}</span>
+                          <span className="text-xs text-muted-foreground ml-1">${item.price}</span>
+                          {includedQty > 0 && currentQty <= includedQty && (
+                            <span className="text-[10px] font-semibold text-emerald-600 ml-1 bg-emerald-100 px-1.5 py-0.5 rounded">Included</span>
+                          )}
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={currentQty || ''}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : parseInt(e.target.value)
+                            setPrintOrders({...printOrders, [item.size]: val})
+                          }}
+                          placeholder="0"
+                          className="w-16 px-2 py-1.5 border border-border rounded text-sm text-center focus:outline-none focus:border-ring"
+                        />
+                      </div>
+                    )
+                  })
+                })()}
               </div>
-              
-              {/* Prints Total & Add Button */}
+
+              {/* Prints Total & Controls */}
               {printsTotal > 0 && (
-                <div className="flex items-center justify-between p-3 bg-muted rounded border border-border">
+                <div className="flex items-center justify-between p-3 bg-background rounded border border-border">
                   <div>
-                    <span className="text-sm text-muted-foreground">Prints Total:</span>
-                    <span className={`text-lg font-bold ml-2 ${printsIncluded === 'free' ? 'text-emerald-600 line-through' : 'text-foreground'}`}>
-                      ${printsTotal.toLocaleString()}
-                    </span>
-                    {printsIncluded === 'free' && (
-                      <span className="text-lg font-bold text-emerald-600 ml-2">$0 (included)</span>
+                    {printsIncluded === 'free' ? (
+                      <span className="text-sm font-semibold text-emerald-600">Prints included in package — $0</span>
+                    ) : printsIncluded === 'paid' ? (
+                      <span className="text-sm font-semibold text-foreground">Additional prints: ${printsTotal.toLocaleString()}</span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Prints value: ${printsTotal.toLocaleString()}</span>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -2132,7 +2240,7 @@ function QuoteBuilderInner() {
                       onClick={() => setPrintsIncluded(printsIncluded === 'paid' ? false : 'paid')}
                       className={`px-4 py-2 rounded text-sm font-medium transition-all ${
                         printsIncluded === 'paid'
-                          ? 'bg-emerald-600 text-white' 
+                          ? 'bg-emerald-600 text-white'
                           : 'bg-primary text-primary-foreground hover:bg-primary/90'
                       }`}
                     >
@@ -2143,7 +2251,7 @@ function QuoteBuilderInner() {
                       onClick={() => setPrintsIncluded(printsIncluded === 'free' ? false : 'free')}
                       className={`px-4 py-2 rounded text-sm font-medium transition-all ${
                         printsIncluded === 'free'
-                          ? 'bg-emerald-600 text-white' 
+                          ? 'bg-emerald-600 text-white'
                           : 'bg-primary/80 text-primary-foreground hover:bg-primary/70'
                       }`}
                     >
@@ -2371,80 +2479,114 @@ function QuoteBuilderInner() {
             </h2>
             
             <div className="space-y-2 text-sm">
+              {/* Package */}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">
-                  {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.name} ({PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours}hr)
+                  {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.name} ({PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours}hr, {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.photographers}P{(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers || 0) > 0 ? ` + ${PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers}V` : ''})
                 </span>
                 <span>${pricing.basePrice.toLocaleString()}</span>
               </div>
-              
+
+              {/* Extra coverage */}
+              {pricing.extraHoursPrice > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Extra coverage: {watchedValues.extraHours} hrs</span>
+                  <span>${pricing.extraHoursPrice.toLocaleString()}</span>
+                </div>
+              )}
+
+              {/* Split Morning Team */}
+              {pricing.splitMorningTeamPrice > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Split Morning Team</span>
+                  <span>${pricing.splitMorningTeamPrice.toLocaleString()}</span>
+                </div>
+              )}
+
+              {/* Extra Photographer */}
               {pricing.extraPhotographerPrice > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Extra Photographer</span>
                   <span>${pricing.extraPhotographerPrice.toLocaleString()}</span>
                 </div>
               )}
-              
-              {pricing.extraHoursPrice > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Extra Hours ({watchedValues.extraHours})</span>
-                  <span>${pricing.extraHoursPrice.toLocaleString()}</span>
-                </div>
-              )}
-              
+
+              {/* Wedding Album — paid add-on */}
               {pricing.albumPrice > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Wedding Album ({watchedValues.albumSize === '10x8' ? '10"×8"' : '14"×11"'} {watchedValues.albumType})</span>
                   <span>${pricing.albumPrice.toLocaleString()}</span>
                 </div>
               )}
-              
+
+              {/* Wedding Album — included in package */}
+              {albumIncluded && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">28×11 Premium Album (included)</span>
+                  <span className="text-emerald-400">$0</span>
+                </div>
+              )}
+
+              {/* Acrylic Cover */}
               {pricing.acrylicCoverPrice > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Acrylic Cover</span>
+                  <span className="text-muted-foreground">Acrylic Cover Upgrade</span>
                   <span>${pricing.acrylicCoverPrice.toLocaleString()}</span>
                 </div>
               )}
-              
+
+              {/* Parent Albums — paid */}
               {pricing.parentAlbumsPrice > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Parent Albums ({watchedValues.parentAlbumQty})</span>
                   <span>${pricing.parentAlbumsPrice.toLocaleString()}</span>
                 </div>
               )}
-              
+
+              {/* Parent Albums — included */}
               {parentAlbumsIncluded === 'free' && (watchedValues.parentAlbumQty || 0) > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Parent Albums ({watchedValues.parentAlbumQty}) (included)</span>
                   <span className="text-emerald-400">$0</span>
                 </div>
               )}
-              
-              {pricing.locationFee > 0 && (
+
+              {/* Thank You Cards */}
+              {pricing.thankYouCardsPrice > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Bride's Choice Location</span>
-                  <span>${pricing.locationFee.toLocaleString()}</span>
+                  <span className="text-muted-foreground">Thank You Cards ({thankYouCardQty})</span>
+                  <span>${pricing.thankYouCardsPrice.toLocaleString()}</span>
                 </div>
               )}
-              
+
+              {/* Additional Prints */}
               {pricing.printsPrice > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Prints</span>
+                  <span className="text-muted-foreground">Additional Prints</span>
                   <span>${pricing.printsPrice.toLocaleString()}</span>
                 </div>
               )}
-              
+
+              {/* Prints — included */}
               {printsIncluded === 'free' && printsTotal > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Prints (included)</span>
                   <span className="text-emerald-400">$0</span>
                 </div>
               )}
-              
+
+              {/* Bride's Choice Location */}
+              {pricing.locationFee > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Bride's Choice Location</span>
+                  <span>${pricing.locationFee.toLocaleString()}</span>
+                </div>
+              )}
+
               <div className="border-t border-border/50 pt-3 mt-3">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>${(pricing.basePrice + pricing.extraPhotographerPrice + pricing.extraHoursPrice + pricing.albumPrice + pricing.acrylicCoverPrice + pricing.parentAlbumsPrice + pricing.locationFee + pricing.printsPrice).toLocaleString()}</span>
+                  <span>${pricing.subtotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                 </div>
                 
                 {/* Discount Controls - inside pricing summary */}
@@ -2665,6 +2807,11 @@ function QuoteBuilderInner() {
                     extra_hours: watchedValues.extraHours || 0,
                     package_price: pricing.basePrice,
                     extra_hours_price: pricing.extraHoursPrice,
+                    split_morning_team: watchedValues.splitMorningTeam || false,
+                    split_morning_team_price: pricing.splitMorningTeamPrice,
+                    thank_you_card_qty: thankYouCardQty,
+                    thank_you_cards_price: pricing.thankYouCardsPrice,
+                    album_included: albumIncluded,
                     parent_albums_count: watchedValues.parentAlbumQty || 0,
                     parent_albums_price: pricing.parentAlbumsPrice,
                     prints_included: printsIncluded || null,
@@ -2728,6 +2875,9 @@ function QuoteBuilderInner() {
                   packageFeatures: selectedPkg?.features || [],
                   extraPhotographer: watchedValues.extraPhotographer,
                   extraHours: watchedValues.extraHours,
+                  splitMorningTeam: watchedValues.splitMorningTeam,
+                  thankYouCardQty,
+                  albumIncluded,
                   engagementLocation: watchedValues.engagementLocation,
                   engagementLocationLabel: engLabel,
                   albumType: watchedValues.albumType,
@@ -2820,6 +2970,11 @@ function QuoteBuilderInner() {
                     extra_hours: watchedValues.extraHours || 0,
                     package_price: pricing.basePrice,
                     extra_hours_price: pricing.extraHoursPrice,
+                    split_morning_team: watchedValues.splitMorningTeam || false,
+                    split_morning_team_price: pricing.splitMorningTeamPrice,
+                    thank_you_card_qty: thankYouCardQty,
+                    thank_you_cards_price: pricing.thankYouCardsPrice,
+                    album_included: albumIncluded,
                     parent_albums_count: watchedValues.parentAlbumQty || 0,
                     parent_albums_price: pricing.parentAlbumsPrice,
                     prints_included: printsIncluded || null,
@@ -2883,6 +3038,9 @@ function QuoteBuilderInner() {
                     packageFeatures: selectedPkg?.features || [],
                     extraPhotographer: watchedValues.extraPhotographer,
                     extraHours: watchedValues.extraHours,
+                    splitMorningTeam: watchedValues.splitMorningTeam,
+                    thankYouCardQty,
+                    albumIncluded,
                     engagementLocation: watchedValues.engagementLocation,
                     engagementLocationLabel: engLabel,
                     albumType: watchedValues.albumType,

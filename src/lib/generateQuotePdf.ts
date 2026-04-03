@@ -29,6 +29,9 @@ export interface QuotePdfData {
 
   extraPhotographer: boolean
   extraHours: number
+  splitMorningTeam: boolean
+  thankYouCardQty: number
+  albumIncluded: boolean
   engagementLocation: string
   engagementLocationLabel: string
   albumType: string
@@ -41,11 +44,13 @@ export interface QuotePdfData {
     basePrice: number
     extraPhotographerPrice: number
     extraHoursPrice: number
+    splitMorningTeamPrice: number
     albumPrice: number
     acrylicCoverPrice: number
     parentAlbumsPrice: number
     locationFee: number
     printsPrice: number
+    thankYouCardsPrice: number
     subtotal: number
     discount: number
     hst: number
@@ -445,6 +450,7 @@ export async function generateQuotePdf(data: QuotePdfData, options?: { returnBas
   const addOns: string[] = []
   if (data.extraPhotographer) addOns.push('Extra Photographer')
   if (data.extraHours > 0) addOns.push(`${data.extraHours} Extra Hour${data.extraHours > 1 ? 's' : ''}`)
+  if (data.splitMorningTeam) addOns.push('Split Morning Team')
   if (addOns.length > 0) {
     y += 2
     doc.setFont('helvetica', 'bold')
@@ -580,16 +586,18 @@ export async function generateQuotePdf(data: QuotePdfData, options?: { returnBas
     doc.text(prefix + fmt(amount, true), rightEdge, y, { align: 'right' })
   }
 
-  // Line items
+  // Line items — ordered per pricing summary spec
   const lines: Array<{ label: string; amount: number; show: boolean }> = [
     { label: `${data.packageName} (${data.packageHours}hr)`, amount: data.pricing.basePrice, show: true },
+    { label: `Extra coverage: ${data.extraHours} hrs`, amount: data.pricing.extraHoursPrice, show: data.pricing.extraHoursPrice > 0 },
+    { label: 'Split Morning Team (4th team member, 2 hrs)', amount: data.pricing.splitMorningTeamPrice, show: data.pricing.splitMorningTeamPrice > 0 },
     { label: 'Extra Photographer', amount: data.pricing.extraPhotographerPrice, show: data.pricing.extraPhotographerPrice > 0 },
-    { label: `Extra Hours (${data.extraHours})`, amount: data.pricing.extraHoursPrice, show: data.pricing.extraHoursPrice > 0 },
     { label: `Wedding Album (${data.albumSize === '10x8' ? '10"×8"' : '14"×11"'} ${data.albumType})`, amount: data.pricing.albumPrice, show: data.pricing.albumPrice > 0 },
-    { label: 'Acrylic Cover', amount: data.pricing.acrylicCoverPrice, show: data.pricing.acrylicCoverPrice > 0 },
+    { label: 'Acrylic Cover Upgrade', amount: data.pricing.acrylicCoverPrice, show: data.pricing.acrylicCoverPrice > 0 },
     { label: data.selectedPackage === 'eleganza' ? `Parent Albums (${data.parentAlbumQty} \u00d7 10\u00d78)` : `Parent Albums (${data.parentAlbumQty})`, amount: data.pricing.parentAlbumsPrice, show: data.pricing.parentAlbumsPrice > 0 },
+    { label: `Thank You Cards (${data.thankYouCardQty})`, amount: data.pricing.thankYouCardsPrice, show: data.pricing.thankYouCardsPrice > 0 },
+    { label: 'Additional Prints', amount: data.pricing.printsPrice, show: data.pricing.printsPrice > 0 },
     { label: "Bride's Choice Location", amount: data.pricing.locationFee, show: data.pricing.locationFee > 0 },
-    { label: 'Prints', amount: data.pricing.printsPrice, show: data.pricing.printsPrice > 0 },
   ]
 
   lines.filter(l => l.show).forEach(line => {
@@ -599,12 +607,19 @@ export async function generateQuotePdf(data: QuotePdfData, options?: { returnBas
   })
 
   // Free inclusions
+  if (data.albumIncluded) {
+    checkPageBreak(6)
+    drawPriceLine('28\u00d711 Premium Layflat Album \u2014 included', 0, { color: 'green' })
+    y += 5.5
+  }
   if (data.freeParentAlbums && data.parentAlbumQty > 0) {
+    checkPageBreak(6)
     drawPriceLine(data.selectedPackage === 'eleganza' ? `Parent Albums (${data.parentAlbumQty} \u00d7 10\u00d78) \u2014 complimentary` : `Parent Albums (${data.parentAlbumQty}) \u2014 complimentary`, 0, { color: 'green' })
     y += 5.5
   }
   if (data.freePrints && data.printsTotal > 0) {
-    drawPriceLine('Prints & Cards — complimentary', 0, { color: 'green' })
+    checkPageBreak(6)
+    drawPriceLine('Prints & Cards \u2014 complimentary', 0, { color: 'green' })
     y += 5.5
   }
 
