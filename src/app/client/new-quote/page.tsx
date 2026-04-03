@@ -908,7 +908,10 @@ function QuoteBuilderInner() {
     const selectedPkg = PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]
     const baseHours = selectedPkg?.hours || 8
 
+    console.log('[ExtraHours DEBUG] startVal:', JSON.stringify(startVal), 'endVal:', JSON.stringify(endVal), 'package:', watchedValues.selectedPackage, 'baseHours:', baseHours)
+
     if (!startVal || !endVal) {
+      console.log('[ExtraHours DEBUG] Missing start or end, setting extraHours=0')
       setValue('extraHours', 0)
       return
     }
@@ -922,7 +925,9 @@ function QuoteBuilderInner() {
 
     const rawExtra = Math.max(0, totalHours - baseHours)
     const roundedExtra = Math.ceil(rawExtra * 2) / 2
+    console.log('[ExtraHours DEBUG] parsed start:', sh, sm, 'end:', eh, em, 'totalHours:', totalHours, 'rawExtra:', rawExtra, 'roundedExtra:', roundedExtra)
     setValue('extraHours', roundedExtra)
+    console.log('[ExtraHours DEBUG] setValue extraHours to:', roundedExtra, 'current watchedValues.extraHours:', watchedValues.extraHours)
   }, [watchedValues.coverageStartTime, watchedValues.coverageEndTime, watchedValues.selectedPackage, setValue])
 
   // Auto-populate portraits when package changes (Fix 4)
