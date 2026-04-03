@@ -284,7 +284,7 @@ function drawContractTermsPage(doc: jsPDF, data: QuotePdfData) {
 // MAIN PDF FUNCTION
 // ============================================================
 
-export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
+export async function generateQuotePdf(data: QuotePdfData, options?: { returnBase64?: boolean }): Promise<string | void> {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
 
   const pageWidth = doc.internal.pageSize.getWidth()
@@ -785,5 +785,11 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<void> {
   const venuePart = data.receptionVenue
     ? '_' + data.receptionVenue.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')
     : ''
+  if (options?.returnBase64) {
+    // Return base64 string (without data URI prefix) for email attachment
+    const base64 = doc.output('datauristring').split(',')[1]
+    return base64
+  }
+
   doc.save(`${bride}_${groom}${dateStamp ? '_' + dateStamp : ''}${venuePart}.pdf`)
 }

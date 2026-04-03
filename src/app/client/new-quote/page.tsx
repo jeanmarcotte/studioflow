@@ -9,10 +9,11 @@ import { Layout } from '@/components/layout/layout'
 import { studioflowClientConfig } from '@/config/sidebar'
 import { searchLeadByCouple, findOrCreateCouple, upsertQuote, getQuoteByCoupleId, getCoupleById } from '@/lib/supabase'
 import { generateQuotePdf } from '@/lib/generateQuotePdf'
-import { 
+import {
   Calendar, Phone, MapPin, Users, DollarSign, FileText,
   AlertCircle, Camera, Video, Check, Plus, Trash2, Clock, Heart,
-  ChevronDown, ChevronUp, Music, Image, Globe, Sparkles, Car, ArrowRight
+  ChevronDown, ChevronUp, Music, Image, Globe, Sparkles, Car, ArrowRight,
+  Mail, Loader2
 } from 'lucide-react'
 
 // ============================================================
@@ -355,6 +356,13 @@ const LEAD_SOURCES = [
   'Other',
 ]
 
+// Show ID → Lead Source mapping for BridalFlow integration
+const SHOW_ID_TO_LEAD_SOURCE: Record<string, string> = {
+  'modern-feb-2026': 'MBS Winter 2026',
+  'weddingring-oakville-mar-2026': 'OBS Mar 2026',
+  'weddingring-newmarket-mar-2026': 'NBS Mar 2026',
+}
+
 // Installment templates
 const SPRING_INSTALLMENTS = [
   { label: 'Upon Booking', amount: 0 },
@@ -397,11 +405,19 @@ function QuoteBuilderInner() {
   const searchParams = useSearchParams()
   const editCoupleId = searchParams.get('couple_id')
   const clientQuoteId = searchParams.get('id')
+  const ballotIdParam = searchParams.get('ballot_id')
   const [isLoading, setIsLoading] = useState(false)
-  const [loadingQuote, setLoadingQuote] = useState(!!editCoupleId || !!clientQuoteId)
+  const [loadingQuote, setLoadingQuote] = useState(!!editCoupleId || !!clientQuoteId || !!ballotIdParam)
   const [editingVersion, setEditingVersion] = useState<number | null>(null)
   const [existingLead, setExistingLead] = useState<any>(null)
   const [showOtherLocations, setShowOtherLocations] = useState(false)
+
+  // BridalFlow ballot state
+  const [ballotId, setBallotId] = useState<string | null>(ballotIdParam)
+  const [ballotShowId, setBallotShowId] = useState<string | null>(null)
+  const [ballotError, setBallotError] = useState<string | null>(null)
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
+  const [savedQuoteId, setSavedQuoteId] = useState<string | null>(clientQuoteId)
   
   // Installments state
   const [installments, setInstallments] = useState(SPRING_INSTALLMENTS)
@@ -511,6 +527,60 @@ function QuoteBuilderInner() {
   })
 
   const watchedValues = watch()
+
+  // Pre-fill from BridalFlow ballot via ?ballot_id=
+  useEffect(() => {
+    if (!ballotIdParam || editCoupleId || clientQuoteId) return
+    const loadBallot = async () => {
+      setLoadingQuote(true)
+      setBallotError(null)
+      try {
+        const res = await fetch(`/api/client/quotes/prefill?ballot_id=${ballotIdParam}`)
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Failed to load ballot' }))
+          setBallotError(err.error || 'Lead not found. Check the ballot ID.')
+          setLoadingQuote(false)
+          return
+        }
+        const ballot = await res.json()
+
+        // Store ballot references
+        setBallotId(ballot.id)
+        setBallotShowId(ballot.show_id || null)
+
+        // Map ballot fields to form fields (all editable)
+        setValue('brideFirstName', (ballot.bride_first_name || '').trim())
+        setValue('brideLastName', (ballot.bride_last_name || '').trim())
+        setValue('groomFirstName', (ballot.groom_first_name || '').trim())
+        setValue('groomLastName', (ballot.groom_last_name || '').trim())
+        setValue('brideEmail', (ballot.email || '').trim())
+        if (ballot.cell_phone) setValue('bridePhone', formatPhone((ballot.cell_phone || '').trim()))
+        if (ballot.wedding_date) setValue('weddingDate', ballot.wedding_date)
+        if (ballot.venue_name) setValue('receptionVenue', (ballot.venue_name || '').trim())
+        if (ballot.guest_count) setValue('guestCount', ballot.guest_count)
+
+        // Derive lead source from show_id
+        if (ballot.show_id) {
+          const leadSource = SHOW_ID_TO_LEAD_SOURCE[ballot.show_id] || ballot.show_id
+          setValue('leadSource', leadSource)
+        }
+
+        // Package auto-select based on service_needs (Phase 2B)
+        if (ballot.service_needs === 'photo_only') {
+          setValue('selectedPackage', 'bella')
+        } else if (ballot.service_needs === 'photo_video') {
+          setValue('selectedPackage', 'silver')
+        }
+        // video_only: don't auto-select, leave default
+      } catch (err) {
+        console.error('Failed to load ballot:', err)
+        setBallotError('Failed to load lead data. Please try again.')
+      } finally {
+        setLoadingQuote(false)
+      }
+    }
+    loadBallot()
+  }, [ballotIdParam, editCoupleId, clientQuoteId, setValue])
 
   // Restore saved quote when editing via ?couple_id= URL param
   useEffect(() => {
@@ -1114,6 +1184,49 @@ function QuoteBuilderInner() {
   // ============================================================
   // RENDER
   // ============================================================
+
+  // Guard: require ballot_id, couple_id, or id
+  if (!ballotIdParam && !editCoupleId && !clientQuoteId) {
+    return (
+      <Layout sidebarConfig={studioflowClientConfig}>
+        <div className="min-h-screen bg-muted flex items-center justify-center">
+          <div className="bg-background rounded-lg border border-border p-8 max-w-md text-center shadow-sm">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-foreground mb-2">No Lead Selected</h2>
+            <p className="text-muted-foreground mb-6">Please start a quote from BridalFlow.</p>
+            <a
+              href="https://bridalflow.vercel.app/admin"
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded font-medium hover:bg-primary/90 transition-colors"
+            >
+              Go to BridalFlow <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  // Ballot fetch error
+  if (ballotError) {
+    return (
+      <Layout sidebarConfig={studioflowClientConfig}>
+        <div className="min-h-screen bg-muted flex items-center justify-center">
+          <div className="bg-background rounded-lg border border-border p-8 max-w-md text-center shadow-sm">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-foreground mb-2">Error Loading Lead</h2>
+            <p className="text-muted-foreground mb-6">{ballotError}</p>
+            <a
+              href="https://bridalflow.vercel.app/admin"
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded font-medium hover:bg-primary/90 transition-colors"
+            >
+              Back to BridalFlow <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
   return (
     <Layout sidebarConfig={studioflowClientConfig}>
       <div className="min-h-screen bg-muted">
@@ -2506,22 +2619,29 @@ function QuoteBuilderInner() {
                     installments,
                     timeline,
                     notes: watchedValues.notes || null,
+                    lead_source: watchedValues.leadSource || null,
                   }
 
-                  if (clientQuoteId) {
+                  if (clientQuoteId || savedQuoteId) {
                     // Update existing client_quotes record
                     await fetch('/api/client/quotes', {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ id: clientQuoteId, ...quotePayload }),
+                      body: JSON.stringify({ id: clientQuoteId || savedQuoteId, ...quotePayload }),
                     })
                   } else {
-                    // Insert new client_quotes record
-                    await fetch('/api/client/quotes', {
+                    // Insert new (or upsert by ballot_id)
+                    const res = await fetch('/api/client/quotes', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(quotePayload),
+                      body: JSON.stringify({
+                        ...quotePayload,
+                        ballot_id: ballotId || null,
+                        show_id: ballotShowId || null,
+                      }),
                     })
+                    const result = await res.json().catch(() => null)
+                    if (result?.id) setSavedQuoteId(result.id)
                   }
                 } catch (err) {
                   console.error('[Download PDF] Failed to save quote:', err)
@@ -2574,6 +2694,209 @@ function QuoteBuilderInner() {
             >
               <FileText className="h-4 w-4" />
               Download PDF
+            </button>
+
+            <button
+              type="button"
+              disabled={isSendingEmail}
+              onClick={async () => {
+                const selectedPkg = PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]
+                const engLoc = ENGAGEMENT_LOCATIONS.find(l => l.value === watchedValues.engagementLocation)
+                const engLabel = watchedValues.engagementLocation === 'brides_choice' && watchedValues.bridesChoiceLocation
+                  ? `Bride's Choice — ${watchedValues.bridesChoiceLocation}`
+                  : engLoc?.label || watchedValues.engagementLocation
+
+                const timeline = timelineOrder
+                  .map(locId => {
+                    const loc = getLocationData(locId)
+                    if (!loc) return null
+                    const isCustom = loc.type === 'custom'
+                    const customData = isCustom ? customLocations.find(c => c.id === locId) : null
+                    const startTime = isCustom ? (customData?.startTime || '') : (watchedValues[loc.startField as keyof typeof watchedValues] as string || '')
+                    const endTime = isCustom ? (customData?.endTime || '') : (watchedValues[loc.endField as keyof typeof watchedValues] as string || '')
+                    const driveTime = isCustom ? (customData?.driveTime || '') : (loc.driveField ? (watchedValues[loc.driveField as keyof typeof watchedValues] as string || '') : '')
+                    const name = locId === 'park' && watchedValues.firstLook ? 'First Look + Park Photos' : loc.name
+                    return { name, startTime, endTime, driveTime: driveTime || undefined }
+                  })
+                  .filter((t): t is NonNullable<typeof t> => t !== null)
+
+                const selectedPkgData = PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]
+                const serviceNeeds = selectedPkgData?.type === 'photo_only' ? 'photo_only' : 'photo_video'
+
+                setIsSendingEmail(true)
+
+                // 1. Save quote to database first
+                try {
+                  const quotePayload = {
+                    bride_first_name: watchedValues.brideFirstName || '',
+                    bride_last_name: watchedValues.brideLastName || '',
+                    groom_first_name: watchedValues.groomFirstName || '',
+                    groom_last_name: watchedValues.groomLastName || '',
+                    email: watchedValues.brideEmail || watchedValues.groomEmail || '',
+                    phone: watchedValues.bridePhone || watchedValues.groomPhone || '',
+                    wedding_date: watchedValues.weddingDate || null,
+                    ceremony_venue: watchedValues.ceremonyVenue || '',
+                    reception_venue: watchedValues.receptionVenue || '',
+                    guest_count: watchedValues.guestCount || null,
+                    bridal_party_count: watchedValues.bridalPartyCount || null,
+                    flower_girl_count: watchedValues.flowerGirl || null,
+                    ring_bearer_count: watchedValues.ringBearer || null,
+                    first_look: watchedValues.firstLook,
+                    engagement_location: engLabel,
+                    service_needs: serviceNeeds,
+                    package_name: selectedPkg?.name || '',
+                    start_time: watchedValues.coverageStartTime || null,
+                    end_time: watchedValues.coverageEndTime || null,
+                    coverage_hours: (() => {
+                      const s = watchedValues.coverageStartTime
+                      const e = watchedValues.coverageEndTime
+                      if (s && e) {
+                        const [sh, sm] = s.split(':').map(Number)
+                        const [eh, em] = e.split(':').map(Number)
+                        let startM = sh * 60 + sm, endM = eh * 60 + em
+                        if (endM <= startM) endM += 1440
+                        return Math.round((endM - startM) / 60 * 10) / 10
+                      }
+                      return selectedPkg?.hours || 0
+                    })(),
+                    extra_hours: watchedValues.extraHours || 0,
+                    package_price: pricing.basePrice,
+                    extra_hours_price: pricing.extraHoursPrice,
+                    parent_albums_count: watchedValues.parentAlbumQty || 0,
+                    parent_albums_price: pricing.parentAlbumsPrice,
+                    prints_included: printsIncluded || null,
+                    discount_type: watchedValues.discountType === 'none' ? null : watchedValues.discountType,
+                    discount_value: watchedValues.discountAmount || null,
+                    discount_amount: pricing.discount,
+                    subtotal: pricing.subtotal,
+                    hst_amount: pricing.hst,
+                    total: pricing.total,
+                    installments,
+                    timeline,
+                    notes: watchedValues.notes || null,
+                    lead_source: watchedValues.leadSource || null,
+                  }
+
+                  if (clientQuoteId || savedQuoteId) {
+                    await fetch('/api/client/quotes', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ id: clientQuoteId || savedQuoteId, ...quotePayload }),
+                    })
+                  } else {
+                    const res = await fetch('/api/client/quotes', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        ...quotePayload,
+                        ballot_id: ballotId || null,
+                        show_id: ballotShowId || null,
+                      }),
+                    })
+                    const result = await res.json().catch(() => null)
+                    if (result?.id) setSavedQuoteId(result.id)
+                  }
+                } catch (err) {
+                  console.error('[Send Quote] Failed to save quote:', err)
+                }
+
+                // 2. Generate PDF as base64 (also triggers download)
+                let pdfBase64: string | undefined
+                try {
+                  pdfBase64 = await generateQuotePdf({
+                    brideFirstName: watchedValues.brideFirstName || '',
+                    brideLastName: watchedValues.brideLastName || '',
+                    groomFirstName: watchedValues.groomFirstName || '',
+                    groomLastName: watchedValues.groomLastName || '',
+                    brideEmail: watchedValues.brideEmail || '',
+                    bridePhone: watchedValues.bridePhone || '',
+                    groomEmail: watchedValues.groomEmail || '',
+                    groomPhone: watchedValues.groomPhone || '',
+                    weddingDate: watchedValues.weddingDate || '',
+                    ceremonyVenue: watchedValues.ceremonyVenue || '',
+                    receptionVenue: watchedValues.receptionVenue || '',
+                    guestCount: watchedValues.guestCount,
+                    bridalPartyCount: watchedValues.bridalPartyCount,
+                    flowerGirl: watchedValues.flowerGirl,
+                    ringBearer: watchedValues.ringBearer,
+                    selectedPackage: watchedValues.selectedPackage,
+                    packageName: selectedPkg?.name || '',
+                    packageHours: selectedPkg?.hours || 0,
+                    packageFeatures: selectedPkg?.features || [],
+                    extraPhotographer: watchedValues.extraPhotographer,
+                    extraHours: watchedValues.extraHours,
+                    engagementLocation: watchedValues.engagementLocation,
+                    engagementLocationLabel: engLabel,
+                    albumType: watchedValues.albumType,
+                    albumSize: watchedValues.albumSize,
+                    acrylicCover: watchedValues.acrylicCover,
+                    parentAlbumQty: watchedValues.parentAlbumQty,
+                    firstLook: watchedValues.firstLook,
+                    pricing,
+                    freeParentAlbums: parentAlbumsIncluded === 'free',
+                    freePrints: printsIncluded === 'free',
+                    printsTotal,
+                    printOrders,
+                    timeline,
+                    installments,
+                    discountType: watchedValues.discountType,
+                    discountAmount: watchedValues.discountAmount,
+                    discount2Amount: watchedValues.discount2Amount,
+                    leadSource: watchedValues.leadSource || '',
+                  }, { returnBase64: true }) as string | undefined
+                } catch (err) {
+                  console.error('[Send Quote] PDF generation failed:', err)
+                }
+
+                // 3. Send email with PDF
+                if (pdfBase64) {
+                  try {
+                    const coupleEmail = watchedValues.brideEmail || watchedValues.groomEmail || ''
+                    if (!coupleEmail) {
+                      alert('No email address found. Please enter an email to send the quote.')
+                      setIsSendingEmail(false)
+                      return
+                    }
+                    const emailRes = await fetch('/api/client/quotes/send-email', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        quoteId: savedQuoteId || clientQuoteId,
+                        brideName: watchedValues.brideFirstName || '',
+                        groomName: watchedValues.groomFirstName || '',
+                        coupleEmail,
+                        pdfBase64,
+                      }),
+                    })
+                    if (emailRes.ok) {
+                      alert(`Quote emailed to ${coupleEmail}`)
+                    } else {
+                      const errData = await emailRes.json().catch(() => null)
+                      alert(`Email failed: ${errData?.error || 'Unknown error'}. The PDF was still downloaded.`)
+                    }
+                  } catch (err) {
+                    console.error('[Send Quote] Email send failed:', err)
+                    alert('Failed to send email, but the PDF was downloaded.')
+                  }
+                } else {
+                  alert('Could not generate PDF for email. Please try Download PDF instead.')
+                }
+
+                setIsSendingEmail(false)
+              }}
+              className="flex-1 bg-green-600 text-white hover:bg-green-700 px-6 py-3 rounded font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSendingEmail ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4" />
+                  Send Quote via Email
+                </>
+              )}
             </button>
           </div>
           
