@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Calendar, Camera, Clock, X, Video, ClipboardList, DollarSign, BookOpen } from 'lucide-react'
 import { format, differenceInDays, parseISO, addDays } from 'date-fns'
+import { formatWeddingDate, formatDateCompact, formatDate, formatCurrency } from '@/lib/formatters'
 import * as d3 from 'd3'
 
 interface Couple {
@@ -372,7 +373,7 @@ export default function AdminDashboardPage() {
       iconColor: 'text-red-600',
       details: missingForms.map(c => ({
         label: c.couple_name,
-        sub: c.wedding_date ? format(parseISO(c.wedding_date), 'MMM d') : 'TBD',
+        sub: c.wedding_date ? formatDateCompact(c.wedding_date).replace(/, \d{4}$/, '') : 'TBD',
       })),
     },
     {
@@ -384,7 +385,7 @@ export default function AdminDashboardPage() {
       iconColor: 'text-green-600',
       details: depositsDue.map(i => ({
         label: i.due_description || `Installment #${i.installment_number}`,
-        sub: i.due_date ? `$${i.amount} — ${format(parseISO(i.due_date), 'MMM d')}` : `$${i.amount}`,
+        sub: i.due_date ? `${formatCurrency(i.amount)} — ${formatDateCompact(i.due_date).replace(/, \d{4}$/, '')}` : formatCurrency(i.amount),
       })),
     },
     {
@@ -408,7 +409,7 @@ export default function AdminDashboardPage() {
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">SIGS Photography — {format(today, 'EEEE, MMMM d, yyyy')}</p>
+        <p className="text-muted-foreground">SIGS Photography — {formatDate(today)}</p>
       </div>
 
       {/* Year Cards — 2026, 2027, 2025 */}
@@ -453,7 +454,7 @@ export default function AdminDashboardPage() {
                 return (
                   <div key={couple.id} className="p-4 flex items-center justify-between hover:bg-accent/50 transition-colors">
                     <div className="font-medium text-sm truncate">
-                      {couple.couple_name} — {format(wDate, 'MMM d')}
+                      {couple.couple_name} — {formatDateCompact(wDate).replace(/, \d{4}$/, '')}
                     </div>
                     <div className={`text-xs flex-shrink-0 ml-4 ${daysUntil <= 7 ? 'text-red-600 font-semibold' : daysUntil <= 30 ? 'text-amber-600' : 'text-muted-foreground'}`}>
                       {daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? 'Tomorrow' : `${daysUntil} days`}
@@ -551,7 +552,7 @@ export default function AdminDashboardPage() {
                 <div>
                   <div className="font-medium text-sm">{couple.couple_name}</div>
                   <div className="text-xs text-amber-700">
-                    Wedding was {format(parseISO(couple.wedding_date!), 'MMM d, yyyy')}
+                    Wedding was {formatDateCompact(couple.wedding_date!)}
                   </div>
                 </div>
                 <span className="text-xs bg-amber-200 text-amber-800 rounded-full px-2 py-0.5">
@@ -567,7 +568,7 @@ export default function AdminDashboardPage() {
       <div className="text-center text-sm text-muted-foreground pb-4">
         {nextWedding && nextWeddingDate ? (
           <span>
-            {remainingThisYear} weddings remaining in {currentYear} | Next: {nextWedding.couple_name} — {format(nextWeddingDate, 'MMM d')} ({daysUntilNext === 0 ? 'TODAY' : daysUntilNext === 1 ? '1 day' : `${daysUntilNext} days`})
+            {remainingThisYear} weddings remaining in {currentYear} | Next: {nextWedding.couple_name} — {formatDateCompact(nextWeddingDate).replace(/, \d{4}$/, '')} ({daysUntilNext === 0 ? 'TODAY' : daysUntilNext === 1 ? '1 day' : `${daysUntilNext} days`})
           </span>
         ) : (
           <span>No upcoming weddings scheduled</span>
@@ -596,7 +597,7 @@ export default function AdminDashboardPage() {
                       <div className="font-medium text-sm truncate">{couple.couple_name}</div>
                       <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                         <span className="text-sm text-muted-foreground">
-                          {wDate ? format(wDate, 'MMM d') : 'TBD'}
+                          {wDate ? formatDateCompact(wDate).replace(/, \d{4}$/, '') : 'TBD'}
                         </span>
                         <span className={`text-xs rounded-full px-2 py-0.5 ${isPast ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
                           {isPast ? 'Completed' : 'Upcoming'}

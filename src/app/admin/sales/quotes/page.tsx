@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText, Pencil, Download, Eye } from 'lucide-react'
 import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus } from '@/lib/supabase'
+import { formatCurrency, formatDateCompact } from '@/lib/formatters'
 import jsPDF from 'jspdf'
 import { generateQuotePdf, QuotePdfData } from '@/lib/generateQuotePdf'
 
@@ -74,16 +75,11 @@ const LEAD_SOURCE_TO_DISPLAY: Record<string, string> = {
 }
 
 function fmtMoney(n: number): string {
-  return '$' + n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return formatCurrency(n)
 }
 
 function fmtDate(dateStr: string | null): string {
-  if (!dateStr) return '—'
-  try {
-    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  } catch {
-    return dateStr
-  }
+  return formatDateCompact(dateStr)
 }
 
 const REPORT_COLORS = {

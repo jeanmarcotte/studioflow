@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { X } from 'lucide-react'
+import { formatDateCompact } from '@/lib/formatters'
 
 // ── Constants ──────────────────────────────────────────────────────
 
@@ -141,10 +142,9 @@ export default function AddEditingJobPage() {
     setCoupleDropdownOpen(false)
   }
 
-  const formatDate = (dateStr: string | null) => {
+  const formatDateLocal = (dateStr: string | null) => {
     if (!dateStr) return ''
-    const d = new Date(dateStr + 'T12:00:00')
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    return formatDateCompact(dateStr)
   }
 
   // ── Handlers ───────────────────────────────────────────────────
@@ -312,7 +312,7 @@ export default function AddEditingJobPage() {
                           <span>{c.couple_name}</span>
                           {c.wedding_date && (
                             <span className="ml-2 text-xs text-muted-foreground">
-                              {formatDate(c.wedding_date)}
+                              {formatDateLocal(c.wedding_date)}
                             </span>
                           )}
                         </button>

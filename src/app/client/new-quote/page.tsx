@@ -21,24 +21,17 @@ import {
 // Professional Sales Call Worksheet
 // ============================================================
 
-// Generate 15-minute time slots from 6:00 AM to 11:45 PM
+// Generate 15-minute time slots in 24-hour format: 06:00–01:00
 const TIME_SLOTS = (() => {
   const slots: string[] = ['']
-  // Regular hours 6AM to 11:45PM
+  // Regular hours 06:00 to 23:45
   for (let hour = 6; hour <= 23; hour++) {
     for (let min = 0; min < 60; min += 15) {
-      const h = hour % 12 || 12
-      const ampm = hour < 12 ? 'AM' : 'PM'
-      const minStr = min.toString().padStart(2, '0')
-      slots.push(`${h}:${minStr} ${ampm}`)
+      slots.push(`${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`)
     }
   }
-  // Add midnight to 1AM for late receptions
-  slots.push('12:00 AM')
-  slots.push('12:15 AM')
-  slots.push('12:30 AM')
-  slots.push('12:45 AM')
-  slots.push('1:00 AM')
+  // Past midnight: 00:00 to 01:00
+  slots.push('00:00', '00:15', '00:30', '00:45', '01:00')
   return slots
 })()
 
@@ -908,10 +901,7 @@ function QuoteBuilderInner() {
     const selectedPkg = PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]
     const baseHours = selectedPkg?.hours || 8
 
-    console.log('[ExtraHours DEBUG] startVal:', JSON.stringify(startVal), 'endVal:', JSON.stringify(endVal), 'package:', watchedValues.selectedPackage, 'baseHours:', baseHours)
-
     if (!startVal || !endVal) {
-      console.log('[ExtraHours DEBUG] Missing start or end, setting extraHours=0')
       setValue('extraHours', 0)
       return
     }
@@ -925,9 +915,7 @@ function QuoteBuilderInner() {
 
     const rawExtra = Math.max(0, totalHours - baseHours)
     const roundedExtra = Math.ceil(rawExtra * 2) / 2
-    console.log('[ExtraHours DEBUG] parsed start:', sh, sm, 'end:', eh, em, 'totalHours:', totalHours, 'rawExtra:', rawExtra, 'roundedExtra:', roundedExtra)
     setValue('extraHours', roundedExtra)
-    console.log('[ExtraHours DEBUG] setValue extraHours to:', roundedExtra, 'current watchedValues.extraHours:', watchedValues.extraHours)
   }, [watchedValues.coverageStartTime, watchedValues.coverageEndTime, watchedValues.selectedPackage, setValue])
 
   // Auto-populate portraits when package changes (Fix 4)
@@ -1156,28 +1144,34 @@ function QuoteBuilderInner() {
   // TIMELINE HELPERS - Auto-advance time slots
   // ============================================================
   
-  // Convert "11:30 AM" to minutes from midnight
+  // Convert "14:30" (24hr) to minutes from midnight
   const timeToMinutes = (timeStr: string): number | null => {
     if (!timeStr) return null
-    const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
-    if (!match) return null
-    let hours = parseInt(match[1])
-    const minutes = parseInt(match[2])
-    const period = match[3].toUpperCase()
-    if (period === 'PM' && hours !== 12) hours += 12
-    if (period === 'AM' && hours === 12) hours = 0
-    return hours * 60 + minutes
+    // 24-hour format: HH:MM
+    const match24 = timeStr.match(/^(\d{1,2}):(\d{2})$/)
+    if (match24) {
+      return parseInt(match24[1]) * 60 + parseInt(match24[2])
+    }
+    // Legacy AM/PM format fallback
+    const matchAmPm = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+    if (matchAmPm) {
+      let hours = parseInt(matchAmPm[1])
+      const minutes = parseInt(matchAmPm[2])
+      const period = matchAmPm[3].toUpperCase()
+      if (period === 'PM' && hours !== 12) hours += 12
+      if (period === 'AM' && hours === 12) hours = 0
+      return hours * 60 + minutes
+    }
+    return null
   }
-  
-  // Convert minutes from midnight to "11:30 AM"
+
+  // Convert minutes from midnight to "14:30" (24hr)
   const minutesToTime = (mins: number): string => {
     if (mins < 0) mins = 0
     if (mins >= 24 * 60) mins = 23 * 60 + 45
-    const hours24 = Math.floor(mins / 60)
-    const minutes = Math.round(mins % 60 / 15) * 15 // Round to nearest 15
-    const hours12 = hours24 % 12 || 12
-    const period = hours24 < 12 ? 'AM' : 'PM'
-    return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`
+    const hours24 = Math.floor(mins / 60) % 24
+    const minutes = Math.round(mins % 60 / 15) * 15
+    return `${hours24.toString().padStart(2, '0')}:${(minutes % 60).toString().padStart(2, '0')}`
   }
   
   // Parse drive time string to minutes

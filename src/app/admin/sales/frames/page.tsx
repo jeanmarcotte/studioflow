@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { formatCurrency as fmtCurrency, formatDateCompact, formatWeddingDate } from '@/lib/formatters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -55,16 +56,11 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secon
 
 function formatCurrency(amount: number | null): string {
   if (amount === null || amount === 0) return '—'
-  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
+  return fmtCurrency(amount)
 }
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '—'
-  try {
-    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  } catch {
-    return dateStr
-  }
+  return formatDateCompact(dateStr)
 }
 
 // ── Collapsible Table Section ────────────────────────────────────────────────

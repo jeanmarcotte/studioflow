@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Users, Search, Filter, ChevronUp, ChevronDown, Calendar, Camera, Frame, FileText, Package } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
+import { formatWeddingDate, formatCurrency } from '@/lib/formatters'
 import PdfImporter from '@/components/admin/PdfImporter'
 import ExtrasImporter from '@/components/admin/ExtrasImporter'
 
@@ -573,7 +573,7 @@ export default function CouplesPage() {
                       </td>
                       <td className="p-3" style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
                         {couple.wedding_date
-                          ? format(parseISO(couple.wedding_date), 'MMM d, yyyy')
+                          ? formatWeddingDate(couple.wedding_date)
                           : <span className="text-muted-foreground/40">—</span>
                         }
                       </td>
@@ -587,20 +587,20 @@ export default function CouplesPage() {
                         {couple.reception_venue || <span className="text-muted-foreground/40">—</span>}
                       </td>
                       <td className="p-3 text-muted-foreground" style={{ textAlign: 'right' }}>
-                        {couple.contract_price ? `$${Math.round(Number(couple.contract_price)).toLocaleString()}` : <span className="text-muted-foreground/40">—</span>}
+                        {couple.contract_price ? formatCurrency(Math.round(Number(couple.contract_price))) : <span className="text-muted-foreground/40">—</span>}
                       </td>
                       <td className="p-3 text-muted-foreground" style={{ textAlign: 'right' }}>
-                        {couple.frames_total > 0 ? `$${Math.round(couple.frames_total).toLocaleString()}` : <span className="text-muted-foreground/40">—</span>}
+                        {couple.frames_total > 0 ? formatCurrency(Math.round(couple.frames_total)) : <span className="text-muted-foreground/40">—</span>}
                       </td>
                       <td className="p-3 text-muted-foreground" style={{ textAlign: 'right' }}>
-                        {couple.extras_total > 0 ? `$${Math.round(couple.extras_total).toLocaleString()}` : <span className="text-muted-foreground/40">—</span>}
+                        {couple.extras_total > 0 ? formatCurrency(Math.round(couple.extras_total)) : <span className="text-muted-foreground/40">—</span>}
                       </td>
                       <td className="p-3 text-muted-foreground" style={{ textAlign: 'center' }}>
                         {couple.payments_count > 0 ? couple.payments_count : <span className="text-muted-foreground/50">—</span>}
                       </td>
                       <td className="p-3 font-semibold" style={{ textAlign: 'right' }}>
                         {bal > 0 ? (
-                          <span className="text-red-600">${Math.round(bal).toLocaleString()}</span>
+                          <span className="text-red-600">{formatCurrency(Math.round(bal))}</span>
                         ) : (
                           <span className="text-muted-foreground/50 font-normal">$0</span>
                         )}

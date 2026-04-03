@@ -6,6 +6,7 @@ import {
   X, Search, Camera, Video, Check, XCircle, Download,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { formatDateCompact } from '@/lib/formatters'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -42,8 +43,7 @@ type SortDir = 'asc' | 'desc'
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 function formatDate(iso: string) {
-  const d = new Date(iso + 'T12:00:00')
-  return d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
+  return formatDateCompact(iso)
 }
 
 function getDayName(iso: string) {

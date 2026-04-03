@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Search, Plus, ChevronDown, ChevronRight, X, FileText } from 'lucide-react'
 import { differenceInDays, parseISO, format } from 'date-fns'
+import { formatDateCompact } from '@/lib/formatters'
 import { Playfair_Display, Nunito } from 'next/font/google'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
@@ -650,7 +651,7 @@ export default function PhotoProductionPage() {
                               <div className={`${nunito.className} font-semibold text-sm text-foreground`}>{job.couples?.couple_name || 'Unknown'}</div>
                               {job.couples?.wedding_date && (
                                 <div className="text-[11px] text-muted-foreground">
-                                  {format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')}
+                                  {formatDateCompact(job.couples.wedding_date)}
                                 </div>
                               )}
                             </td>
@@ -821,12 +822,12 @@ export default function PhotoProductionPage() {
                             </div>
                             {job.couples?.wedding_date && (
                               <div className="text-[11px] text-muted-foreground">
-                                {format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')}
+                                {formatDateCompact(job.couples.wedding_date)}
                               </div>
                             )}
                             {job.status === 'at_lab' && job.at_lab_date && (
                               <div className="text-[11px] text-indigo-600">
-                                At lab {differenceInDays(new Date(), parseISO(job.at_lab_date))} days — since {format(parseISO(job.at_lab_date), 'MMM d')}
+                                At lab {differenceInDays(new Date(), parseISO(job.at_lab_date))} days — since {formatDateCompact(job.at_lab_date).replace(/, \d{4}$/, '')}
                               </div>
                             )}
                           </div>
@@ -926,7 +927,7 @@ export default function PhotoProductionPage() {
                             <div className="font-medium text-sm text-muted-foreground">{job.couples?.couple_name || 'Unknown'}</div>
                             {job.couples?.wedding_date && (
                               <div className="text-[11px] text-muted-foreground">
-                                {format(parseISO(job.couples.wedding_date), 'MMM d, yyyy')}
+                                {formatDateCompact(job.couples.wedding_date)}
                               </div>
                             )}
                           </td>
@@ -1135,7 +1136,7 @@ export default function PhotoProductionPage() {
                     <div key={couple.id} className="px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors">
                       <div className="font-medium text-sm">{couple.couple_name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {couple.wedding_date ? format(parseISO(couple.wedding_date), 'MMM d, yyyy') : 'No date'}
+                        {couple.wedding_date ? formatDateCompact(couple.wedding_date) : 'No date'}
                       </div>
                     </div>
                   ))

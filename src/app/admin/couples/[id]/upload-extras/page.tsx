@@ -8,6 +8,7 @@ import {
   ArrowLeft, Upload, Loader2, CheckCircle2, AlertCircle,
   XCircle, DollarSign, Package, FileText, List
 } from 'lucide-react'
+import { formatCurrency } from '@/lib/formatters'
 
 type PageState = 'upload' | 'parsing' | 'review' | 'saving' | 'done' | 'error'
 
@@ -239,7 +240,7 @@ export default function UploadExtrasPage() {
                       <td className="p-3 font-medium">{item.name}</td>
                       <td className="p-3 text-muted-foreground">{item.description || '—'}</td>
                       <td className="p-3 text-right">
-                        {item.price != null ? `$${item.price.toLocaleString()}` : '—'}
+                        {item.price != null ? formatCurrency(item.price) : '—'}
                       </td>
                     </tr>
                   ))}
@@ -291,7 +292,7 @@ export default function UploadExtrasPage() {
               {data.remainingBalance != null && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Remaining Balance</span>
-                  <span className="font-medium">${data.remainingBalance.toLocaleString()}</span>
+                  <span className="font-medium">{formatCurrency(data.remainingBalance)}</span>
                 </div>
               )}
               {data.paymentSchedule && data.paymentSchedule.length > 0 && (
@@ -300,7 +301,7 @@ export default function UploadExtrasPage() {
                   {data.paymentSchedule.map((ps, i) => (
                     <div key={i} className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">{ps.milestone}</span>
-                      <span className="font-medium">${ps.amount.toLocaleString()}</span>
+                      <span className="font-medium">{formatCurrency(ps.amount)}</span>
                     </div>
                   ))}
                 </div>

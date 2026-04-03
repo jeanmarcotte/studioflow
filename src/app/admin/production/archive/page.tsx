@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Search, ChevronDown, ChevronRight, X } from 'lucide-react'
 import { Playfair_Display, Nunito } from 'next/font/google'
+import { formatDateCompact } from '@/lib/formatters'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -60,11 +61,7 @@ interface ArchiveMilestone {
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-function formatDate(d: string | null): string {
-  if (!d) return '—'
-  const date = new Date(d)
-  return date.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })
-}
+const formatDateLocal = formatDateCompact
 
 function formatGB(gb: number | null): string {
   if (gb == null) return '—'
@@ -442,7 +439,7 @@ export default function ProductionArchivePage() {
                         <tr key={d.id} className="hover:bg-accent/30 transition-colors">
                           <td className="px-3 py-2.5 font-semibold">{d.drive_number}</td>
                           <td className="px-3 py-2.5">{d.drive_name}</td>
-                          <td className="px-3 py-2.5 text-muted-foreground">{formatDate(d.scanned_at)}</td>
+                          <td className="px-3 py-2.5 text-muted-foreground">{formatDateLocal(d.scanned_at)}</td>
                           <td className="px-3 py-2.5 text-muted-foreground" style={{ textAlign: 'right' }}>{formatGB(d.total_size_gb)}</td>
                           <td className="px-3 py-2.5 text-muted-foreground" style={{ textAlign: 'right' }}>{formatNumber(d.total_folders)}</td>
                           <td className="px-3 py-2.5 text-muted-foreground" style={{ textAlign: 'right' }}>{formatNumber(d.total_files)}</td>
@@ -450,7 +447,7 @@ export default function ProductionArchivePage() {
                           <td className="px-3 py-2.5">
                             {d.cleaned_cfa_at ? (
                               <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-green-100 text-green-700">
-                                {formatDate(d.cleaned_cfa_at)}
+                                {formatDateLocal(d.cleaned_cfa_at)}
                               </span>
                             ) : (
                               <span className="text-muted-foreground">—</span>
@@ -775,7 +772,7 @@ export default function ProductionArchivePage() {
                 {selectedCouple.bride_name} &amp; {selectedCouple.groom_name}
               </h2>
               {selectedCouple.event_date && (
-                <p className="text-sm text-muted-foreground mb-2">{formatDate(selectedCouple.event_date)}</p>
+                <p className="text-sm text-muted-foreground mb-2">{formatDateLocal(selectedCouple.event_date)}</p>
               )}
               {selectedCouple.wedding_year && !selectedCouple.event_date && (
                 <p className="text-sm text-muted-foreground mb-2">Year: {selectedCouple.wedding_year}</p>
@@ -860,7 +857,7 @@ export default function ProductionArchivePage() {
                   {' drive(s)'}
                 </p>
                 <p>
-                  Last reviewed: {selectedCouple.last_review_at ? formatDate(selectedCouple.last_review_at) : 'Never'}
+                  Last reviewed: {selectedCouple.last_review_at ? formatDateLocal(selectedCouple.last_review_at) : 'Never'}
                 </p>
               </div>
 

@@ -3,8 +3,9 @@
 import { useState, useEffect, Fragment } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { format, differenceInDays } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 import { Loader2, AlertTriangle, Clock, Calendar, DollarSign } from 'lucide-react';
+import { formatDateCompact, formatCurrency } from '@/lib/formatters';
 
 interface InstallmentRow {
   id: string;
@@ -203,7 +204,7 @@ export default function FinanceUpcomingPage() {
               <card.icon className={`w-5 h-5 ${card.color}`} />
             </div>
             <div className={`text-2xl font-bold font-mono ${card.color}`}>
-              ${card.value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              {formatCurrency(card.value)}
             </div>
             <div className="text-xs text-muted-foreground mt-1">{card.count} installment{card.count !== 1 ? 's' : ''}</div>
           </div>
@@ -251,11 +252,11 @@ export default function FinanceUpcomingPage() {
                         </Link>
                       </td>
                       <td className="py-3 px-5 font-mono text-muted-foreground">
-                        {inst.wedding_date ? format(new Date(inst.wedding_date), 'MMM d, yyyy') : '—'}
+                        {inst.wedding_date ? formatDateCompact(inst.wedding_date) : '—'}
                       </td>
                       <td className="py-3 px-5">
                         {inst.due_date ? (
-                          <span className="font-mono text-muted-foreground">{format(new Date(inst.due_date), 'MMM d, yyyy')}</span>
+                          <span className="font-mono text-muted-foreground">{formatDateCompact(inst.due_date)}</span>
                         ) : (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-muted text-foreground">
                             Milestone
@@ -264,7 +265,7 @@ export default function FinanceUpcomingPage() {
                       </td>
                       <td className="py-3 px-5 text-foreground">{inst.due_description}</td>
                       <td className="py-3 px-5 text-right font-mono font-semibold">
-                        ${num(inst.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {formatCurrency(num(inst.amount))}
                       </td>
                     </tr>
                   ))}

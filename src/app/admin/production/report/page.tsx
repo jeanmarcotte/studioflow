@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Printer, Mail, Loader2 } from 'lucide-react'
 import { Playfair_Display, Nunito } from 'next/font/google'
+import { formatDateCompact } from '@/lib/formatters'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -97,11 +98,7 @@ function formatVideoJobType(type: string): string {
   return map[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '\u2014'
-  const d = new Date(dateStr + 'T12:00:00')
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
+const formatDateLocal = formatDateCompact
 
 function daysSince(dateStr: string | null): number {
   if (!dateStr) return 0
@@ -538,7 +535,7 @@ export default function ProductionReportPage() {
                       return (
                         <tr key={couple.id} style={{ borderBottom: '1px solid var(--border, #f3f0ed)' }}>
                           <td className="px-5 py-2.5" style={{ color, fontWeight: bold ? 700 : 400 }}>{couple.couple_name}</td>
-                          <td className="px-5 py-2.5" style={{ color: C.textSubtle }}>{formatDate(couple.wedding_date)}</td>
+                          <td className="px-5 py-2.5" style={{ color: C.textSubtle }}>{formatDateLocal(couple.wedding_date)}</td>
                           <td className="text-right px-5 py-2.5 font-semibold" style={{ color }}>{days} days</td>
                         </tr>
                       )
@@ -592,7 +589,7 @@ export default function ProductionReportPage() {
                       <tr key={job.id} style={{ borderBottom: '1px solid var(--border, #f3f0ed)', background: i % 2 === 1 ? C.rowAlt : C.white }}>
                         <td className="px-4 py-2.5">
                           <div className="font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</div>
-                          {job.couples?.wedding_date && <div className="text-[11px]" style={{ color: C.textSubtle }}>{formatDate(job.couples.wedding_date)}</div>}
+                          {job.couples?.wedding_date && <div className="text-[11px]" style={{ color: C.textSubtle }}>{formatDateLocal(job.couples.wedding_date)}</div>}
                         </td>
                         <td className="px-3 py-2.5" style={{ color: C.textMuted }}>{formatJobType(job.job_type)}</td>
                         <td className="text-right px-3 py-2.5 tabular-nums">{pt.toLocaleString()}</td>
@@ -652,7 +649,7 @@ export default function ProductionReportPage() {
                     {sectionJobs.map(job => (
                       <tr key={job.id} style={{ borderBottom: '1px solid var(--border, #f3f0ed)' }}>
                         <td className="px-5 py-2.5 font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</td>
-                        <td className="px-4 py-2.5" style={{ color: C.textSubtle }}>{formatDate(job.couples?.wedding_date ?? null)}</td>
+                        <td className="px-4 py-2.5" style={{ color: C.textSubtle }}>{formatDateLocal(job.couples?.wedding_date ?? null)}</td>
                         <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{formatJobType(job.job_type)}</td>
                         <td className="text-right px-4 py-2.5 tabular-nums" style={{ color: C.textMuted }}>{job.photos_taken ?? '\u2014'}</td>
                         <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{formatVendor(job.vendor)}</td>
@@ -799,7 +796,7 @@ export default function ProductionReportPage() {
                   {videoNotStarted.map(job => (
                     <tr key={job.id} style={{ borderBottom: '1px solid var(--border, #f3f0ed)' }}>
                       <td className="px-5 py-2.5 font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</td>
-                      <td className="px-4 py-2.5" style={{ color: C.textSubtle }}>{formatDate(job.couples?.wedding_date ?? null)}</td>
+                      <td className="px-4 py-2.5" style={{ color: C.textSubtle }}>{formatDateLocal(job.couples?.wedding_date ?? null)}</td>
                       <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{formatVideoJobType(job.job_type)}</td>
                       <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{job.assigned_to || '\u2014'}</td>
                       <td className="text-center px-4 py-2.5">{job.proxies_run ? '\u2705' : '\u25CB'}</td>
@@ -833,9 +830,9 @@ export default function ProductionReportPage() {
                   {videoCompleted2026.map(job => (
                     <tr key={job.id} style={{ borderBottom: '1px solid var(--border, #f3f0ed)' }}>
                       <td className="px-5 py-2.5 font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</td>
-                      <td className="px-4 py-2.5" style={{ color: C.textSubtle }}>{formatDate(job.couples?.wedding_date ?? null)}</td>
+                      <td className="px-4 py-2.5" style={{ color: C.textSubtle }}>{formatDateLocal(job.couples?.wedding_date ?? null)}</td>
                       <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{formatVideoJobType(job.job_type)}</td>
-                      <td className="px-4 py-2.5" style={{ color: C.tealLight }}>{formatDate(job.completed_date)}</td>
+                      <td className="px-4 py-2.5" style={{ color: C.tealLight }}>{formatDateLocal(job.completed_date)}</td>
                       <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{job.assigned_to || '\u2014'}</td>
                     </tr>
                   ))}

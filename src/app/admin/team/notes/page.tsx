@@ -6,6 +6,7 @@ import {
   AlertCircle, SlidersHorizontal, ImagePlus, Mail, Send
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { formatDateCompact } from '@/lib/formatters'
 import type {
   TeamNoteWithTags, NoteIssueTag, CoupleOption, Severity,
 } from '@/types/team-notes'
@@ -291,8 +292,7 @@ export default function TeamNotesPage() {
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return ''
-    const d = new Date(dateStr + 'T12:00:00')
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    return formatDateCompact(dateStr)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import { formatDateCompact, formatCurrency } from '@/lib/formatters';
 
 interface CoupleAccount {
   id: string;
@@ -163,7 +163,7 @@ export default function FinanceAccountsPage() {
           <div>
             <div className="text-xs font-semibold text-muted-foreground uppercase">Total Owing</div>
             <div className="text-2xl font-bold font-mono text-red-600">
-              ${totalOwing.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatCurrency(totalOwing)}
             </div>
           </div>
         </div>
@@ -226,16 +226,16 @@ export default function FinanceAccountsPage() {
                     </Link>
                   </td>
                   <td className="py-3 px-5 font-mono text-muted-foreground">
-                    {couple.wedding_date ? format(new Date(couple.wedding_date), 'MMM d, yyyy') : '—'}
+                    {couple.wedding_date ? formatDateCompact(couple.wedding_date) : '—'}
                   </td>
                   <td className="py-3 px-5 text-right font-mono">
-                    ${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatCurrency(grandTotal)}
                   </td>
                   <td className="py-3 px-5 text-right font-mono text-green-600">
-                    ${totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatCurrency(totalPaid)}
                   </td>
                   <td className={`py-3 px-5 text-right font-mono font-semibold ${isPaid ? 'text-green-600' : 'text-red-600'}`}>
-                    ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatCurrency(balance)}
                   </td>
                   <td className="py-3 px-5 text-center">
                     {isPaid ? (

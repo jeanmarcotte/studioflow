@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Search, ChevronDown, ChevronRight, GripVertical, X } from 'lucide-react'
 import { format, parseISO, differenceInDays } from 'date-fns'
+import { formatDate, formatDateCompact } from '@/lib/formatters'
 import { Playfair_Display, Nunito } from 'next/font/google'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
@@ -742,7 +743,7 @@ export default function VideoProductionPage() {
                         </div>
                       </button>
                       {weddingDate && (
-                        <div className="text-[13px] mb-1 text-muted-foreground">{format(parseISO(weddingDate), 'MMMM d, yyyy')}</div>
+                        <div className="text-[13px] mb-1 text-muted-foreground">{formatDate(weddingDate)}</div>
                       )}
 
                       {/* Job type */}
@@ -928,7 +929,7 @@ export default function VideoProductionPage() {
                               </td>
                               <td className="p-3 text-muted-foreground">
                                 {couple.wedding_date
-                                  ? format(parseISO(couple.wedding_date), 'MMM d, yyyy')
+                                  ? formatDateCompact(couple.wedding_date)
                                   : <span className="text-amber-600 text-xs">No date</span>
                                 }
                               </td>
@@ -1009,7 +1010,7 @@ export default function VideoProductionPage() {
                             </td>
                             <td className="p-3 hidden lg:table-cell text-muted-foreground">
                               {(job.wedding_date || job.couples?.wedding_date)
-                                ? format(parseISO((job.wedding_date || job.couples?.wedding_date)!), 'MMM d, yyyy')
+                                ? formatDateCompact((job.wedding_date || job.couples?.wedding_date)!)
                                 : <span className="text-amber-600 text-xs">No date</span>
                               }
                             </td>
@@ -1089,7 +1090,7 @@ export default function VideoProductionPage() {
                                   className="text-left text-xs hover:underline"
                                 >
                                   {job.due_date
-                                    ? <span className="text-muted-foreground">{format(parseISO(job.due_date), 'MMM d')}</span>
+                                    ? <span className="text-muted-foreground">{formatDateCompact(job.due_date).replace(/, \d{4}$/, '')}</span>
                                     : <span className="text-muted-foreground/50 italic">Set date</span>
                                   }
                                 </button>
@@ -1161,7 +1162,7 @@ export default function VideoProductionPage() {
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell text-xs">
                           {(job.wedding_date || job.couples?.wedding_date)
-                            ? format(parseISO((job.wedding_date || job.couples?.wedding_date)!), 'MMM d, yyyy')
+                            ? formatDateCompact((job.wedding_date || job.couples?.wedding_date)!)
                             : '\u2014'
                           }
                         </td>
@@ -1183,7 +1184,7 @@ export default function VideoProductionPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell text-xs">
-                          {job.due_date ? format(parseISO(job.due_date), 'MMM d') : '\u2014'}
+                          {job.due_date ? formatDateCompact(job.due_date).replace(/, \d{4}$/, '') : '\u2014'}
                         </td>
                       </tr>
                     ))}

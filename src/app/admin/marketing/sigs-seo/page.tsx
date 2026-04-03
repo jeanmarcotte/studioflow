@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { Search, ExternalLink, TrendingUp, TrendingDown, Hash, MapPin, Building, Shield, ChevronDown, ChevronRight, Clock, Zap } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { supabase } from '@/lib/supabase'
+import { formatDate } from '@/lib/formatters'
 
 interface KeywordRow {
   keyword: string
@@ -266,7 +267,7 @@ export default function SigsSeoPage() {
 
   const auditDate = auditScores[0]?.audit_date
   const auditDateFormatted = auditDate
-    ? new Date(auditDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    ? formatDate(auditDate)
     : '—'
 
   const priorityCounts: Record<string, number> = {

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { UserPlus, X, ChevronUp, ChevronDown, Phone, Mail, AlertTriangle, Edit2, Save, XCircle } from 'lucide-react'
 import { Playfair_Display, Nunito } from 'next/font/google'
 import { format, parseISO, differenceInCalendarYears, differenceInMonths } from 'date-fns'
+import { formatCurrency as fmtCurrency, formatTimelineDate, formatDate as fmtDate } from '@/lib/formatters'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -105,7 +106,7 @@ function formatTenureLong(tenureStart: string | null): string {
 }
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
+  return fmtCurrency(amount)
 }
 
 function getPayLabel(member: TeamMember): string {
@@ -635,7 +636,7 @@ export default function TeamMembersPage() {
                     </td>
                     {/* Next Wedding */}
                     <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
-                      {stats.nextWedding ? format(parseISO(stats.nextWedding), 'MMM d') : '—'}
+                      {stats.nextWedding ? formatTimelineDate(stats.nextWedding) : '—'}
                     </td>
                   </tr>
                 )
@@ -833,7 +834,7 @@ export default function TeamMembersPage() {
                 <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'var(--background)', borderRadius: '10px', border: '1px solid var(--border)' }}>
                   <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)', marginTop: 0, marginBottom: '10px' }}>Details</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem', color: 'var(--foreground)' }}>
-                    <div><strong>Joined:</strong> {selectedMember.date_joined ? format(parseISO(selectedMember.date_joined), 'MMMM yyyy') : '—'} &middot; {formatTenureLong(selectedMember.tenure_start)}</div>
+                    <div><strong>Joined:</strong> {selectedMember.date_joined ? fmtDate(selectedMember.date_joined) : '—'} &middot; {formatTenureLong(selectedMember.tenure_start)}</div>
                     <div><strong>Pay Rate:</strong> {getPayLabel(selectedMember)}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><strong>Skills:</strong> <SkillPills skills={selectedMember.skills} /></div>
                     {selectedMember.notes && (
@@ -881,7 +882,7 @@ export default function TeamMembersPage() {
                             <tbody>
                               {stats.upcomingWeddings.slice(0, 5).map((w, i) => (
                                 <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                                  <td style={{ padding: '6px 0', color: 'var(--foreground)' }}>{format(parseISO(w.date), 'MMM d')}</td>
+                                  <td style={{ padding: '6px 0', color: 'var(--foreground)' }}>{formatTimelineDate(w.date)}</td>
                                   <td style={{ padding: '6px 0', color: 'var(--foreground)' }}>{w.couple}</td>
                                   <td style={{ padding: '6px 0', color: 'var(--foreground)' }}>{w.role}</td>
                                 </tr>

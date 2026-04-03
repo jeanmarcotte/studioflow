@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { DollarSign, TrendingUp, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { formatDateCompact, formatCurrency } from '@/lib/formatters';
 
 const FY_START = '2025-05-01';
 const FY_END = '2026-04-30';
@@ -155,7 +156,7 @@ export default function FinanceDashboardPage() {
               <card.icon className={`w-5 h-5 ${card.color}`} />
             </div>
             <div className={`text-2xl font-bold font-mono ${card.color}`}>
-              ${card.value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              {formatCurrency(card.value)}
             </div>
           </div>
         ))}
@@ -189,7 +190,7 @@ export default function FinanceDashboardPage() {
                 }`}
               >
                 <td className="py-3 px-5 font-mono text-muted-foreground">
-                  {payment.payment_date ? format(new Date(payment.payment_date), 'MMM d, yyyy') : '—'}
+                  {payment.payment_date ? formatDateCompact(payment.payment_date) : '—'}
                 </td>
                 <td className="py-3 px-5">
                   {payment.couples ? (
@@ -204,7 +205,7 @@ export default function FinanceDashboardPage() {
                   )}
                 </td>
                 <td className="py-3 px-5 text-right font-mono font-semibold text-green-600">
-                  ${parseFloat(payment.amount).toLocaleString()}
+                  {formatCurrency(payment.amount)}
                 </td>
                 <td className="py-3 px-5 text-muted-foreground capitalize">
                   {payment.method || '—'}

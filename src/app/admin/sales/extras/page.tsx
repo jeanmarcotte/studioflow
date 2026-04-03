@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { ShoppingBag, DollarSign, ChevronUp, ChevronDown, Plus, X, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { format, parseISO } from 'date-fns'
+import { formatCurrency, formatDateCompact } from '@/lib/formatters'
 
 // ── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -50,16 +50,11 @@ const ITEM_TYPES = ['Additional Person', 'Hi Res Files', 'Hours', 'Parent Album'
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmtMoney(n: number): string {
-  return '$' + n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return formatCurrency(n)
 }
 
 function fmtDate(dateStr: string | null): string {
-  if (!dateStr) return '—'
-  try {
-    return format(parseISO(dateStr), 'MMM d, yyyy')
-  } catch {
-    return dateStr
-  }
+  return formatDateCompact(dateStr)
 }
 
 function statusBadge(status: string | null) {
