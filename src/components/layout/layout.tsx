@@ -263,6 +263,8 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
             </button>
           </div>
 
+          {/* User Actions */}
+          <div className="flex items-center gap-2">
           <ThemeToggle />
 
           {/* User Profile Dropdown */}
@@ -333,6 +335,7 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
                 </div>
               </>
             )}
+          </div>
           </div>
         </header>
 
