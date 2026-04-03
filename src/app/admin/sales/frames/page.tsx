@@ -1,426 +1,371 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import { formatCurrency as fmtCurrency, formatDateCompact, formatWeddingDate } from '@/lib/formatters'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useEffect, useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
+import { useQueryState } from "nuqs"
+import { ColumnDef } from "@tanstack/react-table"
+import { format } from "date-fns"
+import { ControlPageTemplate } from "@/components/templates"
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { ChevronDown, ChevronRight, Search } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+  DataTable,
+  DataTableColumnHeader,
+  CollapsibleSection,
+  StatusBadge,
+  StatCard,
+} from "@/components/ui"
+import { supabase } from "@/lib/supabase"
+import { DollarSign, TrendingUp, Percent, Package } from "lucide-react"
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
+// Types
 interface ExtrasOrder {
   id: string
   couple_id: string
-  couple_name: string
-  wedding_date: string | null
-  order_date: string | null
-  status: string | null
+  order_date: string
+  status: string
   extras_sale_amount: number | null
-  order_type: string | null
+  collage_size: string | null
+  album_qty: number | null
+  signing_book: boolean | null
+  wedding_frame_size: string | null
+  printed_5x5: boolean | null
+  // Joined from couples
+  bride_name?: string
+  groom_name?: string
+  wedding_date?: string
 }
 
-// ── Status config ────────────────────────────────────────────────────────────
+// Fetch orders with couple data
+async function fetchOrders(year: number): Promise<ExtrasOrder[]> {
+  const startDate = `${year}-01-01`
+  const endDate = `${year}-12-31`
 
-const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  signed: { label: 'Signed', variant: 'default' },
-  completed: { label: 'Completed', variant: 'secondary' },
-  declined: { label: 'Declined', variant: 'destructive' },
-  pending: { label: 'Pending', variant: 'outline' },
+  const { data, error } = await supabase
+    .from("extras_orders")
+    .select(`
+      id,
+      couple_id,
+      order_date,
+      status,
+      extras_sale_amount,
+      collage_size,
+      album_qty,
+      signing_book,
+      wedding_frame_size,
+      printed_5x5,
+      couples (
+        bride_name,
+        groom_name,
+        wedding_date
+      )
+    `)
+    .gte("order_date", startDate)
+    .lte("order_date", endDate)
+    .order("order_date", { ascending: false })
+
+  if (error) throw error
+
+  // Flatten the joined data
+  return (data || []).map((order: any) => ({
+    ...order,
+    bride_name: order.couples?.bride_name || "Unknown",
+    groom_name: order.couples?.groom_name || "",
+    wedding_date: order.couples?.wedding_date || null,
+  }))
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Item icons component
+function ItemIcons({ order }: { order: ExtrasOrder }) {
+  const items = []
+  if (order.collage_size) items.push("🖼️")
+  if (order.album_qty && order.album_qty > 0) items.push("📖")
+  if (order.signing_book) items.push("✍️")
+  if (order.wedding_frame_size) items.push("🎨")
+  if (order.printed_5x5) items.push("📸")
+  return <span className="text-lg">{items.join(" ") || "—"}</span>
+}
 
+// Format currency
 function formatCurrency(amount: number | null): string {
-  if (amount === null || amount === 0) return '—'
-  return fmtCurrency(amount)
+  if (amount === null || amount === undefined) return "—"
+  return new Intl.NumberFormat("en-CA", {
+    style: "currency",
+    currency: "CAD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
 }
 
-function formatDate(dateStr: string | null): string {
-  return formatDateCompact(dateStr)
+// Couple name formatter
+function formatCoupleName(bride: string | undefined, groom: string | undefined): string {
+  if (!bride && !groom) return "Unknown Couple"
+  if (!groom) return bride || "Unknown"
+  return `${bride} & ${groom}`
 }
-
-// ── Collapsible Table Section ────────────────────────────────────────────────
-
-function OrderSection({
-  title,
-  orders,
-  totalAmount,
-  defaultOpen = false,
-  onRowClick,
-}: {
-  title: string
-  orders: ExtrasOrder[]
-  totalAmount: number
-  defaultOpen?: boolean
-  onRowClick: (order: ExtrasOrder) => void
-}) {
-  const [isOpen, setIsOpen] = useState(defaultOpen)
-  const statusKey = title.toLowerCase()
-  const config = STATUS_CONFIG[statusKey] || { label: title, variant: 'outline' as const }
-
-  return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="border rounded-lg">
-      <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors">
-        <div className="flex items-center gap-3">
-          {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-          <span className="font-medium">{title}</span>
-          <Badge variant={config.variant}>{orders.length}</Badge>
-        </div>
-        <span className="font-semibold">{formatCurrency(totalAmount)}</span>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        {orders.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground">No orders in this category</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">#</TableHead>
-                <TableHead>Couple</TableHead>
-                <TableHead>Wedding Date</TableHead>
-                <TableHead>Order Date</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders.map((order, index) => (
-                <TableRow
-                  key={order.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => onRowClick(order)}
-                >
-                  <TableCell className="text-muted-foreground">{index + 1}</TableCell>
-                  <TableCell className="font-medium">{order.couple_name}</TableCell>
-                  <TableCell>{formatDate(order.wedding_date)}</TableCell>
-                  <TableCell>{formatDate(order.order_date)}</TableCell>
-                  <TableCell className="text-right font-medium">{formatCurrency(order.extras_sale_amount)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CollapsibleContent>
-    </Collapsible>
-  )
-}
-
-// ── Stats Sidebar ────────────────────────────────────────────────────────────
-
-function StatsSidebar({ orders }: { orders: ExtrasOrder[] }) {
-  const signedOrders = orders.filter(o => o.status === 'signed')
-  const completedOrders = orders.filter(o => o.status === 'completed')
-  const declinedOrders = orders.filter(o => o.status === 'declined')
-
-  const revenueOrders = [...signedOrders, ...completedOrders]
-  const totalRevenue = revenueOrders.reduce(
-    (sum, o) => sum + (Number(o.extras_sale_amount) || 0), 0
-  )
-
-  const avgSale = revenueOrders.length > 0
-    ? totalRevenue / revenueOrders.length
-    : 0
-
-  const conversionRate = orders.length > 0
-    ? (revenueOrders.length / orders.length) * 100
-    : 0
-
-  return (
-    <div className="space-y-4 w-[280px] shrink-0 hidden lg:block">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Average Sale</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(avgSale)}</div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Conversion Rate</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{conversionRate.toFixed(0)}%</div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">By Status</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-sm">Signed</span>
-            <Badge variant="default">{signedOrders.length}</Badge>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm">Completed</span>
-            <Badge variant="secondary">{completedOrders.length}</Badge>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm">Declined</span>
-            <Badge variant="destructive">{declinedOrders.length}</Badge>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-// ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function FrameSalesPage() {
   const router = useRouter()
-  const [orders, setOrders] = useState<ExtrasOrder[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [year, setYear] = useState(new Date().getFullYear().toString())
-  const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    async function fetchOrders() {
-      setLoading(true)
-      setError(null)
-
-      const [extrasRes, couplesRes] = await Promise.all([
-        supabase
-          .from('extras_orders')
-          .select('id, couple_id, extras_sale_amount, status, order_date, order_type')
-          .in('order_type', ['frames', 'frames_albums'])
-          .order('order_date', { ascending: false }),
-        supabase
-          .from('couples')
-          .select('id, couple_name, wedding_date'),
-      ])
-
-      if (extrasRes.error) {
-        setError(extrasRes.error.message)
-        setLoading(false)
-        return
-      }
-
-      // Build couple lookup
-      const coupleMap = new Map<string, { couple_name: string; wedding_date: string | null }>()
-      if (couplesRes.data) {
-        for (const c of couplesRes.data) {
-          coupleMap.set(c.id, { couple_name: c.couple_name, wedding_date: c.wedding_date })
-        }
-      }
-
-      // Enrich orders with couple data
-      const enriched: ExtrasOrder[] = (extrasRes.data || []).map((row: any) => {
-        const couple = coupleMap.get(row.couple_id)
-        return {
-          ...row,
-          couple_name: couple?.couple_name || 'Unknown Couple',
-          wedding_date: couple?.wedding_date || null,
-        }
-      })
-
-      setOrders(enriched)
-      setLoading(false)
-    }
-
-    fetchOrders()
-  }, [])
-
-  // Filter by year and search
-  const filteredOrders = orders.filter(order => {
-    if (year !== 'all') {
-      const orderYear = order.wedding_date
-        ? new Date(order.wedding_date + 'T12:00:00').getFullYear().toString()
-        : null
-      if (orderYear !== year) return false
-    }
-
-    if (search) {
-      const searchLower = search.toLowerCase()
-      if (!order.couple_name.toLowerCase().includes(searchLower)) return false
-    }
-
-    return true
+  // URL state for filters
+  const [year, setYear] = useQueryState("year", {
+    defaultValue: new Date().getFullYear().toString(),
+    parse: (v) => v,
+    serialize: (v) => v,
   })
+  const [search, setSearch] = useQueryState("q", { defaultValue: "" })
+  const [statusFilter, setStatusFilter] = useQueryState("status")
+
+  // Data state
+  const [orders, setOrders] = useState<ExtrasOrder[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch data
+  useEffect(() => {
+    async function load() {
+      setIsLoading(true)
+      setError(null)
+      try {
+        const data = await fetchOrders(parseInt(year))
+        setOrders(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load orders")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    load()
+  }, [year])
+
+  // Filter orders
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      // Status filter
+      if (statusFilter && order.status !== statusFilter) return false
+
+      // Search filter
+      if (search) {
+        const searchLower = search.toLowerCase()
+        const coupleName = formatCoupleName(order.bride_name, order.groom_name).toLowerCase()
+        if (!coupleName.includes(searchLower)) return false
+      }
+
+      return true
+    })
+  }, [orders, statusFilter, search])
 
   // Group by status
-  const signedOrders = filteredOrders.filter(o => o.status === 'signed' || o.status === 'paid' || o.status === 'confirmed')
-  const completedOrders = filteredOrders.filter(o => o.status === 'completed')
-  const declinedOrders = filteredOrders.filter(o => o.status === 'declined' || o.status === 'no_sale')
-  const pendingOrders = filteredOrders.filter(o => o.status === 'pending' || o.status === 'active')
-
-  // Calculate totals
-  const signedTotal = signedOrders.reduce((sum, o) => sum + (Number(o.extras_sale_amount) || 0), 0)
-  const completedTotal = completedOrders.reduce((sum, o) => sum + (Number(o.extras_sale_amount) || 0), 0)
-  const declinedTotal = 0
-  const pendingTotal = pendingOrders.reduce((sum, o) => sum + (Number(o.extras_sale_amount) || 0), 0)
-
-  const handleRowClick = (order: ExtrasOrder) => {
-    if (order.couple_id) {
-      router.push(`/admin/couples/${order.couple_id}`)
+  const ordersByStatus = useMemo(() => {
+    const groups: Record<string, ExtrasOrder[]> = {
+      signed: [],
+      completed: [],
+      declined: [],
     }
-  }
+    filteredOrders.forEach((order) => {
+      if (groups[order.status]) {
+        groups[order.status].push(order)
+      }
+    })
+    return groups
+  }, [filteredOrders])
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 w-48 bg-muted rounded" />
-          <div className="h-64 bg-muted rounded" />
-        </div>
-      </div>
-    )
-  }
+  // Calculate stats
+  const stats = useMemo(() => {
+    const signed = ordersByStatus.signed || []
+    const completed = ordersByStatus.completed || []
 
-  // Error state
-  if (error) {
-    return (
-      <div className="p-8">
-        <Card className="border-destructive">
-          <CardContent className="pt-6">
-            <p className="text-destructive">Error loading frame sales: {error}</p>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => window.location.reload()}
-            >
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
+    const allSold = [...signed, ...completed]
+    const totalRevenue = allSold.reduce((sum, o) => sum + (o.extras_sale_amount || 0), 0)
+    const avgSale = allSold.length > 0 ? totalRevenue / allSold.length : 0
+    const conversionRate = orders.length > 0
+      ? (allSold.length / orders.length) * 100
+      : 0
+
+    return {
+      totalRevenue,
+      avgSale,
+      conversionRate,
+      signedCount: signed.length,
+      completedCount: completed.length,
+      declinedCount: (ordersByStatus.declined || []).length,
+    }
+  }, [orders, ordersByStatus])
+
+  // Table columns
+  const columns: ColumnDef<ExtrasOrder>[] = [
+    {
+      accessorKey: "couple_name",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Couple" />
+      ),
+      cell: ({ row }) => formatCoupleName(row.original.bride_name, row.original.groom_name),
+      filterFn: "includesString",
+    },
+    {
+      accessorKey: "wedding_date",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Wedding" />
+      ),
+      cell: ({ row }) => {
+        const date = row.original.wedding_date
+        return date ? format(new Date(date), "MMM d, yyyy") : "—"
+      },
+    },
+    {
+      accessorKey: "order_date",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Order Date" />
+      ),
+      cell: ({ row }) => format(new Date(row.original.order_date), "MMM d, yyyy"),
+    },
+    {
+      accessorKey: "extras_sale_amount",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Amount" />
+      ),
+      cell: ({ row }) => (
+        <span className="font-medium">
+          {formatCurrency(row.original.extras_sale_amount)}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "items",
+      header: "Items",
+      cell: ({ row }) => <ItemIcons order={row.original} />,
+      enableSorting: false,
+    },
+    {
+      accessorKey: "status",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Status" />
+      ),
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+  ]
+
+  // Calculate section totals
+  const sectionTotal = (orders: ExtrasOrder[]) => {
+    const total = orders.reduce((sum, o) => sum + (o.extras_sale_amount || 0), 0)
+    return formatCurrency(total)
   }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Frame Sales</h1>
-          <p className="text-muted-foreground">C2 engagement session extras and frame orders</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Select value={year} onValueChange={(val) => val && setYear(val)}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Year" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Years</SelectItem>
-              <SelectItem value="2027">2027</SelectItem>
-              <SelectItem value="2026">2026</SelectItem>
-              <SelectItem value="2025">2025</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+    <ControlPageTemplate
+      title="Frame Sales"
+      subtitle={`Extras orders for ${year}`}
+      primaryAction={{
+        label: "New Sale",
+        onClick: () => {/* TODO: Open new sale modal */},
+      }}
+      searchValue={search || ""}
+      onSearchChange={(v) => setSearch(v || null)}
+      searchPlaceholder="Search couples..."
+      filters={[
+        {
+          key: "year",
+          label: "Year",
+          options: [
+            { value: "2026", label: "2026" },
+            { value: "2025", label: "2025" },
+            { value: "2024", label: "2024" },
+          ],
+          value: year,
+          onChange: (v) => setYear(v || new Date().getFullYear().toString()),
+        },
+        {
+          key: "status",
+          label: "Status",
+          options: [
+            { value: "signed", label: "Signed" },
+            { value: "completed", label: "Completed" },
+            { value: "declined", label: "Declined" },
+          ],
+          value: statusFilter,
+          onChange: setStatusFilter,
+        },
+      ]}
+      onClearFilters={() => {
+        setSearch(null)
+        setStatusFilter(null)
+      }}
+      sidebar={
+        <>
+          <StatCard
+            label="Total Revenue"
+            value={formatCurrency(stats.totalRevenue)}
+            icon={<DollarSign className="h-4 w-4" />}
+          />
+          <StatCard
+            label="Average Sale"
+            value={formatCurrency(stats.avgSale)}
+            icon={<TrendingUp className="h-4 w-4" />}
+          />
+          <StatCard
+            label="Conversion Rate"
+            value={`${stats.conversionRate.toFixed(0)}%`}
+            icon={<Percent className="h-4 w-4" />}
+          />
+          <StatCard
+            label="Total Orders"
+            value={orders.length}
+            icon={<Package className="h-4 w-4" />}
+          />
+        </>
+      }
+      isLoading={isLoading}
+      error={error}
+    >
+      {/* Signed Section */}
+      <CollapsibleSection
+        title="Signed"
+        count={ordersByStatus.signed.length}
+        badge="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+        headerRight={<span className="font-semibold text-green-700 dark:text-green-300">{sectionTotal(ordersByStatus.signed)}</span>}
+        defaultOpen
+      >
+        <DataTable
+          columns={columns}
+          data={ordersByStatus.signed}
+          rowNumber
+          onRowClick={(row) => router.push(`/admin/couples/${row.couple_id}`)}
+          emptyMessage="No signed orders"
+          showPagination={false}
+        />
+      </CollapsibleSection>
 
-      {/* Main Layout */}
-      <div className="flex gap-6">
-        {/* Main Content */}
-        <div className="flex-1 space-y-4">
-          {/* Search */}
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Search by couple name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+      {/* Completed Section */}
+      <CollapsibleSection
+        title="Completed"
+        count={ordersByStatus.completed.length}
+        badge="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+        headerRight={<span className="font-semibold text-blue-700 dark:text-blue-300">{sectionTotal(ordersByStatus.completed)}</span>}
+      >
+        <DataTable
+          columns={columns}
+          data={ordersByStatus.completed}
+          rowNumber
+          onRowClick={(row) => router.push(`/admin/couples/${row.couple_id}`)}
+          emptyMessage="No completed orders"
+          showPagination={false}
+        />
+      </CollapsibleSection>
 
-          {/* Empty state */}
-          {filteredOrders.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">No frame sales found for {year === 'all' ? 'any year' : year}</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {/* Signed Section */}
-              {signedOrders.length > 0 && (
-                <OrderSection
-                  title="Signed"
-                  orders={signedOrders}
-                  totalAmount={signedTotal}
-                  defaultOpen={true}
-                  onRowClick={handleRowClick}
-                />
-              )}
-
-              {/* Pending Section */}
-              {pendingOrders.length > 0 && (
-                <OrderSection
-                  title="Pending"
-                  orders={pendingOrders}
-                  totalAmount={pendingTotal}
-                  defaultOpen={false}
-                  onRowClick={handleRowClick}
-                />
-              )}
-
-              {/* Completed Section */}
-              {completedOrders.length > 0 && (
-                <OrderSection
-                  title="Completed"
-                  orders={completedOrders}
-                  totalAmount={completedTotal}
-                  defaultOpen={false}
-                  onRowClick={handleRowClick}
-                />
-              )}
-
-              {/* Declined Section */}
-              {declinedOrders.length > 0 && (
-                <OrderSection
-                  title="Declined"
-                  orders={declinedOrders}
-                  totalAmount={declinedTotal}
-                  defaultOpen={false}
-                  onRowClick={handleRowClick}
-                />
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Stats Sidebar */}
-        <StatsSidebar orders={filteredOrders} />
-      </div>
-    </div>
+      {/* Declined Section */}
+      <CollapsibleSection
+        title="Declined"
+        count={ordersByStatus.declined.length}
+        badge="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+        defaultOpen={false}
+      >
+        <DataTable
+          columns={columns}
+          data={ordersByStatus.declined}
+          rowNumber
+          onRowClick={(row) => router.push(`/admin/couples/${row.couple_id}`)}
+          emptyMessage="No declined orders"
+          showPagination={false}
+        />
+      </CollapsibleSection>
+    </ControlPageTemplate>
   )
 }
