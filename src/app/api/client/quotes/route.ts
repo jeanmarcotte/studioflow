@@ -13,6 +13,8 @@ const SHOW_ID_TO_LEAD_SOURCE: Record<string, string> = {
   'modern-feb-2026': 'MBS Winter 2026',
   'weddingring-oakville-mar-2026': 'OBS Mar 2026',
   'weddingring-newmarket-mar-2026': 'NBS Mar 2026',
+  'hamilton-ring-mar-2026': 'Hamilton Ring Mar 2026',
+  'referral': 'Referral',
 }
 
 function buildQuoteFields(body: any) {

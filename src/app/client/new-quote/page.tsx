@@ -356,11 +356,23 @@ const LEAD_SOURCES = [
   'Other',
 ]
 
+// Package → included portraits mapping (matches features in PACKAGES)
+const PACKAGE_PORTRAITS: Record<string, Record<string, number>> = {
+  bella:    { '16x20': 1 },
+  eleganza: { '24x30': 1, '16x20': 1 },
+  silver:   { '16x20': 1, '11x14': 2 },
+  gold:     { '24x30': 1, '11x14': 2 },
+  platinum: { '24x30': 1, '16x20': 2 },
+  diamond:  { '24x30': 1, '16x20': 2 },
+}
+
 // Show ID → Lead Source mapping for BridalFlow integration
 const SHOW_ID_TO_LEAD_SOURCE: Record<string, string> = {
   'modern-feb-2026': 'MBS Winter 2026',
   'weddingring-oakville-mar-2026': 'OBS Mar 2026',
   'weddingring-newmarket-mar-2026': 'NBS Mar 2026',
+  'hamilton-ring-mar-2026': 'Hamilton Ring Mar 2026',
+  'referral': 'Referral',
 }
 
 // Installment templates
@@ -564,6 +576,16 @@ function QuoteBuilderInner() {
           const leadSource = SHOW_ID_TO_LEAD_SOURCE[ballot.show_id] || ballot.show_id
           setValue('leadSource', leadSource)
         }
+
+        // Pre-fill referral name
+        if (ballot.referred_by) setValue('referralName', (ballot.referred_by || '').trim())
+
+        // Pre-fill discovery fields (Fix 7)
+        if (ballot.ceremony_venue) setValue('ceremonyVenue', (ballot.ceremony_venue || '').trim())
+        if (ballot.bridal_party_count) setValue('bridalPartyCount', ballot.bridal_party_count)
+        if (ballot.flower_girl_count) setValue('flowerGirl', ballot.flower_girl_count)
+        if (ballot.ring_bearer_count) setValue('ringBearer', ballot.ring_bearer_count)
+        if (ballot.first_look != null) setValue('firstLook', ballot.first_look)
 
         // Package auto-select based on service_needs (Phase 2B)
         if (ballot.service_needs === 'photo_only') {
@@ -839,6 +861,25 @@ function QuoteBuilderInner() {
     calculatePricing()
   }, [calculatePricing])
 
+  // Auto-populate portraits when package changes (Fix 4)
+  const prevPackageRef = React.useRef(watchedValues.selectedPackage)
+  useEffect(() => {
+    const pkg = watchedValues.selectedPackage
+    if (pkg && pkg !== prevPackageRef.current) {
+      prevPackageRef.current = pkg
+      const portraits = PACKAGE_PORTRAITS[pkg] || {}
+      const newPrintOrders: Record<string, number> = { '5x7': 0, '8x10': 0, '11x14': 0, '16x20': 0, '20x24': 0, '24x30': 0 }
+      Object.entries(portraits).forEach(([size, qty]) => {
+        if (size in newPrintOrders) newPrintOrders[size] = qty
+      })
+      setPrintOrders(newPrintOrders)
+      // Auto-set as free (included with package) if there are portraits
+      if (Object.values(portraits).some(q => q > 0)) {
+        setPrintsIncluded('free')
+      }
+    }
+  }, [watchedValues.selectedPackage])
+
   // Auto-divide installments when total changes - with proper rounding
   // Only auto-update when total changes, not when installments change (to allow manual edits)
   const prevTotalRef = React.useRef(pricing.total)
@@ -922,6 +963,14 @@ function QuoteBuilderInner() {
   }
 
   const installmentTotal = installments.reduce((sum, inst) => sum + (inst.amount || 0), 0)
+
+  // Validation for action buttons (Fix 1 + Fix 5)
+  const missingLastNames = !watchedValues.brideLastName?.trim() || !watchedValues.groomLastName?.trim()
+  const missingReferral = watchedValues.leadSource === 'Referral' && !watchedValues.referralName?.trim()
+  const actionButtonsDisabled = missingLastNames || missingReferral
+  const validationMessages: string[] = []
+  if (missingLastNames) validationMessages.push('Bride and groom last names are required.')
+  if (missingReferral) validationMessages.push('Please enter who referred this couple.')
 
   // Format phone number as (XXX) XXX-XXXX
   const formatPhone = (value: string): string => {
@@ -1303,12 +1352,12 @@ function QuoteBuilderInner() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
-                    Referral Name (if applicable)
+                    Referred By {watchedValues.leadSource === 'Referral' && <span className="text-red-500">*</span>}
                   </label>
                   <input
                     {...register('referralName')}
                     placeholder="Who referred them?"
-                    className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring"
+                    className={`w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-ring ${missingReferral ? 'border-red-300 bg-red-50' : 'border-border'}`}
                   />
                 </div>
               </div>
@@ -1928,11 +1977,9 @@ function QuoteBuilderInner() {
                   )}
                 </div>
               </div>
-              {(watchedValues.extraHours || 0) > 0 && (
-                <div className="mt-2 text-xs text-muted-foreground text-right">
-                  Total coverage: {(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours || 8) + (watchedValues.extraHours || 0)} hours
-                </div>
-              )}
+              <div className="mt-2 text-xs text-muted-foreground text-right">
+                Coverage: {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours || 8}hr base{(watchedValues.extraHours || 0) > 0 ? ` + ${watchedValues.extraHours}hr extra = ${(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours || 8) + (watchedValues.extraHours || 0)}hr total` : ''} — {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.photographers || 0} photographer{(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.photographers || 0) !== 1 ? 's' : ''}{(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers || 0) > 0 ? ` + ${PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers} videographer` : ''}
+              </div>
             </div>
           </div>
 
@@ -2540,10 +2587,21 @@ function QuoteBuilderInner() {
             </div>
           </div>
 
+          {/* Validation Messages */}
+          {actionButtonsDisabled && validationMessages.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded p-3 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <div className="text-sm text-amber-800">
+                {validationMessages.map((msg, i) => <p key={i}>{msg}</p>)}
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-4">
             <button
               type="button"
+              disabled={actionButtonsDisabled}
               onClick={async () => {
                 const selectedPkg = PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]
                 const engLoc = ENGAGEMENT_LOCATIONS.find(l => l.value === watchedValues.engagementLocation)
@@ -2690,7 +2748,7 @@ function QuoteBuilderInner() {
                   leadSource: watchedValues.leadSource || '',
                 })
               }}
-              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded font-medium flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FileText className="h-4 w-4" />
               Download PDF
@@ -2698,7 +2756,7 @@ function QuoteBuilderInner() {
 
             <button
               type="button"
-              disabled={isSendingEmail}
+              disabled={isSendingEmail || actionButtonsDisabled}
               onClick={async () => {
                 const selectedPkg = PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]
                 const engLoc = ENGAGEMENT_LOCATIONS.find(l => l.value === watchedValues.engagementLocation)

@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase
       .from('ballots')
       .select(
-        'id, bride_first_name, bride_last_name, groom_first_name, groom_last_name, email, cell_phone, wedding_date, venue_name, guest_count, service_needs, show_id'
+        'id, bride_first_name, bride_last_name, groom_first_name, groom_last_name, email, cell_phone, wedding_date, venue_name, guest_count, service_needs, show_id, referred_by, ceremony_venue, bridal_party_count, flower_girl_count, ring_bearer_count, first_look'
       )
       .eq('id', ballotId)
       .limit(1)

@@ -475,8 +475,17 @@ export async function generateQuotePdf(data: QuotePdfData, options?: { returnBas
     doc.text('Parent Albums: ', margin + 2, y)
     const parentAlbumsLabelW = doc.getTextWidth('Parent Albums: ')
     doc.setFont('helvetica', 'normal')
-    const parentLabel = `${data.parentAlbumQty}${data.freeParentAlbums ? ' (complimentary)' : ''}`
-    doc.text(parentLabel, margin + 2 + parentAlbumsLabelW, y)
+    // Descriptive label based on package
+    let parentDesc = `${data.parentAlbumQty}`
+    if (data.selectedPackage === 'eleganza') {
+      parentDesc = `${data.parentAlbumQty} \u00d7 10\u00d78 Parent Albums \u2014 Linen cover, magazine paper`
+    } else if (['platinum', 'diamond'].includes(data.selectedPackage)) {
+      parentDesc = `${data.parentAlbumQty} \u00d7 16\u00d720 Parent Portraits`
+    } else if (['silver', 'gold'].includes(data.selectedPackage)) {
+      parentDesc = `${data.parentAlbumQty} \u00d7 11\u00d714 Parent Portraits`
+    }
+    if (data.freeParentAlbums) parentDesc += ' (complimentary)'
+    doc.text(parentDesc, margin + 2 + parentAlbumsLabelW, y)
     y += 5
   }
 
@@ -578,7 +587,7 @@ export async function generateQuotePdf(data: QuotePdfData, options?: { returnBas
     { label: `Extra Hours (${data.extraHours})`, amount: data.pricing.extraHoursPrice, show: data.pricing.extraHoursPrice > 0 },
     { label: `Wedding Album (${data.albumSize === '10x8' ? '10"×8"' : '14"×11"'} ${data.albumType})`, amount: data.pricing.albumPrice, show: data.pricing.albumPrice > 0 },
     { label: 'Acrylic Cover', amount: data.pricing.acrylicCoverPrice, show: data.pricing.acrylicCoverPrice > 0 },
-    { label: `Parent Albums (${data.parentAlbumQty})`, amount: data.pricing.parentAlbumsPrice, show: data.pricing.parentAlbumsPrice > 0 },
+    { label: data.selectedPackage === 'eleganza' ? `Parent Albums (${data.parentAlbumQty} \u00d7 10\u00d78)` : `Parent Albums (${data.parentAlbumQty})`, amount: data.pricing.parentAlbumsPrice, show: data.pricing.parentAlbumsPrice > 0 },
     { label: "Bride's Choice Location", amount: data.pricing.locationFee, show: data.pricing.locationFee > 0 },
     { label: 'Prints', amount: data.pricing.printsPrice, show: data.pricing.printsPrice > 0 },
   ]
@@ -591,7 +600,7 @@ export async function generateQuotePdf(data: QuotePdfData, options?: { returnBas
 
   // Free inclusions
   if (data.freeParentAlbums && data.parentAlbumQty > 0) {
-    drawPriceLine(`Parent Albums (${data.parentAlbumQty}) — complimentary`, 0, { color: 'green' })
+    drawPriceLine(data.selectedPackage === 'eleganza' ? `Parent Albums (${data.parentAlbumQty} \u00d7 10\u00d78) \u2014 complimentary` : `Parent Albums (${data.parentAlbumQty}) \u2014 complimentary`, 0, { color: 'green' })
     y += 5.5
   }
   if (data.freePrints && data.printsTotal > 0) {
