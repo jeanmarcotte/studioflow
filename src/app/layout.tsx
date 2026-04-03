@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", manrope.variable)}>
       <body className={cn("font-sans antialiased", manrope.variable)}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <NuqsAdapter>
