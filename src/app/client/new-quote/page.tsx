@@ -901,6 +901,30 @@ function QuoteBuilderInner() {
     calculatePricing()
   }, [calculatePricing])
 
+  // Auto-calculate extra hours from coverage start/end vs package base hours
+  useEffect(() => {
+    const startVal = watchedValues.coverageStartTime || ''
+    const endVal = watchedValues.coverageEndTime || ''
+    const selectedPkg = PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]
+    const baseHours = selectedPkg?.hours || 8
+
+    if (!startVal || !endVal) {
+      setValue('extraHours', 0)
+      return
+    }
+
+    const [sh, sm] = startVal.split(':').map(Number)
+    const [eh, em] = endVal.split(':').map(Number)
+    let startMins = sh * 60 + sm
+    let endMins = eh * 60 + em
+    if (endMins <= startMins) endMins += 1440
+    const totalHours = (endMins - startMins) / 60
+
+    const rawExtra = Math.max(0, totalHours - baseHours)
+    const roundedExtra = Math.ceil(rawExtra * 2) / 2
+    setValue('extraHours', roundedExtra)
+  }, [watchedValues.coverageStartTime, watchedValues.coverageEndTime, watchedValues.selectedPackage, setValue])
+
   // Auto-populate portraits when package changes (Fix 4)
   const prevPackageRef = React.useRef(watchedValues.selectedPackage)
   useEffect(() => {
@@ -1993,47 +2017,25 @@ function QuoteBuilderInner() {
               <span className="text-lg font-bold text-foreground">+$500</span>
             </label>
             
-            {/* Extra Hours — Tiered Pricing */}
-            <div className="mt-4 p-4 border-2 border-border rounded">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
+            {/* Extra Hours — Auto-calculated from coverage hours vs package base */}
+            {(watchedValues.extraHours || 0) > 0 && (
+              <div className="mt-4 p-4 border-2 border-amber-200 bg-amber-50 rounded">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Clock className="h-5 w-5 text-muted-foreground" />
+                    <Clock className="h-5 w-5 text-amber-600" />
                     <div>
-                      <span className="text-sm font-medium text-foreground">Extra Hours</span>
-                      <p className="text-xs text-muted-foreground">Volume-discounted pricing</p>
+                      <span className="text-sm font-medium text-foreground">Extra Coverage: {watchedValues.extraHours} hr{watchedValues.extraHours !== 1 ? 's' : ''}</span>
+                      <p className="text-xs text-muted-foreground">{PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours || 8}hr base + {watchedValues.extraHours}hr extra = {(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours || 8) + (watchedValues.extraHours || 0)}hr total</p>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <select
-                    {...register('extraHours', { valueAsNumber: true })}
-                    className="px-3 py-2 border border-border rounded text-sm bg-background focus:outline-none focus:border-ring"
-                  >
-                    <option value={0}>None</option>
-                    <option value={0.5}>+30 min ($175)</option>
-                    <option value={1}>+1 hr ($350)</option>
-                    <option value={1.5}>+1.5 hrs ($425)</option>
-                    <option value={2}>+2 hrs ($500)</option>
-                    <option value={2.5}>+2.5 hrs ($575)</option>
-                    <option value={3}>+3 hrs ($650)</option>
-                    <option value={3.5}>+3.5 hrs ($725)</option>
-                    <option value={4}>+4 hrs ($800)</option>
-                    <option value={4.5}>+4.5 hrs ($850)</option>
-                    <option value={5}>+5 hrs ($900)</option>
-                    <option value={5.5}>+5.5 hrs ($950)</option>
-                    <option value={6}>+6 hrs ($1,000)</option>
-                  </select>
-                  {(watchedValues.extraHours || 0) > 0 && (
-                    <span className="text-lg font-bold text-foreground">
-                      +${getExtraHoursPrice(watchedValues.extraHours || 0).toLocaleString()}
-                    </span>
-                  )}
+                  <span className="text-lg font-bold text-foreground">+${getExtraHoursPrice(watchedValues.extraHours || 0).toLocaleString()}</span>
                 </div>
               </div>
-              <div className="mt-2 text-xs text-muted-foreground text-right">
-                Coverage: {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours || 8}hr base{(watchedValues.extraHours || 0) > 0 ? ` + ${watchedValues.extraHours}hr extra = ${(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours || 8) + (watchedValues.extraHours || 0)}hr total` : ''} — {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.photographers || 0} photographer{(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.photographers || 0) !== 1 ? 's' : ''}{(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers || 0) > 0 ? ` + ${PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers} videographer` : ''}
-              </div>
+            )}
+
+            {/* Team info (always shown) */}
+            <div className="mt-2 text-xs text-muted-foreground text-right">
+              {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.photographers || 0} photographer{(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.photographers || 0) !== 1 ? 's' : ''}{(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers || 0) > 0 ? ` + ${PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers} videographer` : ''}
             </div>
 
             {/* Split Morning Team */}
