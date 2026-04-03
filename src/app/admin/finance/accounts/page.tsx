@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import { ColumnDef } from '@tanstack/react-table';
+import { Loader2 } from 'lucide-react';
+import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
 import { formatDateCompact, formatCurrency } from '@/lib/formatters';
 
 interface CoupleAccount {
@@ -39,8 +41,6 @@ export default function FinanceAccountsPage() {
   const [couples, setCouples] = useState<CoupleAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>('all');
-  const [sortKey, setSortKey] = useState<SortKey>('wedding_date');
-  const [sortAsc, setSortAsc] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
@@ -54,42 +54,12 @@ export default function FinanceAccountsPage() {
     fetchData();
   }, []);
 
-  function handleSort(key: SortKey) {
-    if (sortKey === key) {
-      setSortAsc(!sortAsc);
-    } else {
-      setSortKey(key);
-      setSortAsc(true);
-    }
-  }
-
   // Filter
   const filtered = couples.filter(c => {
     const balance = num(c.balance_owing);
     if (filter === 'owing') return balance > 0;
     if (filter === 'paid') return balance <= 0;
     return true;
-  });
-
-  // Sort
-  const sorted = [...filtered].sort((a, b) => {
-    let aVal: number | string;
-    let bVal: number | string;
-
-    if (sortKey === 'couple_name') {
-      aVal = a.couple_name.toLowerCase();
-      bVal = b.couple_name.toLowerCase();
-    } else if (sortKey === 'wedding_date') {
-      aVal = a.wedding_date || '';
-      bVal = b.wedding_date || '';
-    } else {
-      aVal = num(a[sortKey]);
-      bVal = num(b[sortKey]);
-    }
-
-    if (aVal < bVal) return sortAsc ? -1 : 1;
-    if (aVal > bVal) return sortAsc ? 1 : -1;
-    return 0;
   });
 
   // Summary stats
@@ -107,20 +77,58 @@ export default function FinanceAccountsPage() {
     );
   }
 
-  function SortHeader({ label, field }: { label: string; field: SortKey }) {
-    const isActive = sortKey === field;
-    return (
-      <th
-        className="py-3 px-5 text-xs font-semibold text-muted-foreground uppercase cursor-pointer hover:text-foreground select-none"
-        onClick={() => handleSort(field)}
-      >
-        <span className="inline-flex items-center gap-1">
-          {label}
-          {isActive && (sortAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-        </span>
-      </th>
-    );
-  }
+  const accountColumns: ColumnDef<CoupleAccount>[] = useMemo(() => [
+    {
+      accessorKey: "couple_name",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+      cell: ({ row }) => (
+        <Link
+          href={`/admin/couples/${row.original.id}`}
+          className="text-primary hover:text-primary/80 font-medium hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {row.original.couple_name}
+        </Link>
+      ),
+    },
+    {
+      accessorKey: "wedding_date",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Wedding Date" />,
+      cell: ({ row }) => <span className="font-mono text-muted-foreground">{row.original.wedding_date ? formatDateCompact(row.original.wedding_date) : '—'}</span>,
+    },
+    {
+      id: "grand_total",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Contract + Extras" />,
+      accessorFn: (row) => num(row.contract_total) + num(row.extras_total),
+      cell: ({ row }) => <span className="font-mono" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(num(row.original.contract_total) + num(row.original.extras_total))}</span>,
+    },
+    {
+      accessorKey: "total_paid",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Paid" />,
+      cell: ({ row }) => <span className="font-mono text-green-600" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(num(row.original.total_paid))}</span>,
+      sortingFn: (a, b) => num(a.original.total_paid) - num(b.original.total_paid),
+    },
+    {
+      accessorKey: "balance_owing",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Balance" />,
+      cell: ({ row }) => {
+        const balance = num(row.original.balance_owing);
+        return <span className={`font-mono font-semibold ${balance <= 0 ? 'text-green-600' : 'text-red-600'}`} style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(balance)}</span>;
+      },
+      sortingFn: (a, b) => num(a.original.balance_owing) - num(b.original.balance_owing),
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const isPaid = num(row.original.balance_owing) <= 0;
+        return isPaid
+          ? <span className="text-green-500 font-semibold">✓</span>
+          : <span className="inline-block w-2 h-2 rounded-full bg-red-400" />;
+      },
+      enableSorting: false,
+    },
+  ], []);
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -187,76 +195,12 @@ export default function FinanceAccountsPage() {
       </div>
 
       {/* Accounts Table */}
-      <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <SortHeader label="Couple" field="couple_name" />
-              <SortHeader label="Wedding Date" field="wedding_date" />
-              <SortHeader label="Contract + Extras" field="contract_total" />
-              <SortHeader label="Paid" field="total_paid" />
-              <SortHeader label="Balance" field="balance_owing" />
-              <th className="py-3 px-5 text-xs font-semibold text-muted-foreground uppercase w-16">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((couple, idx) => {
-              const contractTotal = num(couple.contract_total);
-              const extrasTotal = num(couple.extras_total);
-              const grandTotal = contractTotal + extrasTotal;
-              const totalPaid = num(couple.total_paid);
-              const balance = num(couple.balance_owing);
-              const isPaid = balance <= 0;
-
-              return (
-                <tr
-                  key={couple.id}
-                  className={`border-b border-border hover:bg-teal-50/30 transition-colors ${
-                    isPaid
-                      ? idx % 2 === 0 ? 'bg-green-50/30' : 'bg-green-50/20'
-                      : idx % 2 === 0 ? 'bg-background' : 'bg-muted/30'
-                  }`}
-                >
-                  <td className="py-3 px-5">
-                    <Link
-                      href={`/admin/couples/${couple.id}`}
-                      className="text-teal-600 hover:text-teal-700 font-medium hover:underline"
-                    >
-                      {couple.couple_name}
-                    </Link>
-                  </td>
-                  <td className="py-3 px-5 font-mono text-muted-foreground">
-                    {couple.wedding_date ? formatDateCompact(couple.wedding_date) : '—'}
-                  </td>
-                  <td className="py-3 px-5 text-right font-mono">
-                    {formatCurrency(grandTotal)}
-                  </td>
-                  <td className="py-3 px-5 text-right font-mono text-green-600">
-                    {formatCurrency(totalPaid)}
-                  </td>
-                  <td className={`py-3 px-5 text-right font-mono font-semibold ${isPaid ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(balance)}
-                  </td>
-                  <td className="py-3 px-5 text-center">
-                    {isPaid ? (
-                      <span className="text-green-500 font-semibold">✓</span>
-                    ) : (
-                      <span className="inline-block w-2 h-2 rounded-full bg-red-400" />
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {sorted.length === 0 && (
-              <tr>
-                <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                  No couples found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={accountColumns}
+        data={filtered}
+        emptyMessage="No couples found"
+        pageSize={50}
+      />
     </div>
   );
 }
