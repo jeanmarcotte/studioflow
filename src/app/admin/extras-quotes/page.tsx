@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { ColumnDef } from '@tanstack/react-table'
 import { supabase } from '@/lib/supabase'
+import { DataTable, DataTableColumnHeader, StatCard } from '@/components/ui'
 import { ShoppingBag, DollarSign } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 
@@ -15,6 +17,29 @@ interface ExtrasOrder {
 }
 
 const ALLOWED_COUPLES = ['Justine & Josh', 'Georgia & Nikolas']
+
+const columns: ColumnDef<ExtrasOrder>[] = [
+  {
+    accessorKey: "order_date",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Date" />,
+    cell: ({ row }) => row.original.order_date
+      ? format(parseISO(row.original.order_date), 'MMM d, yyyy')
+      : <span className="text-muted-foreground">—</span>,
+  },
+  {
+    accessorKey: "couple_name",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+    cell: ({ row }) => <span className="font-medium">{row.original.couples?.couple_name || 'Unknown'}</span>,
+    accessorFn: (row) => row.couples?.couple_name || 'Unknown',
+  },
+  {
+    accessorKey: "total",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Sale $" />,
+    cell: ({ row }) => row.original.total
+      ? <span className="font-medium" style={{ textAlign: 'right', display: 'block' }}>${Number(row.original.total).toLocaleString()}</span>
+      : <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>—</span>,
+  },
+]
 
 export default function FramesAlbumsPage() {
   const [orders, setOrders] = useState<ExtrasOrder[]>([])
@@ -64,68 +89,25 @@ export default function FramesAlbumsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 max-w-md">
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-            <ShoppingBag className="h-4 w-4" />
-            Sales
-          </div>
-          <div className="text-2xl font-bold">{stats.numSales}</div>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-            <DollarSign className="h-4 w-4" />
-            Total Revenue
-          </div>
-          <div className="text-2xl font-bold">
-            ${stats.totalRevenue.toLocaleString()}
-          </div>
-        </div>
+        <StatCard
+          label="Sales"
+          value={stats.numSales}
+          icon={<ShoppingBag className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Total Revenue"
+          value={`$${stats.totalRevenue.toLocaleString()}`}
+          icon={<DollarSign className="h-4 w-4" />}
+        />
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-left p-3 font-medium">Date</th>
-                <th className="text-left p-3 font-medium">Couple</th>
-                <th className="text-right p-3 font-medium">Sale $</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {orders.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="p-8 text-center text-muted-foreground">
-                    <ShoppingBag className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    No 2026 extras sales found.
-                  </td>
-                </tr>
-              ) : (
-                orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-accent/50 transition-colors">
-                    <td className="p-3">
-                      {order.order_date
-                        ? format(parseISO(order.order_date), 'MMM d, yyyy')
-                        : <span className="text-muted-foreground">—</span>
-                      }
-                    </td>
-                    <td className="p-3 font-medium">
-                      {order.couples?.couple_name || 'Unknown'}
-                    </td>
-                    <td className="p-3 text-right">
-                      {order.total
-                        ? <span className="font-medium">${Number(order.total).toLocaleString()}</span>
-                        : <span className="text-muted-foreground">—</span>
-                      }
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        columns={columns}
+        data={orders}
+        emptyMessage="No 2026 extras sales found."
+        showPagination={false}
+      />
     </div>
   )
 }
