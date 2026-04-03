@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { format, differenceInDays } from 'date-fns'
+import { differenceInDays } from 'date-fns'
 import { Camera, CheckCircle, ChevronDown, ChevronRight, Loader2, Mail, Search } from 'lucide-react'
+import { formatWeddingDate } from '@/lib/formatters'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -55,11 +56,6 @@ interface PrintRow {
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-function formatWeddingDate(dateStr: string): string {
-  const date = new Date(dateStr + 'T12:00:00')
-  return format(date, 'EEEE, MMMM d, yyyy')
-}
 
 const PRINT_SIZES: { key: keyof Contract; label: string }[] = [
   { key: 'prints_30x40', label: '30\u00d740' },

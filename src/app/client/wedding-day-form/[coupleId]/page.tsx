@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { format } from 'date-fns'
 import { Camera, Clock, MapPin, Phone, User, Heart, Music, Flower2, Car, Instagram, Link, MessageSquare, Users, Plane, FileText, Download, ExternalLink, AlertTriangle } from 'lucide-react'
 import { formatTime, parseTimeToMinutes, parseEndTimeToMinutes, buildScheduleRows, calculateHoursValidation } from '@/lib/time-utils'
+import { formatWeddingDate } from '@/lib/formatters'
 
 function getServiceClient() {
   return createClient(
@@ -176,7 +177,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
 
   const coupleName = couple?.couple_name ?? 'Unknown Couple'
   const weddingDate = couple?.wedding_date
-    ? format(new Date(couple.wedding_date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
+    ? formatWeddingDate(couple.wedding_date)
     : null
   const packageType = couple?.package_type ?? null
 

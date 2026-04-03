@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import {
   ArrowLeft, Printer, Pencil, Trash2, Save, X, DollarSign,
 } from 'lucide-react'
+import { formatWeddingDate, formatDate, formatCurrency } from '@/lib/formatters'
 
 const ITEM_TYPES = [
   'Hours',
@@ -180,14 +181,6 @@ export default function ExtraDetailPage() {
     }
 
     router.push('/client/extras')
-  }
-
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(val)
-
-  const formatDate = (d: string | null) => {
-    if (!d) return '—'
-    return new Date(d + 'T12:00:00').toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
   }
 
   const statusColor = (status: string) => {
@@ -453,7 +446,7 @@ export default function ExtraDetailPage() {
             <p className="text-sm text-muted-foreground">Bill To</p>
             <p className="font-medium text-foreground">{couple?.couple_name || 'Unknown'}</p>
             {couple?.wedding_date && (
-              <p className="text-sm text-muted-foreground">Wedding: {formatDate(couple.wedding_date)}</p>
+              <p className="text-sm text-muted-foreground">Wedding: {formatWeddingDate(couple.wedding_date)}</p>
             )}
             {couple?.bride_email && (
               <p className="text-sm text-muted-foreground">{couple.bride_email}</p>

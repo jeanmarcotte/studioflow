@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import {
   Save, Eye, ArrowLeft, DollarSign, Package,
 } from 'lucide-react'
+import { formatWeddingDate, formatDate, formatCurrency } from '@/lib/formatters'
 
 const ITEM_TYPES = [
   'Hours',
@@ -74,9 +75,6 @@ export default function NewExtraPage() {
     }
   }, [unitPrice, quantity, taxMode])
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(val)
-
   const selectedCouple = couples.find(c => c.id === coupleId)
 
   const handleSave = async () => {
@@ -106,11 +104,6 @@ export default function NewExtraPage() {
     router.push('/client/extras')
   }
 
-  const formatDate = (d: string | null) => {
-    if (!d) return ''
-    return new Date(d + 'T12:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
-  }
-
   // Invoice preview
   if (showPreview) {
     return (
@@ -133,7 +126,7 @@ export default function NewExtraPage() {
               </div>
               <div className="text-right text-sm text-muted-foreground">
                 <p className="font-medium">Invoice Date</p>
-                <p>{new Date().toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                <p>{formatDate(new Date())}</p>
               </div>
             </div>
 
@@ -142,7 +135,7 @@ export default function NewExtraPage() {
               <p className="text-sm text-muted-foreground">Bill To</p>
               <p className="font-medium text-foreground">{selectedCouple?.couple_name || '—'}</p>
               {selectedCouple?.wedding_date && (
-                <p className="text-sm text-muted-foreground">Wedding: {formatDate(selectedCouple.wedding_date)}</p>
+                <p className="text-sm text-muted-foreground">Wedding: {formatWeddingDate(selectedCouple.wedding_date)}</p>
               )}
             </div>
 
@@ -250,7 +243,7 @@ export default function NewExtraPage() {
               <option value="">Select a couple...</option>
               {couples.map(c => (
                 <option key={c.id} value={c.id}>
-                  {c.couple_name}{c.wedding_date ? ` — ${formatDate(c.wedding_date)}` : ''}
+                  {c.couple_name}{c.wedding_date ? ` — ${formatWeddingDate(c.wedding_date)}` : ''}
                 </option>
               ))}
             </select>

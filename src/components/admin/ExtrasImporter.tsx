@@ -8,6 +8,7 @@ import {
   CheckCircle2, AlertCircle, XCircle, Package, Search,
   DollarSign, List, UserCheck
 } from 'lucide-react'
+import { formatCurrency } from '@/lib/formatters'
 
 interface ExtrasImporterProps {
   onImportComplete: () => void
@@ -170,7 +171,7 @@ export default function ExtrasImporter({ onImportComplete, defaultOpen = false }
           .upload(filePath, uploadedFile, { upsert: true })
       }
 
-      setResult({ success: true, message: `Saved ${data.items.length} items ($${total.toLocaleString()}) for ${selectedCouple.couple_name}` })
+      setResult({ success: true, message: `Saved ${data.items.length} items (${formatCurrency(total)}) for ${selectedCouple.couple_name}` })
       setFlowState('done')
       onImportComplete()
     } catch (e) {
@@ -335,7 +336,7 @@ export default function ExtrasImporter({ onImportComplete, defaultOpen = false }
                           <td className="p-2 text-xs font-medium">{item.name}</td>
                           <td className="p-2 text-xs text-muted-foreground hidden sm:table-cell">{item.description || '—'}</td>
                           <td className="p-2 text-xs text-right">
-                            {item.price != null ? `$${item.price.toLocaleString()}` : '—'}
+                            {item.price != null ? formatCurrency(item.price) : '—'}
                           </td>
                         </tr>
                       ))}

@@ -10,6 +10,7 @@ import {
   Plus, ArrowUpDown, ArrowUp, ArrowDown,
   Package, DollarSign, Calendar, FileText,
 } from 'lucide-react'
+import { formatWeddingDate, formatDateCompact, formatCurrency } from '@/lib/formatters'
 
 interface Extra {
   id: string
@@ -118,13 +119,6 @@ export default function ExtrasListPage() {
     }
   }
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(val)
-
-  const formatDate = (d: string | null) => {
-    if (!d) return '—'
-    return new Date(d + 'T12:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
-  }
 
   return (
     <Layout sidebarConfig={studioflowClientConfig}>
@@ -180,7 +174,7 @@ export default function ExtrasListPage() {
                     onClick={() => router.push(`/client/extras/${extra.id}`)}
                   >
                     <td className="px-4 py-3 font-medium">{extra.couple_name}</td>
-                    <td className="px-4 py-3">{formatDate(extra.wedding_date)}</td>
+                    <td className="px-4 py-3">{formatWeddingDate(extra.wedding_date)}</td>
                     <td className="px-4 py-3">{extra.item_type}</td>
                     <td className="px-4 py-3 text-muted-foreground max-w-[200px] truncate">{extra.description || '—'}</td>
                     <td className="px-4 py-3 text-center">{extra.quantity}</td>
@@ -190,7 +184,7 @@ export default function ExtrasListPage() {
                         {extra.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3">{formatDate(extra.invoice_date)}</td>
+                    <td className="px-4 py-3">{formatDateCompact(extra.invoice_date)}</td>
                   </tr>
                 ))}
               </tbody>

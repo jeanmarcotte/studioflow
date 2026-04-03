@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { format, differenceInDays } from 'date-fns'
+import { differenceInDays } from 'date-fns'
 import { CheckCircle, ChevronRight, Loader2, Mail, Search, Video } from 'lucide-react'
+import { formatWeddingDate } from '@/lib/formatters'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -20,11 +21,6 @@ type SongPlacement = 'groom' | 'bride' | 'first_look' | 'park' | 'pre_ceremony' 
 type RecapStyle = 'short' | 'longer'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatWeddingDate(dateStr: string): string {
-  const date = new Date(dateStr + 'T12:00:00')
-  return format(date, 'EEEE, MMMM d, yyyy')
-}
 
 const PLACEMENT_OPTIONS: { value: SongPlacement; label: string }[] = [
   { value: 'groom', label: 'Groom' },
