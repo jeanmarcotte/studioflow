@@ -1365,27 +1365,23 @@ function QuoteBuilderInner() {
           </div>
         )}
         {/* Header */}
-        <div className="bg-primary text-primary-foreground py-6 px-8 mb-8">
-          <div className="max-w-6xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img
-                src="/images/sigslogo.png"
-                alt="SIGS Photography"
-                className="h-14 w-auto object-contain"
-              />
+        <header className="border-b bg-card">
+          <div className="container mx-auto px-4 py-6">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-muted-foreground text-sm">Wedding Package Quote</p>
+                <h1 className="text-2xl font-bold tracking-tight">SIGS Photography</h1>
+                <p className="text-muted-foreground">Wedding Photography Quote</p>
                 {editingVersion && (
-                  <p className="text-amber-400 text-xs font-medium">Editing v{editingVersion} — changes will save as v{editingVersion + 1}</p>
+                  <p className="text-amber-600 dark:text-amber-400 text-xs font-medium mt-1">Editing v{editingVersion} — changes will save as v{editingVersion + 1}</p>
                 )}
               </div>
-            </div>
-            <div className="text-right text-sm">
-              <p className="text-muted-foreground">E-Transfer</p>
-              <p className="font-medium">info@sigsphoto.ca</p>
+              <div className="text-right text-sm text-muted-foreground">
+                <p>Toronto & GTA</p>
+                <p>info@sigsphoto.ca</p>
+              </div>
             </div>
           </div>
-        </div>
+        </header>
 
         <form onSubmit={handleSubmit(onSubmit)} className="max-w-6xl mx-auto px-8 pb-12 space-y-8">
           
