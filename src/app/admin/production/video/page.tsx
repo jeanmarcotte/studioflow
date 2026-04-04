@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, ChevronDown, ChevronRight, GripVertical, X } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight, X } from 'lucide-react'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import { formatDate, formatDateCompact } from '@/lib/formatters'
 import { Playfair_Display, Nunito } from 'next/font/google'
@@ -170,9 +170,7 @@ export default function VideoProductionPage() {
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null)
   const editingRef = useRef<HTMLDivElement>(null)
 
-  // ── Sort & due date editing state ─────────────────────────────
-  const [sortColumn, setSortColumn] = useState<string | null>(null)
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  // ── Due date editing state ─────────────────────────────────────
   const [editingDueDate, setEditingDueDate] = useState<string | null>(null)
   const [awaitingOrderCouples, setAwaitingOrderCouples] = useState<AwaitingOrderCouple[]>([])
   const [completed2026Collapsed, setCompleted2026Collapsed] = useState(true)
@@ -400,50 +398,18 @@ export default function VideoProductionPage() {
       lanes.editing_full = lanes.editing_full.filter(j => j.status !== 'video_proofs_out')
     }
 
-    // Sort each lane
+    // Sort each lane by manual sort_order (fallback to wedding_date)
     for (const key of Object.keys(lanes) as Exclude<SwimlaneKey, 'waiting_photo'>[]) {
-      if (sortColumn) {
-        const dir = sortDirection === 'asc' ? 1 : -1
-        lanes[key].sort((a, b) => {
-          switch (sortColumn) {
-            case 'couple_name':
-              return (a.couples?.couple_name || '').localeCompare(b.couples?.couple_name || '') * dir
-            case 'wedding_date':
-              return (a.wedding_date || a.couples?.wedding_date || '9999').localeCompare(b.wedding_date || b.couples?.wedding_date || '9999') * dir
-            case 'ceremony_done':
-            case 'reception_done':
-            case 'park_done':
-            case 'prereception_done':
-            case 'groom_done':
-            case 'bride_done':
-            case 'proxies_run':
-            case 'video_form': {
-              const field = sortColumn as keyof VideoJob
-              return ((a[field] ? 0 : 1) - (b[field] ? 0 : 1)) * dir
-            }
-            case 'active_hd':
-              return (a.active_hd || '').localeCompare(b.active_hd || '') * dir
-            case 'status':
-              return (STATUS_LABELS[a.status] || a.status).localeCompare(STATUS_LABELS[b.status] || b.status) * dir
-            case 'due_date':
-              return (a.due_date || '9999').localeCompare(b.due_date || '9999') * dir
-            default:
-              return 0
-          }
-        })
-      } else {
-        // Default: sort by manual sort_order (fallback to wedding_date)
-        lanes[key].sort((a, b) => {
-          const aOrder = a.sort_order ?? 9999
-          const bOrder = b.sort_order ?? 9999
-          if (aOrder !== bOrder) return aOrder - bOrder
-          return (a.wedding_date || a.couples?.wedding_date || '9999').localeCompare(b.wedding_date || b.couples?.wedding_date || '9999')
-        })
-      }
+      lanes[key].sort((a, b) => {
+        const aOrder = a.sort_order ?? 9999
+        const bOrder = b.sort_order ?? 9999
+        if (aOrder !== bOrder) return aOrder - bOrder
+        return (a.wedding_date || a.couples?.wedding_date || '9999').localeCompare(b.wedding_date || b.couples?.wedding_date || '9999')
+      })
     }
 
     return lanes
-  }, [jobs, search, sortColumn, sortDirection, showCompleted, showCompletedRecaps, showCompletedSlideshows, showVideoOut])
+  }, [jobs, search, showCompleted, showCompletedRecaps, showCompletedSlideshows, showVideoOut])
 
   // ── Stats ──────────────────────────────────────────────────────
 
@@ -716,6 +682,209 @@ export default function VideoProductionPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [editingDueDate])
 
+  // ── Swimlane column factory ──────────────────────────────────
+
+  const makeSwimlaneColumns = (laneKey: SwimlaneKey, hideSegments: boolean): ColumnDef<VideoJob>[] => {
+    const cols: ColumnDef<VideoJob>[] = [
+      {
+        id: 'couple_name',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+        accessorFn: (row) => row.couples?.couple_name || 'Unknown',
+        cell: ({ row }) => (
+          <button onClick={() => row.original.couple_id && router.push(`/admin/couples/${row.original.couple_id}`)}
+            className="font-medium text-blue-600 hover:underline text-left">
+            {row.original.couples?.couple_name || 'Unknown'}
+          </button>
+        ),
+      },
+      {
+        id: 'wedding_date',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Wedding Date" />,
+        accessorFn: (row) => row.wedding_date || row.couples?.wedding_date || '',
+        cell: ({ row }) => {
+          const wd = row.original.wedding_date || row.original.couples?.wedding_date
+          return wd ? <span className="text-muted-foreground">{formatDateCompact(wd)}</span> : <span className="text-amber-600 text-xs">No date</span>
+        },
+      },
+    ]
+
+    if (!hideSegments) {
+      cols.push({
+        id: 'days_since',
+        header: 'Days',
+        accessorFn: (row) => {
+          const wd = row.wedding_date || row.couples?.wedding_date
+          return wd ? Math.floor((Date.now() - new Date(wd).getTime()) / 86400000) : -1
+        },
+        cell: ({ row }) => {
+          const wd = row.original.wedding_date || row.original.couples?.wedding_date
+          const daysSince = wd ? Math.floor((Date.now() - new Date(wd).getTime()) / 86400000) : null
+          return daysSince !== null ? (
+            <span className={`text-sm font-medium tabular-nums ${daysSince > 180 ? 'text-red-600' : 'text-muted-foreground'}`}>{daysSince}</span>
+          ) : '—'
+        },
+        enableSorting: false,
+      })
+
+      SEGMENTS.forEach(seg => {
+        cols.push({
+          id: seg.field,
+          header: seg.shortLabel,
+          cell: ({ row }) => (
+            <button onClick={() => toggleField(row.original.id, seg.field, row.original[seg.field])}
+              className={`text-sm cursor-pointer hover:opacity-70 ${row.original[seg.field] ? '' : 'opacity-40'}`}
+              title={row.original[seg.field] ? `${seg.label} done` : `Mark ${seg.label} done`}>
+              {row.original[seg.field] ? '✅' : '⬜'}
+            </button>
+          ),
+          enableSorting: false,
+        } as ColumnDef<VideoJob>)
+      })
+    }
+
+    cols.push({
+      id: 'active_hd',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="HD" />,
+      accessorFn: (row) => row.active_hd || '',
+      cell: ({ row }) => (
+        <select value={row.original.active_hd || ''} onChange={e => updateActiveHd(row.original.id, e.target.value)}
+          className="text-xs rounded-md border-border bg-background px-1 py-0.5 !w-auto">
+          {ACTIVE_HD_OPTIONS.map(opt => <option key={opt} value={opt}>{opt || '—'}</option>)}
+        </select>
+      ),
+    })
+
+    if (!hideSegments) {
+      cols.push({
+        id: 'proxies_run',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Prox" />,
+        accessorFn: (row) => row.proxies_run ? 1 : 0,
+        cell: ({ row }) => (
+          <button onClick={() => toggleField(row.original.id, 'proxies_run', row.original.proxies_run)}
+            className={`text-sm cursor-pointer hover:opacity-70 ${row.original.proxies_run ? '' : 'opacity-40'}`}
+            title={row.original.proxies_run ? 'Proxies run' : 'Mark proxies run'}>
+            {row.original.proxies_run ? '✅' : '⬜'}
+          </button>
+        ),
+      })
+      cols.push({
+        id: 'video_form',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Form" />,
+        accessorFn: (row) => row.video_form ? 1 : 0,
+        cell: ({ row }) => (
+          <button onClick={() => toggleField(row.original.id, 'video_form', row.original.video_form)}
+            className={`text-sm cursor-pointer hover:opacity-70 ${row.original.video_form ? '' : 'opacity-40'}`}
+            title={row.original.video_form ? 'Video form received' : 'Mark video form received'}>
+            {row.original.video_form ? '✅' : '⬜'}
+          </button>
+        ),
+      })
+    }
+
+    cols.push({
+      id: 'status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      accessorFn: (row) => STATUS_LABELS[row.status] || row.status,
+      cell: ({ row }) => (
+        <select value={row.original.status} onChange={e => updateJobStatus(row.original.id, e.target.value)}
+          className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto">
+          {getLaneStatusOptions(laneKey).map(opt =>
+            opt.divider ? <option key="_divider" disabled>{'────────────'}</option>
+              : <option key={opt.value} value={opt.value}>{opt.label}</option>
+          )}
+        </select>
+      ),
+    })
+
+    cols.push({
+      id: 'due_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Due Date" />,
+      accessorFn: (row) => row.due_date || '',
+      cell: ({ row }) => {
+        const job = row.original
+        if (editingDueDate === job.id) {
+          return (
+            <input type="date" autoFocus defaultValue={job.due_date || ''}
+              onBlur={e => updateDueDate(job.id, e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') updateDueDate(job.id, (e.target as HTMLInputElement).value)
+                if (e.key === 'Escape') setEditingDueDate(null)
+              }}
+              className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto" />
+          )
+        }
+        return (
+          <button onClick={() => setEditingDueDate(job.id)} className="text-left text-xs hover:underline">
+            {job.due_date ? <span className="text-muted-foreground">{formatDateCompact(job.due_date).replace(/, \d{4}$/, '')}</span>
+              : <span className="text-muted-foreground/50 italic">Set date</span>}
+          </button>
+        )
+      },
+    })
+
+    return cols
+  }
+
+  // ── Completed 2026 columns ──────────────────────────────────
+
+  const completed2026Columns: ColumnDef<VideoJob>[] = useMemo(() => [
+    {
+      accessorKey: 'couple_name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+      accessorFn: (row) => row.couples?.couple_name || 'Unknown',
+      cell: ({ row }) => (
+        <button onClick={() => row.original.couple_id && router.push(`/admin/couples/${row.original.couple_id}`)}
+          className="font-medium hover:underline text-left transition-colors text-[13px] text-muted-foreground">
+          {row.original.couples?.couple_name || 'Unknown'}
+        </button>
+      ),
+    },
+    {
+      accessorKey: 'wedding_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Wedding Date" />,
+      accessorFn: (row) => row.wedding_date || row.couples?.wedding_date || '',
+      cell: ({ row }) => {
+        const wd = row.original.wedding_date || row.original.couples?.wedding_date
+        return wd ? <span className="text-xs">{formatDateCompact(wd)}</span> : '—'
+      },
+    },
+    ...SEGMENTS.map(seg => ({
+      id: seg.field,
+      header: seg.shortLabel,
+      accessorFn: (row: VideoJob) => row[seg.field] ? 1 : 0,
+      cell: ({ row }: any) => (
+        <span style={{ color: row.original[seg.field] ? '#86efac' : '#d6d3d1' }} className="text-xs">
+          {row.original[seg.field] ? '✓' : '○'}
+        </span>
+      ),
+      enableSorting: false,
+    } as ColumnDef<VideoJob>)),
+    { id: 'active_hd_completed', header: 'HD', accessorFn: (row: VideoJob) => row.active_hd || '', cell: ({ row }: any) => <span className="text-xs">{row.original.active_hd || '—'}</span>, enableSorting: false },
+    { id: 'proxies_completed', header: 'Prox', accessorFn: (row: VideoJob) => row.proxies_run ? 1 : 0, cell: ({ row }: any) => <span style={{ color: row.original.proxies_run ? '#86efac' : '#d6d3d1' }} className="text-xs">{row.original.proxies_run ? '✓' : '○'}</span>, enableSorting: false },
+    { id: 'form_completed', header: 'Form', accessorFn: (row: VideoJob) => row.video_form ? 1 : 0, cell: ({ row }: any) => <span style={{ color: row.original.video_form ? '#86efac' : '#d6d3d1' }} className="text-xs">{row.original.video_form ? '✓' : '○'}</span>, enableSorting: false },
+    {
+      accessorKey: 'status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      accessorFn: (row) => STATUS_LABELS[row.status] || row.status,
+      cell: ({ row }) => (
+        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-background text-muted-foreground border border-border">
+          {STATUS_LABELS[row.original.status] || row.original.status}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'due_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Due Date" />,
+      cell: ({ row }) => <span className="text-xs">{row.original.due_date ? formatDateCompact(row.original.due_date).replace(/, \d{4}$/, '') : '—'}</span>,
+    },
+    {
+      accessorKey: 'completed_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Date Completed" />,
+      cell: ({ row }) => <span className="text-xs">{row.original.completed_date ? formatDateCompact(row.original.completed_date) : '—'}</span>,
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [router])
+
   // ── Toggle lane collapse ───────────────────────────────────────
 
   const toggleLane = (key: string) => {
@@ -735,29 +904,6 @@ export default function VideoProductionPage() {
     })
     editingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
-
-  // ── Sort handler ──────────────────────────────────────────────
-
-  const handleSort = (column: string) => {
-    if (sortColumn === column) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortColumn(column)
-      setSortDirection('asc')
-    }
-  }
-
-  const renderSortHeader = (column: string, label: string) => (
-    <button
-      onClick={() => handleSort(column)}
-      className="flex items-center gap-1 hover:text-foreground transition-colors text-left"
-    >
-      {label}
-      {sortColumn === column && (
-        <span className="text-foreground">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-      )}
-    </button>
-  )
 
   // ── Loading ────────────────────────────────────────────────────
 
@@ -1056,175 +1202,12 @@ export default function VideoProductionPage() {
                 {!isCollapsed && (() => {
                   const laneJobs = processedJobs[lane.key as Exclude<SwimlaneKey, 'waiting_photo'>] || []
                   return laneJobs.length > 0 ? (
-                  <div className="rounded-xl border bg-card overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b bg-muted/50">
-                          <th className="w-8 p-2"></th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                            {renderSortHeader('couple_name', 'Couple')}
-                          </th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">
-                            {renderSortHeader('wedding_date', 'Wedding Date')}
-                          </th>
-                          {!hideSegments && (
-                            <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">
-                              Days
-                            </th>
-                          )}
-                          {!hideSegments && SEGMENTS.map(seg => (
-                            <th key={seg.field} className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title={seg.label}>
-                              {renderSortHeader(seg.field, seg.shortLabel)}
-                            </th>
-                          ))}
-                          <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Active HD">
-                            {renderSortHeader('active_hd', 'HD')}
-                          </th>
-                          {!hideSegments && (
-                            <>
-                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Proxies Run">
-                                {renderSortHeader('proxies_run', 'Prox')}
-                              </th>
-                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title="Video Form">
-                                {renderSortHeader('video_form', 'Form')}
-                              </th>
-                            </>
-                          )}
-                          <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                            {renderSortHeader('status', 'Status')}
-                          </th>
-                          <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
-                            {renderSortHeader('due_date', 'Due Date')}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {laneJobs.map(job => (
-                          <tr
-                            key={job.id}
-                            className={`hover:bg-accent/50 transition-colors ${draggedJobId === job.id ? 'opacity-50' : ''} ${job.section === 'completed' ? 'opacity-50' : ''}`}
-                            draggable
-                            onDragStart={() => handleDragStart(job.id)}
-                            onDragOver={e => e.preventDefault()}
-                            onDrop={() => handleDrop(job.id, lane.key, laneJobs)}
-                          >
-                            <td className="p-2 cursor-grab active:cursor-grabbing text-muted-foreground">
-                              <GripVertical className="h-4 w-4" />
-                            </td>
-                            <td className="p-3">
-                              <button
-                                onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
-                                className="font-medium text-blue-600 hover:underline text-left"
-                              >
-                                {job.couples?.couple_name || 'Unknown'}
-                              </button>
-                            </td>
-                            <td className="p-3 hidden lg:table-cell text-muted-foreground">
-                              {(job.wedding_date || job.couples?.wedding_date)
-                                ? formatDateCompact((job.wedding_date || job.couples?.wedding_date)!)
-                                : <span className="text-amber-600 text-xs">No date</span>
-                              }
-                            </td>
-                            {!hideSegments && (() => {
-                              const wd = job.wedding_date || job.couples?.wedding_date
-                              const daysSince = wd ? Math.floor((new Date().getTime() - new Date(wd).getTime()) / (1000 * 60 * 60 * 24)) : null
-                              return (
-                                <td className="p-2 text-center hidden lg:table-cell">
-                                  {daysSince !== null ? (
-                                    <span className={`text-sm font-medium tabular-nums ${daysSince > 180 ? 'text-red-600' : 'text-muted-foreground'}`}>
-                                      {daysSince}
-                                    </span>
-                                  ) : '—'}
-                                </td>
-                              )
-                            })()}
-                            {!hideSegments && SEGMENTS.map(seg => (
-                              <td key={seg.field} className="p-2 text-center hidden md:table-cell">
-                                <button
-                                  onClick={() => toggleField(job.id, seg.field, job[seg.field])}
-                                  className={`text-sm cursor-pointer hover:opacity-70 ${job[seg.field] ? '' : 'opacity-40'}`}
-                                  title={job[seg.field] ? `${seg.label} done` : `Mark ${seg.label} done`}
-                                >
-                                  {job[seg.field] ? '✅' : '⬜'}
-                                </button>
-                              </td>
-                            ))}
-                            <td className="p-2 text-center hidden md:table-cell">
-                              <select
-                                value={job.active_hd || ''}
-                                onChange={e => updateActiveHd(job.id, e.target.value)}
-                                className="text-xs rounded-md border-border bg-background px-1 py-0.5 !w-auto"
-                              >
-                                {ACTIVE_HD_OPTIONS.map(opt => (
-                                  <option key={opt} value={opt}>{opt || '—'}</option>
-                                ))}
-                              </select>
-                            </td>
-                            {!hideSegments && (
-                              <>
-                                <td className="p-2 text-center hidden md:table-cell">
-                                  <button
-                                    onClick={() => toggleField(job.id, 'proxies_run', job.proxies_run)}
-                                    className={`text-sm cursor-pointer hover:opacity-70 ${job.proxies_run ? '' : 'opacity-40'}`}
-                                    title={job.proxies_run ? 'Proxies run' : 'Mark proxies run'}
-                                  >
-                                    {job.proxies_run ? '✅' : '⬜'}
-                                  </button>
-                                </td>
-                                <td className="p-2 text-center hidden md:table-cell">
-                                  <button
-                                    onClick={() => toggleField(job.id, 'video_form', job.video_form)}
-                                    className={`text-sm cursor-pointer hover:opacity-70 ${job.video_form ? '' : 'opacity-40'}`}
-                                    title={job.video_form ? 'Video form received' : 'Mark video form received'}
-                                  >
-                                    {job.video_form ? '✅' : '⬜'}
-                                  </button>
-                                </td>
-                              </>
-                            )}
-                            <td className="p-3 text-center">
-                              <select
-                                value={job.status}
-                                onChange={e => updateJobStatus(job.id, e.target.value)}
-                                className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
-                              >
-                                {getLaneStatusOptions(lane.key).map(opt =>
-                                  opt.divider
-                                    ? <option key="_divider" disabled>{'────────────'}</option>
-                                    : <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                )}
-                              </select>
-                            </td>
-                            <td className="p-3 text-center hidden md:table-cell">
-                              {editingDueDate === job.id ? (
-                                <input
-                                  type="date"
-                                  autoFocus
-                                  defaultValue={job.due_date || ''}
-                                  onBlur={e => updateDueDate(job.id, e.target.value)}
-                                  onKeyDown={e => {
-                                    if (e.key === 'Enter') updateDueDate(job.id, (e.target as HTMLInputElement).value)
-                                    if (e.key === 'Escape') setEditingDueDate(null)
-                                  }}
-                                  className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
-                                />
-                              ) : (
-                                <button
-                                  onClick={() => setEditingDueDate(job.id)}
-                                  className="text-left text-xs hover:underline"
-                                >
-                                  {job.due_date
-                                    ? <span className="text-muted-foreground">{formatDateCompact(job.due_date).replace(/, \d{4}$/, '')}</span>
-                                    : <span className="text-muted-foreground/50 italic">Set date</span>
-                                  }
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                    <DataTable
+                      columns={makeSwimlaneColumns(lane.key, hideSegments)}
+                      data={laneJobs}
+                      showPagination={false}
+                      emptyMessage="No jobs in this lane"
+                    />
                   ) : null
                 })()}
 
@@ -1286,80 +1269,13 @@ export default function VideoProductionPage() {
               </span>
             </button>
 
-            {!completed2026Collapsed && completed2026JobsList.length > 0 && (
-              <div className="rounded-xl overflow-hidden border border-border bg-muted">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-muted border-b border-border">
-                      <th className="text-left px-5 py-3 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Couple</th>
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden lg:table-cell text-muted-foreground">Wedding Date</th>
-                      {SEGMENTS.map(seg => (
-                        <th key={seg.field} className="text-center px-2 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">{seg.shortLabel}</th>
-                      ))}
-                      <th className="text-center px-2 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">HD</th>
-                      <th className="text-center px-2 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">Prox</th>
-                      <th className="text-center px-2 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">Form</th>
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">Due Date</th>
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">Date Completed</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {completed2026JobsList.map(job => (
-                      <tr key={job.id} className="border-b border-border text-muted-foreground">
-                        <td className="px-5 py-3">
-                          <button
-                            onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
-                            className="font-medium hover:underline text-left transition-colors text-[13px] text-muted-foreground"
-                          >
-                            {job.couples?.couple_name || 'Unknown'}
-                          </button>
-                        </td>
-                        <td className="px-4 py-3 hidden lg:table-cell text-xs">
-                          {(job.wedding_date || job.couples?.wedding_date)
-                            ? formatDateCompact((job.wedding_date || job.couples?.wedding_date)!)
-                            : '\u2014'
-                          }
-                        </td>
-                        {SEGMENTS.map(seg => (
-                          <td key={seg.field} className="px-2 py-3 text-center hidden md:table-cell">
-                            <span style={{ color: job[seg.field] ? '#86efac' : '#d6d3d1' }} className="text-xs">{job[seg.field] ? '\u2713' : '\u25CB'}</span>
-                          </td>
-                        ))}
-                        <td className="px-2 py-3 text-center hidden md:table-cell text-xs">{job.active_hd || '\u2014'}</td>
-                        <td className="px-2 py-3 text-center hidden md:table-cell">
-                          <span style={{ color: job.proxies_run ? '#86efac' : '#d6d3d1' }} className="text-xs">{job.proxies_run ? '\u2713' : '\u25CB'}</span>
-                        </td>
-                        <td className="px-2 py-3 text-center hidden md:table-cell">
-                          <span style={{ color: job.video_form ? '#86efac' : '#d6d3d1' }} className="text-xs">{job.video_form ? '\u2713' : '\u25CB'}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-background text-muted-foreground border border-border">
-                            {STATUS_LABELS[job.status] || job.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 hidden md:table-cell text-xs">
-                          {job.due_date ? formatDateCompact(job.due_date).replace(/, \d{4}$/, '') : '\u2014'}
-                        </td>
-                        <td className="px-4 py-3 hidden md:table-cell text-xs">
-                          {job.completed_date ? formatDateCompact(job.completed_date) : '—'}
-                        </td>
-                      </tr>
-                    ))}
-
-                    {/* Summary row */}
-                    <tr className="bg-muted border-t-2 border-border">
-                      <td className="px-5 py-3 font-bold text-xs uppercase tracking-wider text-muted-foreground" colSpan={2}>
-                        {completed2026JobsList.length} completed
-                      </td>
-                      <td className="px-2 py-3 hidden md:table-cell" colSpan={7}></td>
-                      <td className="px-4 py-3 text-xs font-medium text-muted-foreground" colSpan={3}>
-                        {edited2026Stats.breakdown.map((b, i) => <span key={b.label}>{i > 0 ? ' \u00B7 ' : ''}{b.count} {b.label}</span>)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            {!completed2026Collapsed && (
+              <DataTable
+                columns={completed2026Columns}
+                data={completed2026JobsList}
+                showPagination={false}
+                emptyMessage="No completed jobs"
+              />
             )}
           </div>
 
