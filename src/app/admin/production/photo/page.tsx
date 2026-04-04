@@ -1034,135 +1034,44 @@ export default function PhotoProductionPage() {
 
         {/* Stats Sidebar */}
         <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
-          {/* Active Jobs */}
-          <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
-            onClick={() => setPopupStatus('active')}
-          >
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Active Jobs
-            </div>
-            <div className="text-3xl font-bold">
-              {activeCount}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {completedCount} completed
-            </div>
+          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => setPopupStatus('active')}>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">ACTIVE JOBS</div>
+            <div className="text-3xl font-bold">{activeCount}</div>
           </div>
 
-          {/* Waiting for Order */}
-          <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
-            onClick={() => setPopupStatus('waiting_order')}
-          >
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Waiting for Order
-            </div>
-            <div className={`text-3xl font-bold ${waitingOrderCouples.length > 0 ? 'text-amber-600' : 'text-foreground'}`}>
-              {waitingOrderCouples.length}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Past weddings awaiting order</div>
+          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => setPopupStatus('waiting_order')}>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">WAITING FOR ORDER</div>
+            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{waitingOrderCouples.length}</div>
           </div>
 
-          {/* In Progress */}
-          <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
-            onClick={() => setPopupStatus('in_progress')}
-          >
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              In Progress
-            </div>
-            <div className="text-3xl font-bold">
-              {sidebarStats.inProgressCount}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Currently editing</div>
+          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => setPopupStatus('in_progress')}>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">IN PROGRESS</div>
+            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{sidebarStats.inProgressCount}</div>
           </div>
 
-          {/* Waiting for Bride */}
-          <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
-            onClick={() => setPopupStatus('waiting_approval')}
-          >
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Waiting for Bride
-            </div>
-            <div className={`text-3xl font-bold ${sidebarStats.waitingApprovalCount > 0 ? 'text-orange-600' : 'text-foreground'}`}>
-              {sidebarStats.waitingApprovalCount}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Awaiting client approval</div>
+          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => setPopupStatus('waiting_approval')}>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">WAITING FOR BRIDE</div>
+            <div className="text-3xl font-bold" style={{ color: '#ea580c' }}>{sidebarStats.waitingApprovalCount}</div>
           </div>
 
-          {/* Re-edits */}
-          <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
-            onClick={() => setPopupStatus('reedits')}
-          >
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Re-edits
-            </div>
-            <div className={`text-3xl font-bold ${sidebarStats.reeditCount > 0 ? 'text-rose-600' : 'text-foreground'}`}>
-              {sidebarStats.reeditCount}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Client requested changes</div>
+          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => setPopupStatus('reedits')}>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">RE-EDITS</div>
+            <div className="text-3xl font-bold" style={{ color: '#ea580c' }}>{sidebarStats.reeditCount}</div>
           </div>
 
-          {/* At Lab */}
-          <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
-            onClick={() => setPopupStatus('at_lab')}
-          >
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              At Lab
-            </div>
-            <div className={`text-3xl font-bold ${sidebarStats.atLabCount > 0 ? 'text-indigo-600' : 'text-foreground'}`}>
-              {sidebarStats.atLabCount}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Prints/albums being made</div>
+          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => setPopupStatus('at_lab')}>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">AT LAB</div>
+            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{sidebarStats.atLabCount}</div>
           </div>
 
-          {/* Ready to Order */}
-          <div
-            className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors"
-            onClick={() => setPopupStatus('ready_to_order')}
-          >
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Ready to Order
-            </div>
-            <div className={`text-3xl font-bold ${sidebarStats.readyToOrderCount > 0 ? 'text-cyan-600' : 'text-foreground'}`}>
-              {sidebarStats.readyToOrderCount}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Ready for lab submission</div>
+          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => setPopupStatus('ready_to_order')}>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">READY TO ORDER</div>
+            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{sidebarStats.readyToOrderCount}</div>
           </div>
 
-          {/* Divider */}
-          <div className="h-px bg-border my-6" />
-
-          {/* Re-edits YTD */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Re-edits YTD
-            </div>
-            <div className="text-3xl font-bold">
-              {reeditYtdCount}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Times client requested changes</div>
-          </div>
-
-          {/* Photos Complete */}
           <div className="rounded-xl border bg-card p-4">
-            <div className="text-xs font-semibold text-foreground mb-3">
-              Photos Complete
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-green-500 rounded-full transition-all"
-                style={{ width: `${sidebarStats.photosPercent}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground mt-2">
-              <span>{editedSoFar} of {totalPhotos} edited</span>
-              <span>{sidebarStats.photosPercent}%</span>
-            </div>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">RE-EDITS YTD</div>
+            <div className="text-3xl font-bold">{reeditYtdCount}</div>
           </div>
         </aside>
       </div>

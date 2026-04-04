@@ -1316,38 +1316,38 @@ export default function VideoProductionPage() {
         {/* Stats Sidebar */}
         <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
           <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-bold uppercase tracking-wide mb-2">VIDEO PROOFS OUT</div>
-            <div className="text-3xl font-bold">{pipelineStats.fullVideoOut}</div>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">VIDEO PROOFS OUT</div>
+            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{pipelineStats.fullVideoOut}</div>
           </div>
 
           <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-bold uppercase tracking-wide mb-2">2025 VIDEOS REMAINING</div>
-            <div className="text-3xl font-bold">{pipelineStats.fullNotStarted2025}</div>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">2025 VIDEOS REMAINING</div>
+            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{pipelineStats.fullNotStarted2025}</div>
           </div>
 
           <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-bold uppercase tracking-wide mb-2">2026 VIDEOS REMAINING</div>
-            <div className="text-3xl font-bold">{Math.max(0, booked2026Count - pipelineStats.fullCompleted2026)}</div>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">2026 VIDEOS REMAINING</div>
+            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{Math.max(0, booked2026Count - pipelineStats.fullCompleted2026)}</div>
           </div>
 
           <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-bold uppercase tracking-wide mb-2">VIDEOS READY TO EDIT</div>
-            <div className="text-3xl font-bold">{pipelineStats.fullEditing}</div>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">VIDEOS READY TO EDIT</div>
+            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{pipelineStats.fullEditing}</div>
           </div>
 
           <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-bold uppercase tracking-wide mb-2">RECAPS QUEUE</div>
-            <div className="text-3xl font-bold">{pipelineStats.recapEditing}</div>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">RECAPS QUEUE</div>
+            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{pipelineStats.recapEditing}</div>
           </div>
 
           <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-bold uppercase tracking-wide mb-2">SLIDESHOWS QUEUE</div>
-            <div className="text-3xl font-bold">{pipelineStats.slideshowEditing}</div>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">SLIDESHOWS QUEUE</div>
+            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{pipelineStats.slideshowEditing}</div>
           </div>
 
           <div className="rounded-xl border bg-card p-4">
-            <div className="text-xs font-bold uppercase tracking-wide mb-2">WAITING FOR PHOTO</div>
-            <div className="text-3xl font-bold">{pipelineStats.fullWaitingBride}</div>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">WAITING FOR PHOTO</div>
+            <div className="text-3xl font-bold" style={{ color: '#ea580c' }}>{pipelineStats.fullWaitingBride}</div>
           </div>
         </aside>
       </div>
