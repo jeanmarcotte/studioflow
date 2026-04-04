@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Search, ChevronDown, ChevronRight, X } from 'lucide-react'
+import { ProductionPageHeader, ProductionPills, ProductionSidebar } from '@/components/shared'
 import { Playfair_Display, Nunito } from 'next/font/google'
 import { formatDateCompact } from '@/lib/formatters'
 
@@ -371,13 +372,21 @@ export default function ProductionArchivePage() {
 
   return (
     <div className="space-y-0">
-      {/* Header */}
-      <div className="px-6 pt-6 pb-4">
-        <h1 className="text-2xl font-bold">PhotoVault Archive</h1>
-        <p className="text-sm text-muted-foreground">
-          {drives.length} drives &middot; {couples.length} couples &middot; {formatGB(stats.totalStorageGB)} total
-        </p>
-      </div>
+      <ProductionPageHeader
+        title="Photo Vault Archive"
+        subtitle={`${drives.length} drives \u00B7 ${couples.length} couples \u00B7 ${formatGB(stats.totalStorageGB)} total`}
+        reportHref="/admin/production/report"
+        actionLabel="+ Add Archive"
+        actionHref="/admin/production/archive/new"
+        actionDisabled={true}
+      />
+
+      <ProductionPills pills={[
+        { label: 'Total Couples', count: stats.totalCouples, color: 'default' },
+        { label: 'Fully Archived', count: stats.fullyArchived, color: 'green' },
+        { label: 'Not Archived', count: stats.totalCouples - stats.fullyArchived, color: 'yellow' },
+        { label: 'Missing Assets', count: stats.missingAssets, color: 'red' },
+      ]} />
 
       {/* Content area: main panel + stats sidebar */}
       <div className="flex">
@@ -385,7 +394,7 @@ export default function ProductionArchivePage() {
         <div className="flex-1 overflow-y-auto p-6 border-r border-border">
 
           {/* ══════ SECTION 1: Drive Inventory ══════ */}
-          <div className="rounded-xl border bg-card mb-6">
+          <div id="section-drives" className="rounded-xl border bg-card mb-6">
             <button
               onClick={() => toggleLane('drives')}
               className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
@@ -467,7 +476,7 @@ export default function ProductionArchivePage() {
           </div>
 
           {/* ══════ SECTION 2: Couples Master List ══════ */}
-          <div className="rounded-xl border bg-card mb-6">
+          <div id="section-couples" className="rounded-xl border bg-card mb-6">
             <button
               onClick={() => toggleLane('couples')}
               className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
@@ -570,7 +579,7 @@ export default function ProductionArchivePage() {
           </div>
 
           {/* ══════ SECTION 3: Milestone Details ══════ */}
-          <div className="rounded-xl border bg-card">
+          <div id="section-milestones" className="rounded-xl border bg-card">
             <button
               onClick={() => toggleLane('milestones')}
               className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
@@ -667,85 +676,15 @@ export default function ProductionArchivePage() {
 
         </div>
 
-        {/* Stats Sidebar */}
-        <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
-          {/* Total Drives */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Total Drives
-            </div>
-            <div className="text-3xl font-bold">
-              {stats.totalDrives}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Physical hard drives scanned</div>
-          </div>
-
-          {/* Total Couples */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Total Couples
-            </div>
-            <div className="text-3xl font-bold">
-              {stats.totalCouples}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Unique couples in archive</div>
-          </div>
-
-          {/* Total Storage */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Total Storage
-            </div>
-            <div className="text-3xl font-bold">
-              {formatGB(stats.totalStorageGB)}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Across all drives</div>
-          </div>
-
-          {/* Fully Archived */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Fully Archived
-            </div>
-            <div className={`text-3xl font-bold ${stats.fullyArchived > 0 ? 'text-green-600' : 'text-foreground'}`}>
-              {stats.fullyArchived}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">All assets verified</div>
-          </div>
-
-          {/* Missing Assets */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Missing Assets
-            </div>
-            <div className={`text-3xl font-bold ${stats.missingAssets > 0 ? 'text-amber-600' : 'text-foreground'}`}>
-              {stats.missingAssets}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Contracted but not found</div>
-          </div>
-
-          {/* Redundant Files */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Redundant Files
-            </div>
-            <div className={`text-3xl font-bold ${stats.redundantFiles > 0 ? 'text-indigo-600' : 'text-foreground'}`}>
-              {stats.redundantFiles}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Same asset on multiple drives</div>
-          </div>
-
-          {/* CFA Cleaned */}
-          <div className="rounded-xl border bg-card p-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              CFA Cleaned
-            </div>
-            <div className={`text-3xl font-bold ${stats.cfaCleaned > 0 ? 'text-teal-600' : 'text-foreground'}`}>
-              {stats.cfaCleaned}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Drives with junk removed</div>
-          </div>
-        </aside>
+        <ProductionSidebar boxes={[
+          { label: 'TOTAL DRIVES', value: stats.totalDrives, scrollToId: 'section-drives', color: 'default' },
+          { label: 'TOTAL COUPLES', value: stats.totalCouples, scrollToId: 'section-couples', color: 'default' },
+          { label: 'TOTAL STORAGE', value: formatGB(stats.totalStorageGB), scrollToId: 'section-drives', color: 'teal' },
+          { label: 'FULLY ARCHIVED', value: stats.fullyArchived, scrollToId: 'section-couples', color: 'green' },
+          { label: 'MISSING ASSETS', value: stats.missingAssets, scrollToId: 'section-couples', color: 'yellow' },
+          { label: 'REDUNDANT FILES', value: stats.redundantFiles, scrollToId: 'section-milestones', color: 'blue' },
+          { label: 'CFA CLEANED', value: stats.cfaCleaned, scrollToId: 'section-drives', color: 'teal' },
+        ]} />
       </div>
 
       {/* ══════ COUPLE DETAIL DRAWER ══════ */}
