@@ -1,9 +1,13 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { ShoppingBag, DollarSign, ChevronUp, ChevronDown, Plus, X, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Plus, X, Trash2, Search, ChevronDown, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatDateCompact } from '@/lib/formatters'
+import { ColumnDef } from '@tanstack/react-table'
+import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
+import { ProductionPageHeader, ProductionPills, ProductionSidebar } from '@/components/shared'
 
 // ── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -42,9 +46,6 @@ interface FormItem {
   tax_mode: 'before' | 'included' | 'none'
 }
 
-type SortField = 'invoice_date' | 'couple_name' | 'item_type' | 'description' | 'total' | 'discount_value' | 'status' | 'payment_note'
-type SortDir = 'asc' | 'desc'
-
 const ITEM_TYPES = ['Additional Person', 'Hi Res Files', 'Hours', 'Parent Album', 'Print', 'Raw Video']
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -57,28 +58,12 @@ function fmtDate(dateStr: string | null): string {
   return formatDateCompact(dateStr)
 }
 
-function statusBadge(status: string | null) {
-  switch (status) {
-    case 'paid':
-      return <span className="inline-flex items-center rounded-full bg-green-50 text-green-600 px-2 py-0.5 text-xs font-medium">Paid</span>
-    case 'sent':
-      return <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-600 px-2 py-0.5 text-xs font-medium">Sent</span>
-    case 'pending':
-      return <span className="inline-flex items-center rounded-full bg-amber-50 text-amber-600 px-2 py-0.5 text-xs font-medium">Pending</span>
-    case 'cancelled':
-      return <span className="inline-flex items-center rounded-full bg-red-50 text-red-600 px-2 py-0.5 text-xs font-medium line-through">Cancelled</span>
-    default:
-      return <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-500 px-2 py-0.5 text-xs font-medium">{status || '—'}</span>
-  }
-}
-
 function calcItemTotals(item: FormItem) {
   const lineSubtotal = item.quantity * item.unit_price
   let hst = 0
   if (item.tax_mode === 'before') {
     hst = lineSubtotal * 0.13
   } else if (item.tax_mode === 'included') {
-    // Tax already included — back it out for display
     hst = lineSubtotal - lineSubtotal / 1.13
   }
   const total = item.tax_mode === 'included' ? lineSubtotal : lineSubtotal + hst
@@ -109,7 +94,6 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
     setItems(prev => prev.filter((_, idx) => idx !== i))
   }
 
-  // Running totals
   const totals = useMemo(() => {
     let subtotal = 0
     let hst = 0
@@ -120,7 +104,6 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
       hst += t.hst
       total += t.total
     }
-    // Apply discount
     let discountAmt = 0
     if (discountType === 'percent' && discountValue > 0) {
       discountAmt = total * discountValue / 100
@@ -146,11 +129,8 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
     const coupleName = selectedCouple?.couple_name || ''
 
     try {
-      // Insert each item as a separate row
       for (const item of items) {
         const t = calcItemTotals(item)
-
-        // Apply discount proportionally if multiple items
         let itemDiscountAmt = 0
         if (totals.discountAmt > 0 && totals.total > 0) {
           itemDiscountAmt = totals.discountAmt * (t.total / totals.total)
@@ -185,7 +165,6 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
           return
         }
 
-        // Insert couple_charges row
         if (inserted) {
           await supabase.from('couple_charges').insert({
             couple_id: coupleId,
@@ -218,14 +197,12 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
         className="relative bg-background rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="sticky top-0 bg-background border-b px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
           <h2 className="text-lg font-bold">New Extras Sale</h2>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-muted"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="p-6 space-y-5">
-          {/* Couple selector */}
           <div>
             <label className="block text-sm font-medium mb-1">Couple</label>
             <select
@@ -242,7 +219,6 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
             </select>
           </div>
 
-          {/* Items */}
           <div>
             <label className="block text-sm font-medium mb-2">Items</label>
             <div className="space-y-3">
@@ -302,7 +278,7 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Tax</label>
+                    <label className="block text-xs text-muted-foreground mb-1">Tax</label>
                     <div className="flex gap-2">
                       {([['before', '+ Tax (13%)'], ['included', 'Tax Included'], ['none', 'No Tax']] as const).map(([val, label]) => (
                         <button
@@ -319,7 +295,6 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
                       ))}
                     </div>
                   </div>
-                  {/* Item line total */}
                   <div className="text-right text-sm text-muted-foreground">
                     Line total: <span className="font-semibold text-foreground">{fmtMoney(calcItemTotals(item).total)}</span>
                   </div>
@@ -334,7 +309,6 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
             </button>
           </div>
 
-          {/* Discount */}
           <div>
             <label className="block text-sm font-medium mb-1">Discount (optional)</label>
             <div className="flex gap-2 items-center">
@@ -368,7 +342,6 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
             </div>
           </div>
 
-          {/* Payment Note */}
           <div>
             <label className="block text-sm font-medium mb-1">Payment Note</label>
             <input
@@ -380,7 +353,6 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
             />
           </div>
 
-          {/* Running Total */}
           <div className="rounded-xl bg-muted border p-4 space-y-1">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Subtotal</span>
@@ -403,7 +375,6 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
           </div>
         </div>
 
-        {/* Footer */}
         <div className="sticky bottom-0 bg-background border-t px-6 py-4 flex items-center justify-between rounded-b-2xl">
           {toast ? (
             <span className={`text-sm font-medium ${toast.includes('Error') ? 'text-red-600' : 'text-green-600'}`}>{toast}</span>
@@ -426,11 +397,11 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
 // ── Main Component ──────────────────────────────────────────────────────────
 
 export default function ExtrasSalesPage() {
+  const router = useRouter()
   const [rows, setRows] = useState<ExtrasRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [yearFilter, setYearFilter] = useState<string>('all')
-  const [sortField, setSortField] = useState<SortField>('invoice_date')
-  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
   const [showNewSale, setShowNewSale] = useState(false)
   const [couples, setCouples] = useState<CoupleOption[]>([])
   const [refreshKey, setRefreshKey] = useState(0)
@@ -479,7 +450,6 @@ export default function ExtrasSalesPage() {
 
   useEffect(() => { fetchData() }, [fetchData, refreshKey])
 
-  // Fetch couples for the modal
   useEffect(() => {
     supabase
       .from('couples')
@@ -489,80 +459,121 @@ export default function ExtrasSalesPage() {
       .then(({ data }) => setCouples(data || []))
   }, [])
 
-  // Year filter
-  const filtered = useMemo(() => {
-    if (yearFilter === 'all') return rows
-    return rows.filter(r => r.wedding_year === parseInt(yearFilter))
-  }, [rows, yearFilter])
+  const toggleLane = (key: string) => {
+    setCollapsedLanes(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
-  const years = useMemo(() => {
-    const set = new Set(rows.map(r => r.wedding_year).filter(Boolean) as number[])
-    return Array.from(set).sort((a, b) => b - a)
-  }, [rows])
+  // Filter by search
+  const filteredRows = useMemo(() => {
+    if (!searchQuery) return rows
+    const q = searchQuery.toLowerCase()
+    return rows.filter(r => r.couple_name.toLowerCase().includes(q) || (r.item_type || '').toLowerCase().includes(q))
+  }, [rows, searchQuery])
+
+  // Group by year
+  const rows2026 = useMemo(() => filteredRows.filter(r => r.wedding_year === 2026), [filteredRows])
+  const rows2025 = useMemo(() => filteredRows.filter(r => r.wedding_year === 2025), [filteredRows])
 
   // Stats
-  const stats = useMemo(() => {
-    const active = filtered.filter(r => r.status !== 'cancelled')
-    const numSales = active.length
-    const totalRevenue = active.reduce((sum, r) => sum + (r.total || 0), 0)
-    const totalDiscount = active.reduce((sum, r) => {
-      if (!r.discount_value) return sum
-      if (r.discount_type === 'percent') {
-        return sum + ((r.subtotal || 0) * r.discount_value / 100)
-      }
-      return sum + r.discount_value
-    }, 0)
-    const avgSale = numSales > 0 ? totalRevenue / numSales : 0
-    return { numSales, totalRevenue, totalDiscount, avgSale }
-  }, [filtered])
+  const paidCount = useMemo(() => rows.filter(r => r.status === 'paid').length, [rows])
+  const pendingCount = useMemo(() => rows.filter(r => r.status === 'pending').length, [rows])
+  const sentCount = useMemo(() => rows.filter(r => r.status === 'sent').length, [rows])
+  const rawVideoCount = useMemo(() => rows.filter(r => r.item_type === 'Raw Video').length, [rows])
+  const extraHoursCount = useMemo(() => rows.filter(r => r.item_type === 'Hours').length, [rows])
+  const revenue2026 = useMemo(() => rows2026.reduce((sum, r) => sum + (r.total || 0), 0), [rows2026])
+  const revenue2025 = useMemo(() => rows2025.reduce((sum, r) => sum + (r.total || 0), 0), [rows2025])
 
-  // Sort
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDir('asc')
-    }
+  // Column definitions
+  const columns: ColumnDef<ExtrasRow>[] = useMemo(() => [
+    {
+      accessorKey: 'couple_name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+      cell: ({ row }) => (
+        <button
+          onClick={() => row.original.couple_id && router.push(`/admin/couples/${row.original.couple_id}`)}
+          className="text-left font-medium hover:underline"
+        >
+          {row.original.couple_name}
+        </button>
+      ),
+    },
+    {
+      accessorKey: 'wedding_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Wedding Date" />,
+      cell: ({ row }) => <span className="whitespace-nowrap">{fmtDate(row.original.wedding_date)}</span>,
+    },
+    {
+      accessorKey: 'item_type',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Item Type" />,
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.item_type || '—'}</span>,
+    },
+    {
+      accessorKey: 'quantity',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Qty" />,
+      cell: ({ row }) => <span>{row.original.quantity ?? '—'}</span>,
+    },
+    {
+      accessorKey: 'unit_price',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Unit Price" />,
+      cell: ({ row }) => <span>{row.original.unit_price != null ? fmtMoney(row.original.unit_price) : '—'}</span>,
+    },
+    {
+      accessorKey: 'total',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Total" />,
+      cell: ({ row }) => <span className="font-medium">{row.original.total != null ? fmtMoney(row.original.total) : '—'}</span>,
+    },
+    {
+      accessorKey: 'status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: ({ row }) => {
+        const s = row.original.status
+        const colors = s === 'paid' ? 'bg-green-100 text-green-700'
+          : s === 'sent' ? 'bg-blue-100 text-blue-700'
+          : s === 'pending' ? 'bg-amber-100 text-amber-700'
+          : s === 'cancelled' ? 'bg-red-100 text-red-700 line-through'
+          : 'bg-gray-100 text-gray-700'
+        const label = s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
+        return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${colors}`}>{label}</span>
+      },
+    },
+  ], [router])
+
+  // Section renderer
+  const renderSection = (id: string, label: string, data: ExtrasRow[], badgeClass: string) => {
+    const isCollapsed = collapsedLanes.has(id)
+    return (
+      <div id={id} className="mb-6">
+        <button
+          onClick={() => toggleLane(id)}
+          className="flex items-center gap-3 py-3 hover:opacity-80"
+        >
+          {isCollapsed
+            ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          }
+          <span className={`inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold ${badgeClass}`}>
+            {label}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {data.length} sale{data.length !== 1 ? 's' : ''}
+          </span>
+        </button>
+        {!isCollapsed && (
+          <DataTable
+            columns={columns}
+            data={data}
+            showPagination={false}
+            emptyMessage="No sales"
+          />
+        )}
+      </div>
+    )
   }
-
-  const sorted = useMemo(() => {
-    const list = [...filtered]
-    list.sort((a, b) => {
-      let cmp = 0
-      switch (sortField) {
-        case 'invoice_date': cmp = (a.invoice_date || '').localeCompare(b.invoice_date || ''); break
-        case 'couple_name': cmp = a.couple_name.localeCompare(b.couple_name); break
-        case 'item_type': cmp = a.item_type.localeCompare(b.item_type); break
-        case 'description': cmp = (a.description || '').localeCompare(b.description || ''); break
-        case 'total': cmp = (a.total || 0) - (b.total || 0); break
-        case 'discount_value': cmp = (a.discount_value || 0) - (b.discount_value || 0); break
-        case 'status': cmp = (a.status || '').localeCompare(b.status || ''); break
-        case 'payment_note': cmp = (a.payment_note || '').localeCompare(b.payment_note || ''); break
-      }
-      return sortDir === 'asc' ? cmp : -cmp
-    })
-    return list
-  }, [filtered, sortField, sortDir])
-
-  // Sort header component
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30" />
-    return sortDir === 'asc'
-      ? <ChevronUp className="h-3 w-3" />
-      : <ChevronDown className="h-3 w-3" />
-  }
-
-  const SortHeader = ({ field, label, align }: { field: SortField; label: string; align?: 'right' | 'center' }) => (
-    <th className="p-3 font-medium" style={{ textAlign: align || 'left' }}>
-      <button
-        onClick={() => handleSort(field)}
-        className={`group flex items-center gap-1 hover:text-foreground ${align === 'right' ? 'ml-auto' : ''}`}
-      >
-        {label} <SortIcon field={field} />
-      </button>
-    </th>
-  )
 
   if (loading) {
     return (
@@ -573,142 +584,61 @@ export default function ExtrasSalesPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Extras Sales</h1>
-          <p className="text-muted-foreground">Post-contract add-ons & extras</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowNewSale(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            New Sale
-          </button>
-          {years.length > 0 && (
-            <select
-              value={yearFilter}
-              onChange={e => setYearFilter(e.target.value)}
-              className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+    <div className="space-y-0">
+      <ProductionPageHeader
+        title="Extras Sales"
+        subtitle="Additional sales by year"
+        reportHref="/admin/production/report"
+        actionLabel="+ New Sale"
+        actionDisabled={true}
+      />
+      {/* TODO WO-318: Link + New Sale once new-sale page is built — don't forget! */}
+
+      <ProductionPills pills={[
+        { label: 'Paid', count: paidCount, color: 'green' },
+        { label: 'Pending', count: pendingCount, color: 'yellow' },
+        { label: 'Sent', count: sentCount, color: 'blue' },
+      ]} />
+
+      {/* Content area: main panel + stats sidebar */}
+      <div className="flex">
+        {/* Main Panel */}
+        <div className="flex-1 overflow-y-auto p-6 border-r border-border">
+          {/* Search */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search couples or item types..."
+                className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
+              />
+            </div>
+            <button
+              onClick={() => setShowNewSale(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors"
             >
-              <option value="all">All Years</option>
-              {years.map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          )}
+              <Plus className="h-4 w-4" />
+              New Sale
+            </button>
+          </div>
+
+          {renderSection('section-2026', '2026 SALES', rows2026, 'bg-teal-100 text-teal-700')}
+          {renderSection('section-2025', '2025 SALES', rows2025, 'bg-gray-100 text-gray-700')}
         </div>
+
+        <ProductionSidebar boxes={[
+          { label: '2026 SALES', value: rows2026.length, scrollToId: 'section-2026', color: 'teal' },
+          { label: '2026 REVENUE', value: fmtMoney(revenue2026), scrollToId: 'section-2026', color: 'teal' },
+          { label: '2025 SALES', value: rows2025.length, scrollToId: 'section-2025', color: 'default' },
+          { label: '2025 REVENUE', value: fmtMoney(revenue2025), scrollToId: 'section-2025', color: 'default' },
+          { label: 'RAW VIDEOS', value: rawVideoCount, scrollToId: 'section-2025', color: 'blue' },
+          { label: 'EXTRA HOURS', value: extraHoursCount, scrollToId: 'section-2026', color: 'yellow' },
+        ]} />
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-            <ShoppingBag className="h-4 w-4" />
-            Invoices
-          </div>
-          <div className="text-2xl font-bold">{stats.numSales}</div>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 text-green-600 text-sm mb-1">
-            <DollarSign className="h-4 w-4" />
-            Total Revenue
-          </div>
-          <div className="text-2xl font-bold text-green-600">{fmtMoney(stats.totalRevenue)}</div>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-            <DollarSign className="h-4 w-4" />
-            Avg Sale
-          </div>
-          <div className="text-2xl font-bold">{fmtMoney(stats.avgSale)}</div>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 text-red-600 text-sm mb-1">
-            <DollarSign className="h-4 w-4" />
-            Discounts
-          </div>
-          <div className="text-2xl font-bold text-red-600">{fmtMoney(stats.totalDiscount)}</div>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Invoices</h2>
-        <div className="rounded-xl border bg-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm" style={{ minWidth: 1000 }}>
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <SortHeader field="invoice_date" label="Date" />
-                  <SortHeader field="couple_name" label="Couple" />
-                  <SortHeader field="item_type" label="Item Type" />
-                  <SortHeader field="description" label="Description" />
-                  <SortHeader field="total" label="Total" align="right" />
-                  <SortHeader field="discount_value" label="Discount" align="right" />
-                  <SortHeader field="status" label="Status" />
-                  <SortHeader field="payment_note" label="Notes" />
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {sorted.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                      <ShoppingBag className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      No extras found{yearFilter !== 'all' ? ` for ${yearFilter}` : ''}.
-                    </td>
-                  </tr>
-                ) : (
-                  sorted.map(row => (
-                    <tr key={row.id} className="hover:bg-accent/50 transition-colors">
-                      <td className="p-3 whitespace-nowrap" style={{ textAlign: 'left' }}>{fmtDate(row.invoice_date)}</td>
-                      <td className="p-3 font-medium" style={{ textAlign: 'left' }}>{row.couple_name}</td>
-                      <td className="p-3 text-muted-foreground" style={{ textAlign: 'left' }}>{row.item_type || '—'}</td>
-                      <td className="p-3 text-muted-foreground max-w-xs truncate" style={{ textAlign: 'left' }} title={row.description || ''}>
-                        {row.description || '—'}
-                      </td>
-                      <td className="p-3 font-medium" style={{ textAlign: 'right' }}>
-                        {row.total != null ? fmtMoney(row.total) : '—'}
-                      </td>
-                      <td className="p-3 text-muted-foreground" style={{ textAlign: 'right' }}>
-                        {row.discount_value && row.discount_value > 0
-                          ? `−${row.discount_type === 'percent' ? `${row.discount_value}%` : fmtMoney(row.discount_value)}`
-                          : '—'
-                        }
-                      </td>
-                      <td className="p-3" style={{ textAlign: 'left' }}>
-                        {statusBadge(row.status)}
-                      </td>
-                      <td className="p-3 text-muted-foreground max-w-xs truncate" style={{ textAlign: 'left' }} title={row.payment_note || ''}>
-                        {row.payment_note || '—'}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-              {sorted.length > 0 && (
-                <tfoot>
-                  <tr className="border-t-2 bg-muted/30 font-semibold">
-                    <td className="p-3" style={{ textAlign: 'left' }} colSpan={4}>
-                      Total ({filtered.filter(r => r.status !== 'cancelled').length} item{filtered.filter(r => r.status !== 'cancelled').length !== 1 ? 's' : ''})
-                    </td>
-                    <td className="p-3 text-green-600" style={{ textAlign: 'right' }}>{fmtMoney(stats.totalRevenue)}</td>
-                    <td className="p-3 text-red-600" style={{ textAlign: 'right' }}>
-                      {stats.totalDiscount > 0 ? `−${fmtMoney(stats.totalDiscount)}` : '—'}
-                    </td>
-                    <td className="p-3" colSpan={2}></td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* New Sale Modal */}
       {showNewSale && (
         <NewSaleModal
           couples={couples}
