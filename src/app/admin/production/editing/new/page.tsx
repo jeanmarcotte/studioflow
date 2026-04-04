@@ -78,6 +78,7 @@ export default function AddEditingJobPage() {
   const [coupleName, setCoupleName] = useState('')
   const [coupleSearch, setCoupleSearch] = useState('')
   const [coupleOptions, setCoupleOptions] = useState<CoupleOption[]>([])
+  const [allCouples, setAllCouples] = useState<CoupleOption[]>([])
   const [coupleDropdownOpen, setCoupleDropdownOpen] = useState(false)
   const coupleDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -102,10 +103,34 @@ export default function AddEditingJobPage() {
     if (json.data) setCoupleOptions(json.data)
   }, [])
 
+  // Load all couples on mount for month search
   useEffect(() => {
-    const timer = setTimeout(() => fetchCouples(coupleSearch), 200)
-    return () => clearTimeout(timer)
-  }, [coupleSearch, fetchCouples])
+    const loadAll = async () => {
+      const res = await fetch('/api/couples/search?q=')
+      const json = await res.json()
+      if (json.data) setAllCouples(json.data)
+    }
+    loadAll()
+  }, [])
+
+  // Check if search is a month abbreviation
+  const isMonthSearch = coupleSearch.trim().length === 3 &&
+    MONTH_ABBRS.some(m => m.toLowerCase() === coupleSearch.trim().toLowerCase())
+
+  useEffect(() => {
+    if (isMonthSearch) {
+      // Month search — filter allCouples client-side
+      const monthIdx = MONTH_ABBRS.findIndex(m => m.toLowerCase() === coupleSearch.trim().toLowerCase())
+      const filtered = allCouples.filter(c => {
+        if (!c.wedding_date) return false
+        return new Date(c.wedding_date).getMonth() === monthIdx
+      })
+      setCoupleOptions(filtered)
+    } else {
+      const timer = setTimeout(() => fetchCouples(coupleSearch), 200)
+      return () => clearTimeout(timer)
+    }
+  }, [coupleSearch, fetchCouples, isMonthSearch, allCouples])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -118,21 +143,8 @@ export default function AddEditingJobPage() {
   }, [])
 
   const groupedCouples = useMemo(() => {
-    // Filter by month abbreviation search (e.g. "Jan", "Dec")
-    let filtered = coupleOptions
-    if (coupleSearch.trim()) {
-      const q = coupleSearch.trim().toLowerCase()
-      const monthMatch = MONTH_ABBRS.findIndex(m => m.toLowerCase() === q)
-      if (monthMatch !== -1) {
-        filtered = coupleOptions.filter(c => {
-          if (!c.wedding_date) return false
-          return new Date(c.wedding_date).getMonth() === monthMatch
-        })
-      }
-    }
-
     const groups: Record<number, CoupleOption[]> = {}
-    for (const c of filtered) {
+    for (const c of coupleOptions) {
       const year = c.wedding_year || (c.wedding_date ? new Date(c.wedding_date).getFullYear() : 0)
       if (!groups[year]) groups[year] = []
       groups[year].push(c)
@@ -158,7 +170,7 @@ export default function AddEditingJobPage() {
         return posA - posB
       })
       .map(([year, couples]) => ({ year: Number(year), couples }))
-  }, [coupleOptions, coupleSearch])
+  }, [coupleOptions])
 
   const selectCouple = (couple: CoupleOption) => {
     setCoupleId(couple.id)
