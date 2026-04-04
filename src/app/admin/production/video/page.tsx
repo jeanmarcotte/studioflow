@@ -467,19 +467,25 @@ export default function VideoProductionPage() {
     const totalSegmentsDone = activeJobs.reduce((sum, j) => sum + countSegmentsDone(j), 0)
     const totalSegmentsPossible = activeJobs.length * 6
 
-    const remaining2025 = activeJobs.filter(j => {
+    const inProductionTotal = jobs.filter(j => j.section === 'editing').length
+
+    const remaining2025 = jobs.filter(j => {
       const wd = j.wedding_date || j.couples?.wedding_date
       return j.job_type === 'FULL' && j.status !== 'complete' && wd && wd >= '2025-01-01' && wd <= '2025-12-31'
     }).length
-    const remaining2026 = activeJobs.filter(j => {
+    const remaining2026 = jobs.filter(j => {
       const wd = j.wedding_date || j.couples?.wedding_date
       return j.job_type === 'FULL' && j.status !== 'complete' && wd && wd >= '2026-01-01' && wd <= '2026-12-31'
+    }).length
+    const remaining2027 = jobs.filter(j => {
+      const wd = j.wedding_date || j.couples?.wedding_date
+      return j.job_type === 'FULL' && j.status !== 'complete' && wd && wd >= '2027-01-01' && wd <= '2027-12-31'
     }).length
 
     return {
       totalJobs, completedCount, recapsPending, slideshowsPending, overdueCount, mostUrgent,
-      inProgressCount, onHoldCount, editingCount,
-      totalSegmentsDone, totalSegmentsPossible, remaining2025, remaining2026,
+      inProgressCount, onHoldCount, editingCount, inProductionTotal,
+      totalSegmentsDone, totalSegmentsPossible, remaining2025, remaining2026, remaining2027,
     }
   }, [jobs, photoWaitingJobs])
 
@@ -558,6 +564,24 @@ export default function VideoProductionPage() {
     return result.sort((a, b) => (b.completed_date || '').localeCompare(a.completed_date || ''))
   }, [jobs, search])
 
+  const videosRemainingByYear = useMemo(() => {
+    let result = jobs.filter(j => j.job_type === 'FULL' && j.status !== 'complete')
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter(j =>
+        j.couples?.couple_name?.toLowerCase().includes(q) ||
+        j.assigned_to?.toLowerCase().includes(q)
+      )
+    }
+    return result.sort((a, b) => {
+      const aWd = a.wedding_date || a.couples?.wedding_date || '9999'
+      const bWd = b.wedding_date || b.couples?.wedding_date || '9999'
+      return aWd.localeCompare(bWd)
+    })
+  }, [jobs, search])
+
+  const [remainingByYearCollapsed, setRemainingByYearCollapsed] = useState(false)
+
   // ── Toggle lane collapse ───────────────────────────────────────
 
   const toggleLane = (key: string) => {
@@ -621,7 +645,7 @@ export default function VideoProductionPage() {
       <div className="px-6 pt-6 pb-4">
         <h1 className="text-2xl font-bold">Video Production</h1>
         <p className="text-muted-foreground">
-          {jobs.filter(j => j.section !== 'completed').length} active jobs
+          {jobs.filter(j => j.section === 'editing' && j.status !== 'video_proofs_out').length} active jobs
         </p>
       </div>
 
@@ -796,17 +820,11 @@ export default function VideoProductionPage() {
               <div className="rounded-lg p-4 bg-muted">
                 <div className="text-xs font-semibold uppercase tracking-wider mb-2 text-muted-foreground">In Production</div>
                 <div className="font-bold tabular-nums mb-2 text-foreground" style={{ fontSize: '24px' }}>
-                  {inProductionStats.totalSegsDone}/{inProductionStats.totalSegsPossible}
+                  {stats.inProductionTotal}
                 </div>
-                <div className="text-xs mb-3 text-muted-foreground">segments complete</div>
-                <div className="h-1.5 rounded-full overflow-hidden bg-border">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      backgroundColor: '#0d9488',
-                      width: `${inProductionStats.totalSegsPossible > 0 ? Math.round((inProductionStats.totalSegsDone / inProductionStats.totalSegsPossible) * 100) : 0}%`,
-                    }}
-                  />
+                <div className="text-xs mb-3 text-muted-foreground">jobs in editing</div>
+                <div className="text-xs text-muted-foreground">
+                  {inProductionStats.totalSegsDone}/{inProductionStats.totalSegsPossible} segments complete
                 </div>
               </div>
 
@@ -841,14 +859,106 @@ export default function VideoProductionPage() {
             if (lane.key === 'completed' && !showCompleted) return null
             const isWaiting = isWaitingPhotoLane(lane.key)
             const laneJobCount = isWaiting ? awaitingOrderCouples.length : (processedJobs[lane.key as Exclude<SwimlaneKey, 'waiting_photo'>] || []).length
+
+            // ── Videos Remaining by Year table (between Reediting and Waiting for Photo) ──
+            const showRemainingBeforeThis = lane.key === 'waiting_photo'
             const isCollapsed = collapsedLanes.has(lane.key)
             const recap = isRecapLane(lane.key)
             const slideshow = isSlideshowLane(lane.key)
             const hideSegments = recap || slideshow
 
             return (
+              <div key={lane.key}>
+                {showRemainingBeforeThis && (
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between py-3">
+                      <button
+                        onClick={() => setRemainingByYearCollapsed(!remainingByYearCollapsed)}
+                        className="flex items-center gap-3 text-left hover:opacity-80"
+                      >
+                        {remainingByYearCollapsed
+                          ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        }
+                        <span className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold bg-orange-100 text-orange-700">
+                          📅 VIDEOS REMAINING BY YEAR
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {videosRemainingByYear.length} video{videosRemainingByYear.length !== 1 ? 's' : ''}
+                        </span>
+                      </button>
+                    </div>
+                    {!remainingByYearCollapsed && videosRemainingByYear.length > 0 && (
+                      <div className="rounded-xl border bg-card overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-muted/50">
+                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
+                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Wedding Date</th>
+                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Days</th>
+                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">HD</th>
+                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Prox</th>
+                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Form</th>
+                              <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Status</th>
+                              <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Due Date</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {videosRemainingByYear.map(job => {
+                              const wd = job.wedding_date || job.couples?.wedding_date
+                              const daysSince = wd ? Math.floor((new Date().getTime() - new Date(wd).getTime()) / (1000 * 60 * 60 * 24)) : null
+                              return (
+                                <tr key={job.id} className="hover:bg-accent/50 transition-colors">
+                                  <td className="p-3">
+                                    <button
+                                      onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
+                                      className="font-medium text-blue-600 hover:underline text-left"
+                                    >
+                                      {job.couples?.couple_name || 'Unknown'}
+                                    </button>
+                                  </td>
+                                  <td className="p-3 hidden lg:table-cell text-muted-foreground">
+                                    {wd ? formatDateCompact(wd) : <span className="text-amber-600 text-xs">No date</span>}
+                                  </td>
+                                  <td className="p-2 text-center hidden lg:table-cell">
+                                    {daysSince !== null ? (
+                                      <span className={`text-sm font-medium tabular-nums ${daysSince > 180 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                                        {daysSince}
+                                      </span>
+                                    ) : '—'}
+                                  </td>
+                                  <td className="p-2 text-center hidden md:table-cell">
+                                    <span className="text-xs text-muted-foreground">{job.active_hd || '—'}</span>
+                                  </td>
+                                  <td className="p-2 text-center hidden md:table-cell">
+                                    <span className={`text-sm ${job.proxies_run ? '' : 'opacity-40'}`}>{job.proxies_run ? '✅' : '⬜'}</span>
+                                  </td>
+                                  <td className="p-2 text-center hidden md:table-cell">
+                                    <span className={`text-sm ${job.video_form ? '' : 'opacity-40'}`}>{job.video_form ? '✅' : '⬜'}</span>
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                                      {STATUS_LABELS[job.status] || job.status}
+                                    </span>
+                                  </td>
+                                  <td className="p-3 text-center hidden md:table-cell text-muted-foreground text-xs">
+                                    {job.due_date ? formatDateCompact(job.due_date).replace(/, \d{4}$/, '') : '—'}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    {!remainingByYearCollapsed && videosRemainingByYear.length === 0 && (
+                      <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-lg">
+                        No remaining videos
+                      </div>
+                    )}
+                  </div>
+                )}
               <div
-                key={lane.key}
                 className="mb-6"
                 ref={lane.key === 'editing_full' ? editingRef : undefined}
               >
@@ -961,6 +1071,11 @@ export default function VideoProductionPage() {
                           <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">
                             {renderSortHeader('wedding_date', 'Wedding Date')}
                           </th>
+                          {!hideSegments && (
+                            <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">
+                              Days
+                            </th>
+                          )}
                           {!hideSegments && SEGMENTS.map(seg => (
                             <th key={seg.field} className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell" title={seg.label}>
                               {renderSortHeader(seg.field, seg.shortLabel)}
@@ -979,10 +1094,10 @@ export default function VideoProductionPage() {
                               </th>
                             </>
                           )}
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                          <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
                             {renderSortHeader('status', 'Status')}
                           </th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
+                          <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
                             {renderSortHeader('due_date', 'Due Date')}
                           </th>
                         </tr>
@@ -1014,6 +1129,19 @@ export default function VideoProductionPage() {
                                 : <span className="text-amber-600 text-xs">No date</span>
                               }
                             </td>
+                            {!hideSegments && (() => {
+                              const wd = job.wedding_date || job.couples?.wedding_date
+                              const daysSince = wd ? Math.floor((new Date().getTime() - new Date(wd).getTime()) / (1000 * 60 * 60 * 24)) : null
+                              return (
+                                <td className="p-2 text-center hidden lg:table-cell">
+                                  {daysSince !== null ? (
+                                    <span className={`text-sm font-medium tabular-nums ${daysSince > 180 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                                      {daysSince}
+                                    </span>
+                                  ) : '—'}
+                                </td>
+                              )
+                            })()}
                             {!hideSegments && SEGMENTS.map(seg => (
                               <td key={seg.field} className="p-2 text-center hidden md:table-cell">
                                 <button
@@ -1058,7 +1186,7 @@ export default function VideoProductionPage() {
                                 </td>
                               </>
                             )}
-                            <td className="p-3">
+                            <td className="p-3 text-center">
                               <select
                                 value={job.status}
                                 onChange={e => updateJobStatus(job.id, e.target.value)}
@@ -1071,7 +1199,7 @@ export default function VideoProductionPage() {
                                 )}
                               </select>
                             </td>
-                            <td className="p-3 hidden md:table-cell">
+                            <td className="p-3 text-center hidden md:table-cell">
                               {editingDueDate === job.id ? (
                                 <input
                                   type="date"
@@ -1110,6 +1238,7 @@ export default function VideoProductionPage() {
                     No jobs in this lane
                   </div>
                 )}
+              </div>
               </div>
             )
           })}
@@ -1216,9 +1345,9 @@ export default function VideoProductionPage() {
               In Progress
             </div>
             <div className="text-3xl font-bold text-teal-600">
-              {pipelineStats.fullInProgress}
+              {stats.inProductionTotal}
             </div>
-            <div className="text-xs text-muted-foreground mt-1">Currently editing</div>
+            <div className="text-xs text-muted-foreground mt-1">Jobs in editing</div>
           </div>
 
           {/* 2. Slideshows Pending */}
@@ -1263,6 +1392,16 @@ export default function VideoProductionPage() {
             </div>
           </div>
 
+          {/* 5b. 2027 Videos Remaining */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              2027 Videos Remaining
+            </div>
+            <div className="text-3xl font-bold">
+              {stats.remaining2027}
+            </div>
+          </div>
+
           {/* 6. Editing Queue */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
@@ -1280,7 +1419,7 @@ export default function VideoProductionPage() {
               Waiting for Photo
             </div>
             <div className="text-3xl font-bold text-amber-600">
-              {pipelineStats.fullWaitingBride}
+              {awaitingOrderCouples.length}
             </div>
             <div className="text-xs text-muted-foreground mt-1">Waiting on photo order</div>
           </div>
