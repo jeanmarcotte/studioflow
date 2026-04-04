@@ -75,7 +75,7 @@ export const studioflowAdminConfig: SidebarConfig = {
           icon: BarChart3,
           children: [
             { title: 'SIGS SEO', href: '/admin/marketing/sigs-seo', icon: Search },
-            { title: 'BridalFlow Leads', href: 'https://bridalflow.vercel.app/admin', icon: Globe, external: true },
+            { title: 'BridalFlow', href: 'https://bridalflow.vercel.app/admin', icon: Globe, external: true },
           ],
         },
         {
@@ -118,15 +118,6 @@ export const studioflowAdminConfig: SidebarConfig = {
             { title: 'Team Members', href: '/admin/team/members', icon: UserPlus },
             { title: 'Team Training', href: '/admin/team/training', icon: GraduationCap },
             { title: 'Team Notes', href: '/admin/team/notes', icon: StickyNote },
-          ],
-        },
-        {
-          title: 'Client Forms',
-          icon: FileText,
-          children: [
-            { title: 'New Client Quote Form', href: '/admin/client/new-quote', icon: FileText },
-            { title: 'Frame & Album Quote Form', href: '/client/extras-quote', icon: ShoppingBag },
-            { title: 'Client Extras Form', href: '/admin/client/extras-sales', icon: Package },
           ],
         },
         {
