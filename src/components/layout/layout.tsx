@@ -121,8 +121,8 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
             onClick={() => toggleSection(item.title)}
             className={cn(
               "flex items-center w-full rounded-lg px-3 py-2 text-sm transition-colors",
-              "hover:bg-accent hover:text-accent-foreground",
-              hasActiveChild && "text-accent-foreground font-medium"
+              "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              hasActiveChild && "text-sidebar-accent-foreground font-medium"
             )}
           >
             <item.icon className="h-4 w-4 flex-shrink-0" />
@@ -145,8 +145,8 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
                     className={cn(
                       "flex items-center space-x-3 rounded-lg px-3 py-1.5 text-sm transition-colors",
                       isActive(child.href)
-                        ? "bg-accent text-accent-foreground font-medium"
-                        : "hover:bg-accent hover:text-accent-foreground text-muted-foreground"
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground"
                     )}
                   >
                     <child.icon className="h-3.5 w-3.5 flex-shrink-0" />
@@ -173,7 +173,7 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
             href={item.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
             <item.icon className="h-4 w-4 flex-shrink-0" />
             {!sidebarCollapsed && <span className="flex-1">{item.title}</span>}
@@ -191,8 +191,8 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
             item.disabled
               ? "text-muted-foreground cursor-not-allowed opacity-50"
               : isActive(item.href)
-                ? "bg-accent text-accent-foreground font-medium"
-                : "hover:bg-accent hover:text-accent-foreground"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           )}
         >
           <item.icon className="h-4 w-4 flex-shrink-0" />

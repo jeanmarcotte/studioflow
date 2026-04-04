@@ -29,8 +29,7 @@ interface ExtrasOrder {
   wedding_frame_size: string | null
   printed_5x5: boolean | null
   // Joined from couples
-  bride_name?: string
-  groom_name?: string
+  couple_name?: string
   wedding_date?: string
 }
 
@@ -53,8 +52,7 @@ async function fetchOrders(year: number): Promise<ExtrasOrder[]> {
       wedding_frame_size,
       printed_5x5,
       couples (
-        bride_name,
-        groom_name,
+        couple_name,
         wedding_date
       )
     `)
@@ -67,8 +65,7 @@ async function fetchOrders(year: number): Promise<ExtrasOrder[]> {
   // Flatten the joined data
   return (data || []).map((order: any) => ({
     ...order,
-    bride_name: order.couples?.bride_name || "Unknown",
-    groom_name: order.couples?.groom_name || "",
+    couple_name: order.couples?.couple_name || "Unknown",
     wedding_date: order.couples?.wedding_date || null,
   }))
 }
@@ -96,10 +93,8 @@ function formatCurrency(amount: number | null): string {
 }
 
 // Couple name formatter
-function formatCoupleName(bride: string | undefined, groom: string | undefined): string {
-  if (!bride && !groom) return "Unknown Couple"
-  if (!groom) return bride || "Unknown"
-  return `${bride} & ${groom}`
+function formatCoupleName(name: string | undefined): string {
+  return name || "Unknown Couple"
 }
 
 export default function FrameSalesPage() {
@@ -145,7 +140,7 @@ export default function FrameSalesPage() {
       // Search filter
       if (search) {
         const searchLower = search.toLowerCase()
-        const coupleName = formatCoupleName(order.bride_name, order.groom_name).toLowerCase()
+        const coupleName = formatCoupleName(order.couple_name).toLowerCase()
         if (!coupleName.includes(searchLower)) return false
       }
 
@@ -197,7 +192,7 @@ export default function FrameSalesPage() {
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Couple" />
       ),
-      cell: ({ row }) => formatCoupleName(row.original.bride_name, row.original.groom_name),
+      cell: ({ row }) => formatCoupleName(row.original.couple_name),
       filterFn: "includesString",
     },
     {
