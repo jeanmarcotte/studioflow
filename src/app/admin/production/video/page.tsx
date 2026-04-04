@@ -815,9 +815,9 @@ export default function VideoProductionPage() {
 
             {/* Metric Tiles */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Tile 1: Completed IN 2026 */}
+              {/* Tile 1: Completed in 2026 */}
               <div className="rounded-lg p-4 bg-muted">
-                <div className="text-xs font-semibold uppercase tracking-wider mb-2 text-muted-foreground">Completed IN 2026</div>
+                <div className="text-xs font-semibold uppercase tracking-wider mb-2 text-muted-foreground">Completed in 2026</div>
                 <div className="font-bold tabular-nums mb-2 text-foreground" style={{ fontSize: '24px' }}>
                   {edited2026Stats.total}
                 </div>
@@ -1259,7 +1259,7 @@ export default function VideoProductionPage() {
             )
           })}
 
-          {/* ══════ ZONE 3: Completed IN 2026 ══════ */}
+          {/* ══════ ZONE 3: Completed in 2026 ══════ */}
           <div className={`mt-10 ${nunito.className}`}>
             <button
               onClick={() => setCompleted2026Collapsed(!completed2026Collapsed)}
@@ -1270,7 +1270,7 @@ export default function VideoProductionPage() {
                 : <ChevronDown className="h-4 w-4 transition-colors text-muted-foreground" />
               }
               <span className={`text-base font-bold tracking-tight transition-colors text-muted-foreground ${playfair.className}`}>
-                Completed IN 2026
+                Completed in 2026
               </span>
               <span className="inline-flex items-center justify-center h-5 min-w-[22px] px-1.5 rounded-full text-xs font-bold tabular-nums bg-muted text-muted-foreground">
                 {completed2026JobsList.length}

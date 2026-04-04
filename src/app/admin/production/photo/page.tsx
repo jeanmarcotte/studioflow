@@ -739,9 +739,9 @@ export default function PhotoProductionPage() {
                         <td></td>
                       </tr>
 
-                      {/* Completed IN 2026 */}
+                      {/* Completed in 2026 */}
                       <tr className="border-t border-border bg-muted/60">
-                        <td className={`px-3 py-2.5 font-bold text-sm text-muted-foreground ${nunito.className}`}>Completed IN 2026</td>
+                        <td className={`px-3 py-2.5 font-bold text-sm text-muted-foreground ${nunito.className}`}>Completed in 2026</td>
                         <td></td>
                         <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.photosTaken.toLocaleString()}</td>
                         <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.editedSoFar.toLocaleString()}</td>
@@ -953,7 +953,7 @@ export default function PhotoProductionPage() {
             )}
           </div>
 
-          {/* Completed IN 2026 */}
+          {/* Completed in 2026 */}
           <div className="mt-6 rounded-xl border border-border bg-card">
             <button
               onClick={() => setCemeteryOpen(!cemeteryOpen)}
@@ -964,7 +964,7 @@ export default function PhotoProductionPage() {
                   ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   : <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 }
-                <span className="font-semibold text-sm text-muted-foreground">Completed IN 2026</span>
+                <span className="font-semibold text-sm text-muted-foreground">Completed in 2026</span>
                 <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-muted text-muted-foreground">
                   {cemeteryJobs.length}
                 </span>
@@ -1037,7 +1037,7 @@ export default function PhotoProductionPage() {
                       const pctComp = pt > 0 ? ((esf / pt) * 100).toFixed(1) : null
                       return (
                         <tr className="bg-muted border-t-2 border-border">
-                          <td className="px-3 py-2 font-bold text-sm text-muted-foreground">Completed IN 2026</td>
+                          <td className="px-3 py-2 font-bold text-sm text-muted-foreground">Completed in 2026</td>
                           <td></td>
                           <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{pt.toLocaleString()}</td>
                           <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{esf.toLocaleString()}</td>
