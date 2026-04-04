@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Search, ChevronDown, ChevronRight, GripVertical, X } from 'lucide-react'
@@ -579,7 +579,7 @@ export default function VideoProductionPage() {
     })
   }, [jobs, search])
 
-  const [remainingByYearCollapsed, setRemainingByYearCollapsed] = useState(false)
+  const [remainingByYearCollapsed, setRemainingByYearCollapsed] = useState(true)
 
   // ── Toggle lane collapse ───────────────────────────────────────
 
@@ -899,47 +899,111 @@ export default function VideoProductionPage() {
                             </tr>
                           </thead>
                           <tbody className="divide-y">
-                            {videosRemainingByYear.map(job => {
+                            {videosRemainingByYear.map((job, idx) => {
                               const wd = job.wedding_date || job.couples?.wedding_date
                               const daysSince = wd ? Math.floor((new Date().getTime() - new Date(wd).getTime()) / (1000 * 60 * 60 * 24)) : null
+                              const year = wd ? new Date(wd).getFullYear() : null
+                              const prevJob = idx > 0 ? videosRemainingByYear[idx - 1] : null
+                              const prevWd = prevJob ? (prevJob.wedding_date || prevJob.couples?.wedding_date) : null
+                              const prevYear = prevWd ? new Date(prevWd).getFullYear() : null
+                              const showYearHeader = year !== prevYear
                               return (
-                                <tr key={job.id} className="hover:bg-accent/50 transition-colors">
-                                  <td className="p-3">
-                                    <button
-                                      onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
-                                      className="font-medium text-blue-600 hover:underline text-left"
-                                    >
-                                      {job.couples?.couple_name || 'Unknown'}
-                                    </button>
-                                  </td>
-                                  <td className="p-3 hidden lg:table-cell text-muted-foreground">
-                                    {wd ? formatDateCompact(wd) : <span className="text-amber-600 text-xs">No date</span>}
-                                  </td>
-                                  <td className="p-2 text-center hidden lg:table-cell">
-                                    {daysSince !== null ? (
-                                      <span className={`text-sm font-medium tabular-nums ${daysSince > 180 ? 'text-red-600' : 'text-muted-foreground'}`}>
-                                        {daysSince}
-                                      </span>
-                                    ) : '—'}
-                                  </td>
-                                  <td className="p-2 text-center hidden md:table-cell">
-                                    <span className="text-xs text-muted-foreground">{job.active_hd || '—'}</span>
-                                  </td>
-                                  <td className="p-2 text-center hidden md:table-cell">
-                                    <span className={`text-sm ${job.proxies_run ? '' : 'opacity-40'}`}>{job.proxies_run ? '✅' : '⬜'}</span>
-                                  </td>
-                                  <td className="p-2 text-center hidden md:table-cell">
-                                    <span className={`text-sm ${job.video_form ? '' : 'opacity-40'}`}>{job.video_form ? '✅' : '⬜'}</span>
-                                  </td>
-                                  <td className="p-3 text-center">
-                                    <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                                      {STATUS_LABELS[job.status] || job.status}
-                                    </span>
-                                  </td>
-                                  <td className="p-3 text-center hidden md:table-cell text-muted-foreground text-xs">
-                                    {job.due_date ? formatDateCompact(job.due_date).replace(/, \d{4}$/, '') : '—'}
-                                  </td>
-                                </tr>
+                                <React.Fragment key={job.id}>
+                                  {showYearHeader && (
+                                    <tr className="bg-muted/70">
+                                      <td colSpan={8} className="px-3 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                                        {year ? `${year} Weddings` : 'No Wedding Date'}
+                                      </td>
+                                    </tr>
+                                  )}
+                                  <tr className="hover:bg-accent/50 transition-colors">
+                                    <td className="p-3">
+                                      <button
+                                        onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
+                                        className="font-medium text-blue-600 hover:underline text-left"
+                                      >
+                                        {job.couples?.couple_name || 'Unknown'}
+                                      </button>
+                                    </td>
+                                    <td className="p-3 hidden lg:table-cell text-muted-foreground">
+                                      {wd ? formatDateCompact(wd) : <span className="text-amber-600 text-xs">No date</span>}
+                                    </td>
+                                    <td className="p-2 text-center hidden lg:table-cell">
+                                      {daysSince !== null ? (
+                                        <span className={`text-sm font-medium tabular-nums ${daysSince > 180 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                                          {daysSince}
+                                        </span>
+                                      ) : '—'}
+                                    </td>
+                                    <td className="p-2 text-center hidden md:table-cell">
+                                      <select
+                                        value={job.active_hd || ''}
+                                        onChange={e => updateActiveHd(job.id, e.target.value)}
+                                        className="text-xs rounded-md border-border bg-background px-1 py-0.5 !w-auto"
+                                      >
+                                        {ACTIVE_HD_OPTIONS.map(opt => (
+                                          <option key={opt} value={opt}>{opt || '—'}</option>
+                                        ))}
+                                      </select>
+                                    </td>
+                                    <td className="p-2 text-center hidden md:table-cell">
+                                      <button
+                                        onClick={() => toggleField(job.id, 'proxies_run', job.proxies_run)}
+                                        className={`text-sm cursor-pointer hover:opacity-70 ${job.proxies_run ? '' : 'opacity-40'}`}
+                                        title={job.proxies_run ? 'Proxies run' : 'Mark proxies run'}
+                                      >
+                                        {job.proxies_run ? '✅' : '⬜'}
+                                      </button>
+                                    </td>
+                                    <td className="p-2 text-center hidden md:table-cell">
+                                      <button
+                                        onClick={() => toggleField(job.id, 'video_form', job.video_form)}
+                                        className={`text-sm cursor-pointer hover:opacity-70 ${job.video_form ? '' : 'opacity-40'}`}
+                                        title={job.video_form ? 'Video form received' : 'Mark video form received'}
+                                      >
+                                        {job.video_form ? '✅' : '⬜'}
+                                      </button>
+                                    </td>
+                                    <td className="p-3 text-center">
+                                      <select
+                                        value={job.status}
+                                        onChange={e => updateJobStatus(job.id, e.target.value)}
+                                        className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
+                                      >
+                                        {getLaneStatusOptions('editing_full').map(opt =>
+                                          opt.divider
+                                            ? <option key="_divider" disabled>{'────────────'}</option>
+                                            : <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        )}
+                                      </select>
+                                    </td>
+                                    <td className="p-3 text-center hidden md:table-cell">
+                                      {editingDueDate === job.id ? (
+                                        <input
+                                          type="date"
+                                          autoFocus
+                                          defaultValue={job.due_date || ''}
+                                          onBlur={e => updateDueDate(job.id, e.target.value)}
+                                          onKeyDown={e => {
+                                            if (e.key === 'Enter') updateDueDate(job.id, (e.target as HTMLInputElement).value)
+                                            if (e.key === 'Escape') setEditingDueDate(null)
+                                          }}
+                                          className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
+                                        />
+                                      ) : (
+                                        <button
+                                          onClick={() => setEditingDueDate(job.id)}
+                                          className="text-left text-xs hover:underline"
+                                        >
+                                          {job.due_date
+                                            ? <span className="text-muted-foreground">{formatDateCompact(job.due_date).replace(/, \d{4}$/, '')}</span>
+                                            : <span className="text-muted-foreground/50 italic">Set date</span>
+                                          }
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                </React.Fragment>
                               )
                             })}
                           </tbody>
