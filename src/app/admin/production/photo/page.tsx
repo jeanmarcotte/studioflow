@@ -4,9 +4,11 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Search, Plus, ChevronDown, ChevronRight, X, FileText } from 'lucide-react'
-import { differenceInDays, parseISO, format } from 'date-fns'
+import { differenceInDays, parseISO } from 'date-fns'
 import { formatDateCompact } from '@/lib/formatters'
 import { Playfair_Display, Nunito } from 'next/font/google'
+import { ColumnDef } from '@tanstack/react-table'
+import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -116,9 +118,6 @@ const STATUS_OPTIONS = [
   { value: 'picked_up', label: 'Picked Up' },
 ]
 
-type SortField = 'couple' | 'job_type' | 'vendor' | 'created_at'
-type SortDir = 'asc' | 'desc'
-
 // ══════════════════════════════════════════════════════════════════
 // PAGE
 // ══════════════════════════════════════════════════════════════════
@@ -132,10 +131,6 @@ export default function PhotoProductionPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState<'all' | 'wedding' | 'engagement'>('all')
   const [filterVendor, setFilterVendor] = useState('')
-
-  // Sort
-  const [sortField, setSortField] = useState<SortField>('couple')
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
 
   // Collapsed lanes
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['not_started', 'proofs_delivered', 'waiting_approval', 'ready_to_order', 'at_lab', 'at_studio', 'on_hold']))
@@ -159,17 +154,9 @@ export default function PhotoProductionPage() {
   // Waiting for Photo Order section
   const [waitingPhotoOrderOpen, setWaitingPhotoOrderOpen] = useState(true)
 
-  // Sort state for Waiting for Photo Order table
-  const [waitingSortField, setWaitingSortField] = useState<string | null>(null)
-  const [waitingSortDir, setWaitingSortDir] = useState<'asc' | 'desc'>('asc')
-
   // Cemetery (completed & picked up)
   const [cemeteryJobs, setCemeteryJobs] = useState<Job[]>([])
   const [cemeteryOpen, setCemeteryOpen] = useState(false)
-
-  // Sort state for Completed in 2026 table
-  const [cemeterySortField, setCemeterySortField] = useState<string | null>(null)
-  const [cemeterySortDir, setCemeterySortDir] = useState<'asc' | 'desc'>('asc')
 
   // ── Fetch ─────────────────────────────────────────────────────
 
@@ -353,28 +340,8 @@ export default function PhotoProductionPage() {
       result = result.filter(j => j.vendor === filterVendor)
     }
 
-    // Sort
-    result = [...result].sort((a, b) => {
-      let cmp = 0
-      switch (sortField) {
-        case 'couple':
-          cmp = (a.couples?.couple_name || '').localeCompare(b.couples?.couple_name || '')
-          break
-        case 'job_type':
-          cmp = (JOB_TYPE_LABELS[a.job_type] || a.job_type).localeCompare(JOB_TYPE_LABELS[b.job_type] || b.job_type)
-          break
-        case 'vendor':
-          cmp = (a.vendor || '').localeCompare(b.vendor || '')
-          break
-        case 'created_at':
-          cmp = (a.created_at || '').localeCompare(b.created_at || '')
-          break
-      }
-      return sortDir === 'asc' ? cmp : -cmp
-    })
-
     return result
-  }, [jobs, searchTerm, filterCategory, filterVendor, sortField, sortDir])
+  }, [jobs, searchTerm, filterCategory, filterVendor])
 
   // ── Lane data ─────────────────────────────────────────────────
 
@@ -453,17 +420,6 @@ export default function PhotoProductionPage() {
     }
   }
 
-  // ── Sort handler ──────────────────────────────────────────────
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDir('asc')
-    }
-  }
-
   const toggleLane = (key: string) => {
     setCollapsedLanes(prev => {
       const next = new Set(prev)
@@ -473,100 +429,213 @@ export default function PhotoProductionPage() {
     })
   }
 
-  const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-    <button
-      onClick={() => handleSort(field)}
-      className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-    >
-      {children}
-      {sortField === field && (
-        <span className="text-[10px]">{sortDir === 'asc' ? '↑' : '↓'}</span>
-      )}
-    </button>
-  )
+  // ── Column definitions ─────────────────────────────────────────
 
-  const WaitingSortHeader = ({ field, children }: { field: string; children: React.ReactNode }) => (
-    <button
-      onClick={() => {
-        if (waitingSortField === field) setWaitingSortDir(d => d === 'asc' ? 'desc' : 'asc')
-        else { setWaitingSortField(field); setWaitingSortDir('asc') }
-      }}
-      className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-    >
-      {children}
-      {waitingSortField === field && (
-        <span className="text-[10px]">{waitingSortDir === 'asc' ? '↑' : '↓'}</span>
-      )}
-    </button>
-  )
-
-  const CemeterySortHeader = ({ field, children }: { field: string; children: React.ReactNode }) => (
-    <button
-      onClick={() => {
-        if (cemeterySortField === field) setCemeterySortDir(d => d === 'asc' ? 'desc' : 'asc')
-        else { setCemeterySortField(field); setCemeterySortDir('asc') }
-      }}
-      className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-    >
-      {children}
-      {cemeterySortField === field && (
-        <span className="text-[10px]">{cemeterySortDir === 'asc' ? '↑' : '↓'}</span>
-      )}
-    </button>
-  )
-
-  const sortedWaitingOrderCouples = useMemo(() => {
-    const result = [...waitingOrderCouples]
-    if (waitingSortField) {
-      const dir = waitingSortDir === 'asc' ? 1 : -1
-      result.sort((a, b) => {
-        switch (waitingSortField) {
-          case 'couple_name':
-            return a.couple_name.localeCompare(b.couple_name) * dir
-          case 'wedding_date':
-            return (a.wedding_date || '9999').localeCompare(b.wedding_date || '9999') * dir
-          case 'days_since': {
-            const aDays = a.wedding_date ? differenceInDays(new Date(), parseISO(a.wedding_date)) : 0
-            const bDays = b.wedding_date ? differenceInDays(new Date(), parseISO(b.wedding_date)) : 0
-            return (aDays - bDays) * dir
-          }
-          default:
-            return 0
+  const laneColumns: ColumnDef<Job>[] = useMemo(() => [
+    {
+      id: 'couple_name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+      accessorFn: (row) => row.couples?.couple_name || 'Unknown',
+      cell: ({ row }) => (
+        <div className="min-w-0">
+          <div className="text-sm font-medium truncate">
+            {row.original.couples?.couple_name || 'Unknown'}
+          </div>
+          {row.original.couples?.wedding_date && (
+            <div className="text-[11px] text-muted-foreground">
+              {formatDateCompact(row.original.couples.wedding_date)}
+            </div>
+          )}
+          {row.original.status === 'at_lab' && row.original.at_lab_date && (
+            <div className="text-[11px] text-indigo-600">
+              At lab {differenceInDays(new Date(), parseISO(row.original.at_lab_date))} days — since {formatDateCompact(row.original.at_lab_date).replace(/, \d{4}$/, '')}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'job_type',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Job Type" />,
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground truncate">
+          {JOB_TYPE_LABELS[row.original.job_type] || row.original.job_type}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'photos_taken',
+      header: 'Photos',
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground">
+          {row.original.photos_taken ?? '—'}
+        </div>
+      ),
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'vendor',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Vendor" />,
+      cell: ({ row }) => {
+        const job = row.original
+        if (job.vendor) {
+          return (
+            <span className={`text-[11px] rounded-full px-2 py-0.5 font-medium ${getVendorInfo(job.vendor).color}`}>
+              {getVendorInfo(job.vendor).label}
+            </span>
+          )
         }
-      })
-    }
-    return result
-  }, [waitingOrderCouples, waitingSortField, waitingSortDir])
+        return <span className="text-xs text-muted-foreground">—</span>
+      },
+    },
+    {
+      id: 'status_select',
+      header: 'Status',
+      cell: ({ row }) => (
+        <select
+          value={row.original.status}
+          onChange={(e) => updateStatus(row.original.id, e.target.value)}
+          className="text-xs rounded-lg border border-input bg-background px-2 py-1.5 outline-none transition-colors focus:border-ring cursor-pointer"
+        >
+          {STATUS_OPTIONS.map(s => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+      ),
+      enableSorting: false,
+    },
+  ], [])
 
-  const sortedCemeteryJobs = useMemo(() => {
-    const result = [...cemeteryJobs]
-    if (cemeterySortField) {
-      const dir = cemeterySortDir === 'asc' ? 1 : -1
-      result.sort((a, b) => {
-        switch (cemeterySortField) {
-          case 'couple_name':
-            return (a.couples?.couple_name || '').localeCompare(b.couples?.couple_name || '') * dir
-          case 'job_type':
-            return a.job_type.localeCompare(b.job_type) * dir
-          case 'photos_taken':
-            return ((a.photos_taken || 0) - (b.photos_taken || 0)) * dir
-          case 'edited_so_far':
-            return ((a.edited_so_far || 0) - (b.edited_so_far || 0)) * dir
-          case 'total_proofs':
-            return ((a.total_proofs || 0) - (b.total_proofs || 0)) * dir
-          case 'vendor':
-            return (a.vendor || '').localeCompare(b.vendor || '') * dir
-          case 'status':
-            return a.status.localeCompare(b.status) * dir
-          case 'completed_date':
-            return (a.completed_date || '9999').localeCompare(b.completed_date || '9999') * dir
-          default:
-            return 0
-        }
-      })
-    }
-    return result
-  }, [cemeteryJobs, cemeterySortField, cemeterySortDir])
+  const waitingPhotoColumns: ColumnDef<WaitingOrderCouple>[] = useMemo(() => [
+    {
+      accessorKey: 'couple_name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+      cell: ({ row }) => (
+        <button onClick={() => router.push(`/admin/couples/${row.original.id}`)}
+          className="font-medium text-blue-600 hover:underline text-left text-sm">
+          {row.original.couple_name}
+        </button>
+      ),
+    },
+    {
+      accessorKey: 'wedding_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Wedding Date" />,
+      cell: ({ row }) => row.original.wedding_date
+        ? <span className="text-muted-foreground text-sm">{formatDateCompact(row.original.wedding_date)}</span>
+        : <span>—</span>,
+    },
+    {
+      id: 'days_since',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Days Since Wedding" />,
+      accessorFn: (row) => row.wedding_date ? differenceInDays(new Date(), parseISO(row.wedding_date)) : 0,
+      cell: ({ row }) => {
+        const daysSince = row.original.wedding_date ? differenceInDays(new Date(), parseISO(row.original.wedding_date)) : 0
+        return (
+          <span className={`text-sm font-medium ${daysSince > 180 ? 'text-red-600' : daysSince > 90 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+            {daysSince} days
+          </span>
+        )
+      },
+    },
+    {
+      id: 'photo_stage',
+      header: 'Photo Stage',
+      cell: () => <span className="text-xs text-amber-600 font-medium">Awaiting Order</span>,
+      enableSorting: false,
+    },
+  ], [router])
+
+  const completedPhotoColumns: ColumnDef<Job>[] = useMemo(() => [
+    {
+      id: 'couple_name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+      accessorFn: (row) => row.couples?.couple_name || 'Unknown',
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium text-sm text-muted-foreground">{row.original.couples?.couple_name || 'Unknown'}</div>
+          {row.original.couples?.wedding_date && (
+            <div className="text-[11px] text-muted-foreground">{formatDateCompact(row.original.couples.wedding_date)}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'job_type',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Job Type" />,
+      cell: ({ row }) => <span className="text-muted-foreground">{JOB_TYPE_LABELS[row.original.job_type] || row.original.job_type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</span>,
+    },
+    {
+      accessorKey: 'photos_taken',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Photos Taken" />,
+      cell: ({ row }) => {
+        const pt = row.original.photos_taken || 0
+        return <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>{pt > 0 ? pt.toLocaleString() : '—'}</span>
+      },
+    },
+    {
+      accessorKey: 'edited_so_far',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Edited So Far" />,
+      cell: ({ row }) => {
+        const esf = row.original.edited_so_far || 0
+        return <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>{esf > 0 ? esf.toLocaleString() : '—'}</span>
+      },
+    },
+    {
+      accessorKey: 'total_proofs',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Total Proofs" />,
+      cell: ({ row }) => {
+        const tp = row.original.total_proofs || 0
+        return <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>{tp > 0 ? tp.toLocaleString() : '—'}</span>
+      },
+    },
+    {
+      id: 'deleted',
+      header: 'Deleted',
+      accessorFn: (row) => {
+        const pt = row.photos_taken || 0; const tp = row.total_proofs || 0
+        return tp > 0 && pt > tp ? pt - tp : 0
+      },
+      cell: ({ row }) => {
+        const pt = row.original.photos_taken || 0; const tp = row.original.total_proofs || 0
+        const deleted = tp > 0 && pt > tp ? pt - tp : 0
+        return <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>{deleted > 0 ? deleted.toLocaleString() : '—'}</span>
+      },
+      enableSorting: false,
+    },
+    {
+      id: 'pct_deleted',
+      header: '% Deleted',
+      cell: ({ row }) => {
+        const pt = row.original.photos_taken || 0; const tp = row.original.total_proofs || 0
+        const deleted = tp > 0 && pt > tp ? pt - tp : 0
+        const pct = deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null
+        return <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>{pct ? `${pct}%` : '—'}</span>
+      },
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'vendor',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Vendor" />,
+      cell: ({ row }) => {
+        const vendorInfo = getVendorInfo(row.original.vendor)
+        return <span className="text-muted-foreground">{vendorInfo.label}</span>
+      },
+    },
+    {
+      accessorKey: 'status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground italic">
+          {row.original.status === 'picked_up' ? 'Picked Up' : 'Completed'}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'completed_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Date Completed" />,
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.original.completed_date ? formatDateCompact(row.original.completed_date) : '—'}</span>,
+    },
+  ], [])
 
   // ── Report ───────────────────────────────────────────────────
 
@@ -895,71 +964,7 @@ export default function PhotoProductionPage() {
                   {/* Lane body */}
                   {!isCollapsed && laneCount > 0 && (
                     <div className="border-t">
-                      {/* Column headers */}
-                      <div className="grid grid-cols-[1.2fr_160px_80px_110px_150px] gap-4 px-4 py-2 border-b bg-muted/30">
-                        <SortHeader field="couple">Couple</SortHeader>
-                        <SortHeader field="job_type">Job Type</SortHeader>
-                        <span className="text-xs font-medium text-muted-foreground">Photos</span>
-                        <SortHeader field="vendor">Vendor</SortHeader>
-                        <span className="text-xs font-medium text-muted-foreground">Status</span>
-                      </div>
-
-                      {/* Jobs */}
-                      {lane.jobs.map(job => (
-                        <div
-                          key={job.id}
-                          className="grid grid-cols-[1.2fr_160px_80px_110px_150px] gap-4 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors items-center"
-                        >
-                          {/* Couple */}
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium truncate">
-                              {job.couples?.couple_name || 'Unknown'}
-                            </div>
-                            {job.couples?.wedding_date && (
-                              <div className="text-[11px] text-muted-foreground">
-                                {formatDateCompact(job.couples.wedding_date)}
-                              </div>
-                            )}
-                            {job.status === 'at_lab' && job.at_lab_date && (
-                              <div className="text-[11px] text-indigo-600">
-                                At lab {differenceInDays(new Date(), parseISO(job.at_lab_date))} days — since {formatDateCompact(job.at_lab_date).replace(/, \d{4}$/, '')}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Job Type */}
-                          <div className="text-sm text-muted-foreground truncate">
-                            {JOB_TYPE_LABELS[job.job_type] || job.job_type}
-                          </div>
-
-                          {/* Photos Taken */}
-                          <div className="text-sm text-muted-foreground">
-                            {job.photos_taken ?? '—'}
-                          </div>
-
-                          {/* Vendor */}
-                          <div>
-                            {job.vendor ? (
-                              <span className={`text-[11px] rounded-full px-2 py-0.5 font-medium ${getVendorInfo(job.vendor).color}`}>
-                                {getVendorInfo(job.vendor).label}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </div>
-
-                          {/* Status dropdown */}
-                          <select
-                            value={job.status}
-                            onChange={(e) => updateStatus(job.id, e.target.value)}
-                            className="text-xs rounded-lg border border-input bg-background px-2 py-1.5 outline-none transition-colors focus:border-ring cursor-pointer"
-                          >
-                            {STATUS_OPTIONS.map(s => (
-                              <option key={s.value} value={s.value}>{s.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
+                      <DataTable columns={laneColumns} data={lane.jobs} showPagination={false} emptyMessage="No jobs" />
                     </div>
                   )}
 
@@ -994,52 +999,9 @@ export default function PhotoProductionPage() {
               </div>
             </button>
 
-            {waitingPhotoOrderOpen && waitingOrderCouples.length > 0 && (
-              <div className="border-t overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-muted border-b">
-                      <th className="text-left px-3 py-2"><WaitingSortHeader field="couple_name">Couple</WaitingSortHeader></th>
-                      <th className="text-left px-3 py-2"><WaitingSortHeader field="wedding_date">Wedding Date</WaitingSortHeader></th>
-                      <th className="text-left px-3 py-2"><WaitingSortHeader field="days_since">Days Since Wedding</WaitingSortHeader></th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Photo Stage</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedWaitingOrderCouples.map((couple, i) => {
-                      const daysSince = couple.wedding_date ? differenceInDays(new Date(), parseISO(couple.wedding_date)) : 0
-                      return (
-                        <tr key={couple.id} className={`border-b border-border ${i % 2 === 1 ? 'bg-muted/50' : ''}`}>
-                          <td className="px-3 py-2">
-                            <button
-                              onClick={() => router.push(`/admin/couples/${couple.id}`)}
-                              className="font-medium text-blue-600 hover:underline text-left text-sm"
-                            >
-                              {couple.couple_name}
-                            </button>
-                          </td>
-                          <td className="px-3 py-2 text-muted-foreground text-sm">
-                            {couple.wedding_date ? formatDateCompact(couple.wedding_date) : '—'}
-                          </td>
-                          <td className="px-3 py-2">
-                            <span className={`text-sm font-medium ${daysSince > 180 ? 'text-red-600' : daysSince > 90 ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                              {daysSince} days
-                            </span>
-                          </td>
-                          <td className="px-3 py-2">
-                            <span className="text-xs text-amber-600 font-medium">Awaiting Order</span>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {waitingPhotoOrderOpen && waitingOrderCouples.length === 0 && (
-              <div className="border-t px-4 py-6 text-center text-sm text-muted-foreground">
-                No couples waiting for photo order
+            {waitingPhotoOrderOpen && (
+              <div className="border-t">
+                <DataTable columns={waitingPhotoColumns} data={waitingOrderCouples} showPagination={false} emptyMessage="No couples waiting for photo order" />
               </div>
             )}
           </div>
@@ -1062,92 +1024,9 @@ export default function PhotoProductionPage() {
               </div>
             </button>
 
-            {cemeteryOpen && cemeteryJobs.length > 0 && (
-              <div className="border-t overflow-x-auto">
-                <table className="w-full text-sm min-w-[1000px]">
-                  <thead>
-                    <tr className="bg-muted border-b">
-                      <th className="text-left px-3 py-2"><CemeterySortHeader field="couple_name">Couple</CemeterySortHeader></th>
-                      <th className="text-left px-3 py-2"><CemeterySortHeader field="job_type">Job Type</CemeterySortHeader></th>
-                      <th className="text-right px-3 py-2"><CemeterySortHeader field="photos_taken">Photos Taken</CemeterySortHeader></th>
-                      <th className="text-right px-3 py-2"><CemeterySortHeader field="edited_so_far">Edited So Far</CemeterySortHeader></th>
-                      <th className="text-right px-3 py-2"><CemeterySortHeader field="total_proofs">Total Proofs</CemeterySortHeader></th>
-                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Deleted</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">% Deleted</th>
-                      <th className="text-left px-3 py-2"><CemeterySortHeader field="vendor">Vendor</CemeterySortHeader></th>
-                      <th className="text-left px-3 py-2"><CemeterySortHeader field="status">Status</CemeterySortHeader></th>
-                      <th className="text-left px-3 py-2"><CemeterySortHeader field="completed_date">Date Completed</CemeterySortHeader></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedCemeteryJobs.map((job, i) => {
-                      const pt = job.photos_taken || 0
-                      const tp = job.total_proofs || 0
-                      const deleted = tp > 0 && pt > tp ? pt - tp : 0
-                      const pctDeleted = deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null
-                      const vendorInfo = getVendorInfo(job.vendor)
-
-                      return (
-                        <tr key={job.id} className={`border-b border-border ${i % 2 === 1 ? 'bg-muted/50' : ''}`}>
-                          <td className="px-3 py-2">
-                            <div className="font-medium text-sm text-muted-foreground">{job.couples?.couple_name || 'Unknown'}</div>
-                            {job.couples?.wedding_date && (
-                              <div className="text-[11px] text-muted-foreground">
-                                {formatDateCompact(job.couples.wedding_date)}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 text-muted-foreground">
-                            {JOB_TYPE_LABELS[job.job_type] || job.job_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                          </td>
-                          <td className="px-3 py-2 text-right text-muted-foreground">{pt > 0 ? pt.toLocaleString() : '—'}</td>
-                          <td className="px-3 py-2 text-right text-muted-foreground">{(job.edited_so_far || 0) > 0 ? (job.edited_so_far || 0).toLocaleString() : '—'}</td>
-                          <td className="px-3 py-2 text-right text-muted-foreground">{tp > 0 ? tp.toLocaleString() : '—'}</td>
-                          <td className="px-3 py-2 text-right text-muted-foreground">{deleted > 0 ? deleted.toLocaleString() : '—'}</td>
-                          <td className="px-3 py-2 text-right text-muted-foreground">{pctDeleted !== null ? `${pctDeleted}%` : '—'}</td>
-                          <td className="px-3 py-2 text-muted-foreground">{vendorInfo.label}</td>
-                          <td className="px-3 py-2">
-                            <span className="text-xs text-muted-foreground italic">
-                              {job.status === 'picked_up' ? 'Picked Up' : 'Completed'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-xs text-muted-foreground">
-                            {job.completed_date ? formatDateCompact(job.completed_date) : '—'}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                    {/* Cemetery Summary Total */}
-                    {(() => {
-                      const pt = cemeteryJobs.reduce((s, j) => s + (j.photos_taken || 0), 0)
-                      const esf = cemeteryJobs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
-                      const tp = cemeteryJobs.reduce((s, j) => s + (j.total_proofs || 0), 0)
-                      const remaining = tp > 0 ? tp - esf : pt - esf
-                      const deleted = tp > 0 && pt > tp ? pt - tp : 0
-                      const pctDel = deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null
-                      const pctComp = pt > 0 ? ((esf / pt) * 100).toFixed(1) : null
-                      return (
-                        <tr className="bg-muted border-t-2 border-border">
-                          <td className="px-3 py-2 font-bold text-sm text-muted-foreground">Completed in 2026</td>
-                          <td></td>
-                          <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{pt.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{esf.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{tp.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{deleted > 0 ? deleted.toLocaleString() : '—'}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{pctDel !== null ? `${pctDel}%` : '—'}</td>
-                          <td></td>
-                          <td></td>
-                        </tr>
-                      )
-                    })()}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {cemeteryOpen && cemeteryJobs.length === 0 && (
-              <div className="border-t px-4 py-6 text-center text-sm text-muted-foreground">
-                No completed jobs
+            {cemeteryOpen && (
+              <div className="border-t">
+                <DataTable columns={completedPhotoColumns} data={cemeteryJobs} showPagination={false} emptyMessage="No completed jobs" />
               </div>
             )}
           </div>
