@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
-  CalendarDays, Users, AlertTriangle, Calendar, ChevronUp, ChevronDown,
+  Users, AlertTriangle, Calendar, ChevronUp, ChevronDown,
   X, Search, Camera, Video, Check, XCircle, Download,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatDateCompact } from '@/lib/formatters'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { ProductionPageHeader, ProductionPills, ProductionSidebar } from '@/components/shared'
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -322,6 +323,8 @@ export default function TeamSchedulePage() {
 
   // ── Computed data ──────────────────────────────────────────────
 
+  const totalWeddings = assignments.length
+
   const missingCrew = useMemo(() =>
     assignments.filter(a => a.status === 'missing_crew'), [assignments])
 
@@ -338,6 +341,9 @@ export default function TeamSchedulePage() {
 
   const backToBackWeddings = useMemo(() =>
     assignments.filter(a => backToBackDates.has(a.wedding_date)), [assignments, backToBackDates])
+
+  const allCoveredCount = useMemo(() =>
+    assignments.filter(a => a.status === 'confirmed').length, [assignments])
 
   const nextNeedingCoverage = useMemo(() => {
     const today = new Date().toISOString().split('T')[0]
@@ -546,263 +552,285 @@ export default function TeamSchedulePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-0">
       {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-indigo-600" />
-            Team Schedule
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            2026 Season &middot; {assignments.length} wedding{assignments.length !== 1 ? 's' : ''}
-          </p>
-        </div>
+      <div className="flex items-center justify-between pr-6">
+        <ProductionPageHeader
+          title="Team Schedule"
+          subtitle="2026 Season"
+        />
         <button
           onClick={exportPDF}
-          className="inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-muted transition-colors shadow-sm"
+          className="flex items-center gap-2 rounded-lg border border-input bg-background px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-accent/50 transition-colors"
         >
           <Download className="h-4 w-4" />
           Download PDF
         </button>
       </div>
 
-      {/* ── Stat Boxes ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <button
-          onClick={() => setActiveModal('missing')}
-          className="rounded-xl border bg-card p-4 text-left hover:border-primary hover:shadow-md transition-all"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="rounded-lg p-2 bg-red-50">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-            </div>
-            <span className="text-2xl font-bold">{missingCrew.length}</span>
-          </div>
-          <div className="text-sm font-medium">Missing Crew</div>
-          <p className="text-xs text-muted-foreground mt-0.5">weddings needing staff</p>
-        </button>
+      {/* ── Pills ───────────────────────────────────────────────── */}
+      <ProductionPills pills={[
+        { label: 'Missing Crew', count: missingCrew.length, color: 'red' },
+        { label: 'Double Weddings', count: doubleWeddings.length, color: 'yellow' },
+        { label: 'Back-to-Backs', count: backToBackWeddings.length, color: 'blue' },
+        { label: 'All Covered', count: allCoveredCount, color: 'green' },
+      ]} />
 
-        <button
-          onClick={() => setActiveModal('double')}
-          className="rounded-xl border bg-card p-4 text-left hover:border-primary hover:shadow-md transition-all"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="rounded-lg p-2 bg-orange-50">
-              <Users className="h-4 w-4 text-orange-600" />
-            </div>
-            <span className="text-2xl font-bold">{doubleWeddings.length}</span>
-          </div>
-          <div className="text-sm font-medium">Double Weddings</div>
-          <p className="text-xs text-muted-foreground mt-0.5">dates with 2+ weddings</p>
-        </button>
+      {/* ── Two-column layout ───────────────────────────────────── */}
+      <div className="flex">
+        <div className="flex-1 overflow-y-auto p-6 border-r border-border space-y-6">
 
-        <button
-          onClick={() => setActiveModal('backtoback')}
-          className="rounded-xl border bg-card p-4 text-left hover:border-primary hover:shadow-md transition-all"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="rounded-lg p-2 bg-amber-50">
-              <Calendar className="h-4 w-4 text-amber-600" />
-            </div>
-            <span className="text-2xl font-bold">{backToBackWeddings.length}</span>
-          </div>
-          <div className="text-sm font-medium">Back-to-Backs</div>
-          <p className="text-xs text-muted-foreground mt-0.5">consecutive day weddings</p>
-        </button>
-
-        <button
-          onClick={() => setActiveModal('next')}
-          className="rounded-xl border bg-card p-4 text-left hover:border-primary hover:shadow-md transition-all"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="rounded-lg p-2 bg-indigo-50">
-              <CalendarDays className="h-4 w-4 text-indigo-600" />
-            </div>
-          </div>
-          <div className="text-sm font-medium truncate">
-            {nextNeedingCoverage ? nextNeedingCoverage.couple_name : 'All Covered'}
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {nextNeedingCoverage ? `Next: ${formatDate(nextNeedingCoverage.wedding_date)}` : 'No coverage gaps'}
-          </p>
-        </button>
-      </div>
-
-      {/* ── Core Team ──────────────────────────────────────────── */}
-      {memberCounts.core.length > 0 && (
-        <div>
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-3">Core Team</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {memberCounts.core.map(m => (
-              <div key={m.id} className="rounded-xl border bg-card p-4 transition-all hover:border-primary hover:shadow-md">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="rounded-lg p-2" style={{ backgroundColor: m.color + '18' }}>
-                    {m.role === 'videographer'
-                      ? <Video className="h-4 w-4" style={{ color: m.color }} />
-                      : m.role === 'both'
-                        ? <Users className="h-4 w-4" style={{ color: m.color }} />
-                        : <Camera className="h-4 w-4" style={{ color: m.color }} />}
+          {/* ── Stat Boxes ──────────────────────────────────────── */}
+          <div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <button
+                onClick={() => setActiveModal('missing')}
+                className="rounded-lg border bg-card p-3 text-left hover:border-primary hover:shadow-sm transition-all"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="rounded-md p-1.5 bg-red-50">
+                    <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
                   </div>
-                  <span className="text-2xl font-bold">{m.count}</span>
+                  <span className="text-xl font-bold">{missingCrew.length}</span>
                 </div>
-                <div className="text-sm font-medium">{m.first_name}</div>
-                <p className="text-xs text-muted-foreground mt-0.5 capitalize">{m.role}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+                <div className="text-xs font-medium">Missing Crew</div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">weddings needing staff</p>
+              </button>
 
-      {/* ── Backup Team ────────────────────────────────────────── */}
-      {memberCounts.backup.length > 0 && (
-        <div>
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-3">Backup</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {memberCounts.backup.map(m => (
-              <div key={m.id} className="rounded-xl border bg-card p-4 transition-all hover:border-primary hover:shadow-md border-dashed">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="rounded-lg p-2" style={{ backgroundColor: m.color + '18' }}>
-                    {m.role === 'videographer'
-                      ? <Video className="h-4 w-4" style={{ color: m.color }} />
-                      : m.role === 'both'
-                        ? <Users className="h-4 w-4" style={{ color: m.color }} />
-                        : <Camera className="h-4 w-4" style={{ color: m.color }} />}
+              <button
+                onClick={() => setActiveModal('double')}
+                className="rounded-lg border bg-card p-3 text-left hover:border-primary hover:shadow-sm transition-all"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="rounded-md p-1.5 bg-orange-50">
+                    <Users className="h-3.5 w-3.5 text-orange-600" />
                   </div>
-                  <span className="text-2xl font-bold">{m.count}</span>
+                  <span className="text-xl font-bold">{doubleWeddings.length}</span>
                 </div>
-                <div className="text-sm font-medium">{m.first_name}</div>
-                <p className="text-xs text-muted-foreground mt-0.5 capitalize">{m.role}</p>
+                <div className="text-xs font-medium">Double Weddings</div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">dates with 2+ weddings</p>
+              </button>
+
+              <button
+                onClick={() => setActiveModal('backtoback')}
+                className="rounded-lg border bg-card p-3 text-left hover:border-primary hover:shadow-sm transition-all"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="rounded-md p-1.5 bg-amber-50">
+                    <Calendar className="h-3.5 w-3.5 text-amber-600" />
+                  </div>
+                  <span className="text-xl font-bold">{backToBackWeddings.length}</span>
+                </div>
+                <div className="text-xs font-medium">Back-to-Backs</div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">consecutive day weddings</p>
+              </button>
+
+              <button
+                onClick={() => setActiveModal('next')}
+                className="rounded-lg border bg-card p-3 text-left hover:border-primary hover:shadow-sm transition-all"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="rounded-md p-1.5 bg-green-50">
+                    <Check className="h-3.5 w-3.5 text-green-600" />
+                  </div>
+                  <span className="text-xl font-bold">{allCoveredCount}</span>
+                </div>
+                <div className="text-xs font-medium truncate">
+                  {nextNeedingCoverage ? nextNeedingCoverage.couple_name : 'All Covered'}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {nextNeedingCoverage ? `Next: ${formatDate(nextNeedingCoverage.wedding_date)}` : 'No coverage gaps'}
+                </p>
+              </button>
+            </div>
+
+            {/* ── Core Team ──────────────────────────────────────── */}
+            {memberCounts.core.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Core Team</h3>
+                <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 gap-2">
+                  {memberCounts.core.map(m => (
+                    <div key={m.id} className="rounded-lg border bg-card p-3 transition-all hover:border-primary hover:shadow-sm">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="rounded-md p-1" style={{ backgroundColor: m.color + '18' }}>
+                          {m.role === 'videographer'
+                            ? <Video className="h-3 w-3" style={{ color: m.color }} />
+                            : m.role === 'both'
+                              ? <Users className="h-3 w-3" style={{ color: m.color }} />
+                              : <Camera className="h-3 w-3" style={{ color: m.color }} />}
+                        </div>
+                        <span className="text-lg font-bold">{m.count}</span>
+                      </div>
+                      <div className="text-xs font-medium truncate">{m.first_name}</div>
+                      <p className="text-[10px] text-muted-foreground capitalize">{m.role}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
+
+            {/* ── Backup Team ──────────────────────────────────── */}
+            {memberCounts.backup.length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Backup</h3>
+                <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 gap-2">
+                  {memberCounts.backup.map(m => (
+                    <div key={m.id} className="rounded-lg border bg-card p-3 transition-all hover:border-primary hover:shadow-sm border-dashed">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="rounded-md p-1" style={{ backgroundColor: m.color + '18' }}>
+                          {m.role === 'videographer'
+                            ? <Video className="h-3 w-3" style={{ color: m.color }} />
+                            : m.role === 'both'
+                              ? <Users className="h-3 w-3" style={{ color: m.color }} />
+                              : <Camera className="h-3 w-3" style={{ color: m.color }} />}
+                        </div>
+                        <span className="text-lg font-bold">{m.count}</span>
+                      </div>
+                      <div className="text-xs font-medium truncate">{m.first_name}</div>
+                      <p className="text-[10px] text-muted-foreground capitalize">{m.role}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
 
-      {/* ── Legend ───────────────────────────────────────────────── */}
-      <div className="rounded-xl border bg-card px-4 py-3">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5"><span className="h-3.5 w-1 rounded-full bg-red-400" /> Missing Crew</span>
-          <span className="flex items-center gap-1.5"><span className="h-3.5 w-1 rounded-full bg-orange-400" /> Double Wedding</span>
-          <span className="flex items-center gap-1.5"><span className="h-3.5 w-1 rounded-full bg-amber-400" /> Back-to-Back</span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-1.5 py-px text-[9px] font-semibold"><Camera className="h-2.5 w-2.5" /></span> Photo Only
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-1.5 py-px text-[9px] font-semibold"><Camera className="h-2.5 w-2.5" /></span> Photo + Video
-          </span>
-        </div>
-      </div>
+          {/* ── Legend ───────────────────────────────────────────── */}
+          <div className="rounded-xl border bg-card px-4 py-3">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5"><span className="h-3.5 w-1 rounded-full bg-red-400" /> Missing Crew</span>
+              <span className="flex items-center gap-1.5"><span className="h-3.5 w-1 rounded-full bg-orange-400" /> Double Wedding</span>
+              <span className="flex items-center gap-1.5"><span className="h-3.5 w-1 rounded-full bg-amber-400" /> Back-to-Back</span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-1.5 py-px text-[9px] font-semibold"><Camera className="h-2.5 w-2.5" /></span> Photo Only
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-1.5 py-px text-[9px] font-semibold"><Camera className="h-2.5 w-2.5" /></span> Photo + Video
+              </span>
+            </div>
+          </div>
 
-      {/* ── Search ──────────────────────────────────────────────── */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Search couples or staff..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full rounded-lg border bg-background pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
+          {/* ── Search ──────────────────────────────────────────── */}
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search couples or staff..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full rounded-lg border bg-background pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
 
-      {/* ── Table ───────────────────────────────────────────────── */}
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50 text-xs uppercase text-muted-foreground">
-                {([
-                  ['wedding_date', 'Date', 'px-4', 'text-left'],
-                  ['day', 'Day', 'px-3', 'text-left'],
-                  ['couple_name', 'Couple', 'px-4', 'text-left'],
-                  ['crew', 'Crew', 'px-3', 'text-center'],
-                  ['photo_1', 'Photo 1', 'px-4', 'text-left'],
-                  ['photo_2', 'Photo 2', 'px-4', 'text-left'],
-                  ['video_1', 'Video 1', 'px-4', 'text-left'],
-                  ['status', 'Status', 'px-4', 'text-left'],
-                ] as [SortField, string, string, string][]).map(([field, label, px, align]) => (
-                  <th
-                    key={field}
-                    className={`${px} py-3 ${align} cursor-pointer hover:text-foreground transition-colors select-none`}
-                    onClick={() => handleSort(field)}
-                  >
-                    <span className="inline-flex items-center gap-1">{label} <SortIcon field={field} /></span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
-                    {search ? 'No weddings match your search.' : 'No weddings scheduled for 2026.'}
-                  </td>
-                </tr>
-              )}
-              {filtered.map(a => {
-                return (
-                  <tr key={a.id} className={getRowClasses(a)}>
-                    {/* Date */}
-                    <td className="px-4 py-3 font-medium whitespace-nowrap">
-                      {formatDate(a.wedding_date)}
-                    </td>
-
-                    {/* Day */}
-                    <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">
-                      {getDayName(a.wedding_date)}
-                    </td>
-
-                    {/* Couple */}
-                    <td className="px-4 py-3 font-medium">
-                      {a.couple_name}
-                    </td>
-
-                    {/* Crew badge */}
-                    <td className="px-3 py-3 text-center">
-                      <CrewBadge a={a} />
-                    </td>
-
-                    {/* Photo 1 */}
-                    <td className="px-4 py-3">
-                      <StaffDropdown
-                        value={a.photo_1}
-                        role="photographer"
-                        members={teamMembers}
-                        onSelect={v => updateStaff(a.id, 'photo_1', v)}
-                      />
-                    </td>
-
-                    {/* Photo 2 */}
-                    <td className="px-4 py-3">
-                      <StaffDropdown
-                        value={a.photo_2}
-                        role="photographer"
-                        members={teamMembers}
-                        onSelect={v => updateStaff(a.id, 'photo_2', v)}
-                      />
-                    </td>
-
-                    {/* Video 1 */}
-                    <td className="px-4 py-3">
-                      <StaffDropdown
-                        value={a.video_1}
-                        role="videographer"
-                        members={teamMembers}
-                        onSelect={v => updateStaff(a.id, 'video_1', v)}
-                      />
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-4 py-3">
-                      <StatusBadge status={a.status} />
-                    </td>
+          {/* ── Table ───────────────────────────────────────────── */}
+          <div id="section-schedule" className="rounded-xl border bg-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50 text-xs uppercase text-muted-foreground">
+                    {([
+                      ['wedding_date', 'Date', 'px-4', 'text-left'],
+                      ['day', 'Day', 'px-3', 'text-left'],
+                      ['couple_name', 'Couple', 'px-4', 'text-left'],
+                      ['crew', 'Crew', 'px-3', 'text-center'],
+                      ['photo_1', 'Photo 1', 'px-4', 'text-left'],
+                      ['photo_2', 'Photo 2', 'px-4', 'text-left'],
+                      ['video_1', 'Video 1', 'px-4', 'text-left'],
+                      ['status', 'Status', 'px-4', 'text-left'],
+                    ] as [SortField, string, string, string][]).map(([field, label, px, align]) => (
+                      <th
+                        key={field}
+                        className={`${px} py-3 ${align} cursor-pointer hover:text-foreground transition-colors select-none`}
+                        onClick={() => handleSort(field)}
+                      >
+                        <span className="inline-flex items-center gap-1">{label} <SortIcon field={field} /></span>
+                      </th>
+                    ))}
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
+                        {search ? 'No weddings match your search.' : 'No weddings scheduled for 2026.'}
+                      </td>
+                    </tr>
+                  )}
+                  {filtered.map(a => {
+                    return (
+                      <tr key={a.id} className={getRowClasses(a)}>
+                        {/* Date */}
+                        <td className="px-4 py-3 font-medium whitespace-nowrap">
+                          {formatDate(a.wedding_date)}
+                        </td>
+
+                        {/* Day */}
+                        <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">
+                          {getDayName(a.wedding_date)}
+                        </td>
+
+                        {/* Couple */}
+                        <td className="px-4 py-3 font-medium">
+                          {a.couple_name}
+                        </td>
+
+                        {/* Crew badge */}
+                        <td className="px-3 py-3 text-center">
+                          <CrewBadge a={a} />
+                        </td>
+
+                        {/* Photo 1 */}
+                        <td className="px-4 py-3">
+                          <StaffDropdown
+                            value={a.photo_1}
+                            role="photographer"
+                            members={teamMembers}
+                            onSelect={v => updateStaff(a.id, 'photo_1', v)}
+                          />
+                        </td>
+
+                        {/* Photo 2 */}
+                        <td className="px-4 py-3">
+                          <StaffDropdown
+                            value={a.photo_2}
+                            role="photographer"
+                            members={teamMembers}
+                            onSelect={v => updateStaff(a.id, 'photo_2', v)}
+                          />
+                        </td>
+
+                        {/* Video 1 */}
+                        <td className="px-4 py-3">
+                          <StaffDropdown
+                            value={a.video_1}
+                            role="videographer"
+                            members={teamMembers}
+                            onSelect={v => updateStaff(a.id, 'video_1', v)}
+                          />
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-4 py-3">
+                          <StatusBadge status={a.status} />
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
+
+        {/* ── Sidebar ─────────────────────────────────────────────── */}
+        <ProductionSidebar boxes={[
+          { label: 'TOTAL WEDDINGS', value: totalWeddings, scrollToId: 'section-schedule', color: 'default' },
+          { label: 'MISSING CREW', value: missingCrew.length, scrollToId: 'section-schedule', color: 'red' },
+          { label: 'DOUBLE WEDDINGS', value: doubleWeddings.length, scrollToId: 'section-schedule', color: 'yellow' },
+          { label: 'BACK-TO-BACKS', value: backToBackWeddings.length, scrollToId: 'section-schedule', color: 'blue' },
+          { label: 'ALL COVERED', value: allCoveredCount, scrollToId: 'section-schedule', color: 'green' },
+        ]} />
       </div>
 
       {/* ── Modal ───────────────────────────────────────────────── */}
