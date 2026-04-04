@@ -815,16 +815,13 @@ export default function VideoProductionPage() {
 
             {/* Metric Tiles */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Tile 1: In Production */}
+              {/* Tile 1: Completed IN 2026 */}
               <div className="rounded-lg p-4 bg-muted">
-                <div className="text-xs font-semibold uppercase tracking-wider mb-2 text-muted-foreground">In Production</div>
+                <div className="text-xs font-semibold uppercase tracking-wider mb-2 text-muted-foreground">Completed IN 2026</div>
                 <div className="font-bold tabular-nums mb-2 text-foreground" style={{ fontSize: '24px' }}>
-                  {stats.inProductionTotal}
+                  {edited2026Stats.total}
                 </div>
-                <div className="text-xs mb-3 text-muted-foreground">jobs in editing</div>
-                <div className="text-xs text-muted-foreground">
-                  {inProductionStats.totalSegsDone}/{inProductionStats.totalSegsPossible} segments complete
-                </div>
+                <div className="text-xs mb-1 text-muted-foreground">videos delivered this year</div>
               </div>
 
               {/* Tile 2: Incoming Work */}
@@ -1298,29 +1295,7 @@ export default function VideoProductionPage() {
 
         {/* Stats Sidebar */}
         <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
-          {/* 1. In Progress */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              In Progress
-            </div>
-            <div className="text-3xl font-bold text-teal-600">
-              {stats.inProductionTotal}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Jobs in editing</div>
-          </div>
-
-          {/* 2. Slideshows Pending */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Slideshows Pending
-            </div>
-            <div className="text-3xl font-bold text-violet-600">
-              {pipelineStats.slideshowsNotStarted}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Engagement slideshows to edit</div>
-          </div>
-
-          {/* 3. Video Out */}
+          {/* 1. Video Out */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               Video Out
@@ -1331,7 +1306,7 @@ export default function VideoProductionPage() {
             <div className="text-xs text-muted-foreground mt-1">Sent, awaiting client feedback</div>
           </div>
 
-          {/* 4. 2025 Videos Remaining */}
+          {/* 2. 2025 Videos Remaining */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               2025 Videos Remaining
@@ -1341,7 +1316,7 @@ export default function VideoProductionPage() {
             </div>
           </div>
 
-          {/* 5. 2026 Videos Remaining */}
+          {/* 3. 2026 Videos Remaining */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               2026 Videos Remaining
@@ -1351,17 +1326,7 @@ export default function VideoProductionPage() {
             </div>
           </div>
 
-          {/* 5b. 2027 Videos Remaining */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              2027 Videos Remaining
-            </div>
-            <div className="text-3xl font-bold">
-              {stats.remaining2027}
-            </div>
-          </div>
-
-          {/* 6. Editing Queue */}
+          {/* 4. Editing Queue */}
           <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               Editing Queue
@@ -1372,8 +1337,8 @@ export default function VideoProductionPage() {
             <div className="text-xs text-muted-foreground mt-1">Ready to edit</div>
           </div>
 
-          {/* 7. Waiting for Photo */}
-          <div className="rounded-xl border bg-card p-4 mb-4">
+          {/* 5. Waiting for Photo */}
+          <div className="rounded-xl border bg-card p-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               Waiting for Photo
             </div>
@@ -1381,23 +1346,6 @@ export default function VideoProductionPage() {
               {awaitingOrderCouples.length}
             </div>
             <div className="text-xs text-muted-foreground mt-1">Waiting on photo order</div>
-          </div>
-
-          {/* 8. Videos Complete */}
-          <div className="rounded-xl border bg-card p-4">
-            <div className="text-xs font-semibold text-foreground mb-3">
-              Videos Complete
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-green-500 rounded-full transition-all"
-                style={{ width: `${pipelineStats.fullTotal > 0 ? Math.round((pipelineStats.fullComplete / pipelineStats.fullTotal) * 100) : 0}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground mt-2">
-              <span>{pipelineStats.fullComplete} of {pipelineStats.fullTotal}</span>
-              <span>{pipelineStats.fullTotal > 0 ? Math.round((pipelineStats.fullComplete / pipelineStats.fullTotal) * 100) : 0}%</span>
-            </div>
           </div>
         </aside>
       </div>
