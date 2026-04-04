@@ -159,9 +159,17 @@ export default function PhotoProductionPage() {
   // Waiting for Photo Order section
   const [waitingPhotoOrderOpen, setWaitingPhotoOrderOpen] = useState(true)
 
+  // Sort state for Waiting for Photo Order table
+  const [waitingSortField, setWaitingSortField] = useState<string | null>(null)
+  const [waitingSortDir, setWaitingSortDir] = useState<'asc' | 'desc'>('asc')
+
   // Cemetery (completed & picked up)
   const [cemeteryJobs, setCemeteryJobs] = useState<Job[]>([])
   const [cemeteryOpen, setCemeteryOpen] = useState(false)
+
+  // Sort state for Completed in 2026 table
+  const [cemeterySortField, setCemeterySortField] = useState<string | null>(null)
+  const [cemeterySortDir, setCemeterySortDir] = useState<'asc' | 'desc'>('asc')
 
   // ── Fetch ─────────────────────────────────────────────────────
 
@@ -476,6 +484,89 @@ export default function PhotoProductionPage() {
       )}
     </button>
   )
+
+  const WaitingSortHeader = ({ field, children }: { field: string; children: React.ReactNode }) => (
+    <button
+      onClick={() => {
+        if (waitingSortField === field) setWaitingSortDir(d => d === 'asc' ? 'desc' : 'asc')
+        else { setWaitingSortField(field); setWaitingSortDir('asc') }
+      }}
+      className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+    >
+      {children}
+      {waitingSortField === field && (
+        <span className="text-[10px]">{waitingSortDir === 'asc' ? '↑' : '↓'}</span>
+      )}
+    </button>
+  )
+
+  const CemeterySortHeader = ({ field, children }: { field: string; children: React.ReactNode }) => (
+    <button
+      onClick={() => {
+        if (cemeterySortField === field) setCemeterySortDir(d => d === 'asc' ? 'desc' : 'asc')
+        else { setCemeterySortField(field); setCemeterySortDir('asc') }
+      }}
+      className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+    >
+      {children}
+      {cemeterySortField === field && (
+        <span className="text-[10px]">{cemeterySortDir === 'asc' ? '↑' : '↓'}</span>
+      )}
+    </button>
+  )
+
+  const sortedWaitingOrderCouples = useMemo(() => {
+    const result = [...waitingOrderCouples]
+    if (waitingSortField) {
+      const dir = waitingSortDir === 'asc' ? 1 : -1
+      result.sort((a, b) => {
+        switch (waitingSortField) {
+          case 'couple_name':
+            return a.couple_name.localeCompare(b.couple_name) * dir
+          case 'wedding_date':
+            return (a.wedding_date || '9999').localeCompare(b.wedding_date || '9999') * dir
+          case 'days_since': {
+            const aDays = a.wedding_date ? differenceInDays(new Date(), parseISO(a.wedding_date)) : 0
+            const bDays = b.wedding_date ? differenceInDays(new Date(), parseISO(b.wedding_date)) : 0
+            return (aDays - bDays) * dir
+          }
+          default:
+            return 0
+        }
+      })
+    }
+    return result
+  }, [waitingOrderCouples, waitingSortField, waitingSortDir])
+
+  const sortedCemeteryJobs = useMemo(() => {
+    const result = [...cemeteryJobs]
+    if (cemeterySortField) {
+      const dir = cemeterySortDir === 'asc' ? 1 : -1
+      result.sort((a, b) => {
+        switch (cemeterySortField) {
+          case 'couple_name':
+            return (a.couples?.couple_name || '').localeCompare(b.couples?.couple_name || '') * dir
+          case 'job_type':
+            return a.job_type.localeCompare(b.job_type) * dir
+          case 'photos_taken':
+            return ((a.photos_taken || 0) - (b.photos_taken || 0)) * dir
+          case 'edited_so_far':
+            return ((a.edited_so_far || 0) - (b.edited_so_far || 0)) * dir
+          case 'total_proofs':
+            return ((a.total_proofs || 0) - (b.total_proofs || 0)) * dir
+          case 'vendor':
+            return (a.vendor || '').localeCompare(b.vendor || '') * dir
+          case 'status':
+            return a.status.localeCompare(b.status) * dir
+          case 'completed_date':
+            return (a.completed_date || '9999').localeCompare(b.completed_date || '9999') * dir
+          default:
+            return 0
+        }
+      })
+    }
+    return result
+  }, [cemeteryJobs, cemeterySortField, cemeterySortDir])
 
   // ── Report ───────────────────────────────────────────────────
 
@@ -908,14 +999,14 @@ export default function PhotoProductionPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-muted border-b">
-                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Couple</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Wedding Date</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Days Since Wedding</th>
+                      <th className="text-left px-3 py-2"><WaitingSortHeader field="couple_name">Couple</WaitingSortHeader></th>
+                      <th className="text-left px-3 py-2"><WaitingSortHeader field="wedding_date">Wedding Date</WaitingSortHeader></th>
+                      <th className="text-left px-3 py-2"><WaitingSortHeader field="days_since">Days Since Wedding</WaitingSortHeader></th>
                       <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Photo Stage</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {waitingOrderCouples.map((couple, i) => {
+                    {sortedWaitingOrderCouples.map((couple, i) => {
                       const daysSince = couple.wedding_date ? differenceInDays(new Date(), parseISO(couple.wedding_date)) : 0
                       return (
                         <tr key={couple.id} className={`border-b border-border ${i % 2 === 1 ? 'bg-muted/50' : ''}`}>
@@ -976,20 +1067,20 @@ export default function PhotoProductionPage() {
                 <table className="w-full text-sm min-w-[1000px]">
                   <thead>
                     <tr className="bg-muted border-b">
-                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Couple</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Job Type</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Photos Taken</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Edited So Far</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Proofs</th>
+                      <th className="text-left px-3 py-2"><CemeterySortHeader field="couple_name">Couple</CemeterySortHeader></th>
+                      <th className="text-left px-3 py-2"><CemeterySortHeader field="job_type">Job Type</CemeterySortHeader></th>
+                      <th className="text-right px-3 py-2"><CemeterySortHeader field="photos_taken">Photos Taken</CemeterySortHeader></th>
+                      <th className="text-right px-3 py-2"><CemeterySortHeader field="edited_so_far">Edited So Far</CemeterySortHeader></th>
+                      <th className="text-right px-3 py-2"><CemeterySortHeader field="total_proofs">Total Proofs</CemeterySortHeader></th>
                       <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Deleted</th>
                       <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">% Deleted</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Vendor</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Date Completed</th>
+                      <th className="text-left px-3 py-2"><CemeterySortHeader field="vendor">Vendor</CemeterySortHeader></th>
+                      <th className="text-left px-3 py-2"><CemeterySortHeader field="status">Status</CemeterySortHeader></th>
+                      <th className="text-left px-3 py-2"><CemeterySortHeader field="completed_date">Date Completed</CemeterySortHeader></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {cemeteryJobs.map((job, i) => {
+                    {sortedCemeteryJobs.map((job, i) => {
                       const pt = job.photos_taken || 0
                       const tp = job.total_proofs || 0
                       const deleted = tp > 0 && pt > tp ? pt - tp : 0
