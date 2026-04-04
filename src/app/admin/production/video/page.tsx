@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, ChevronDown, ChevronRight, X, Plus, FileText } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight, X } from 'lucide-react'
+import { ProductionPageHeader, ProductionPills, ProductionSidebar } from '@/components/shared'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import { formatDate, formatDateCompact } from '@/lib/formatters'
 import { Playfair_Display, Nunito } from 'next/font/google'
@@ -952,31 +953,20 @@ export default function VideoProductionPage() {
 
   return (
     <div className="space-y-0">
-      {/* Header */}
-      <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Video Production</h1>
-          <p className="text-muted-foreground">
-            {jobs.filter(j => j.section === 'editing' && j.status !== 'video_proofs_out').length} active jobs
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => window.open('/admin/production/report', '_blank')}
-            className="flex items-center gap-2 rounded-lg border border-input bg-background px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-accent/50 transition-colors"
-          >
-            <FileText className="h-4 w-4" />
-            Report
-          </button>
-          <button
-            onClick={() => router.push('/admin/production/new-job')}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Add Job
-          </button>
-        </div>
-      </div>
+      <ProductionPageHeader
+        title="Video Production"
+        subtitle={`${jobs.filter(j => j.section === 'editing' && j.status !== 'video_proofs_out').length} active jobs`}
+        reportHref="/admin/production/report"
+        actionLabel="+ Add Job"
+        actionHref="/admin/production/new-job"
+      />
+
+      <ProductionPills pills={[
+        { label: 'Not Started', count: jobs.filter(j => j.status === 'not_started').length, color: 'yellow' },
+        { label: 'In Progress', count: jobs.filter(j => j.status === 'in_progress').length, color: 'blue' },
+        { label: 'Proofs Out', count: jobs.filter(j => j.status === 'video_proofs_out').length, color: 'teal' },
+        { label: 'Complete', count: jobs.filter(j => j.status === 'complete').length, color: 'green' },
+      ]} />
 
       {/* Overdue Banner */}
       {stats.overdueCount > 0 && (
@@ -1332,48 +1322,16 @@ export default function VideoProductionPage() {
           {/* Bottom spacer */}
         </div>
 
-        {/* Stats Sidebar */}
-        <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
-          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => document.getElementById('section-video-out')?.scrollIntoView({ behavior: 'smooth' })}>
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">VIDEO PROOFS OUT</div>
-            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{pipelineStats.fullVideoOut}</div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => document.getElementById('section-videos-remaining')?.scrollIntoView({ behavior: 'smooth' })}>
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">2025 VIDEOS REMAINING</div>
-            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{pipelineStats.fullNotStarted2025}</div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => document.getElementById('section-videos-remaining')?.scrollIntoView({ behavior: 'smooth' })}>
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">2026 VIDEOS REMAINING</div>
-            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{Math.max(0, booked2026Count - pipelineStats.fullCompleted2026)}</div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => document.getElementById('section-editing_full')?.scrollIntoView({ behavior: 'smooth' })}>
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">VIDEOS READY TO EDIT</div>
-            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{pipelineStats.fullEditing}</div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => document.getElementById('section-editing_recap')?.scrollIntoView({ behavior: 'smooth' })}>
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">RECAPS QUEUE</div>
-            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{pipelineStats.recapEditing}</div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => document.getElementById('section-editing_eng_slideshow')?.scrollIntoView({ behavior: 'smooth' })}>
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">SLIDESHOWS QUEUE</div>
-            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{pipelineStats.slideshowEditing}</div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => document.getElementById('section-video-out')?.scrollIntoView({ behavior: 'smooth' })}>
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">WAITING FOR PHOTO</div>
-            <div className="text-3xl font-bold" style={{ color: '#ea580c' }}>{awaitingOrderCouples.length}</div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-4 cursor-pointer hover:border-ring transition-colors" onClick={() => document.getElementById('section-completed-2026')?.scrollIntoView({ behavior: 'smooth' })}>
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">COMPLETED IN 2026</div>
-            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{completed2026JobsList.length}</div>
-          </div>
-        </aside>
+        <ProductionSidebar boxes={[
+          { label: 'VIDEO PROOFS OUT', value: pipelineStats.fullVideoOut, scrollToId: 'section-video-out', color: 'teal' },
+          { label: '2025 VIDEOS REMAINING', value: pipelineStats.fullNotStarted2025, scrollToId: 'section-videos-remaining', color: 'teal' },
+          { label: '2026 VIDEOS REMAINING', value: Math.max(0, booked2026Count - pipelineStats.fullCompleted2026), scrollToId: 'section-videos-remaining', color: 'teal' },
+          { label: 'VIDEOS READY TO EDIT', value: pipelineStats.fullEditing, scrollToId: 'section-editing_full', color: 'teal' },
+          { label: 'RECAPS QUEUE', value: pipelineStats.recapEditing, scrollToId: 'section-editing_recap', color: 'teal' },
+          { label: 'SLIDESHOWS QUEUE', value: pipelineStats.slideshowEditing, scrollToId: 'section-editing_eng_slideshow', color: 'teal' },
+          { label: 'WAITING FOR PHOTO', value: awaitingOrderCouples.length, scrollToId: 'section-video-out', color: 'red' },
+          { label: 'COMPLETED IN 2026', value: completed2026JobsList.length, scrollToId: 'section-completed-2026', color: 'teal' },
+        ]} />
       </div>
 
       {/* Pulse animation */}
