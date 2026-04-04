@@ -7,8 +7,6 @@ import { Search, ChevronDown, ChevronRight, GripVertical, X } from 'lucide-react
 import { format, parseISO, differenceInDays } from 'date-fns'
 import { formatDate, formatDateCompact } from '@/lib/formatters'
 import { Playfair_Display, Nunito } from 'next/font/google'
-import { ColumnDef } from '@tanstack/react-table'
-import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -176,6 +174,10 @@ export default function VideoProductionPage() {
   const [editingDueDate, setEditingDueDate] = useState<string | null>(null)
   const [awaitingOrderCouples, setAwaitingOrderCouples] = useState<AwaitingOrderCouple[]>([])
   const [completed2026Collapsed, setCompleted2026Collapsed] = useState(true)
+  const [remainingSortCol, setRemainingSortCol] = useState<string | null>(null)
+  const [remainingSortDir, setRemainingSortDir] = useState<'asc' | 'desc'>('asc')
+  const [completedSortCol, setCompletedSortCol] = useState<string | null>(null)
+  const [completedSortDir, setCompletedSortDir] = useState<'asc' | 'desc'>('asc')
 
   // ── Fetch jobs ─────────────────────────────────────────────────
 
@@ -562,8 +564,29 @@ export default function VideoProductionPage() {
         j.assigned_to?.toLowerCase().includes(q)
       )
     }
-    return result.sort((a, b) => (b.completed_date || '').localeCompare(a.completed_date || ''))
-  }, [jobs, search])
+    if (completedSortCol) {
+      const dir = completedSortDir === 'asc' ? 1 : -1
+      result.sort((a, b) => {
+        switch (completedSortCol) {
+          case 'couple_name':
+            return (a.couples?.couple_name || '').localeCompare(b.couples?.couple_name || '') * dir
+          case 'wedding_date':
+            return (a.wedding_date || a.couples?.wedding_date || '9999').localeCompare(b.wedding_date || b.couples?.wedding_date || '9999') * dir
+          case 'status':
+            return (STATUS_LABELS[a.status] || a.status).localeCompare(STATUS_LABELS[b.status] || b.status) * dir
+          case 'due_date':
+            return (a.due_date || '9999').localeCompare(b.due_date || '9999') * dir
+          case 'completed_date':
+            return (a.completed_date || '9999').localeCompare(b.completed_date || '9999') * dir
+          default:
+            return 0
+        }
+      })
+    } else {
+      result.sort((a, b) => (b.completed_date || '').localeCompare(a.completed_date || ''))
+    }
+    return result
+  }, [jobs, search, completedSortCol, completedSortDir])
 
   const videosRemainingByYear = useMemo(() => {
     let result = jobs.filter(j => j.job_type === 'FULL' && j.status !== 'complete')
@@ -574,147 +597,46 @@ export default function VideoProductionPage() {
         j.assigned_to?.toLowerCase().includes(q)
       )
     }
-    return result.sort((a, b) => {
-      const aWd = a.wedding_date || a.couples?.wedding_date || '9999'
-      const bWd = b.wedding_date || b.couples?.wedding_date || '9999'
-      return aWd.localeCompare(bWd)
-    })
-  }, [jobs, search])
+    if (remainingSortCol) {
+      const dir = remainingSortDir === 'asc' ? 1 : -1
+      result.sort((a, b) => {
+        switch (remainingSortCol) {
+          case 'couple_name':
+            return (a.couples?.couple_name || '').localeCompare(b.couples?.couple_name || '') * dir
+          case 'wedding_date':
+            return (a.wedding_date || a.couples?.wedding_date || '9999').localeCompare(b.wedding_date || b.couples?.wedding_date || '9999') * dir
+          case 'days_since': {
+            const aWd = a.wedding_date || a.couples?.wedding_date
+            const bWd = b.wedding_date || b.couples?.wedding_date
+            const aDays = aWd ? Math.floor((Date.now() - new Date(aWd).getTime()) / 86400000) : -1
+            const bDays = bWd ? Math.floor((Date.now() - new Date(bWd).getTime()) / 86400000) : -1
+            return (aDays - bDays) * dir
+          }
+          case 'active_hd':
+            return (a.active_hd || '').localeCompare(b.active_hd || '') * dir
+          case 'proxies_run':
+            return ((a.proxies_run ? 0 : 1) - (b.proxies_run ? 0 : 1)) * dir
+          case 'video_form':
+            return ((a.video_form ? 0 : 1) - (b.video_form ? 0 : 1)) * dir
+          case 'status':
+            return (STATUS_LABELS[a.status] || a.status).localeCompare(STATUS_LABELS[b.status] || b.status) * dir
+          case 'due_date':
+            return (a.due_date || '9999').localeCompare(b.due_date || '9999') * dir
+          default:
+            return 0
+        }
+      })
+    } else {
+      result.sort((a, b) => {
+        const aWd = a.wedding_date || a.couples?.wedding_date || '9999'
+        const bWd = b.wedding_date || b.couples?.wedding_date || '9999'
+        return aWd.localeCompare(bWd)
+      })
+    }
+    return result
+  }, [jobs, search, remainingSortCol, remainingSortDir])
 
   const [remainingByYearCollapsed, setRemainingByYearCollapsed] = useState(true)
-
-  // Column defs for Videos Remaining DataTable
-  const videosRemainingColumns: ColumnDef<VideoJob>[] = useMemo(() => [
-    {
-      accessorKey: 'couple_name',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
-      accessorFn: (row) => row.couples?.couple_name || 'Unknown',
-      cell: ({ row }) => (
-        <button
-          onClick={() => row.original.couple_id && router.push(`/admin/couples/${row.original.couple_id}`)}
-          className="font-medium text-blue-600 hover:underline text-left"
-        >
-          {row.original.couples?.couple_name || 'Unknown'}
-        </button>
-      ),
-    },
-    {
-      accessorKey: 'wedding_date',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Wedding Date" />,
-      accessorFn: (row) => row.wedding_date || row.couples?.wedding_date || '',
-      cell: ({ row }) => {
-        const wd = row.original.wedding_date || row.original.couples?.wedding_date
-        return wd ? <span className="text-muted-foreground">{formatDateCompact(wd)}</span> : <span className="text-amber-600 text-xs">No date</span>
-      },
-    },
-    {
-      id: 'days_since',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Days" />,
-      accessorFn: (row) => {
-        const wd = row.wedding_date || row.couples?.wedding_date
-        return wd ? Math.floor((new Date().getTime() - new Date(wd).getTime()) / (1000 * 60 * 60 * 24)) : -1
-      },
-      cell: ({ row }) => {
-        const wd = row.original.wedding_date || row.original.couples?.wedding_date
-        const daysSince = wd ? Math.floor((new Date().getTime() - new Date(wd).getTime()) / (1000 * 60 * 60 * 24)) : null
-        return daysSince !== null ? (
-          <span className={`text-sm font-medium tabular-nums ${daysSince > 180 ? 'text-red-600' : 'text-muted-foreground'}`} style={{ textAlign: 'center', display: 'block' }}>
-            {daysSince}
-          </span>
-        ) : <span style={{ textAlign: 'center', display: 'block' }}>—</span>
-      },
-    },
-    {
-      accessorKey: 'active_hd',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="HD" />,
-      cell: ({ row }) => (
-        <select
-          value={row.original.active_hd || ''}
-          onChange={e => updateActiveHd(row.original.id, e.target.value)}
-          className="text-xs rounded-md border-border bg-background px-1 py-0.5 !w-auto"
-        >
-          {ACTIVE_HD_OPTIONS.map(opt => (
-            <option key={opt} value={opt}>{opt || '—'}</option>
-          ))}
-        </select>
-      ),
-    },
-    {
-      accessorKey: 'proxies_run',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Prox" />,
-      cell: ({ row }) => (
-        <button
-          onClick={() => toggleField(row.original.id, 'proxies_run', row.original.proxies_run)}
-          className={`text-sm cursor-pointer hover:opacity-70 ${row.original.proxies_run ? '' : 'opacity-40'}`}
-          title={row.original.proxies_run ? 'Proxies run' : 'Mark proxies run'}
-        >
-          {row.original.proxies_run ? '✅' : '⬜'}
-        </button>
-      ),
-    },
-    {
-      accessorKey: 'video_form',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Form" />,
-      cell: ({ row }) => (
-        <button
-          onClick={() => toggleField(row.original.id, 'video_form', row.original.video_form)}
-          className={`text-sm cursor-pointer hover:opacity-70 ${row.original.video_form ? '' : 'opacity-40'}`}
-          title={row.original.video_form ? 'Video form received' : 'Mark video form received'}
-        >
-          {row.original.video_form ? '✅' : '⬜'}
-        </button>
-      ),
-    },
-    {
-      accessorKey: 'status',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-      accessorFn: (row) => STATUS_LABELS[row.status] || row.status,
-      cell: ({ row }) => (
-        <select
-          value={row.original.status}
-          onChange={e => updateJobStatus(row.original.id, e.target.value)}
-          className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
-        >
-          {getLaneStatusOptions('editing_full').map(opt =>
-            opt.divider
-              ? <option key="_divider" disabled>{'────────────'}</option>
-              : <option key={opt.value} value={opt.value}>{opt.label}</option>
-          )}
-        </select>
-      ),
-    },
-    {
-      accessorKey: 'due_date',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Due Date" />,
-      cell: ({ row }) => {
-        const job = row.original
-        if (editingDueDate === job.id) {
-          return (
-            <input
-              type="date"
-              autoFocus
-              defaultValue={job.due_date || ''}
-              onBlur={e => updateDueDate(job.id, e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') updateDueDate(job.id, (e.target as HTMLInputElement).value)
-                if (e.key === 'Escape') setEditingDueDate(null)
-              }}
-              className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
-            />
-          )
-        }
-        return (
-          <button onClick={() => setEditingDueDate(job.id)} className="text-left text-xs hover:underline">
-            {job.due_date
-              ? <span className="text-muted-foreground">{formatDateCompact(job.due_date).replace(/, \d{4}$/, '')}</span>
-              : <span className="text-muted-foreground/50 italic">Set date</span>
-            }
-          </button>
-        )
-      },
-    },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [editingDueDate])
 
   // ── Toggle lane collapse ───────────────────────────────────────
 
@@ -755,6 +677,36 @@ export default function VideoProductionPage() {
       {label}
       {sortColumn === column && (
         <span className="text-foreground">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+      )}
+    </button>
+  )
+
+  const renderRemainingSortHeader = (column: string, label: string) => (
+    <button
+      onClick={() => {
+        if (remainingSortCol === column) setRemainingSortDir(prev => prev === 'asc' ? 'desc' : 'asc')
+        else { setRemainingSortCol(column); setRemainingSortDir('asc') }
+      }}
+      className="flex items-center gap-1 hover:text-foreground transition-colors text-left"
+    >
+      {label}
+      {remainingSortCol === column && (
+        <span className="text-foreground">{remainingSortDir === 'asc' ? '↑' : '↓'}</span>
+      )}
+    </button>
+  )
+
+  const renderCompletedSortHeader = (column: string, label: string) => (
+    <button
+      onClick={() => {
+        if (completedSortCol === column) setCompletedSortDir(prev => prev === 'asc' ? 'desc' : 'asc')
+        else { setCompletedSortCol(column); setCompletedSortDir('asc') }
+      }}
+      className="flex items-center gap-1 hover:text-foreground transition-colors text-left"
+    >
+      {label}
+      {completedSortCol === column && (
+        <span className="text-foreground">{completedSortDir === 'asc' ? '↑' : '↓'}</span>
       )}
     </button>
   )
@@ -1258,13 +1210,139 @@ export default function VideoProductionPage() {
                 </span>
               </button>
             </div>
-            {!remainingByYearCollapsed && (
-              <DataTable
-                columns={videosRemainingColumns}
-                data={videosRemainingByYear}
-                showPagination={false}
-                emptyMessage="No remaining videos"
-              />
+            {!remainingByYearCollapsed && videosRemainingByYear.length > 0 && (
+              <div className="rounded-xl border bg-card overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                        {renderRemainingSortHeader('couple_name', 'Couple')}
+                      </th>
+                      <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">
+                        {renderRemainingSortHeader('wedding_date', 'Wedding Date')}
+                      </th>
+                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">
+                        {renderRemainingSortHeader('days_since', 'Days')}
+                      </th>
+                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
+                        {renderRemainingSortHeader('active_hd', 'HD')}
+                      </th>
+                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
+                        {renderRemainingSortHeader('proxies_run', 'Prox')}
+                      </th>
+                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
+                        {renderRemainingSortHeader('video_form', 'Form')}
+                      </th>
+                      <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                        {renderRemainingSortHeader('status', 'Status')}
+                      </th>
+                      <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">
+                        {renderRemainingSortHeader('due_date', 'Due Date')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {videosRemainingByYear.map(job => {
+                      const wd = job.wedding_date || job.couples?.wedding_date
+                      const daysSince = wd ? Math.floor((new Date().getTime() - new Date(wd).getTime()) / (1000 * 60 * 60 * 24)) : null
+                      return (
+                        <tr key={job.id} className="hover:bg-accent/50 transition-colors">
+                          <td className="p-3">
+                            <button
+                              onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
+                              className="font-medium text-blue-600 hover:underline text-left"
+                            >
+                              {job.couples?.couple_name || 'Unknown'}
+                            </button>
+                          </td>
+                          <td className="p-3 hidden lg:table-cell text-muted-foreground">
+                            {wd ? formatDateCompact(wd) : <span className="text-amber-600 text-xs">No date</span>}
+                          </td>
+                          <td className="p-2 text-center hidden lg:table-cell">
+                            {daysSince !== null ? (
+                              <span className={`text-sm font-medium tabular-nums ${daysSince > 180 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                                {daysSince}
+                              </span>
+                            ) : '—'}
+                          </td>
+                          <td className="p-2 text-center hidden md:table-cell">
+                            <select
+                              value={job.active_hd || ''}
+                              onChange={e => updateActiveHd(job.id, e.target.value)}
+                              className="text-xs rounded-md border-border bg-background px-1 py-0.5 !w-auto"
+                            >
+                              {ACTIVE_HD_OPTIONS.map(opt => (
+                                <option key={opt} value={opt}>{opt || '—'}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="p-2 text-center hidden md:table-cell">
+                            <button
+                              onClick={() => toggleField(job.id, 'proxies_run', job.proxies_run)}
+                              className={`text-sm cursor-pointer hover:opacity-70 ${job.proxies_run ? '' : 'opacity-40'}`}
+                              title={job.proxies_run ? 'Proxies run' : 'Mark proxies run'}
+                            >
+                              {job.proxies_run ? '✅' : '⬜'}
+                            </button>
+                          </td>
+                          <td className="p-2 text-center hidden md:table-cell">
+                            <button
+                              onClick={() => toggleField(job.id, 'video_form', job.video_form)}
+                              className={`text-sm cursor-pointer hover:opacity-70 ${job.video_form ? '' : 'opacity-40'}`}
+                              title={job.video_form ? 'Video form received' : 'Mark video form received'}
+                            >
+                              {job.video_form ? '✅' : '⬜'}
+                            </button>
+                          </td>
+                          <td className="p-3 text-center">
+                            <select
+                              value={job.status}
+                              onChange={e => updateJobStatus(job.id, e.target.value)}
+                              className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
+                            >
+                              {getLaneStatusOptions('editing_full').map(opt =>
+                                opt.divider
+                                  ? <option key="_divider" disabled>{'────────────'}</option>
+                                  : <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              )}
+                            </select>
+                          </td>
+                          <td className="p-3 text-center hidden md:table-cell">
+                            {editingDueDate === job.id ? (
+                              <input
+                                type="date"
+                                autoFocus
+                                defaultValue={job.due_date || ''}
+                                onBlur={e => updateDueDate(job.id, e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') updateDueDate(job.id, (e.target as HTMLInputElement).value)
+                                  if (e.key === 'Escape') setEditingDueDate(null)
+                                }}
+                                className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
+                              />
+                            ) : (
+                              <button
+                                onClick={() => setEditingDueDate(job.id)}
+                                className="text-left text-xs hover:underline"
+                              >
+                                {job.due_date
+                                  ? <span className="text-muted-foreground">{formatDateCompact(job.due_date).replace(/, \d{4}$/, '')}</span>
+                                  : <span className="text-muted-foreground/50 italic">Set date</span>
+                                }
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {!remainingByYearCollapsed && videosRemainingByYear.length === 0 && (
+              <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-lg">
+                No remaining videos
+              </div>
             )}
           </div>
 
@@ -1291,17 +1369,17 @@ export default function VideoProductionPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-muted border-b border-border">
-                      <th className="text-left px-5 py-3 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Couple</th>
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden lg:table-cell text-muted-foreground">Wedding Date</th>
+                      <th className="text-left px-5 py-3 font-semibold text-xs uppercase tracking-wider text-muted-foreground">{renderCompletedSortHeader('couple_name', 'Couple')}</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden lg:table-cell text-muted-foreground">{renderCompletedSortHeader('wedding_date', 'Wedding Date')}</th>
                       {SEGMENTS.map(seg => (
                         <th key={seg.field} className="text-center px-2 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">{seg.shortLabel}</th>
                       ))}
                       <th className="text-center px-2 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">HD</th>
                       <th className="text-center px-2 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">Prox</th>
                       <th className="text-center px-2 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">Form</th>
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">Due Date</th>
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">Date Completed</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider text-muted-foreground">{renderCompletedSortHeader('status', 'Status')}</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">{renderCompletedSortHeader('due_date', 'Due Date')}</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">{renderCompletedSortHeader('completed_date', 'Date Completed')}</th>
                     </tr>
                   </thead>
                   <tbody>
