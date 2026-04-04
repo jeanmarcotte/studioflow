@@ -1,20 +1,13 @@
-"use client"
+'use client'
 
-import { useEffect, useState, useMemo } from "react"
-import { useRouter } from "next/navigation"
-import { useQueryState } from "nuqs"
-import { ColumnDef } from "@tanstack/react-table"
-import { format } from "date-fns"
-import { ControlPageTemplate } from "@/components/templates"
-import {
-  DataTable,
-  DataTableColumnHeader,
-  CollapsibleSection,
-  StatusBadge,
-  StatCard,
-} from "@/components/ui"
-import { supabase } from "@/lib/supabase"
-import { DollarSign, TrendingUp, Percent, Package } from "lucide-react"
+import { useEffect, useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { ColumnDef } from '@tanstack/react-table'
+import { format } from 'date-fns'
+import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
+import { supabase } from '@/lib/supabase'
+import { Search, ChevronDown, ChevronRight } from 'lucide-react'
+import { ProductionPageHeader, ProductionPills, ProductionSidebar } from '@/components/shared'
 
 // Types
 interface ExtrasOrder {
@@ -28,18 +21,14 @@ interface ExtrasOrder {
   signing_book: boolean | null
   wedding_frame_size: string | null
   printed_5x5: boolean | null
-  // Joined from couples
   couple_name?: string
   wedding_date?: string
 }
 
-// Fetch orders with couple data
-async function fetchOrders(year: number): Promise<ExtrasOrder[]> {
-  const startDate = `${year}-01-01`
-  const endDate = `${year}-12-31`
-
+// Fetch all orders with couple data (no year filter — show all)
+async function fetchOrders(): Promise<ExtrasOrder[]> {
   const { data, error } = await supabase
-    .from("extras_orders")
+    .from('extras_orders')
     .select(`
       id,
       couple_id,
@@ -56,311 +45,225 @@ async function fetchOrders(year: number): Promise<ExtrasOrder[]> {
         wedding_date
       )
     `)
-    .gte("order_date", startDate)
-    .lte("order_date", endDate)
-    .order("order_date", { ascending: false })
+    .order('order_date', { ascending: false })
 
   if (error) throw error
 
-  // Flatten the joined data
   return (data || []).map((order: any) => ({
     ...order,
-    couple_name: order.couples?.couple_name || "Unknown",
+    couple_name: order.couples?.couple_name || 'Unknown',
     wedding_date: order.couples?.wedding_date || null,
   }))
 }
 
-// Item icons component
+// Item icons
 function ItemIcons({ order }: { order: ExtrasOrder }) {
   const items = []
-  if (order.collage_size) items.push("🖼️")
-  if (order.album_qty && order.album_qty > 0) items.push("📖")
-  if (order.signing_book) items.push("✍️")
-  if (order.wedding_frame_size) items.push("🎨")
-  if (order.printed_5x5) items.push("📸")
-  return <span className="text-lg">{items.join(" ") || "—"}</span>
+  if (order.collage_size) items.push('🖼️')
+  if (order.album_qty && order.album_qty > 0) items.push('📖')
+  if (order.signing_book) items.push('✍️')
+  if (order.wedding_frame_size) items.push('🎨')
+  if (order.printed_5x5) items.push('📸')
+  return <span className="text-lg">{items.join(' ') || '—'}</span>
 }
 
-// Format currency
 function formatCurrency(amount: number | null): string {
-  if (amount === null || amount === undefined) return "—"
-  return new Intl.NumberFormat("en-CA", {
-    style: "currency",
-    currency: "CAD",
+  if (amount === null || amount === undefined) return '—'
+  return new Intl.NumberFormat('en-CA', {
+    style: 'currency',
+    currency: 'CAD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount)
 }
 
-// Couple name formatter
-function formatCoupleName(name: string | undefined): string {
-  return name || "Unknown Couple"
-}
-
 export default function FrameSalesPage() {
   const router = useRouter()
-
-  // URL state for filters
-  const [year, setYear] = useQueryState("year", {
-    defaultValue: new Date().getFullYear().toString(),
-    parse: (v) => v,
-    serialize: (v) => v,
-  })
-  const [search, setSearch] = useQueryState("q", { defaultValue: "" })
-  const [statusFilter, setStatusFilter] = useQueryState("status")
-
-  // Data state
   const [orders, setOrders] = useState<ExtrasOrder[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
 
-  // Fetch data
   useEffect(() => {
     async function load() {
       setIsLoading(true)
-      setError(null)
       try {
-        const data = await fetchOrders(parseInt(year))
+        const data = await fetchOrders()
         setOrders(data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load orders")
+        console.error('[fetchOrders] Failed:', err)
       } finally {
         setIsLoading(false)
       }
     }
     load()
-  }, [year])
+  }, [])
 
-  // Filter orders
-  const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      // Status filter
-      if (statusFilter && order.status !== statusFilter) return false
-
-      // Search filter
-      if (search) {
-        const searchLower = search.toLowerCase()
-        const coupleName = formatCoupleName(order.couple_name).toLowerCase()
-        if (!coupleName.includes(searchLower)) return false
-      }
-
-      return true
+  const toggleLane = (key: string) => {
+    setCollapsedLanes(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
     })
-  }, [orders, statusFilter, search])
+  }
+
+  // Filter by search
+  const filteredOrders = useMemo(() => {
+    if (!searchQuery) return orders
+    const q = searchQuery.toLowerCase()
+    return orders.filter(o => (o.couple_name || '').toLowerCase().includes(q))
+  }, [orders, searchQuery])
 
   // Group by status
-  const ordersByStatus = useMemo(() => {
-    const groups: Record<string, ExtrasOrder[]> = {
-      signed: [],
-      completed: [],
-      declined: [],
-    }
-    filteredOrders.forEach((order) => {
-      if (groups[order.status]) {
-        groups[order.status].push(order)
-      }
-    })
-    return groups
-  }, [filteredOrders])
+  const signedOrders = useMemo(() => filteredOrders.filter(o => o.status === 'signed'), [filteredOrders])
+  const completedOrders = useMemo(() => filteredOrders.filter(o => o.status === 'completed'), [filteredOrders])
+  const declinedOrders = useMemo(() => filteredOrders.filter(o => o.status === 'declined'), [filteredOrders])
+  const pendingOrders = useMemo(() => filteredOrders.filter(o => o.status === 'pending'), [filteredOrders])
 
-  // Calculate stats
-  const stats = useMemo(() => {
-    const signed = ordersByStatus.signed || []
-    const completed = ordersByStatus.completed || []
+  // Stats
+  const signedRevenue = useMemo(() => signedOrders.reduce((sum, o) => sum + (o.extras_sale_amount || 0), 0), [signedOrders])
 
-    const allSold = [...signed, ...completed]
-    const totalRevenue = allSold.reduce((sum, o) => sum + (o.extras_sale_amount || 0), 0)
-    const avgSale = allSold.length > 0 ? totalRevenue / allSold.length : 0
-    const conversionRate = orders.length > 0
-      ? (allSold.length / orders.length) * 100
-      : 0
-
-    return {
-      totalRevenue,
-      avgSale,
-      conversionRate,
-      signedCount: signed.length,
-      completedCount: completed.length,
-      declinedCount: (ordersByStatus.declined || []).length,
-    }
-  }, [orders, ordersByStatus])
-
-  // Table columns
-  const columns: ColumnDef<ExtrasOrder>[] = [
+  // Column definitions
+  const columns: ColumnDef<ExtrasOrder>[] = useMemo(() => [
     {
-      accessorKey: "couple_name",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Couple" />
+      accessorKey: 'couple_name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+      cell: ({ row }) => (
+        <button
+          onClick={() => row.original.couple_id && router.push(`/admin/couples/${row.original.couple_id}`)}
+          className="text-left font-medium hover:underline"
+        >
+          {row.original.couple_name || 'Unknown Couple'}
+        </button>
       ),
-      cell: ({ row }) => formatCoupleName(row.original.couple_name),
-      filterFn: "includesString",
     },
     {
-      accessorKey: "wedding_date",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Wedding" />
-      ),
+      accessorKey: 'wedding_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Wedding Date" />,
       cell: ({ row }) => {
         const date = row.original.wedding_date
-        return date ? format(new Date(date), "MMM d, yyyy") : "—"
+        return date ? <span className="whitespace-nowrap">{format(new Date(date), 'EEE MMM d, yyyy')}</span> : '—'
       },
     },
     {
-      accessorKey: "order_date",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Order Date" />
-      ),
-      cell: ({ row }) => format(new Date(row.original.order_date), "MMM d, yyyy"),
-    },
-    {
-      accessorKey: "extras_sale_amount",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Amount" />
-      ),
+      accessorKey: 'extras_sale_amount',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Sale Amount" />,
       cell: ({ row }) => (
-        <span className="font-medium">
-          {formatCurrency(row.original.extras_sale_amount)}
-        </span>
+        <span className="font-medium">{formatCurrency(row.original.extras_sale_amount)}</span>
       ),
     },
     {
-      accessorKey: "items",
-      header: "Items",
+      id: 'items',
+      header: 'Items',
       cell: ({ row }) => <ItemIcons order={row.original} />,
       enableSorting: false,
     },
     {
-      accessorKey: "status",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
-      ),
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      accessorKey: 'status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: ({ row }) => {
+        const s = row.original.status
+        const colors = s === 'signed' ? 'bg-green-100 text-green-700'
+          : s === 'completed' ? 'bg-blue-100 text-blue-700'
+          : s === 'declined' ? 'bg-red-100 text-red-700'
+          : 'bg-amber-100 text-amber-700'
+        const label = s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Unknown'
+        return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${colors}`}>{label}</span>
+      },
     },
-  ]
+  ], [router])
 
-  // Calculate section totals
-  const sectionTotal = (orders: ExtrasOrder[]) => {
-    const total = orders.reduce((sum, o) => sum + (o.extras_sale_amount || 0), 0)
-    return formatCurrency(total)
+  // Section renderer
+  const renderSection = (id: string, label: string, data: ExtrasOrder[], badgeClass: string) => {
+    const isCollapsed = collapsedLanes.has(id)
+    return (
+      <div id={id} className="mb-6">
+        <button
+          onClick={() => toggleLane(id)}
+          className="flex items-center gap-3 py-3 hover:opacity-80"
+        >
+          {isCollapsed
+            ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          }
+          <span className={`inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold ${badgeClass}`}>
+            {label}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {data.length} order{data.length !== 1 ? 's' : ''}
+          </span>
+        </button>
+        {!isCollapsed && (
+          <DataTable
+            columns={columns}
+            data={data}
+            showPagination={false}
+            emptyMessage="No orders"
+          />
+        )}
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
   }
 
   return (
-    <ControlPageTemplate
-      title="Frame Sales"
-      subtitle={`Extras orders for ${year}`}
-      primaryAction={{
-        label: "New Sale",
-        onClick: () => {/* TODO: Open new sale modal */},
-      }}
-      searchValue={search || ""}
-      onSearchChange={(v) => setSearch(v || null)}
-      searchPlaceholder="Search couples..."
-      filters={[
-        {
-          key: "year",
-          label: "Year",
-          options: [
-            { value: "2026", label: "2026" },
-            { value: "2025", label: "2025" },
-            { value: "2024", label: "2024" },
-          ],
-          value: year,
-          onChange: (v) => setYear(v || new Date().getFullYear().toString()),
-        },
-        {
-          key: "status",
-          label: "Status",
-          options: [
-            { value: "signed", label: "Signed" },
-            { value: "completed", label: "Completed" },
-            { value: "declined", label: "Declined" },
-          ],
-          value: statusFilter,
-          onChange: setStatusFilter,
-        },
-      ]}
-      onClearFilters={() => {
-        setSearch(null)
-        setStatusFilter(null)
-      }}
-      sidebar={
-        <>
-          <StatCard
-            label="Total Revenue"
-            value={formatCurrency(stats.totalRevenue)}
-            icon={<DollarSign className="h-4 w-4" />}
-          />
-          <StatCard
-            label="Average Sale"
-            value={formatCurrency(stats.avgSale)}
-            icon={<TrendingUp className="h-4 w-4" />}
-          />
-          <StatCard
-            label="Conversion Rate"
-            value={`${stats.conversionRate.toFixed(0)}%`}
-            icon={<Percent className="h-4 w-4" />}
-          />
-          <StatCard
-            label="Total Orders"
-            value={orders.length}
-            icon={<Package className="h-4 w-4" />}
-          />
-        </>
-      }
-      isLoading={isLoading}
-      error={error}
-    >
-      {/* Signed Section */}
-      <CollapsibleSection
-        title="Signed"
-        count={ordersByStatus.signed.length}
-        badge="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-        headerRight={<span className="font-semibold text-green-700 dark:text-green-300">{sectionTotal(ordersByStatus.signed)}</span>}
-        defaultOpen
-      >
-        <DataTable
-          columns={columns}
-          data={ordersByStatus.signed}
-          rowNumber
-          onRowClick={(row) => router.push(`/admin/couples/${row.couple_id}`)}
-          emptyMessage="No signed orders"
-          showPagination={false}
-        />
-      </CollapsibleSection>
+    <div className="space-y-0">
+      <ProductionPageHeader
+        title="Frames & Albums"
+        subtitle="Extras orders by status"
+        reportHref="/admin/production/report"
+        actionLabel="+ New Sale"
+        actionDisabled={true}
+      />
+      {/* TODO WO-317: Link + New Sale once new-sale page is built — don't forget! */}
 
-      {/* Completed Section */}
-      <CollapsibleSection
-        title="Completed"
-        count={ordersByStatus.completed.length}
-        badge="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-        headerRight={<span className="font-semibold text-blue-700 dark:text-blue-300">{sectionTotal(ordersByStatus.completed)}</span>}
-      >
-        <DataTable
-          columns={columns}
-          data={ordersByStatus.completed}
-          rowNumber
-          onRowClick={(row) => router.push(`/admin/couples/${row.couple_id}`)}
-          emptyMessage="No completed orders"
-          showPagination={false}
-        />
-      </CollapsibleSection>
+      <ProductionPills pills={[
+        { label: 'Signed', count: signedOrders.length, color: 'green' },
+        { label: 'Completed', count: completedOrders.length, color: 'blue' },
+        { label: 'Declined', count: declinedOrders.length, color: 'red' },
+        { label: 'Pending', count: pendingOrders.length, color: 'yellow' },
+      ]} />
 
-      {/* Declined Section */}
-      <CollapsibleSection
-        title="Declined"
-        count={ordersByStatus.declined.length}
-        badge="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-        defaultOpen={false}
-      >
-        <DataTable
-          columns={columns}
-          data={ordersByStatus.declined}
-          rowNumber
-          onRowClick={(row) => router.push(`/admin/couples/${row.couple_id}`)}
-          emptyMessage="No declined orders"
-          showPagination={false}
-        />
-      </CollapsibleSection>
-    </ControlPageTemplate>
+      {/* Content area: main panel + stats sidebar */}
+      <div className="flex">
+        {/* Main Panel */}
+        <div className="flex-1 overflow-y-auto p-6 border-r border-border">
+          {/* Search */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search couples..."
+                className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
+              />
+            </div>
+          </div>
+
+          {renderSection('section-signed', 'SIGNED', signedOrders, 'bg-green-100 text-green-700')}
+          {renderSection('section-completed', 'COMPLETED', completedOrders, 'bg-blue-100 text-blue-700')}
+          {renderSection('section-declined', 'DECLINED', declinedOrders, 'bg-red-100 text-red-700')}
+          {renderSection('section-pending', 'PENDING', pendingOrders, 'bg-amber-100 text-amber-700')}
+        </div>
+
+        <ProductionSidebar boxes={[
+          { label: 'TOTAL ORDERS', value: orders.length, scrollToId: 'section-signed', color: 'default' },
+          { label: 'SIGNED', value: signedOrders.length, scrollToId: 'section-signed', color: 'green' },
+          { label: 'COMPLETED', value: completedOrders.length, scrollToId: 'section-completed', color: 'blue' },
+          { label: 'DECLINED', value: declinedOrders.length, scrollToId: 'section-declined', color: 'red' },
+          { label: 'REVENUE', value: formatCurrency(signedRevenue), scrollToId: 'section-signed', color: 'teal' },
+        ]} />
+      </div>
+    </div>
   )
 }
