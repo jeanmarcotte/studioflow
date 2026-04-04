@@ -26,6 +26,7 @@ interface Job {
   due_date: string | null
   at_lab_date: string | null
   notes: string | null
+  completed_date: string | null
   created_at: string
   updated_at: string
   couples?: { couple_name: string; wedding_date: string | null } | null
@@ -154,6 +155,9 @@ export default function PhotoProductionPage() {
 
   // Sidebar popup
   const [popupStatus, setPopupStatus] = useState<string | null>(null)
+
+  // Waiting for Photo Order section
+  const [waitingPhotoOrderOpen, setWaitingPhotoOrderOpen] = useState(true)
 
   // Cemetery (completed & picked up)
   const [cemeteryJobs, setCemeteryJobs] = useState<Job[]>([])
@@ -735,9 +739,9 @@ export default function PhotoProductionPage() {
                         <td></td>
                       </tr>
 
-                      {/* Completed 2026 */}
+                      {/* Completed IN 2026 */}
                       <tr className="border-t border-border bg-muted/60">
-                        <td className={`px-3 py-2.5 font-bold text-sm text-muted-foreground ${nunito.className}`}>Completed 2026</td>
+                        <td className={`px-3 py-2.5 font-bold text-sm text-muted-foreground ${nunito.className}`}>Completed IN 2026</td>
                         <td></td>
                         <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.photosTaken.toLocaleString()}</td>
                         <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.editedSoFar.toLocaleString()}</td>
@@ -879,7 +883,77 @@ export default function PhotoProductionPage() {
             })}
           </div>
 
-          {/* Completed 2026 */}
+          {/* ⏸️ WAITING FOR PHOTO ORDER */}
+          <div className="mt-6 rounded-xl border border-border bg-card">
+            <button
+              onClick={() => setWaitingPhotoOrderOpen(!waitingPhotoOrderOpen)}
+              className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                {waitingPhotoOrderOpen
+                  ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                }
+                <span className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold bg-slate-100 text-slate-700">
+                  ⏸️ WAITING FOR PHOTO ORDER
+                </span>
+                <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-muted text-muted-foreground">
+                  {waitingOrderCouples.length}
+                </span>
+              </div>
+            </button>
+
+            {waitingPhotoOrderOpen && waitingOrderCouples.length > 0 && (
+              <div className="border-t overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted border-b">
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Couple</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Wedding Date</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Days Since Wedding</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Photo Stage</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {waitingOrderCouples.map((couple, i) => {
+                      const daysSince = couple.wedding_date ? differenceInDays(new Date(), parseISO(couple.wedding_date)) : 0
+                      return (
+                        <tr key={couple.id} className={`border-b border-border ${i % 2 === 1 ? 'bg-muted/50' : ''}`}>
+                          <td className="px-3 py-2">
+                            <button
+                              onClick={() => router.push(`/admin/couples/${couple.id}`)}
+                              className="font-medium text-blue-600 hover:underline text-left text-sm"
+                            >
+                              {couple.couple_name}
+                            </button>
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground text-sm">
+                            {couple.wedding_date ? formatDateCompact(couple.wedding_date) : '—'}
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className={`text-sm font-medium ${daysSince > 180 ? 'text-red-600' : daysSince > 90 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                              {daysSince} days
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className="text-xs text-amber-600 font-medium">Awaiting Order</span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {waitingPhotoOrderOpen && waitingOrderCouples.length === 0 && (
+              <div className="border-t px-4 py-6 text-center text-sm text-muted-foreground">
+                No couples waiting for photo order
+              </div>
+            )}
+          </div>
+
+          {/* Completed IN 2026 */}
           <div className="mt-6 rounded-xl border border-border bg-card">
             <button
               onClick={() => setCemeteryOpen(!cemeteryOpen)}
@@ -890,7 +964,7 @@ export default function PhotoProductionPage() {
                   ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   : <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 }
-                <span className="font-semibold text-sm text-muted-foreground">Completed 2026</span>
+                <span className="font-semibold text-sm text-muted-foreground">Completed IN 2026</span>
                 <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-muted text-muted-foreground">
                   {cemeteryJobs.length}
                 </span>
@@ -911,6 +985,7 @@ export default function PhotoProductionPage() {
                       <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">% Deleted</th>
                       <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Vendor</th>
                       <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Date Completed</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -945,6 +1020,9 @@ export default function PhotoProductionPage() {
                               {job.status === 'picked_up' ? 'Picked Up' : 'Completed'}
                             </span>
                           </td>
+                          <td className="px-3 py-2 text-xs text-muted-foreground">
+                            {job.completed_date ? formatDateCompact(job.completed_date) : '—'}
+                          </td>
                         </tr>
                       )
                     })}
@@ -959,7 +1037,7 @@ export default function PhotoProductionPage() {
                       const pctComp = pt > 0 ? ((esf / pt) * 100).toFixed(1) : null
                       return (
                         <tr className="bg-muted border-t-2 border-border">
-                          <td className="px-3 py-2 font-bold text-sm text-muted-foreground">Completed 2026</td>
+                          <td className="px-3 py-2 font-bold text-sm text-muted-foreground">Completed IN 2026</td>
                           <td></td>
                           <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{pt.toLocaleString()}</td>
                           <td className="px-3 py-2 text-right font-semibold text-sm text-muted-foreground">{esf.toLocaleString()}</td>

@@ -109,7 +109,6 @@ const SWIMLANES: { key: SwimlaneKey; label: string; icon: string; badgeClass: st
   { key: 'editing_recap', label: 'EDITING RECAP', icon: '📋', badgeClass: 'bg-violet-100 text-violet-700' },
   { key: 'editing_eng_slideshow', label: 'ENGAGEMENT SLIDESHOW', icon: '💍', badgeClass: 'bg-pink-100 text-pink-700' },
   { key: 'reediting', label: 'REEDITING', icon: '🔄', badgeClass: 'bg-sky-100 text-sky-700' },
-  { key: 'waiting_photo', label: 'WAITING FOR PHOTO ORDER', icon: '⏸️', badgeClass: 'bg-slate-100 text-slate-700' },
   { key: 'completed', label: 'COMPLETED', icon: '✅', badgeClass: 'bg-green-100 text-green-700' },
 ]
 
@@ -637,7 +636,7 @@ export default function VideoProductionPage() {
 
   const isRecapLane = (key: SwimlaneKey) => key === 'editing_recap'
   const isSlideshowLane = (key: SwimlaneKey) => key === 'editing_eng_slideshow'
-  const isWaitingPhotoLane = (key: SwimlaneKey) => key === 'waiting_photo'
+  // waiting_photo lane removed (WO-299) — table moved to Photo page
 
   return (
     <div className="space-y-0">
@@ -857,11 +856,10 @@ export default function VideoProductionPage() {
           {/* Swimlanes */}
           {SWIMLANES.map(lane => {
             if (lane.key === 'completed' && !showCompleted) return null
-            const isWaiting = isWaitingPhotoLane(lane.key)
-            const laneJobCount = isWaiting ? awaitingOrderCouples.length : (processedJobs[lane.key as Exclude<SwimlaneKey, 'waiting_photo'>] || []).length
+            const laneJobCount = (processedJobs[lane.key as Exclude<SwimlaneKey, 'waiting_photo'>] || []).length
 
-            // ── Videos Remaining by Year table (between Reediting and Waiting for Photo) ──
-            const showRemainingBeforeThis = lane.key === 'waiting_photo'
+            // ── Videos Remaining by Year table (between Reediting and Completed) ──
+            const showRemainingBeforeThis = lane.key === 'completed'
             const isCollapsed = collapsedLanes.has(lane.key)
             const recap = isRecapLane(lane.key)
             const slideshow = isSlideshowLane(lane.key)
@@ -1013,51 +1011,8 @@ export default function VideoProductionPage() {
                   )}
                 </div>
 
-                {/* WAITING FOR PHOTO ORDER — couples with video but no photo order */}
-                {isWaiting && !isCollapsed && awaitingOrderCouples.length > 0 && (
-                  <div className="rounded-xl border bg-card overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b bg-muted/50">
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Wedding Date</th>
-                          <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Days Since Wedding</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {awaitingOrderCouples.map(couple => {
-                          const daysSince = couple.wedding_date ? differenceInDays(new Date(), parseISO(couple.wedding_date)) : 0
-                          return (
-                            <tr key={couple.id} className="hover:bg-accent/50 transition-colors">
-                              <td className="p-3">
-                                <button
-                                  onClick={() => router.push(`/admin/couples/${couple.id}`)}
-                                  className="font-medium text-blue-600 hover:underline text-left"
-                                >
-                                  {couple.couple_name}
-                                </button>
-                              </td>
-                              <td className="p-3 text-muted-foreground">
-                                {couple.wedding_date
-                                  ? formatDateCompact(couple.wedding_date)
-                                  : <span className="text-amber-600 text-xs">No date</span>
-                                }
-                              </td>
-                              <td className="p-3">
-                                <span className={`text-sm font-medium ${daysSince > 90 ? 'text-red-600' : 'text-muted-foreground'}`}>
-                                  {daysSince} days
-                                </span>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
                 {/* Regular video job table */}
-                {!isWaiting && !isCollapsed && (() => {
+                {!isCollapsed && (() => {
                   const laneJobs = processedJobs[lane.key as Exclude<SwimlaneKey, 'waiting_photo'>] || []
                   return laneJobs.length > 0 ? (
                   <div className="rounded-xl border bg-card overflow-hidden">
@@ -1243,7 +1198,7 @@ export default function VideoProductionPage() {
             )
           })}
 
-          {/* ══════ ZONE 3: Completed 2026 ══════ */}
+          {/* ══════ ZONE 3: Completed IN 2026 ══════ */}
           <div className={`mt-10 ${nunito.className}`}>
             <button
               onClick={() => setCompleted2026Collapsed(!completed2026Collapsed)}
@@ -1254,7 +1209,7 @@ export default function VideoProductionPage() {
                 : <ChevronDown className="h-4 w-4 transition-colors text-muted-foreground" />
               }
               <span className={`text-base font-bold tracking-tight transition-colors text-muted-foreground ${playfair.className}`}>
-                Completed 2026
+                Completed IN 2026
               </span>
               <span className="inline-flex items-center justify-center h-5 min-w-[22px] px-1.5 rounded-full text-xs font-bold tabular-nums bg-muted text-muted-foreground">
                 {completed2026JobsList.length}
@@ -1276,6 +1231,7 @@ export default function VideoProductionPage() {
                       <th className="text-center px-2 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">Form</th>
                       <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
                       <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">Due Date</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell text-muted-foreground">Date Completed</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1314,6 +1270,9 @@ export default function VideoProductionPage() {
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell text-xs">
                           {job.due_date ? formatDateCompact(job.due_date).replace(/, \d{4}$/, '') : '\u2014'}
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell text-xs">
+                          {job.completed_date ? formatDateCompact(job.completed_date) : '—'}
                         </td>
                       </tr>
                     ))}
