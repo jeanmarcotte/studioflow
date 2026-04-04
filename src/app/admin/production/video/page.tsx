@@ -1347,7 +1347,7 @@ export default function VideoProductionPage() {
 
           <div className="rounded-xl border bg-card p-4">
             <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">WAITING FOR PHOTO</div>
-            <div className="text-3xl font-bold" style={{ color: '#ea580c' }}>{pipelineStats.fullWaitingBride}</div>
+            <div className="text-3xl font-bold" style={{ color: '#ea580c' }}>{awaitingOrderCouples.length}</div>
           </div>
         </aside>
       </div>
