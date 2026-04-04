@@ -855,8 +855,6 @@ export default function VideoProductionPage() {
             if (lane.key === 'completed' && !showCompleted) return null
             const laneJobCount = (processedJobs[lane.key as Exclude<SwimlaneKey, 'waiting_photo'>] || []).length
 
-            // ── Videos Remaining by Year table (between Reediting and Completed) ──
-            const showRemainingBeforeThis = lane.key === 'completed'
             const isCollapsed = collapsedLanes.has(lane.key)
             const recap = isRecapLane(lane.key)
             const slideshow = isSlideshowLane(lane.key)
@@ -864,159 +862,6 @@ export default function VideoProductionPage() {
 
             return (
               <div key={lane.key}>
-                {showRemainingBeforeThis && (
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between py-3">
-                      <button
-                        onClick={() => setRemainingByYearCollapsed(!remainingByYearCollapsed)}
-                        className="flex items-center gap-3 text-left hover:opacity-80"
-                      >
-                        {remainingByYearCollapsed
-                          ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                          : <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        }
-                        <span className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold bg-orange-100 text-orange-700">
-                          📅 VIDEOS REMAINING BY YEAR
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {videosRemainingByYear.length} video{videosRemainingByYear.length !== 1 ? 's' : ''}
-                        </span>
-                      </button>
-                    </div>
-                    {!remainingByYearCollapsed && videosRemainingByYear.length > 0 && (
-                      <div className="rounded-xl border bg-card overflow-hidden">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b bg-muted/50">
-                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
-                              <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Wedding Date</th>
-                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Days</th>
-                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">HD</th>
-                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Prox</th>
-                              <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Form</th>
-                              <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Status</th>
-                              <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Due Date</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y">
-                            {videosRemainingByYear.map((job, idx) => {
-                              const wd = job.wedding_date || job.couples?.wedding_date
-                              const daysSince = wd ? Math.floor((new Date().getTime() - new Date(wd).getTime()) / (1000 * 60 * 60 * 24)) : null
-                              const year = wd ? new Date(wd).getFullYear() : null
-                              const prevJob = idx > 0 ? videosRemainingByYear[idx - 1] : null
-                              const prevWd = prevJob ? (prevJob.wedding_date || prevJob.couples?.wedding_date) : null
-                              const prevYear = prevWd ? new Date(prevWd).getFullYear() : null
-                              const showYearHeader = year !== prevYear
-                              return (
-                                <React.Fragment key={job.id}>
-                                  {showYearHeader && (
-                                    <tr className="bg-muted/70">
-                                      <td colSpan={8} className="px-3 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground">
-                                        {year ? `${year} Weddings` : 'No Wedding Date'}
-                                      </td>
-                                    </tr>
-                                  )}
-                                  <tr className="hover:bg-accent/50 transition-colors">
-                                    <td className="p-3">
-                                      <button
-                                        onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
-                                        className="font-medium text-blue-600 hover:underline text-left"
-                                      >
-                                        {job.couples?.couple_name || 'Unknown'}
-                                      </button>
-                                    </td>
-                                    <td className="p-3 hidden lg:table-cell text-muted-foreground">
-                                      {wd ? formatDateCompact(wd) : <span className="text-amber-600 text-xs">No date</span>}
-                                    </td>
-                                    <td className="p-2 text-center hidden lg:table-cell">
-                                      {daysSince !== null ? (
-                                        <span className={`text-sm font-medium tabular-nums ${daysSince > 180 ? 'text-red-600' : 'text-muted-foreground'}`}>
-                                          {daysSince}
-                                        </span>
-                                      ) : '—'}
-                                    </td>
-                                    <td className="p-2 text-center hidden md:table-cell">
-                                      <select
-                                        value={job.active_hd || ''}
-                                        onChange={e => updateActiveHd(job.id, e.target.value)}
-                                        className="text-xs rounded-md border-border bg-background px-1 py-0.5 !w-auto"
-                                      >
-                                        {ACTIVE_HD_OPTIONS.map(opt => (
-                                          <option key={opt} value={opt}>{opt || '—'}</option>
-                                        ))}
-                                      </select>
-                                    </td>
-                                    <td className="p-2 text-center hidden md:table-cell">
-                                      <button
-                                        onClick={() => toggleField(job.id, 'proxies_run', job.proxies_run)}
-                                        className={`text-sm cursor-pointer hover:opacity-70 ${job.proxies_run ? '' : 'opacity-40'}`}
-                                        title={job.proxies_run ? 'Proxies run' : 'Mark proxies run'}
-                                      >
-                                        {job.proxies_run ? '✅' : '⬜'}
-                                      </button>
-                                    </td>
-                                    <td className="p-2 text-center hidden md:table-cell">
-                                      <button
-                                        onClick={() => toggleField(job.id, 'video_form', job.video_form)}
-                                        className={`text-sm cursor-pointer hover:opacity-70 ${job.video_form ? '' : 'opacity-40'}`}
-                                        title={job.video_form ? 'Video form received' : 'Mark video form received'}
-                                      >
-                                        {job.video_form ? '✅' : '⬜'}
-                                      </button>
-                                    </td>
-                                    <td className="p-3 text-center">
-                                      <select
-                                        value={job.status}
-                                        onChange={e => updateJobStatus(job.id, e.target.value)}
-                                        className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
-                                      >
-                                        {getLaneStatusOptions('editing_full').map(opt =>
-                                          opt.divider
-                                            ? <option key="_divider" disabled>{'────────────'}</option>
-                                            : <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                        )}
-                                      </select>
-                                    </td>
-                                    <td className="p-3 text-center hidden md:table-cell">
-                                      {editingDueDate === job.id ? (
-                                        <input
-                                          type="date"
-                                          autoFocus
-                                          defaultValue={job.due_date || ''}
-                                          onBlur={e => updateDueDate(job.id, e.target.value)}
-                                          onKeyDown={e => {
-                                            if (e.key === 'Enter') updateDueDate(job.id, (e.target as HTMLInputElement).value)
-                                            if (e.key === 'Escape') setEditingDueDate(null)
-                                          }}
-                                          className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
-                                        />
-                                      ) : (
-                                        <button
-                                          onClick={() => setEditingDueDate(job.id)}
-                                          className="text-left text-xs hover:underline"
-                                        >
-                                          {job.due_date
-                                            ? <span className="text-muted-foreground">{formatDateCompact(job.due_date).replace(/, \d{4}$/, '')}</span>
-                                            : <span className="text-muted-foreground/50 italic">Set date</span>
-                                          }
-                                        </button>
-                                      )}
-                                    </td>
-                                  </tr>
-                                </React.Fragment>
-                              )
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                    {!remainingByYearCollapsed && videosRemainingByYear.length === 0 && (
-                      <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-lg">
-                        No remaining videos
-                      </div>
-                    )}
-                  </div>
-                )}
               <div
                 className="mb-6"
                 ref={lane.key === 'editing_full' ? editingRef : undefined}
@@ -1258,6 +1103,159 @@ export default function VideoProductionPage() {
               </div>
             )
           })}
+
+          {/* ══════ Videos Remaining by Year ══════ */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between py-3">
+              <button
+                onClick={() => setRemainingByYearCollapsed(!remainingByYearCollapsed)}
+                className="flex items-center gap-3 text-left hover:opacity-80"
+              >
+                {remainingByYearCollapsed
+                  ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                }
+                <span className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold bg-orange-100 text-orange-700">
+                  📅 VIDEOS REMAINING BY YEAR
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {videosRemainingByYear.length} video{videosRemainingByYear.length !== 1 ? 's' : ''}
+                </span>
+              </button>
+            </div>
+            {!remainingByYearCollapsed && videosRemainingByYear.length > 0 && (
+              <div className="rounded-xl border bg-card overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Couple</th>
+                      <th className="text-left p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Wedding Date</th>
+                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Days</th>
+                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">HD</th>
+                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Prox</th>
+                      <th className="text-center p-2 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Form</th>
+                      <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground">Status</th>
+                      <th className="text-center p-3 font-medium text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Due Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {videosRemainingByYear.map((job, idx) => {
+                      const wd = job.wedding_date || job.couples?.wedding_date
+                      const daysSince = wd ? Math.floor((new Date().getTime() - new Date(wd).getTime()) / (1000 * 60 * 60 * 24)) : null
+                      const year = wd ? new Date(wd).getFullYear() : null
+                      const prevJob = idx > 0 ? videosRemainingByYear[idx - 1] : null
+                      const prevWd = prevJob ? (prevJob.wedding_date || prevJob.couples?.wedding_date) : null
+                      const prevYear = prevWd ? new Date(prevWd).getFullYear() : null
+                      const showYearHeader = year !== prevYear
+                      return (
+                        <React.Fragment key={job.id}>
+                          {showYearHeader && (
+                            <tr className="bg-muted/70">
+                              <td colSpan={8} className="px-3 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                                {year ? `${year} Weddings` : 'No Wedding Date'}
+                              </td>
+                            </tr>
+                          )}
+                          <tr className="hover:bg-accent/50 transition-colors">
+                            <td className="p-3">
+                              <button
+                                onClick={() => job.couple_id && router.push(`/admin/couples/${job.couple_id}`)}
+                                className="font-medium text-blue-600 hover:underline text-left"
+                              >
+                                {job.couples?.couple_name || 'Unknown'}
+                              </button>
+                            </td>
+                            <td className="p-3 hidden lg:table-cell text-muted-foreground">
+                              {wd ? formatDateCompact(wd) : <span className="text-amber-600 text-xs">No date</span>}
+                            </td>
+                            <td className="p-2 text-center hidden lg:table-cell">
+                              {daysSince !== null ? (
+                                <span className={`text-sm font-medium tabular-nums ${daysSince > 180 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                                  {daysSince}
+                                </span>
+                              ) : '—'}
+                            </td>
+                            <td className="p-2 text-center hidden md:table-cell">
+                              <select
+                                value={job.active_hd || ''}
+                                onChange={e => updateActiveHd(job.id, e.target.value)}
+                                className="text-xs rounded-md border-border bg-background px-1 py-0.5 !w-auto"
+                              >
+                                {ACTIVE_HD_OPTIONS.map(opt => (
+                                  <option key={opt} value={opt}>{opt || '—'}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="p-2 text-center hidden md:table-cell">
+                              <button
+                                onClick={() => toggleField(job.id, 'proxies_run', job.proxies_run)}
+                                className={`text-sm cursor-pointer hover:opacity-70 ${job.proxies_run ? '' : 'opacity-40'}`}
+                                title={job.proxies_run ? 'Proxies run' : 'Mark proxies run'}
+                              >
+                                {job.proxies_run ? '✅' : '⬜'}
+                              </button>
+                            </td>
+                            <td className="p-2 text-center hidden md:table-cell">
+                              <button
+                                onClick={() => toggleField(job.id, 'video_form', job.video_form)}
+                                className={`text-sm cursor-pointer hover:opacity-70 ${job.video_form ? '' : 'opacity-40'}`}
+                                title={job.video_form ? 'Video form received' : 'Mark video form received'}
+                              >
+                                {job.video_form ? '✅' : '⬜'}
+                              </button>
+                            </td>
+                            <td className="p-3 text-center">
+                              <select
+                                value={job.status}
+                                onChange={e => updateJobStatus(job.id, e.target.value)}
+                                className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
+                              >
+                                {getLaneStatusOptions('editing_full').map(opt =>
+                                  opt.divider
+                                    ? <option key="_divider" disabled>{'────────────'}</option>
+                                    : <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                )}
+                              </select>
+                            </td>
+                            <td className="p-3 text-center hidden md:table-cell">
+                              {editingDueDate === job.id ? (
+                                <input
+                                  type="date"
+                                  autoFocus
+                                  defaultValue={job.due_date || ''}
+                                  onBlur={e => updateDueDate(job.id, e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') updateDueDate(job.id, (e.target as HTMLInputElement).value)
+                                    if (e.key === 'Escape') setEditingDueDate(null)
+                                  }}
+                                  className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
+                                />
+                              ) : (
+                                <button
+                                  onClick={() => setEditingDueDate(job.id)}
+                                  className="text-left text-xs hover:underline"
+                                >
+                                  {job.due_date
+                                    ? <span className="text-muted-foreground">{formatDateCompact(job.due_date).replace(/, \d{4}$/, '')}</span>
+                                    : <span className="text-muted-foreground/50 italic">Set date</span>
+                                  }
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        </React.Fragment>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {!remainingByYearCollapsed && videosRemainingByYear.length === 0 && (
+              <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-lg">
+                No remaining videos
+              </div>
+            )}
+          </div>
 
           {/* ══════ ZONE 3: Completed in 2026 ══════ */}
           <div className={`mt-10 ${nunito.className}`}>
