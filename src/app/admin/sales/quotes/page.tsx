@@ -2,11 +2,13 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, CheckCircle, XCircle, Clock, TrendingUp, ChevronUp, ChevronDown, FileText, Pencil, Download, Eye } from 'lucide-react'
-import { supabase, getQuoteByCoupleId, updateCoupleStatus, updateQuoteStatus } from '@/lib/supabase'
+import { ChevronDown, ChevronRight, FileText, Eye, Search } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { ColumnDef } from '@tanstack/react-table'
+import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
+import { ProductionPageHeader, ProductionPills, ProductionSidebar } from '@/components/shared'
 import { formatCurrency, formatDateCompact } from '@/lib/formatters'
 import jsPDF from 'jspdf'
-import { generateQuotePdf, QuotePdfData } from '@/lib/generateQuotePdf'
 
 interface SalesMeeting {
   id: number
@@ -95,8 +97,8 @@ export default function CoupleQuotesPage() {
   const router = useRouter()
   const [meetings, setMeetings] = useState<SalesMeeting[]>([])
   const [meetingsLoading, setMeetingsLoading] = useState(true)
-  const [sortField, setSortField] = useState<string>('status')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
+  const [searchQuery, setSearchQuery] = useState('')
   const [showCosts, setShowCosts] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {}
     LEAD_SOURCES_CONFIG.forEach(s => { init[s.name] = s.defaultShowCost })
@@ -516,300 +518,314 @@ export default function CoupleQuotesPage() {
     doc.save(`SIGS_Sales_Pipeline_Report_${stamp}.pdf`)
   }
 
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Couple Quotes</h1>
-          <p className="text-muted-foreground">Winter 2026 appointments (Jan–Aug)</p>
-        </div>
+  const toggleLane = (key: string) => {
+    setCollapsedLanes(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  // Filter meetings by search
+  const filteredMeetings = useMemo(() => {
+    if (!searchQuery) return meetings
+    const q = searchQuery.toLowerCase()
+    return meetings.filter(m => {
+      const couple = m.groom_name ? `${m.bride_name} & ${m.groom_name}` : m.bride_name
+      return couple.toLowerCase().includes(q) || (m.lead_source || '').toLowerCase().includes(q)
+    })
+  }, [meetings, searchQuery])
+
+  const bookedMeetings = useMemo(() => filteredMeetings.filter(m => m.status === 'Booked'), [filteredMeetings])
+  const failedMeetings = useMemo(() => filteredMeetings.filter(m => m.status === 'Failed'), [filteredMeetings])
+  const pendingMeetings = useMemo(() => filteredMeetings.filter(m => m.status === 'Pending'), [filteredMeetings])
+
+  // DataTable column definitions
+  const meetingColumns: ColumnDef<SalesMeeting>[] = useMemo(() => [
+    {
+      id: 'meeting_num',
+      accessorKey: 'meeting_num',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="#" />,
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.meeting_num}</span>,
+    },
+    {
+      id: 'couple',
+      accessorFn: (row) => row.groom_name ? `${row.bride_name} & ${row.groom_name}` : row.bride_name,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+      cell: ({ row }) => {
+        const m = row.original
+        return <span className="font-medium">{m.groom_name ? `${m.bride_name} & ${m.groom_name}` : m.bride_name}</span>
+      },
+    },
+    {
+      id: 'wedding_date',
+      accessorKey: 'wedding_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Wedding Date" />,
+      cell: ({ row }) => <span className="whitespace-nowrap">{fmtDate(row.original.wedding_date)}</span>,
+    },
+    {
+      id: 'appt_date',
+      accessorKey: 'appt_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Appt Date" />,
+      cell: ({ row }) => <span className="whitespace-nowrap">{fmtDate(row.original.appt_date)}</span>,
+    },
+    {
+      id: 'lead_source',
+      accessorKey: 'lead_source',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Lead Source" />,
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.lead_source || '—'}</span>,
+    },
+    {
+      id: 'quoted_amount',
+      accessorFn: (row) => Number(row.quoted_amount) || 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Quoted $" />,
+      cell: ({ row }) => {
+        const amt = row.original.quoted_amount
+        return amt && Number(amt) > 0
+          ? <span className="font-medium">{fmtMoney(Number(amt))}</span>
+          : <span className="text-muted-foreground">—</span>
+      },
+    },
+    {
+      id: 'status',
+      accessorKey: 'status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: ({ row }) => {
+        const m = row.original
+        return (
+          <select
+            value={m.status || 'Pending'}
+            onChange={(e) => handleStatusChange(m, e.target.value)}
+            className={`rounded-full px-2.5 py-0.5 text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary ${
+              m.status === 'Booked' ? 'bg-green-100 text-green-700' :
+              m.status === 'Failed' ? 'bg-red-100 text-red-700' :
+              'bg-amber-100 text-amber-700'
+            }`}
+          >
+            <option value="Booked">Booked</option>
+            <option value="Pending">Pending</option>
+            <option value="Failed">Failed</option>
+          </select>
+        )
+      },
+      enableSorting: false,
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => {
+        const m = row.original
+        if (!m.client_quote_id) return null
+        return (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => router.push(`/client/new-quote?id=${m.client_quote_id}`)}
+              className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+              title="View Quote"
+            >
+              <Eye className="h-3 w-3" />
+              View
+            </button>
+            <button
+              onClick={() => router.push(`/admin/contracts/generate?quote_id=${m.client_quote_id}`)}
+              className="inline-flex items-center gap-1 rounded-md bg-muted border border-border px-2 py-1.5 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors"
+              title="Contract"
+            >
+              <FileText className="h-3 w-3" />
+              Contract
+            </button>
+          </div>
+        )
+      },
+      enableSorting: false,
+    },
+  ], [handleStatusChange, router])
+
+  // Collapsible section helper
+  const renderSection = (id: string, label: string, data: SalesMeeting[], badgeClass: string) => {
+    const isCollapsed = collapsedLanes.has(id)
+    return (
+      <div id={id} className="mb-6">
         <button
-          onClick={generatePipelineReport}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          onClick={() => toggleLane(id)}
+          className="flex items-center gap-3 py-3 hover:opacity-80"
         >
-          <Download className="h-4 w-4" />
-          Download Report
+          {isCollapsed
+            ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          }
+          <span className={`inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold ${badgeClass}`}>
+            {label}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {data.length} meeting{data.length !== 1 ? 's' : ''}
+          </span>
         </button>
+        {!isCollapsed && (
+          <DataTable
+            columns={meetingColumns}
+            data={data}
+            showPagination={false}
+            emptyMessage="No meetings"
+          />
+        )}
       </div>
+    )
+  }
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-            <Calendar className="h-4 w-4" />
-            Meetings
-          </div>
-          <div className="text-2xl font-bold">{stats.total}</div>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 text-green-600 text-sm mb-1">
-            <CheckCircle className="h-4 w-4" />
-            Booked
-          </div>
-          <div className="text-2xl font-bold text-green-600">{stats.booked}</div>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 text-red-600 text-sm mb-1">
-            <XCircle className="h-4 w-4" />
-            Failed
-          </div>
-          <div className="text-2xl font-bold text-red-600">{stats.failed}</div>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 text-amber-600 text-sm mb-1">
-            <Clock className="h-4 w-4" />
-            Pending
-          </div>
-          <div className="text-2xl font-bold text-amber-600">{stats.pending}</div>
-        </div>
-        <div className="rounded-xl border bg-card p-4 col-span-2 sm:col-span-1">
-          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-            <TrendingUp className="h-4 w-4" />
-            Conversion
-          </div>
-          <div className="text-2xl font-bold">{stats.conversion}%</div>
-        </div>
+  if (meetingsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
+    )
+  }
 
-      {/* Lead Source Breakdown */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Lead Source Breakdown</h2>
-        <div className="rounded-xl border bg-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left p-3 font-medium">Source</th>
-                  <th className="text-right p-3 font-medium">Appts</th>
-                  <th className="text-right p-3 font-medium">Bookings</th>
-                  <th className="text-right p-3 font-medium">Fail</th>
-                  <th className="text-right p-3 font-medium">Pending</th>
-                  <th className="text-right p-3 font-medium">Show Cost</th>
-                  <th className="text-right p-3 font-medium">Cost/Lead</th>
-                  <th className="text-right p-3 font-medium">Cost/Sale</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {leadSourceRows.map((row) => (
-                  <tr key={row.name} className="hover:bg-accent/50 transition-colors">
-                    <td className="p-3 font-medium">{row.name}</td>
-                    <td className="p-3 text-right">{row.appointments}</td>
-                    <td className="p-3 text-right">{row.bookings}</td>
-                    <td className="p-3 text-right">{row.fail}</td>
-                    <td className="p-3 text-right">{row.pending}</td>
-                    <td className="p-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <span className="text-muted-foreground">$</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={row.showCost || ''}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0
-                            setShowCosts(prev => ({ ...prev, [row.name]: val }))
-                          }}
-                          onBlur={(e) => {
-                            const val = parseFloat(e.target.value) || 0
-                            const slug = slugByName[row.name]
-                            if (slug) {
-                              fetch('/api/sales/lead-sources', {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ slug, show_cost: val }),
-                              }).catch(err => console.error('[saveShowCost] Failed:', err))
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-                          }}
-                          className="w-24 text-right bg-transparent border border-border rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </td>
-                    <td className="p-3 text-right text-muted-foreground">
-                      {row.costPerLead !== null ? fmtMoney(row.costPerLead) : '—'}
-                    </td>
-                    <td className="p-3 text-right text-muted-foreground">
-                      {row.costPerSale !== null ? fmtMoney(row.costPerSale) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 bg-muted/30 font-semibold">
-                  <td className="p-3">TOTALS</td>
-                  <td className="p-3 text-right">{leadTotals.appointments}</td>
-                  <td className="p-3 text-right">{leadTotals.bookings}</td>
-                  <td className="p-3 text-right">{leadTotals.fail}</td>
-                  <td className="p-3 text-right">{leadTotals.pending}</td>
-                  <td className="p-3 text-right">{fmtMoney(leadTotals.showCost)}</td>
-                  <td className="p-3 text-right">{leadTotals.costPerLead !== null ? fmtMoney(leadTotals.costPerLead) : '—'}</td>
-                  <td className="p-3 text-right">{leadTotals.costPerSale !== null ? fmtMoney(leadTotals.costPerSale) : '—'}</td>
-                </tr>
-              </tfoot>
-            </table>
+  return (
+    <div className="space-y-0">
+      <ProductionPageHeader
+        title="Couple Quotes"
+        subtitle="2026 sales meetings"
+        reportHref="/admin/production/report"
+        actionLabel="+ New Sale"
+        actionHref="https://bridalflow.vercel.app/admin"
+        actionNewTab={true}
+      />
+
+      <ProductionPills pills={[
+        { label: 'Booked', count: stats.booked, color: 'green' },
+        { label: 'Failed', count: stats.failed, color: 'red' },
+        { label: 'Pending', count: stats.pending, color: 'yellow' },
+      ]} />
+
+      {/* Content area: main panel + stats sidebar */}
+      <div className="flex">
+        {/* Main Panel */}
+        <div className="flex-1 overflow-y-auto p-6 border-r border-border">
+          {/* Search */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search couples or lead sources..."
+                className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
+              />
+            </div>
+          </div>
+
+          {renderSection('section-all', 'ALL MEETINGS', filteredMeetings, 'bg-gray-100 text-gray-700')}
+          {renderSection('section-booked', 'BOOKED', bookedMeetings, 'bg-green-100 text-green-700')}
+          {renderSection('section-failed', 'FAILED', failedMeetings, 'bg-red-100 text-red-700')}
+          {renderSection('section-pending', 'PENDING', pendingMeetings, 'bg-amber-100 text-amber-700')}
+
+          {/* Lead Source Breakdown */}
+          <div id="section-lead-sources" className="mb-6">
+            <button
+              onClick={() => toggleLane('section-lead-sources')}
+              className="flex items-center gap-3 py-3 hover:opacity-80"
+            >
+              {collapsedLanes.has('section-lead-sources')
+                ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              }
+              <span className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold bg-blue-100 text-blue-700">
+                LEAD SOURCE BREAKDOWN
+              </span>
+            </button>
+            {!collapsedLanes.has('section-lead-sources') && (
+              <div className="rounded-xl border bg-card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left p-3 font-medium">Source</th>
+                        <th className="text-right p-3 font-medium">Appts</th>
+                        <th className="text-right p-3 font-medium">Bookings</th>
+                        <th className="text-right p-3 font-medium">Fail</th>
+                        <th className="text-right p-3 font-medium">Pending</th>
+                        <th className="text-right p-3 font-medium">Show Cost</th>
+                        <th className="text-right p-3 font-medium">Cost/Lead</th>
+                        <th className="text-right p-3 font-medium">Cost/Sale</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {leadSourceRows.map((row) => (
+                        <tr key={row.name} className="hover:bg-accent/50 transition-colors">
+                          <td className="p-3 font-medium">{row.name}</td>
+                          <td className="p-3 text-right">{row.appointments}</td>
+                          <td className="p-3 text-right">{row.bookings}</td>
+                          <td className="p-3 text-right">{row.fail}</td>
+                          <td className="p-3 text-right">{row.pending}</td>
+                          <td className="p-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="text-muted-foreground">$</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={row.showCost || ''}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value) || 0
+                                  setShowCosts(prev => ({ ...prev, [row.name]: val }))
+                                }}
+                                onBlur={(e) => {
+                                  const val = parseFloat(e.target.value) || 0
+                                  const slug = slugByName[row.name]
+                                  if (slug) {
+                                    fetch('/api/sales/lead-sources', {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ slug, show_cost: val }),
+                                    }).catch(err => console.error('[saveShowCost] Failed:', err))
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                                }}
+                                className="w-24 text-right bg-transparent border border-border rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                placeholder="0.00"
+                              />
+                            </div>
+                          </td>
+                          <td className="p-3 text-right text-muted-foreground">
+                            {row.costPerLead !== null ? fmtMoney(row.costPerLead) : '—'}
+                          </td>
+                          <td className="p-3 text-right text-muted-foreground">
+                            {row.costPerSale !== null ? fmtMoney(row.costPerSale) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 bg-muted/30 font-semibold">
+                        <td className="p-3">TOTALS</td>
+                        <td className="p-3 text-right">{leadTotals.appointments}</td>
+                        <td className="p-3 text-right">{leadTotals.bookings}</td>
+                        <td className="p-3 text-right">{leadTotals.fail}</td>
+                        <td className="p-3 text-right">{leadTotals.pending}</td>
+                        <td className="p-3 text-right">{fmtMoney(leadTotals.showCost)}</td>
+                        <td className="p-3 text-right">{leadTotals.costPerLead !== null ? fmtMoney(leadTotals.costPerLead) : '—'}</td>
+                        <td className="p-3 text-right">{leadTotals.costPerSale !== null ? fmtMoney(leadTotals.costPerSale) : '—'}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Completed Sales Meetings */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Completed Sales Meetings</h2>
-        <div className="rounded-xl border bg-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  {[
-                    { key: 'meeting_num', label: '#', align: 'text-left', className: 'w-10' },
-                    { key: 'couple', label: 'Couple', align: 'text-left', className: '' },
-                    { key: 'wedding_date', label: 'Wedding Date', align: 'text-left', className: 'hidden sm:table-cell' },
-                    { key: 'service_needs', label: 'Needs', align: 'text-left', className: 'hidden lg:table-cell' },
-                    { key: 'lead_source', label: 'Lead Source', align: 'text-left', className: 'hidden md:table-cell' },
-                    { key: 'appt_date', label: 'Appt Date', align: 'text-left', className: 'hidden lg:table-cell' },
-                    { key: 'quoted_amount', label: 'Quoted $', align: 'text-center', className: '' },
-                    { key: 'days', label: 'Days', align: 'text-center', className: 'hidden sm:table-cell w-16' },
-                    { key: 'status', label: 'Status', align: 'text-left', className: '' },
-                  ].map(col => (
-                    <th
-                      key={col.key}
-                      className={`${col.align} p-3 font-medium ${col.className} cursor-pointer select-none hover:bg-muted/80 transition-colors`}
-                      onClick={() => {
-                        if (sortField === col.key) {
-                          setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
-                        } else {
-                          setSortField(col.key)
-                          setSortDirection('asc')
-                        }
-                      }}
-                    >
-                      <span className="inline-flex items-center gap-1">
-                        {col.label}
-                        {sortField === col.key ? (
-                          sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                        ) : (
-                          <span className="h-3 w-3 opacity-0 group-hover:opacity-30">↕</span>
-                        )}
-                      </span>
-                    </th>
-                  ))}
-                  <th className="text-left p-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {meetingsLoading ? (
-                  <tr>
-                    <td colSpan={10} className="p-8 text-center text-muted-foreground">Loading meetings...</td>
-                  </tr>
-                ) : meetings.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} className="p-8 text-center text-muted-foreground">No meetings found</td>
-                  </tr>
-                ) : [...meetings].sort((a, b) => {
-                  const dir = sortDirection === 'asc' ? 1 : -1
-                  switch (sortField) {
-                    case 'meeting_num': return (a.meeting_num - b.meeting_num) * dir
-                    case 'couple': {
-                      const ac = a.groom_name ? `${a.bride_name} & ${a.groom_name}` : a.bride_name
-                      const bc = b.groom_name ? `${b.bride_name} & ${b.groom_name}` : b.bride_name
-                      return ac.localeCompare(bc) * dir
-                    }
-                    case 'wedding_date': return ((a.wedding_date || '').localeCompare(b.wedding_date || '')) * dir
-                    case 'service_needs': return ((a.service_needs || '').localeCompare(b.service_needs || '')) * dir
-                    case 'lead_source': return ((a.lead_source || '').localeCompare(b.lead_source || '')) * dir
-                    case 'appt_date': return ((a.appt_date || '').localeCompare(b.appt_date || '')) * dir
-                    case 'quoted_amount': return ((Number(a.quoted_amount) || 0) - (Number(b.quoted_amount) || 0)) * dir
-                    case 'days': {
-                      const now = new Date().setHours(0,0,0,0)
-                      const da = a.appt_date ? Math.floor((now - new Date(a.appt_date + 'T12:00:00').getTime()) / 86400000) : -Infinity
-                      const db = b.appt_date ? Math.floor((now - new Date(b.appt_date + 'T12:00:00').getTime()) / 86400000) : -Infinity
-                      return (da - db) * dir
-                    }
-                    case 'status': {
-                      const statusOrder: Record<string, number> = { Pending: 0, Booked: 1, Failed: 2 }
-                      const sa = statusOrder[a.status || 'Pending'] ?? 1
-                      const sb = statusOrder[b.status || 'Pending'] ?? 1
-                      if (sa !== sb) return (sa - sb) * dir
-                      // Tiebreaker: appt_date descending (most recent first)
-                      return (b.appt_date || '').localeCompare(a.appt_date || '')
-                    }
-                    default: return 0
-                  }
-                }).map(m => {
-                  const couple = m.groom_name ? `${m.bride_name} & ${m.groom_name}` : m.bride_name
-                  const needsLabel = m.service_needs === 'photo_only' ? 'Photo Only'
-                    : m.service_needs === 'photo_video' ? 'Photo & Video'
-                    : m.service_needs === 'video_only' ? 'Video Only'
-                    : m.service_needs || '—'
-                  const daysSince = m.appt_date
-                    ? Math.floor((new Date().setHours(0,0,0,0) - new Date(m.appt_date + 'T12:00:00').getTime()) / 86400000)
-                    : null
-                  const rowBg = m.status === 'Booked' ? 'bg-green-50' : m.status === 'Pending' ? 'bg-teal-50' : ''
-
-                  return (
-                    <tr key={m.id} className={`hover:bg-accent/50 transition-colors ${rowBg}`}>
-                      <td className="p-3 text-muted-foreground">{m.meeting_num}</td>
-                      <td className="p-3 font-medium">{couple}</td>
-                      <td className="p-3 hidden sm:table-cell whitespace-nowrap">{fmtDate(m.wedding_date)}</td>
-                      <td className="p-3 hidden lg:table-cell text-muted-foreground">{needsLabel}</td>
-                      <td className="p-3 hidden md:table-cell text-muted-foreground">{m.lead_source || '—'}</td>
-                      <td className="p-3 hidden lg:table-cell whitespace-nowrap">{fmtDate(m.appt_date)}</td>
-                      <td className="p-3 text-center">
-                        {m.quoted_amount && Number(m.quoted_amount) > 0
-                          ? <span className="font-medium">{fmtMoney(Number(m.quoted_amount))}</span>
-                          : <span className="text-muted-foreground">—</span>
-                        }
-                      </td>
-                      <td className="p-3 text-center hidden sm:table-cell">
-                        {daysSince !== null ? daysSince : '—'}
-                      </td>
-                      <td className="p-3">
-                        <select
-                          value={m.status || 'Pending'}
-                          onChange={(e) => handleStatusChange(m, e.target.value)}
-                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary ${
-                            m.status === 'Booked' ? 'bg-green-100 text-green-700' :
-                            m.status === 'Failed' ? 'bg-red-100 text-red-700' :
-                            'bg-amber-100 text-amber-700'
-                          }`}
-                        >
-                          <option value="Booked">Booked</option>
-                          <option value="Pending">Pending</option>
-                          <option value="Failed">Failed</option>
-                        </select>
-                      </td>
-                      <td className="p-3">
-                        {m.client_quote_id && (
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => router.push(`/client/new-quote?id=${m.client_quote_id}`)}
-                              className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
-                              title="View Quote"
-                            >
-                              <Eye className="h-3 w-3" />
-                              View Quote
-                            </button>
-                            <button
-                              onClick={() => router.push(`/admin/contracts/generate?quote_id=${m.client_quote_id}`)}
-                              className="inline-flex items-center gap-1 rounded-md bg-muted border border-border px-2 py-1.5 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors"
-                              title="Contract"
-                            >
-                              <FileText className="h-3 w-3" />
-                              Contract
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <ProductionSidebar boxes={[
+          { label: 'MEETINGS', value: stats.total, scrollToId: 'section-all', color: 'default' },
+          { label: 'BOOKED', value: stats.booked, scrollToId: 'section-booked', color: 'green' },
+          { label: 'FAILED', value: stats.failed, scrollToId: 'section-failed', color: 'red' },
+          { label: 'PENDING', value: stats.pending, scrollToId: 'section-pending', color: 'yellow' },
+          { label: 'CONVERSION', value: `${stats.conversion}%`, scrollToId: 'section-booked', color: 'teal' },
+        ]} />
       </div>
     </div>
   )
