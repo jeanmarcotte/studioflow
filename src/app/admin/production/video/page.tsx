@@ -1345,9 +1345,14 @@ export default function VideoProductionPage() {
             <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{pipelineStats.slideshowEditing}</div>
           </div>
 
-          <div className="rounded-xl border bg-card p-4">
+          <div className="rounded-xl border bg-card p-4 mb-4">
             <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">WAITING FOR PHOTO</div>
             <div className="text-3xl font-bold" style={{ color: '#ea580c' }}>{awaitingOrderCouples.length}</div>
+          </div>
+
+          <div className="rounded-xl border bg-card p-4">
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">COMPLETED IN 2026</div>
+            <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{completed2026JobsList.length}</div>
           </div>
         </aside>
       </div>
