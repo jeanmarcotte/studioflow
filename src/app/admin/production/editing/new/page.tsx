@@ -10,25 +10,26 @@ import { formatDateCompact } from '@/lib/formatters'
 
 type Category = 'wedding' | 'engagement' | 'video'
 
+const MONTH_ABBRS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
 const JOB_TYPES: Record<Category, { value: string; label: string }[]> = {
   wedding: [
     { value: 'wedding_proofs', label: 'Wedding Proofs' },
-    { value: 'parent_album', label: 'Parent Album' },
+    { value: 'parent_album', label: 'Parent Album(s)' },
     { value: 'bg_album', label: 'Bride & Groom Album' },
-    { value: 'bg_portrait_canvas', label: 'B&G Portrait Canvas' },
-    { value: 'bg_portrait_print', label: 'B&G Portrait Print' },
-    { value: 'parent_portrait_canvas', label: 'Parent Portrait Canvas' },
-    { value: 'parent_portrait_print', label: 'Parent Portrait Print' },
     { value: 'tyc', label: 'Thank You Cards' },
+    { value: 'parent_portrait_print', label: 'Parent Portrait Print' },
+    { value: 'parent_portrait_canvas', label: 'Parent Portrait Canvas' },
+    { value: 'bg_portrait_print', label: 'B&G Portrait Print' },
+    { value: 'bg_portrait_canvas', label: 'B&G Portrait Canvas' },
     { value: 'hires_wedding', label: 'Hi-Res Wedding Export' },
   ],
   engagement: [
     { value: 'eng_proofs', label: 'Engagement Proofs' },
-    { value: 'eng_collage', label: 'Engagement Collage' },
+    { value: 'eng_collage_print', label: 'Collage Print' },
+    { value: 'eng_collage_canvas', label: 'Collage Canvas' },
     { value: 'eng_signing_book', label: 'Engagement Signing Book' },
-    { value: 'eng_album', label: 'Engagement Album' },
-    { value: 'eng_prints', label: 'Extra Engagement Prints' },
-    { value: 'hires_engagement', label: 'Hi-Res Engagement Export' },
+    { value: 'hires_engagement', label: 'Hi-Res Eng Export' },
   ],
   video: [
     { value: 'FULL', label: 'Full Length Video' },
@@ -117,13 +118,37 @@ export default function AddEditingJobPage() {
   }, [])
 
   const groupedCouples = useMemo(() => {
+    // Filter by month abbreviation search (e.g. "Jan", "Dec")
+    let filtered = coupleOptions
+    if (coupleSearch.trim()) {
+      const q = coupleSearch.trim().toLowerCase()
+      const monthMatch = MONTH_ABBRS.findIndex(m => m.toLowerCase() === q)
+      if (monthMatch !== -1) {
+        filtered = coupleOptions.filter(c => {
+          if (!c.wedding_date) return false
+          return new Date(c.wedding_date).getMonth() === monthMatch
+        })
+      }
+    }
+
     const groups: Record<number, CoupleOption[]> = {}
-    for (const c of coupleOptions) {
+    for (const c of filtered) {
       const year = c.wedding_year || (c.wedding_date ? new Date(c.wedding_date).getFullYear() : 0)
       if (!groups[year]) groups[year] = []
       groups[year].push(c)
     }
-    const yearOrder = [2025, 2026, 2027]
+
+    // Sort within each year: by month ASC, then alphabetically
+    for (const year of Object.keys(groups)) {
+      groups[Number(year)].sort((a, b) => {
+        const aMonth = a.wedding_date ? new Date(a.wedding_date).getMonth() : 99
+        const bMonth = b.wedding_date ? new Date(b.wedding_date).getMonth() : 99
+        if (aMonth !== bMonth) return aMonth - bMonth
+        return a.couple_name.localeCompare(b.couple_name)
+      })
+    }
+
+    const yearOrder = [2026, 2027, 2025]
     return Object.entries(groups)
       .sort(([a], [b]) => {
         const idxA = yearOrder.indexOf(Number(a))
@@ -133,7 +158,7 @@ export default function AddEditingJobPage() {
         return posA - posB
       })
       .map(([year, couples]) => ({ year: Number(year), couples }))
-  }, [coupleOptions])
+  }, [coupleOptions, coupleSearch])
 
   const selectCouple = (couple: CoupleOption) => {
     setCoupleId(couple.id)
@@ -283,7 +308,7 @@ export default function AddEditingJobPage() {
                   if (!e.target.value) { setCoupleId(''); setCoupleName('') }
                 }}
                 onFocus={() => { setCoupleDropdownOpen(true); fetchCouples(coupleSearch) }}
-                placeholder="Search by couple name..."
+                placeholder="Search by name or month (e.g. Jun)..."
                 className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring ${coupleId ? 'border-stone-800' : 'border-input'}`}
               />
               {coupleId && (
