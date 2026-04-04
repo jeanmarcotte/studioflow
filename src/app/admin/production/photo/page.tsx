@@ -1065,7 +1065,7 @@ export default function PhotoProductionPage() {
           </div>
 
           <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => setPopupStatus('ready_to_order')}>
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">READY TO ORDER</div>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">READY TO START</div>
             <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{sidebarStats.readyToOrderCount}</div>
           </div>
 
