@@ -173,6 +173,7 @@ export default function VideoProductionPage() {
   // ── Due date editing state ─────────────────────────────────────
   const [editingDueDate, setEditingDueDate] = useState<string | null>(null)
   const [awaitingOrderCouples, setAwaitingOrderCouples] = useState<AwaitingOrderCouple[]>([])
+  const [booked2026Count, setBooked2026Count] = useState(0)
   const [completed2026Collapsed, setCompleted2026Collapsed] = useState(true)
 
   // ── Fetch jobs ─────────────────────────────────────────────────
@@ -180,7 +181,7 @@ export default function VideoProductionPage() {
   useEffect(() => {
     const fetchJobs = async () => {
       const today = new Date().toISOString().split('T')[0]
-      const [videoRes, photoRes, awaitingRes] = await Promise.all([
+      const [videoRes, photoRes, awaitingRes, booked2026Res] = await Promise.all([
         supabase
           .from('video_jobs')
           .select('*, couples(id, couple_name, wedding_date)')
@@ -195,6 +196,13 @@ export default function VideoProductionPage() {
           .lte('wedding_date', today)
           .not('status', 'in', '("declined","cancelled")')
           .order('wedding_date', { ascending: true }),
+        supabase
+          .from('couples')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'booked')
+          .gte('wedding_date', '2026-01-01')
+          .lte('wedding_date', '2026-12-31')
+          .in('package_type', ['photo_video']),
       ])
 
       if (!videoRes.error && videoRes.data) setJobs(videoRes.data)
@@ -213,6 +221,7 @@ export default function VideoProductionPage() {
           wedding_date: c.wedding_date,
         })))
       }
+      setBooked2026Count(booked2026Res.count ?? 0)
       setLoading(false)
     }
     fetchJobs()
@@ -485,6 +494,23 @@ export default function VideoProductionPage() {
       counts[j.job_type][j.status] = (counts[j.job_type][j.status] || 0) + 1
     }
     const fullTotal = Object.values(counts['FULL'] || {}).reduce((s, n) => s + n, 0)
+    // Sidebar counts
+    const fullEditing = jobs.filter(j => j.job_type === 'FULL' && j.section === 'editing').length
+    const recapEditing = jobs.filter(j => j.job_type === 'RECAP' && j.section === 'editing').length
+    const slideshowEditing = jobs.filter(j => j.job_type === 'ENG_SLIDESHOW' && j.section === 'editing').length
+
+    // 2025 not_started FULL videos
+    const fullNotStarted2025 = jobs.filter(j => {
+      const wd = j.wedding_date || j.couples?.wedding_date
+      return j.job_type === 'FULL' && j.status === 'not_started' && wd && wd >= '2025-01-01' && wd <= '2025-12-31'
+    }).length
+
+    // 2026 completed FULL videos
+    const fullCompleted2026 = jobs.filter(j => {
+      const wd = j.wedding_date || j.couples?.wedding_date
+      return j.job_type === 'FULL' && j.section === 'completed' && wd && wd >= '2026-01-01' && wd <= '2026-12-31'
+    }).length
+
     return {
       fullInProgress: counts['FULL']?.['in_progress'] || 0,
       fullVideoOut: counts['FULL']?.['video_proofs_out'] || 0,
@@ -493,6 +519,11 @@ export default function VideoProductionPage() {
       fullComplete: counts['FULL']?.['complete'] || 0,
       fullTotal,
       slideshowsNotStarted: counts['ENG_SLIDESHOW']?.['not_started'] || 0,
+      fullEditing,
+      recapEditing,
+      slideshowEditing,
+      fullNotStarted2025,
+      fullCompleted2026,
     }
   }, [jobs])
 
@@ -1284,57 +1315,39 @@ export default function VideoProductionPage() {
 
         {/* Stats Sidebar */}
         <aside className="w-[280px] shrink-0 p-6 bg-secondary/50 hidden lg:block">
-          {/* 1. Video Out */}
           <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Video Out
-            </div>
-            <div className="text-3xl font-bold text-blue-600">
-              {pipelineStats.fullVideoOut}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Sent, awaiting client feedback</div>
+            <div className="text-xs font-bold uppercase tracking-wide mb-2">VIDEO PROOFS OUT</div>
+            <div className="text-3xl font-bold">{pipelineStats.fullVideoOut}</div>
           </div>
 
-          {/* 2. 2025 Videos Remaining */}
           <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              2025 Videos Remaining
-            </div>
-            <div className="text-3xl font-bold">
-              {stats.remaining2025}
-            </div>
+            <div className="text-xs font-bold uppercase tracking-wide mb-2">2025 VIDEOS REMAINING</div>
+            <div className="text-3xl font-bold">{pipelineStats.fullNotStarted2025}</div>
           </div>
 
-          {/* 3. 2026 Videos Remaining */}
           <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              2026 Videos Remaining
-            </div>
-            <div className="text-3xl font-bold">
-              {stats.remaining2026}
-            </div>
+            <div className="text-xs font-bold uppercase tracking-wide mb-2">2026 VIDEOS REMAINING</div>
+            <div className="text-3xl font-bold">{Math.max(0, booked2026Count - pipelineStats.fullCompleted2026)}</div>
           </div>
 
-          {/* 4. Editing Queue */}
           <div className="rounded-xl border bg-card p-4 mb-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Editing Queue
-            </div>
-            <div className="text-3xl font-bold">
-              {pipelineStats.fullNotStarted}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Ready to edit</div>
+            <div className="text-xs font-bold uppercase tracking-wide mb-2">VIDEOS READY TO EDIT</div>
+            <div className="text-3xl font-bold">{pipelineStats.fullEditing}</div>
           </div>
 
-          {/* 5. Waiting for Photo */}
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-bold uppercase tracking-wide mb-2">RECAPS QUEUE</div>
+            <div className="text-3xl font-bold">{pipelineStats.recapEditing}</div>
+          </div>
+
+          <div className="rounded-xl border bg-card p-4 mb-4">
+            <div className="text-xs font-bold uppercase tracking-wide mb-2">SLIDESHOWS QUEUE</div>
+            <div className="text-3xl font-bold">{pipelineStats.slideshowEditing}</div>
+          </div>
+
           <div className="rounded-xl border bg-card p-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Waiting for Photo
-            </div>
-            <div className="text-3xl font-bold text-amber-600">
-              {awaitingOrderCouples.length}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Waiting on photo order</div>
+            <div className="text-xs font-bold uppercase tracking-wide mb-2">WAITING FOR PHOTO</div>
+            <div className="text-3xl font-bold">{pipelineStats.fullWaitingBride}</div>
           </div>
         </aside>
       </div>
