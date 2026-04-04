@@ -1016,12 +1016,12 @@ export default function VideoProductionPage() {
             </div>
           </div>
 
-          {/* ══════ ZONE 1: Currently Editing ══════ */}
+          {/* ══════ ZONE 1: Video Out ══════ */}
           <div className={`mb-10 ${nunito.className}`}>
             {/* Section header */}
             <div className="flex items-center gap-3 mb-6">
               <h2 className={`text-xl text-primary font-bold ${playfair.className}`}>
-                Currently Editing
+                Video Out
               </h2>
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-muted text-primary">
                 {currentlyEditingJobs.length} job{currentlyEditingJobs.length !== 1 ? 's' : ''}
