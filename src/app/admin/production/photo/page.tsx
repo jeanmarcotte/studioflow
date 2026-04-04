@@ -708,6 +708,7 @@ export default function PhotoProductionPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search couples, job types..."
                 className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-ring"
+                style={{ paddingLeft: '2.25rem' }}
               />
             </div>
 

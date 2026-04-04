@@ -57,6 +57,7 @@ export function FilterBar({
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={searchPlaceholder}
             className="pl-9"
+            style={{ paddingLeft: '2.25rem' }}
           />
         </div>
       )}

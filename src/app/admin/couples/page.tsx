@@ -438,7 +438,8 @@ export default function CouplesPage() {
             placeholder="Search by name or venue..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 !w-full"
+            className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-ring"
+            style={{ paddingLeft: '2.25rem' }}
           />
         </div>
 

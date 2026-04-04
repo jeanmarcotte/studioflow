@@ -1011,7 +1011,8 @@ export default function VideoProductionPage() {
                 placeholder="Search couples..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9 pr-8 !w-full"
+                className="w-full rounded-lg border border-input bg-background pl-9 pr-8 py-2.5 text-sm outline-none transition-colors focus:border-ring"
+                style={{ paddingLeft: '2.25rem' }}
               />
               {search && (
                 <button

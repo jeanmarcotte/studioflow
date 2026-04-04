@@ -220,6 +220,7 @@ export default function WeddingDayFormsPage() {
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               className="w-full max-w-sm pl-9 pr-4 py-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+              style={{ paddingLeft: '2.25rem' }}
             />
           </div>
 

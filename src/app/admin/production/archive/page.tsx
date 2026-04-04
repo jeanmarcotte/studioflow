@@ -423,6 +423,7 @@ export default function ProductionArchivePage() {
                       onChange={e => setDriveSearch(e.target.value)}
                       placeholder="Search drives..."
                       className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-ring"
+                      style={{ paddingLeft: '2.25rem' }}
                     />
                   </div>
                 </div>
@@ -505,6 +506,7 @@ export default function ProductionArchivePage() {
                       onChange={e => setCoupleSearch(e.target.value)}
                       placeholder="Search couples..."
                       className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-ring"
+                      style={{ paddingLeft: '2.25rem' }}
                     />
                   </div>
                 </div>
@@ -608,6 +610,7 @@ export default function ProductionArchivePage() {
                       onChange={e => setMilestoneSearch(e.target.value)}
                       placeholder="Search milestones..."
                       className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-ring"
+                      style={{ paddingLeft: '2.25rem' }}
                     />
                   </div>
                 </div>

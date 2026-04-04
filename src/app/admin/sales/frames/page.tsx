@@ -246,6 +246,7 @@ export default function FrameSalesPage() {
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search couples..."
                 className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
+                style={{ paddingLeft: '2.25rem' }}
               />
             </div>
           </div>

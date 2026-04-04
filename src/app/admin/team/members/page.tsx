@@ -543,6 +543,7 @@ export default function TeamMembersPage() {
               onChange={e => setSearch(e.target.value)}
               placeholder="Search members..."
               className="w-full pl-9 pr-4 py-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+              style={{ paddingLeft: '2.25rem' }}
             />
           </div>
 
