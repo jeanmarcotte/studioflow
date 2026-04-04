@@ -110,6 +110,7 @@ const POPUP_LABELS: Record<string, string> = {
   reedits: 'Re-edits',
   at_lab: 'At Lab',
   ready_to_order: 'Ready to Order',
+  not_started: 'Ready to Start',
 }
 
 const STATUS_OPTIONS = [
@@ -417,6 +418,7 @@ export default function PhotoProductionPage() {
       case 'reedits': return jobs.filter(j => j.status === 'ready_to_reedit' || j.status === 'reediting')
       case 'at_lab': return jobs.filter(j => j.status === 'at_lab')
       case 'ready_to_order': return jobs.filter(j => j.status === 'ready_to_order')
+      case 'not_started': return jobs.filter(j => j.status === 'not_started')
       default: return []
     }
   }
@@ -1065,7 +1067,7 @@ export default function PhotoProductionPage() {
             <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{sidebarStats.atLabCount}</div>
           </div>
 
-          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => setPopupStatus('ready_to_order')}>
+          <div className="rounded-xl border bg-card p-4 mb-4 cursor-pointer hover:border-ring transition-colors" onClick={() => setPopupStatus('not_started')}>
             <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">READY TO START</div>
             <div className="text-3xl font-bold" style={{ color: '#0d9488' }}>{sidebarStats.notStartedCount}</div>
           </div>
