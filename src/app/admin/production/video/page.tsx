@@ -551,7 +551,7 @@ export default function VideoProductionPage() {
   }, [jobs])
 
   const completed2026JobsList = useMemo(() => {
-    let result = jobs.filter(j => j.completed_date && j.completed_date >= '2026-01-01')
+    let result = jobs.filter(j => j.section === 'completed' && j.completed_date && j.completed_date >= '2026-01-01' && j.completed_date <= '2026-12-31')
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter(j =>
