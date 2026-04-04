@@ -2,10 +2,14 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { UserPlus, X, ChevronUp, ChevronDown, Phone, Mail, AlertTriangle, Edit2, Save, XCircle } from 'lucide-react'
+import { UserPlus, X, Phone, Mail, AlertTriangle, Edit2, Save, XCircle, Search, ChevronDown, ChevronRight } from 'lucide-react'
 import { Playfair_Display, Nunito } from 'next/font/google'
 import { format, parseISO, differenceInCalendarYears, differenceInMonths } from 'date-fns'
 import { formatCurrency as fmtCurrency, formatTimelineDate, formatDate as fmtDate } from '@/lib/formatters'
+import { ProductionPageHeader, ProductionPills, ProductionSidebar } from '@/components/shared'
+import { ColumnDef } from '@tanstack/react-table'
+import { DataTable } from '@/components/ui/data-table/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table/data-table-column-header'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -22,6 +26,8 @@ interface TeamMember {
   pay_per_wedding: number
   skills: string[]
   status: string
+  is_active: boolean | null
+  team_tier: string | null
   date_joined: string | null
   tenure_start: string | null
   avatar_url: string | null
@@ -115,21 +121,12 @@ function getPayLabel(member: TeamMember): string {
   return formatCurrency(member.pay_per_wedding)
 }
 
-// ── Sort types ───────────────────────────────────────────────────
-
-type SortKey = 'name' | 'role' | 'status' | 'phone' | 'pay' | 'skills' | 'tenure' | 'weddings2026' | 'earned2026' | 'nextWedding'
-type SortDir = 'asc' | 'desc'
-
-const STATUS_ORDER: Record<string, number> = { active: 0, probationary: 1, interviewing: 2, inactive: 3 }
-
 // ── Component ────────────────────────────────────────────────────
 
 export default function TeamMembersPage() {
   const [members, setMembers] = useState<TeamMember[]>([])
   const [assignments, setAssignments] = useState<WeddingAssignment[]>([])
   const [loading, setLoading] = useState(true)
-  const [sortKey, setSortKey] = useState<SortKey>('status')
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [editData, setEditData] = useState<Partial<TeamMember>>({})
@@ -143,13 +140,15 @@ export default function TeamMembersPage() {
   })
   const [saving, setSaving] = useState(false)
   const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null)
+  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
+  const [search, setSearch] = useState('')
 
   // ── Data fetching ────────────────────────────────────────────
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     const [membersRes, assignmentsRes] = await Promise.all([
-      supabase.from('team_members').select('id, first_name, last_name, phone, email, role, pay_per_wedding, skills, status, date_joined, tenure_start, avatar_url, notes, emergency_contact_name, emergency_contact_phone, pair_constraint'),
+      supabase.from('team_members').select('id, first_name, last_name, phone, email, role, pay_per_wedding, skills, status, is_active, team_tier, date_joined, tenure_start, avatar_url, notes, emergency_contact_name, emergency_contact_phone, pair_constraint'),
       supabase.from('wedding_assignments').select('couple_id, photo_1, photo_2, video_1, couples(couple_name, wedding_date)').not('couples', 'is', null),
     ])
 
@@ -205,7 +204,6 @@ export default function TeamMembersPage() {
       }
     }
 
-    // Calculate earned and next wedding
     for (const m of members) {
       const s = stats[m.first_name]
       if (!s) continue
@@ -217,77 +215,68 @@ export default function TeamMembersPage() {
     return stats
   }, [members, assignments])
 
-  // ── Metric tiles ─────────────────────────────────────────────
+  // ── Counts ───────────────────────────────────────────────────
 
-  const metrics = useMemo(() => {
+  const counts = useMemo(() => {
     const activeCount = members.filter(m => m.status === 'active').length
-    const probCount = members.filter(m => m.status === 'probationary').length
-    const totalWeddings = Object.values(memberStats).reduce((sum, s) => sum + s.total, 0)
-    const totalPayroll = members.reduce((sum, m) => {
-      const s = memberStats[m.first_name]
-      return sum + (s ? s.earned : 0)
-    }, 0)
-    return { activeCount, probCount, totalWeddings, totalPayroll }
-  }, [members, memberStats])
+    const probationaryCount = members.filter(m => m.status === 'probationary').length
+    const inactiveCount = members.filter(m => m.status === 'inactive').length
+    const totalCount = members.length
 
-  // ── Sorting ──────────────────────────────────────────────────
+    // Core = team_tier 'core' AND active; fallback: active members with no team_tier
+    const coreCount = members.filter(m =>
+      m.status === 'active' && (m.team_tier === 'core' || m.team_tier == null)
+    ).length
+    // Backup = team_tier 'backup' AND active
+    const backupCount = members.filter(m =>
+      m.status === 'active' && m.team_tier === 'backup'
+    ).length
 
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortKey(key)
-      setSortDir('asc')
-    }
+    return { activeCount, probationaryCount, inactiveCount, totalCount, coreCount, backupCount }
+  }, [members])
+
+  // ── Toggle lanes ─────────────────────────────────────────────
+
+  const toggleLane = (id: string) => {
+    setCollapsedLanes(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
   }
 
-  const sortedMembers = useMemo(() => {
-    const sorted = [...members]
-    const dir = sortDir === 'asc' ? 1 : -1
+  // ── Filtered + sectioned members ─────────────────────────────
 
-    sorted.sort((a, b) => {
-      let cmp = 0
-      const statsA = memberStats[a.first_name] || { total: 0, earned: 0, nextWedding: null }
-      const statsB = memberStats[b.first_name] || { total: 0, earned: 0, nextWedding: null }
+  const filteredMembers = useMemo(() => {
+    if (!search.trim()) return members
+    const q = search.toLowerCase()
+    return members.filter(m =>
+      `${m.first_name} ${m.last_name || ''}`.toLowerCase().includes(q) ||
+      (m.role && ROLE_LABELS[m.role]?.toLowerCase().includes(q)) ||
+      (m.status && m.status.toLowerCase().includes(q))
+    )
+  }, [members, search])
 
-      switch (sortKey) {
-        case 'name':
-          cmp = `${a.first_name} ${a.last_name || ''}`.localeCompare(`${b.first_name} ${b.last_name || ''}`)
-          break
-        case 'role':
-          cmp = (ROLE_LABELS[a.role] || a.role).localeCompare(ROLE_LABELS[b.role] || b.role)
-          break
-        case 'status':
-          cmp = (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9)
-          if (cmp === 0) cmp = statsB.total - statsA.total
-          break
-        case 'phone':
-          cmp = (a.phone || '').localeCompare(b.phone || '')
-          break
-        case 'pay':
-          cmp = a.pay_per_wedding - b.pay_per_wedding
-          break
-        case 'skills':
-          cmp = (a.skills?.length || 0) - (b.skills?.length || 0)
-          break
-        case 'tenure':
-          cmp = (a.tenure_start || '9999').localeCompare(b.tenure_start || '9999')
-          break
-        case 'weddings2026':
-          cmp = statsA.total - statsB.total
-          break
-        case 'earned2026':
-          cmp = statsA.earned - statsB.earned
-          break
-        case 'nextWedding':
-          cmp = (statsA.nextWedding || '9999').localeCompare(statsB.nextWedding || '9999')
-          break
-      }
-      return cmp * dir
-    })
-
-    return sorted
-  }, [members, sortKey, sortDir, memberStats])
+  const coreMembers = useMemo(() =>
+    filteredMembers.filter(m => m.status === 'active' && (m.team_tier === 'core' || m.team_tier == null)),
+    [filteredMembers]
+  )
+  const backupMembers = useMemo(() =>
+    filteredMembers.filter(m => m.status === 'active' && m.team_tier === 'backup'),
+    [filteredMembers]
+  )
+  const probationaryMembers = useMemo(() =>
+    filteredMembers.filter(m => m.status === 'probationary'),
+    [filteredMembers]
+  )
+  const inactiveMembers = useMemo(() =>
+    filteredMembers.filter(m => m.status === 'inactive' || m.is_active === false),
+    [filteredMembers]
+  )
 
   // ── Quick status toggle ───────────────────────────────────────
 
@@ -298,7 +287,6 @@ export default function TeamMembersPage() {
     if (selectedMember?.id === memberId) setSelectedMember(prev => prev ? { ...prev, status: newStatus } : null)
   }
 
-  // Close status dropdown on outside click
   useEffect(() => {
     if (!statusDropdownId) return
     const handler = () => setStatusDropdownId(null)
@@ -373,39 +361,7 @@ export default function TeamMembersPage() {
     setSaving(false)
   }
 
-  // ── Sort header component ────────────────────────────────────
-
-  const SortHeader = ({ label, sortKeyVal, width }: { label: string; sortKeyVal: SortKey; width: string }) => (
-    <th
-      onClick={() => handleSort(sortKeyVal)}
-      className="bg-muted text-primary border-border"
-      style={{
-        width,
-        padding: '10px 12px',
-        textAlign: 'left',
-        fontFamily: nunito.style.fontFamily,
-        fontWeight: 700,
-        fontSize: '0.75rem',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        cursor: 'pointer',
-        userSelect: 'none',
-        whiteSpace: 'nowrap',
-        borderBottom: '2px solid',
-      }}
-    >
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-        {label}
-        {sortKey === sortKeyVal ? (
-          sortDir === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
-        ) : (
-          <span style={{ opacity: 0.3 }}><ChevronDown size={14} /></span>
-        )}
-      </span>
-    </th>
-  )
-
-  // ── Skill pills ──────────────────────────────────────────────
+  // ── Inline sub-components ────────────────────────────────────
 
   const SkillPills = ({ skills }: { skills: string[] }) => (
     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
@@ -419,7 +375,6 @@ export default function TeamMembersPage() {
             borderRadius: '9999px',
             fontSize: '0.7rem',
             fontWeight: 600,
-            fontFamily: nunito.style.fontFamily,
             backgroundColor: config.bg,
             color: config.text,
           }}>
@@ -430,9 +385,7 @@ export default function TeamMembersPage() {
     </div>
   )
 
-  // ── Status pill ──────────────────────────────────────────────
-
-  const StatusPill = ({ status }: { status: string }) => {
+  const StatusBadge = ({ status }: { status: string }) => {
     const config = STATUS_CONFIG[status] || STATUS_CONFIG.inactive
     return (
       <span style={{
@@ -441,12 +394,106 @@ export default function TeamMembersPage() {
         borderRadius: '9999px',
         fontSize: '0.75rem',
         fontWeight: 600,
-        fontFamily: nunito.style.fontFamily,
         backgroundColor: config.bg,
         color: config.text,
       }}>
         {config.label}
       </span>
+    )
+  }
+
+  // ── DataTable columns ────────────────────────────────────────
+
+  const memberColumns: ColumnDef<TeamMember>[] = useMemo(() => [
+    {
+      id: 'name',
+      accessorFn: (row) => `${row.first_name} ${row.last_name || ''}`.trim(),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      cell: ({ row }) => (
+        <button
+          onClick={() => { setSelectedMember(row.original); setEditMode(false) }}
+          className="text-primary font-semibold text-sm hover:underline text-left"
+        >
+          {row.original.first_name}{row.original.last_name ? ` ${row.original.last_name}` : ''}
+        </button>
+      ),
+    },
+    {
+      id: 'role',
+      accessorFn: (row) => ROLE_LABELS[row.role] || row.role,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Role" />,
+      cell: ({ row }) => (
+        <span className="text-sm">{ROLE_LABELS[row.original.role] || row.original.role}</span>
+      ),
+    },
+    {
+      id: 'status',
+      accessorKey: 'status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+    {
+      id: 'pay_rate_photo',
+      accessorKey: 'pay_per_wedding',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Pay Rate" />,
+      cell: ({ row }) => (
+        <span className="text-sm">{getPayLabel(row.original)}</span>
+      ),
+    },
+    {
+      id: 'hire_date',
+      accessorFn: (row) => row.tenure_start || row.date_joined || '',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Hire Date" />,
+      cell: ({ row }) => {
+        const date = row.original.tenure_start || row.original.date_joined
+        return <span className="text-sm">{date ? fmtDate(date) : '—'}</span>
+      },
+    },
+    {
+      id: 'tenure',
+      accessorFn: (row) => row.tenure_start || '',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Tenure" />,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{formatTenure(row.original.tenure_start)}</span>
+      ),
+    },
+  ], [])
+
+  // ── Collapsible section renderer ─────────────────────────────
+
+  const renderSection = (
+    id: string,
+    label: string,
+    data: TeamMember[],
+    badgeClass: string
+  ) => {
+    const isCollapsed = collapsedLanes.has(id)
+    return (
+      <div id={id} className="mb-6">
+        <button
+          onClick={() => toggleLane(id)}
+          className="flex items-center gap-3 py-3 hover:opacity-80 transition-opacity"
+        >
+          {isCollapsed
+            ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          }
+          <span className={`inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold ${badgeClass}`}>
+            {label}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {data.length} member{data.length !== 1 ? 's' : ''}
+          </span>
+        </button>
+        {!isCollapsed && (
+          <DataTable
+            columns={memberColumns}
+            data={data}
+            showPagination={false}
+            emptyMessage="No members"
+          />
+        )}
+      </div>
     )
   }
 
@@ -463,187 +510,85 @@ export default function TeamMembersPage() {
   // ── Main render ──────────────────────────────────────────────
 
   return (
-    <div className={`${nunito.className} bg-muted`} style={{ padding: '1.5rem 2rem', minHeight: '100vh' }}>
+    <div className={nunito.className}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-        <div>
-          <h1 className={`${playfair.className} text-foreground`} style={{ fontSize: '1.75rem', margin: 0, lineHeight: 1.2 }}>
-            Team Members
-          </h1>
-          <p className="text-muted-foreground" style={{ margin: '4px 0 0', fontSize: '0.85rem', fontWeight: 400 }}>
-            SIGS Photography &middot; {metrics.activeCount} Active Members
-          </p>
-        </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-primary text-primary-foreground"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px',
-            padding: '8px 16px', borderRadius: '8px', border: 'none',
-            fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
-            fontFamily: nunito.style.fontFamily,
-          }}
-        >
-          <UserPlus size={16} /> Add Team Member
-        </button>
-      </div>
+      <ProductionPageHeader
+        title="Team Members"
+        subtitle="SIGS Photography crew"
+        actionLabel="+ Add Member"
+        actionDisabled={true}
+      />
+      {/* TODO WO-320: Link + Add Member once member form is built */}
 
-      {/* Metric Tiles */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        {[
-          { label: 'Active Members', value: String(metrics.activeCount), color: 'var(--primary)' },
-          { label: '2026 Weddings Covered', value: String(metrics.totalWeddings), color: '#1e40af' },
-          { label: 'Probationary', value: String(metrics.probCount), color: '#92400e' },
-          { label: 'Total 2026 Payroll', value: formatCurrency(metrics.totalPayroll), color: '#6d28d9' },
-        ].map((tile, i) => (
-          <div key={i} className="bg-background border-border" style={{
-            borderRadius: '10px', padding: '1rem 1.25rem',
-            border: '1px solid',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-          }}>
-            <div className="text-muted-foreground" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
-              {tile.label}
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: tile.color, fontFamily: playfair.style.fontFamily }}>
-              {tile.value}
-            </div>
+      {/* Pills */}
+      <ProductionPills pills={[
+        { label: 'Active', count: counts.activeCount, color: 'green' },
+        { label: 'Probationary', count: counts.probationaryCount, color: 'yellow' },
+        { label: 'Inactive', count: counts.inactiveCount, color: 'gray' },
+      ]} />
+
+      {/* Two-column layout */}
+      <div className="flex">
+
+        {/* Main panel */}
+        <div className="flex-1 overflow-y-auto p-6 border-r border-border">
+
+          {/* Search */}
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search members..."
+              className="w-full pl-9 pr-4 py-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+            />
           </div>
-        ))}
-      </div>
 
-      {/* Table */}
-      <div className="bg-background border-border" style={{ borderRadius: '10px', border: '1px solid', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: nunito.style.fontFamily }}>
-            <thead>
-              <tr>
-                <th className="bg-muted border-border" style={{ width: '50px', padding: '10px 12px', borderBottom: '2px solid' }}></th>
-                <SortHeader label="Name" sortKeyVal="name" width="180px" />
-                <SortHeader label="Role" sortKeyVal="role" width="120px" />
-                <SortHeader label="Status" sortKeyVal="status" width="110px" />
-                <SortHeader label="Phone" sortKeyVal="phone" width="140px" />
-                <SortHeader label="Pay/Wedding" sortKeyVal="pay" width="100px" />
-                <SortHeader label="Skills" sortKeyVal="skills" width="180px" />
-                <SortHeader label="Tenure" sortKeyVal="tenure" width="100px" />
-                <SortHeader label="2026 Wed." sortKeyVal="weddings2026" width="80px" />
-                <SortHeader label="2026 Est." sortKeyVal="earned2026" width="100px" />
-                <SortHeader label="Next Wedding" sortKeyVal="nextWedding" width="120px" />
-              </tr>
-            </thead>
-            <tbody>
-              {sortedMembers.map((member, idx) => {
-                const stats = memberStats[member.first_name] || { total: 0, earned: 0, nextWedding: null }
-                return (
-                  <tr key={member.id} className="border-border" style={{
-                    borderBottom: '1px solid',
-                    background: idx % 2 === 0 ? 'var(--background)' : 'var(--muted)',
-                    transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--accent)' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = idx % 2 === 0 ? 'var(--background)' : 'var(--muted)' }}
-                  >
-                    {/* Avatar */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
-                      <img
-                        src={member.avatar_url || DEFAULT_AVATAR}
-                        alt={member.first_name}
-                        style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border)' }}
-                        onError={e => { (e.target as HTMLImageElement).src = DEFAULT_AVATAR }}
-                      />
-                    </td>
-                    {/* Name */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
-                      <button
-                        onClick={() => { setSelectedMember(member); setEditMode(false) }}
-                        className="text-primary"
-                        style={{
-                          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                          fontWeight: 600, fontSize: '0.875rem',
-                          fontFamily: nunito.style.fontFamily, textAlign: 'left',
-                        }}
-                      >
-                        {member.first_name} {member.last_name || ''}
-                      </button>
-                    </td>
-                    {/* Role */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
-                      {ROLE_LABELS[member.role] || member.role}
-                    </td>
-                    {/* Status — quick toggle */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', position: 'relative' }}>
-                      <button
-                        onClick={e => { e.stopPropagation(); setStatusDropdownId(statusDropdownId === member.id ? null : member.id) }}
-                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                      >
-                        <StatusPill status={member.status} />
-                      </button>
-                      {statusDropdownId === member.id && (
-                        <div
-                          onClick={e => e.stopPropagation()}
-                          className="bg-background border-border"
-                          style={{
-                            position: 'absolute', top: '100%', left: '12px', zIndex: 50,
-                            borderRadius: '8px', border: '1px solid',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.12)', padding: '4px 0',
-                            minWidth: '140px',
-                          }}
-                        >
-                          {STATUS_OPTIONS.map(opt => (
-                            <button
-                              key={opt.value}
-                              onClick={() => handleStatusChange(member.id, opt.value)}
-                              style={{
-                                display: 'block', width: '100%', textAlign: 'left',
-                                padding: '6px 12px', border: 'none', cursor: 'pointer',
-                                fontSize: '0.8rem', fontFamily: nunito.style.fontFamily,
-                                fontWeight: member.status === opt.value ? 700 : 400,
-                                background: member.status === opt.value ? 'var(--muted)' : 'transparent',
-                                color: 'var(--foreground)',
-                              }}
-                              onMouseEnter={e => { if (member.status !== opt.value) (e.target as HTMLElement).style.background = 'var(--muted)' }}
-                              onMouseLeave={e => { if (member.status !== opt.value) (e.target as HTMLElement).style.background = 'transparent' }}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    {/* Phone */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
-                      {member.phone || '—'}
-                    </td>
-                    {/* Pay */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
-                      {getPayLabel(member)}
-                    </td>
-                    {/* Skills */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
-                      <SkillPills skills={member.skills} />
-                    </td>
-                    {/* Tenure */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
-                      {formatTenure(member.tenure_start)}
-                    </td>
-                    {/* 2026 Weddings */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem', fontWeight: 700, color: '#1e40af', textAlign: 'center' }}>
-                      {stats.total}
-                    </td>
-                    {/* 2026 Earned */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
-                      {stats.earned > 0 ? formatCurrency(stats.earned) : '—'}
-                    </td>
-                    {/* Next Wedding */}
-                    <td style={{ padding: '8px 12px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
-                      {stats.nextWedding ? formatTimelineDate(stats.nextWedding) : '—'}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          {/* Core Team section */}
+          {renderSection(
+            'section-core',
+            'Core Team',
+            coreMembers,
+            'bg-teal-100 text-teal-700'
+          )}
+
+          {/* Backup section */}
+          {renderSection(
+            'section-backup',
+            'Backup',
+            backupMembers,
+            'bg-blue-100 text-blue-700'
+          )}
+
+          {/* Probationary section */}
+          {renderSection(
+            'section-probationary',
+            'Probationary',
+            probationaryMembers,
+            'bg-yellow-100 text-yellow-700'
+          )}
+
+          {/* Inactive section */}
+          {renderSection(
+            'section-inactive',
+            'Inactive',
+            inactiveMembers,
+            'bg-gray-100 text-gray-700'
+          )}
+
         </div>
+
+        {/* Sidebar */}
+        <ProductionSidebar boxes={[
+          { label: 'TOTAL CREW', value: counts.totalCount, scrollToId: 'section-core', color: 'default' },
+          { label: 'CORE TEAM', value: counts.coreCount, scrollToId: 'section-core', color: 'teal' },
+          { label: 'BACKUP', value: counts.backupCount, scrollToId: 'section-backup', color: 'default' },
+          { label: 'PROBATIONARY', value: counts.probationaryCount, scrollToId: 'section-probationary', color: 'yellow' },
+          { label: 'INACTIVE', value: counts.inactiveCount, scrollToId: 'section-inactive', color: 'gray' },
+        ]} />
+
       </div>
 
       {/* ── Detail Modal ─────────────────────────────────────────── */}
@@ -687,7 +632,7 @@ export default function TeamMembersPage() {
                   <span className="text-foreground" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
                     {ROLE_LABELS[editMode ? (editData.role ?? selectedMember.role) : selectedMember.role] || selectedMember.role}
                   </span>
-                  <StatusPill status={editMode ? (editData.status ?? selectedMember.status) : selectedMember.status} />
+                  <StatusBadge status={editMode ? (editData.status ?? selectedMember.status) : selectedMember.status} />
                 </div>
                 {selectedMember.pair_constraint && !editMode && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '0.8rem', color: '#d97706' }}>
