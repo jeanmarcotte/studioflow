@@ -15,6 +15,16 @@ import {
   SCORE_DOT_COLORS,
 } from '@/lib/lead-utils'
 
+const CHANNEL_ICONS: Record<string, string> = {
+  ballot: '📋',
+  website: '🌐',
+  instagram_dm: '📸',
+  facebook_dm: '👥',
+  email: '✉️',
+  phone: '📞',
+  referral: '🤝',
+}
+
 interface LeadCardProps {
   lead: Lead
   onHide: (id: string) => void
@@ -83,7 +93,10 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick }: LeadCardPr
           <div className="text-sm text-muted-foreground">
             {formatWeddingDate(lead.wedding_date)}
           </div>
-          <div className="text-xs text-muted-foreground/70">
+          <div className="text-xs text-muted-foreground/70 flex items-center gap-1">
+            {lead.inbound_channel && (
+              <span>{CHANNEL_ICONS[lead.inbound_channel] || '📋'}</span>
+            )}
             {formatShowName(lead.show_id)}
           </div>
         </div>

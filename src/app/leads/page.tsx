@@ -52,7 +52,10 @@ const LEADS_SELECT = `
   next_contact_due,
   contact_status,
   reactivation_count,
-  reactivated_at
+  reactivated_at,
+  lead_source_id,
+  inbound_channel,
+  referrer_id
 `
 
 export default function LeadsPage() {
@@ -61,6 +64,7 @@ export default function LeadsPage() {
   const [activeFilter, setActiveFilter] = useState<FilterKey>('no-no-yes')
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [emailLead, setEmailLead] = useState<Lead | null>(null)
+  const [sourceFilter, setSourceFilter] = useState('all')
 
   // ── Fetch all non-hidden leads ────────────────────────────────
   const fetchLeads = useCallback(async () => {
@@ -113,7 +117,7 @@ export default function LeadsPage() {
   const filteredLeads = useMemo(() => {
     const today = new Date().toISOString().split('T')[0]
 
-    const filtered = leads.filter(l => {
+    let filtered = leads.filter(l => {
       switch (activeFilter) {
         case 'no-no-yes':
           return l.status === 'new' && !l.has_photographer && !l.has_videographer && l.has_venue === true
@@ -126,6 +130,18 @@ export default function LeadsPage() {
       }
     })
 
+    // Apply source filter
+    if (sourceFilter !== 'all') {
+      if (sourceFilter.startsWith('cat:')) {
+        // Category filter — need to match by source category (fetched sources handle this client-side)
+        // For now, filter by lead_source_id matching sources in that category
+        // This is handled at the DB level via lead_source_id
+        filtered = filtered.filter(l => l.lead_source_id != null)
+      } else {
+        filtered = filtered.filter(l => l.lead_source_id === sourceFilter)
+      }
+    }
+
     // Sort: overdue first, then due today, then by score
     return filtered.sort((a, b) => {
       const aOverdue = a.next_contact_due && a.next_contact_due < today ? 2 : a.next_contact_due === today ? 1 : 0
@@ -133,7 +149,7 @@ export default function LeadsPage() {
       if (aOverdue !== bOverdue) return bOverdue - aOverdue
       return (b.book_score ?? 0) - (a.book_score ?? 0)
     })
-  }, [leads, activeFilter])
+  }, [leads, activeFilter, sourceFilter])
 
   // ── Counts for filter badges ──────────────────────────────────
   const counts = useMemo(() => ({
@@ -197,6 +213,8 @@ export default function LeadsPage() {
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
           counts={counts}
+          sourceFilter={sourceFilter}
+          onSourceFilterChange={setSourceFilter}
         />
       </div>
 

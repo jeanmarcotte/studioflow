@@ -40,6 +40,9 @@ export interface Lead {
   contact_status: string | null
   reactivation_count: number | null
   reactivated_at: string | null
+  lead_source_id: string | null
+  inbound_channel: string | null
+  referrer_id: string | null
 }
 
 export type FilterKey = 'no-no-yes' | 'no-no-no' | 'contacted'

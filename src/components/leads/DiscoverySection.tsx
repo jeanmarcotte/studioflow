@@ -5,6 +5,9 @@ import { Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import type { Lead } from '@/lib/lead-utils'
+import { LeadSourceSelect } from './LeadSourceSelect'
+import { ReferrerSelect } from './ReferrerSelect'
+import { lookupVenue, autoRateVenue } from '@/lib/venue-utils'
 
 interface DiscoverySectionProps {
   lead: Lead
@@ -159,6 +162,10 @@ function FieldNumber({ label, value, min, max, onChange }: {
 
 export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
   const [saving, setSaving] = useState(false)
+  const [venueQuery, setVenueQuery] = useState('')
+  const [venueResults, setVenueResults] = useState<any[]>([])
+  const [venueOpen, setVenueOpen] = useState(false)
+  const [sourceType, setSourceType] = useState<string | null>(null)
 
   const saveField = useCallback(async (field: string, value: any) => {
     setSaving(true)
@@ -176,6 +183,33 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
     setSaving(false)
   }, [lead, onUpdate])
 
+  const handleVenueSearch = useCallback(async (q: string) => {
+    setVenueQuery(q)
+    if (q.length >= 2) {
+      const results = await lookupVenue(q)
+      setVenueResults(results)
+      setVenueOpen(results.length > 0)
+    } else {
+      setVenueResults([])
+      setVenueOpen(false)
+    }
+  }, [])
+
+  const handleVenueSelect = useCallback(async (venue: any) => {
+    setVenueOpen(false)
+    setVenueQuery('')
+    await saveField('venue_name', venue.venue_name)
+    await autoRateVenue(lead.id, venue)
+    // Update local state with venue info
+    const updates: Partial<Lead> = { venue_name: venue.venue_name }
+    if (venue.jean_score != null) updates.venue_rating = venue.jean_score
+    if (venue.venue_type) updates.venue_type = venue.venue_type
+    onUpdate({ ...lead, ...updates } as Lead)
+    toast.success(`Venue rated: ${venue.jean_score}/10`)
+  }, [lead, onUpdate, saveField])
+
+  const isReferralSource = sourceType === 'past_client' || sourceType === 'venue' || sourceType === 'planner' || sourceType === 'vendor' || sourceType === 'referral' || lead.referrer_id != null
+
   return (
     <div className="space-y-3">
       <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -184,6 +218,60 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
       </h3>
 
       <div className="space-y-2.5">
+        {/* Lead Source */}
+        <LeadSourceSelect
+          value={lead.lead_source_id}
+          onChange={(sourceId, srcType) => {
+            saveField('lead_source_id', sourceId)
+            setSourceType(srcType)
+          }}
+        />
+
+        {/* Referrer — only for referral sources */}
+        {isReferralSource && (
+          <ReferrerSelect
+            value={lead.referrer_id}
+            onChange={(referrerId) => saveField('referrer_id', referrerId)}
+          />
+        )}
+
+        {/* Venue autocomplete */}
+        <div className="flex items-center justify-between gap-3">
+          <label className="text-sm text-muted-foreground shrink-0 w-28">Venue</label>
+          <div className="relative flex-1">
+            <input
+              value={venueQuery || lead.venue_name || ''}
+              onChange={(e) => handleVenueSearch(e.target.value)}
+              onFocus={() => { if (venueResults.length > 0) setVenueOpen(true) }}
+              placeholder="Type venue name..."
+              className={`w-full h-10 rounded-lg border bg-white px-3 text-sm outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20 ${
+                lead.venue_rating ? 'border-green-300' : 'border-border'
+              }`}
+            />
+            {lead.venue_rating != null && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-green-600">
+                {lead.venue_rating}/10
+              </span>
+            )}
+            {venueOpen && venueResults.length > 0 && (
+              <div className="absolute z-50 top-full mt-1 w-full rounded-lg border border-border bg-white shadow-lg overflow-hidden">
+                {venueResults.map((v: any) => (
+                  <button
+                    key={v.id}
+                    onClick={() => handleVenueSelect(v)}
+                    className="w-full flex items-center justify-between px-3 py-2 text-sm text-left hover:bg-muted/60 transition-colors"
+                  >
+                    <span className="font-medium">{v.venue_name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {v.jean_score != null ? `${v.jean_score}/10` : ''} {v.city || ''}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         <FieldSelect
           label="Budget"
           value={lead.budget_range}
