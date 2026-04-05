@@ -33,6 +33,10 @@ const DEFAULT_FILTERS: SidebarFilters = {
   location: null,
   dateRange: 'all',
   venueType: [],
+  venueRating: null,
+  ethnicity: [],
+  religion: [],
+  ceremonyLocation: [],
   chaseStatus: [],
 }
 
@@ -132,6 +136,36 @@ export default function LeadsPage() {
       if (filters.venueType.length > 0) {
         const vt = (l.venue_type || '').toLowerCase().replace(/_/g, ' ')
         const matches = filters.venueType.some(t => vt.includes(t.toLowerCase()))
+        if (!matches) return false
+      }
+
+      // Venue rating
+      if (filters.venueRating) {
+        const vr = l.venue_rating
+        const starNum = parseInt(filters.venueRating)
+        if (!isNaN(starNum)) {
+          if (vr == null || vr !== starNum) return false
+        }
+      }
+
+      // Ethnicity
+      if (filters.ethnicity.length > 0) {
+        const eth = (l.inferred_ethnicity || '').toLowerCase()
+        const matches = filters.ethnicity.some(e => eth.includes(e.toLowerCase()))
+        if (!matches) return false
+      }
+
+      // Religion
+      if (filters.religion.length > 0) {
+        const rel = ((l as any).religion || '').toLowerCase()
+        const matches = filters.religion.some(r => rel.includes(r.toLowerCase().replace('-', '')))
+        if (!matches) return false
+      }
+
+      // Ceremony location
+      if (filters.ceremonyLocation.length > 0) {
+        const cl = ((l as any).ceremony_venue || '').toLowerCase()
+        const matches = filters.ceremonyLocation.some(c => cl.includes(c.toLowerCase().split('/')[0]))
         if (!matches) return false
       }
 
