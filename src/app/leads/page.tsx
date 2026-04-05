@@ -219,51 +219,52 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className={`${nunito.className} h-screen flex flex-col bg-slate-100 dark:bg-slate-950`}>
-      {/* Header */}
-      <SafeSection name="LeadsHeader">
-        <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
+    <div className={`${nunito.className} h-screen flex bg-slate-50 dark:bg-slate-950`}>
+      {/* Sidebar — full viewport height, starts at top */}
+      <SafeSection name="FilterSidebar">
+        <FilterSidebar
+          filters={filters}
+          onFiltersChange={setFilters}
+          counts={counts}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          collapsed={sidebarCollapsed}
+          onCollapsedChange={handleCollapsedChange}
+        />
       </SafeSection>
 
-      {/* Body: Sidebar + Floating Main Panel */}
-      <div className="flex flex-1 min-h-0">
-        <SafeSection name="FilterSidebar">
-          <FilterSidebar
-            filters={filters}
-            onFiltersChange={setFilters}
-            counts={counts}
-            open={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-            collapsed={sidebarCollapsed}
-            onCollapsedChange={handleCollapsedChange}
-          />
+      {/* Right side: Header + Main content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <SafeSection name="LeadsHeader">
+          <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
         </SafeSection>
 
-        {/* Main panel — floating card with rounded corners */}
-        <div className="flex-1 p-3 pl-0 min-w-0">
-          <div className="h-full bg-white dark:bg-slate-900 rounded-2xl shadow-lg overflow-hidden flex flex-col">
+        {/* Main panel — floating card */}
+        <div className="flex-1 p-3 min-h-0">
+          <div className="h-full bg-white dark:bg-slate-900 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 overflow-hidden flex flex-col">
             <SafeSection name="LeadGridArea">
               <LeadGridArea
-            leads={filteredLeads}
-            sortKey={sortKey}
-            onSortChange={setSortKey}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            pageSize={PAGE_SIZE}
-            onHide={(id) => {
-              supabase.from('ballots').update({ hidden: true }).eq('id', id).then(() => {})
-              setLeads(prev => prev.filter(l => l.id !== id))
-              toast('Lead hidden', {
-                action: { label: 'Undo', onClick: () => { supabase.from('ballots').update({ hidden: false }).eq('id', id).then(() => {}) } },
-              })
-            }}
-            onEmailClick={(lead) => {
-              if (lead.email) window.open(`mailto:${lead.email}?subject=SIGS Photography`, '_blank')
-              else toast.error('No email on file')
-            }}
-            onCardClick={(lead) => setSelectedLead(lead)}
-          />
-        </SafeSection>
+                leads={filteredLeads}
+                sortKey={sortKey}
+                onSortChange={setSortKey}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                pageSize={PAGE_SIZE}
+                onHide={(id) => {
+                  supabase.from('ballots').update({ hidden: true }).eq('id', id).then(() => {})
+                  setLeads(prev => prev.filter(l => l.id !== id))
+                  toast('Lead hidden', {
+                    action: { label: 'Undo', onClick: () => { supabase.from('ballots').update({ hidden: false }).eq('id', id).then(() => {}) } },
+                  })
+                }}
+                onEmailClick={(lead) => {
+                  if (lead.email) window.open(`mailto:${lead.email}?subject=SIGS Photography`, '_blank')
+                  else toast.error('No email on file')
+                }}
+                onCardClick={(lead) => setSelectedLead(lead)}
+              />
+            </SafeSection>
           </div>
         </div>
       </div>
