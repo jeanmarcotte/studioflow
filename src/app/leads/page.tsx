@@ -70,20 +70,27 @@ export default function LeadsPage() {
 
   // ── Fetch all non-hidden leads ────────────────────────────────
   const fetchLeads = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('ballots')
-      .select(LEADS_SELECT)
-      .eq('hidden', false)
-      .in('status', ['new', 'contacted'])
-      .order('book_score', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from('ballots')
+        .select(LEADS_SELECT)
+        .eq('hidden', false)
+        .in('status', ['new', 'contacted'])
+        .order('book_score', { ascending: false })
 
-    if (error) {
-      console.error('Failed to fetch leads:', error)
+      if (error) {
+        console.error('Failed to fetch leads:', error)
+        toast.error('Failed to load leads')
+        setLoading(false)
+        return
+      }
+      setLeads((data as Lead[]) || [])
+    } catch (err) {
+      console.error('Leads fetch exception:', err)
       toast.error('Failed to load leads')
-      return
+    } finally {
+      setLoading(false)
     }
-    setLeads((data as Lead[]) || [])
-    setLoading(false)
   }, [])
 
   useEffect(() => { fetchLeads() }, [fetchLeads])
