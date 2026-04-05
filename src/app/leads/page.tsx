@@ -32,6 +32,7 @@ const DEFAULT_FILTERS: SidebarFilters = {
   status: 'no-no-yes',
   location: null,
   dateRange: 'all',
+  venueType: [],
   chaseStatus: [],
 }
 
@@ -119,11 +120,19 @@ export default function LeadsPage() {
         const wDate = new Date(l.wedding_date + 'T12:00:00')
         const monthsAway = (wDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 30)
         switch (filters.dateRange) {
-          case '3m': if (monthsAway > 3 || monthsAway < 0) return false; break
-          case '3-6m': if (monthsAway < 3 || monthsAway > 6) return false; break
-          case '6-12m': if (monthsAway < 6 || monthsAway > 12) return false; break
-          case '12m+': if (monthsAway < 12) return false; break
+          case '<6m': if (monthsAway >= 6 || monthsAway < 0) return false; break
+          case '6-12m': if (monthsAway < 6 || monthsAway >= 12) return false; break
+          case '12-14m': if (monthsAway < 12 || monthsAway >= 14) return false; break
+          case '14-18m': if (monthsAway < 14 || monthsAway >= 18) return false; break
+          case '18m+': if (monthsAway < 18) return false; break
         }
+      }
+
+      // Venue type
+      if (filters.venueType.length > 0) {
+        const vt = (l.venue_type || '').toLowerCase().replace(/_/g, ' ')
+        const matches = filters.venueType.some(t => vt.includes(t.toLowerCase()))
+        if (!matches) return false
       }
 
       // Chase status (contacted only)
