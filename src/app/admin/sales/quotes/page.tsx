@@ -696,7 +696,7 @@ export default function CoupleQuotesPage() {
       <ProductionPageHeader
         title="Couple Quotes"
         subtitle="2026 sales meetings"
-        reportHref="/admin/production/report"
+        reportHref="/api/sales-report?manual=true"
         actionLabel="+ New Sale"
         actionHref="https://bridalflow.vercel.app/admin"
         actionNewTab={true}
