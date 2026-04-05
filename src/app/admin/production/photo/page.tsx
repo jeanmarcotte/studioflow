@@ -142,6 +142,7 @@ export default function PhotoProductionPage() {
   const [reeditYtdCount, setReeditYtdCount] = useState(0)
   const [editedSoFar, setEditedSoFar] = useState(0)
   const [totalPhotos, setTotalPhotos] = useState(0)
+  const [totalProofsAll, setTotalProofsAll] = useState(0)
 
   // YTD data (all jobs including completed)
   const [ytdData, setYtdData] = useState<{ photos_taken: number; edited_so_far: number; total_proofs: number }>({ photos_taken: 0, edited_so_far: 0, total_proofs: 0 })
@@ -237,8 +238,10 @@ export default function PhotoProductionPage() {
         // Sidebar progress bar uses ALL jobs
         const edited = photosRes.data.reduce((sum, r: any) => sum + (r.edited_so_far || 0), 0)
         const taken = photosRes.data.reduce((sum, r: any) => sum + (r.photos_taken || 0), 0)
+        const proofs = photosRes.data.reduce((sum, r: any) => sum + (r.total_proofs || 0), 0)
         setEditedSoFar(edited)
         setTotalPhotos(taken)
+        setTotalProofsAll(proofs)
 
         // YTD row uses ONLY proofs-type jobs
         const proofsOnly = photosRes.data.filter((r: any) => r.job_type && r.job_type.toLowerCase().includes('proofs'))
@@ -362,8 +365,8 @@ export default function PhotoProductionPage() {
     atLabCount: jobs.filter(j => j.status === 'at_lab').length,
     readyToOrderCount: jobs.filter(j => j.status === 'ready_to_order').length,
     notStartedCount: jobs.filter(j => j.status === 'not_started').length,
-    photosPercent: totalPhotos > 0 ? Math.round((editedSoFar / totalPhotos) * 100) : 0,
-  }), [jobs, editedSoFar, totalPhotos])
+    photosPercent: totalProofsAll > 0 ? Math.round((editedSoFar / totalProofsAll) * 100) : 0,
+  }), [jobs, editedSoFar, totalProofsAll])
 
   // ── Currently Editing data ───────────────────────────────────
 
@@ -373,12 +376,12 @@ export default function PhotoProductionPage() {
     const pt = inProgressJobs.reduce((s, j) => s + (j.photos_taken || 0), 0)
     const esf = inProgressJobs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
     const tp = inProgressJobs.reduce((s, j) => s + (j.total_proofs || 0), 0)
-    const remaining = tp > 0 ? tp - esf : pt - esf
+    const remaining = Math.max(0, tp > 0 ? tp - esf : pt - esf)
     const deleted = tp > 0 ? pt - tp : 0
     return {
       photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
       pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
-      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null,
+      pctCompleted: tp > 0 ? ((esf / tp) * 100).toFixed(1) : null,
     }
   }, [inProgressJobs])
 
@@ -387,12 +390,12 @@ export default function PhotoProductionPage() {
     const pt = proofs.reduce((s, j) => s + (j.photos_taken || 0), 0)
     const esf = proofs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
     const tp = proofs.reduce((s, j) => s + (j.total_proofs || 0), 0)
-    const remaining = tp > 0 ? tp - esf : pt - esf
+    const remaining = Math.max(0, tp > 0 ? tp - esf : pt - esf)
     const deleted = tp > 0 ? pt - tp : 0
     return {
       photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
       pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
-      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null,
+      pctCompleted: tp > 0 ? ((esf / tp) * 100).toFixed(1) : null,
     }
   }, [cemeteryJobs])
 
@@ -400,12 +403,12 @@ export default function PhotoProductionPage() {
     const pt = ytdData.photos_taken
     const esf = ytdData.edited_so_far
     const tp = ytdData.total_proofs
-    const remaining = tp > 0 ? tp - esf : pt - esf
+    const remaining = Math.max(0, tp > 0 ? tp - esf : pt - esf)
     const deleted = tp > 0 ? pt - tp : 0
     return {
       photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
       pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
-      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null,
+      pctCompleted: tp > 0 ? ((esf / tp) * 100).toFixed(1) : null,
     }
   }, [ytdData])
 
@@ -808,10 +811,11 @@ export default function PhotoProductionPage() {
                         const pt = job.photos_taken || 0
                         const esf = job.edited_so_far || 0
                         const tp = job.total_proofs || 0
-                        const remaining = tp > 0 ? tp - esf : pt - esf
+                        const isCompleted = job.status === 'completed' || job.status === 'picked_up'
+                        const remaining = isCompleted ? 0 : Math.max(0, tp > 0 ? tp - esf : pt - esf)
                         const deleted = tp > 0 ? pt - tp : 0
                         const pctDeleted = deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null
-                        const pctCompleted = pt > 0 ? ((esf / pt) * 100).toFixed(1) : null
+                        const pctCompleted = tp > 0 ? ((esf / tp) * 100).toFixed(1) : null
 
                         return (
                           <tr key={job.id} className="border-b border-border/60 hover:bg-muted/50 transition-colors">
