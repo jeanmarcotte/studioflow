@@ -185,13 +185,13 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className={`${nunito.className} min-h-screen flex flex-col`} style={{ backgroundColor: '#faf8f5' }}>
+    <div className={`${nunito.className} h-screen flex flex-col bg-slate-100 dark:bg-slate-950`}>
       {/* Header */}
       <SafeSection name="LeadsHeader">
         <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
       </SafeSection>
 
-      {/* Body: Sidebar + Grid */}
+      {/* Body: Sidebar + Floating Main Panel */}
       <div className="flex flex-1 min-h-0">
         <SafeSection name="FilterSidebar">
           <FilterSidebar
@@ -205,8 +205,11 @@ export default function LeadsPage() {
           />
         </SafeSection>
 
-        <SafeSection name="LeadGridArea">
-          <LeadGridArea
+        {/* Main panel — floating card with rounded corners */}
+        <div className="flex-1 p-3 pl-0 min-w-0">
+          <div className="h-full bg-white dark:bg-slate-900 rounded-2xl shadow-lg overflow-hidden flex flex-col">
+            <SafeSection name="LeadGridArea">
+              <LeadGridArea
             leads={filteredLeads}
             sortKey={sortKey}
             onSortChange={setSortKey}
@@ -227,6 +230,8 @@ export default function LeadsPage() {
             onCardClick={(lead) => setSelectedLead(lead)}
           />
         </SafeSection>
+          </div>
+        </div>
       </div>
 
       {/* Detail sheet lazy-loaded only when needed */}
