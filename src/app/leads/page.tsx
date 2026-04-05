@@ -44,8 +44,19 @@ export default function LeadsPage() {
   const [filters, setFilters] = useState<SidebarFilters>(DEFAULT_FILTERS)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [sortKey, setSortKey] = useState<'score' | 'date' | 'name' | 'temperature'>('score')
   const [currentPage, setCurrentPage] = useState(1)
+
+  // Persist sidebar collapsed state
+  useEffect(() => {
+    const saved = localStorage.getItem('bridalflow-sidebar-collapsed')
+    if (saved === 'true') setSidebarCollapsed(true)
+  }, [])
+  const handleCollapsedChange = (collapsed: boolean) => {
+    setSidebarCollapsed(collapsed)
+    localStorage.setItem('bridalflow-sidebar-collapsed', String(collapsed))
+  }
 
   // Reset page when filters change
   useEffect(() => { setCurrentPage(1) }, [filters, sortKey])
@@ -180,6 +191,8 @@ export default function LeadsPage() {
             counts={counts}
             open={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
+            collapsed={sidebarCollapsed}
+            onCollapsedChange={handleCollapsedChange}
           />
         </SafeSection>
 
