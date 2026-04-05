@@ -9,6 +9,8 @@ import { LeadDetailSheet } from '@/components/leads/LeadDetailSheet'
 import { EmailComposeModal } from '@/components/leads/EmailComposeModal'
 import { useLeadsRealtime } from '@/hooks/useLeadsRealtime'
 import { toast } from 'sonner'
+import { Users, BarChart3 } from 'lucide-react'
+import Link from 'next/link'
 import type { Lead, FilterKey } from '@/lib/lead-utils'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
@@ -205,9 +207,15 @@ export default function LeadsPage() {
         <h1 className={`${playfair.className} text-2xl md:text-3xl font-bold text-[#0d4f4f] mb-1`}>
           Lead Command Center
         </h1>
-        <p className="text-sm text-muted-foreground mb-5">
-          {leads.length} active leads — sorted by score
-        </p>
+        <div className="flex items-center gap-4 mb-5">
+          <span className="text-sm font-medium text-[#0d4f4f] flex items-center gap-1">
+            <Users className="h-4 w-4" /> Leads
+          </span>
+          <Link href="/analytics" className="text-sm text-muted-foreground hover:text-[#0d4f4f] transition-colors flex items-center gap-1">
+            <BarChart3 className="h-4 w-4" /> Analytics
+          </Link>
+          <span className="text-sm text-muted-foreground ml-auto">{leads.length} active — sorted by score</span>
+        </div>
 
         <FilterBar
           activeFilter={activeFilter}
