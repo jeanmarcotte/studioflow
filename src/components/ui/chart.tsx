@@ -99,7 +99,8 @@ interface ChartTooltipContentProps {
   nameKey?: string
   labelKey?: string
   className?: string
-  formatter?: (value: any, name: string) => [React.ReactNode, React.ReactNode]
+  formatter?: (value: any, name: string, props: any) => [React.ReactNode, React.ReactNode]
+  labelFormatter?: (label: string, payload: any[]) => React.ReactNode
 }
 
 const ChartTooltipContent = React.forwardRef<
@@ -112,6 +113,7 @@ const ChartTooltipContent = React.forwardRef<
       payload,
       label,
       formatter,
+      labelFormatter,
       hideLabel = false,
       hideIndicator = false,
       indicator = 'dot',
@@ -123,6 +125,8 @@ const ChartTooltipContent = React.forwardRef<
 
     if (!active || !payload?.length) return null
 
+    const displayLabel = labelFormatter ? labelFormatter(label ?? '', payload) : label
+
     return (
       <div
         ref={ref}
@@ -131,8 +135,8 @@ const ChartTooltipContent = React.forwardRef<
           className
         )}
       >
-        {!hideLabel && label && (
-          <div className="font-medium">{label}</div>
+        {!hideLabel && displayLabel && (
+          <div className="font-medium">{displayLabel}</div>
         )}
         <div className="grid gap-1.5">
           {payload.map((item: any, index: number) => {
@@ -141,7 +145,7 @@ const ChartTooltipContent = React.forwardRef<
             const indicatorColor = item.color || itemConfig?.color
 
             const [displayValue, displayName] = formatter
-              ? formatter(item.value, key)
+              ? formatter(item.value, key, item)
               : [item.value, itemConfig?.label || item.name || key]
 
             return (
