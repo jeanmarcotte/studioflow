@@ -5,6 +5,7 @@ import { Playfair_Display, Nunito } from 'next/font/google'
 import { supabase } from '@/lib/supabase'
 import { FilterBar } from '@/components/leads/FilterBar'
 import { LeadGrid } from '@/components/leads/LeadGrid'
+import { LeadDetailSheet } from '@/components/leads/LeadDetailSheet'
 import { useLeadsRealtime } from '@/hooks/useLeadsRealtime'
 import { toast } from 'sonner'
 import type { Lead, FilterKey } from '@/lib/lead-utils'
@@ -33,13 +34,27 @@ const LEADS_SELECT = `
   contact_count,
   last_contact_date,
   hidden,
-  service_needs
+  service_needs,
+  budget_range,
+  inferred_ethnicity,
+  want_album,
+  want_engagement,
+  bridal_party_size,
+  multi_day_event,
+  planner_involved,
+  venue_type,
+  venue_rating,
+  referral_source,
+  inquiry_depth_score,
+  response_speed_hours,
+  score_breakdown
 `
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [activeFilter, setActiveFilter] = useState<FilterKey>('no-no-yes')
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
 
   // ── Fetch all non-hidden leads ────────────────────────────────
   const fetchLeads = useCallback(async () => {
@@ -127,9 +142,21 @@ export default function LeadsPage() {
     }
   }, [])
 
-  // ── Card tap (placeholder — Block 4 slide-over) ───────────────
+  // ── Card tap → open detail sheet ────────────────────────────────
   const handleCardClick = useCallback((lead: Lead) => {
-    toast(`${lead.bride_first_name || 'Lead'} — Detail panel coming in Block 4`)
+    setSelectedLead(lead)
+  }, [])
+
+  // ── Detail sheet update handler ───────────────────────────────
+  const handleLeadUpdate = useCallback((updated: Lead) => {
+    // If status changed to something outside our filters, remove from list
+    if (!['new', 'contacted'].includes(updated.status) || updated.hidden) {
+      setLeads(prev => prev.filter(l => l.id !== updated.id))
+      setSelectedLead(null)
+    } else {
+      setLeads(prev => prev.map(l => l.id === updated.id ? updated : l))
+      setSelectedLead(updated)
+    }
   }, [])
 
   // ── Loading state ─────────────────────────────────────────────
@@ -168,6 +195,14 @@ export default function LeadsPage() {
           onCardClick={handleCardClick}
         />
       </div>
+
+      {/* Detail Sheet */}
+      <LeadDetailSheet
+        lead={selectedLead}
+        isOpen={!!selectedLead}
+        onClose={() => setSelectedLead(null)}
+        onUpdate={handleLeadUpdate}
+      />
     </div>
   )
 }

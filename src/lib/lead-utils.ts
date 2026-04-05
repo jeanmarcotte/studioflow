@@ -22,6 +22,20 @@ export interface Lead {
   last_contact_date: string | null
   hidden: boolean | null
   service_needs: string | null
+  // Discovery fields
+  budget_range: string | null
+  inferred_ethnicity: string | null
+  want_album: string | null
+  want_engagement: string | null
+  bridal_party_size: number | null
+  multi_day_event: boolean | null
+  planner_involved: boolean | null
+  venue_type: string | null
+  venue_rating: number | null
+  referral_source: string | null
+  inquiry_depth_score: number | null
+  response_speed_hours: number | null
+  score_breakdown: any | null
 }
 
 export type FilterKey = 'no-no-yes' | 'no-no-no' | 'contacted'
