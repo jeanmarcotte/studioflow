@@ -30,12 +30,12 @@ class SafeSection extends Component<{ name: string; children: ReactNode }, { err
 
 const DEFAULT_FILTERS: SidebarFilters = {
   status: 'no-no-yes',
-  locations: [],
+  location: null,
   dateRange: 'all',
-  venueRatings: [],
-  backgrounds: [],
   chaseStatus: [],
 }
+
+const PAGE_SIZE = 15
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
@@ -44,6 +44,11 @@ export default function LeadsPage() {
   const [filters, setFilters] = useState<SidebarFilters>(DEFAULT_FILTERS)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sortKey, setSortKey] = useState<'score' | 'date' | 'name' | 'temperature'>('score')
+  const [currentPage, setCurrentPage] = useState(1)
+
+  // Reset page when filters change
+  useEffect(() => { setCurrentPage(1) }, [filters, sortKey])
 
   // Fetch leads
   useEffect(() => {
@@ -75,7 +80,7 @@ export default function LeadsPage() {
     const todayStr = today.toISOString().split('T')[0]
 
     return leads.filter(l => {
-      // Status filter
+      // Status
       switch (filters.status) {
         case 'no-no-yes':
           if (!(l.status === 'new' && !l.has_photographer && !l.has_videographer && l.has_venue === true)) return false
@@ -88,17 +93,17 @@ export default function LeadsPage() {
           break
       }
 
-      // Location filter
-      if (filters.locations.length > 0) {
+      // Location (single select)
+      if (filters.location) {
         const city = ((l as any).inferred_city || '').toLowerCase()
-        const matchesLocation = filters.locations.some(loc => {
-          if (loc === 'Other') return !['vaughan', 'hamilton', 'oakville', 'toronto'].includes(city)
-          return city.includes(loc.toLowerCase())
-        })
-        if (!matchesLocation) return false
+        if (filters.location === 'Other') {
+          if (['vaughan', 'hamilton', 'oakville', 'toronto'].includes(city)) return false
+        } else {
+          if (!city.includes(filters.location.toLowerCase())) return false
+        }
       }
 
-      // Date range filter
+      // Date range
       if (filters.dateRange !== 'all' && l.wedding_date) {
         const wDate = new Date(l.wedding_date + 'T12:00:00')
         const monthsAway = (wDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 30)
@@ -110,31 +115,7 @@ export default function LeadsPage() {
         }
       }
 
-      // Venue rating filter
-      if (filters.venueRatings.length > 0) {
-        const vr = l.venue_rating
-        const matches = filters.venueRatings.some(r => {
-          if (r === '8+') return vr != null && vr >= 8
-          if (r === '6-7') return vr != null && vr >= 6 && vr <= 7
-          if (r === '<6') return vr != null && vr < 6
-          if (r === 'Unknown') return vr == null
-          return false
-        })
-        if (!matches) return false
-      }
-
-      // Background filter
-      if (filters.backgrounds.length > 0) {
-        const eth = (l.inferred_ethnicity || '').toLowerCase()
-        const matches = filters.backgrounds.some(bg => {
-          if (bg === 'Other') return !['italian', 'greek', 'south_asian', 'filipino'].includes(eth)
-          if (bg === 'South Asian') return eth === 'south_asian'
-          return eth === bg.toLowerCase()
-        })
-        if (!matches) return false
-      }
-
-      // Chase status filter (only for contacted)
+      // Chase status (contacted only)
       if (filters.status === 'contacted' && filters.chaseStatus.length > 0) {
         const matches = filters.chaseStatus.some(cs => {
           switch (cs) {
@@ -152,7 +133,6 @@ export default function LeadsPage() {
     })
   }, [leads, filters])
 
-  // Counts for status buttons
   const counts = useMemo(() => ({
     'no-no-yes': leads.filter(l => l.status === 'new' && !l.has_photographer && !l.has_videographer && l.has_venue === true).length,
     'no-no-no': leads.filter(l => l.status === 'new' && !l.has_photographer && !l.has_videographer && !l.has_venue).length,
@@ -206,6 +186,11 @@ export default function LeadsPage() {
         <SafeSection name="LeadGridArea">
           <LeadGridArea
             leads={filteredLeads}
+            sortKey={sortKey}
+            onSortChange={setSortKey}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            pageSize={PAGE_SIZE}
             onHide={(id) => {
               supabase.from('ballots').update({ hidden: true }).eq('id', id).then(() => {})
               setLeads(prev => prev.filter(l => l.id !== id))
@@ -246,15 +231,9 @@ export default function LeadsPage() {
 
 function LazyDetailSheet({ lead, onClose, onUpdate }: { lead: Lead; onClose: () => void; onUpdate: (l: Lead) => void }) {
   const [Sheet, setSheet] = useState<any>(null)
-
   useEffect(() => {
-    import('@/components/leads/LeadDetailSheet').then(mod => {
-      setSheet(() => mod.LeadDetailSheet)
-    }).catch(err => {
-      console.error('Failed to load LeadDetailSheet:', err)
-    })
+    import('@/components/leads/LeadDetailSheet').then(mod => setSheet(() => mod.LeadDetailSheet)).catch(err => console.error('Failed to load LeadDetailSheet:', err))
   }, [])
-
   if (!Sheet) return null
   return <Sheet lead={lead} isOpen={true} onClose={onClose} onUpdate={onUpdate} />
 }
