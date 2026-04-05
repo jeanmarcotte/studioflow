@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
 import { ProductionPageHeader, ProductionPills, ProductionSidebar } from '@/components/shared'
+import { BridalShowHistoryChart } from '@/components/sales/BridalShowHistoryChart'
 import { formatCurrency, formatDateCompact } from '@/lib/formatters'
 import jsPDF from 'jspdf'
 
@@ -99,6 +100,7 @@ export default function CoupleQuotesPage() {
   const [meetingsLoading, setMeetingsLoading] = useState(true)
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
+  const [seasonData, setSeasonData] = useState<any[]>([])
   const [showCosts, setShowCosts] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {}
     LEAD_SOURCES_CONFIG.forEach(s => { init[s.name] = s.defaultShowCost })
@@ -146,6 +148,13 @@ export default function CoupleQuotesPage() {
 
     loadMeetings()
     loadLeadSources()
+
+    // Fetch bridal show seasons for chart
+    supabase
+      .from('bridal_show_seasons')
+      .select('season_name, year, season, appts, booked, failed, new_cust_revenue, frame_revenue, conversion_rate, total_show_cost, cost_per_sale')
+      .order('year', { ascending: true })
+      .then(({ data }) => { if (data) setSeasonData(data) })
   }, [])
 
   const handleStatusChange = async (meeting: SalesMeeting, newStatus: string) => {
@@ -692,6 +701,12 @@ export default function CoupleQuotesPage() {
         actionHref="https://bridalflow.vercel.app/admin"
         actionNewTab={true}
       />
+
+      {seasonData.length > 0 && (
+        <div className="px-6">
+          <BridalShowHistoryChart seasons={seasonData} />
+        </div>
+      )}
 
       <ProductionPills pills={[
         { label: 'Booked', count: stats.booked, color: 'green' },
