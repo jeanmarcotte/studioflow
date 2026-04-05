@@ -50,15 +50,17 @@ export function LeadGridArea({ leads, sortKey, onSortChange, currentPage, onPage
         </h1>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground hidden sm:inline">{leads.length} leads</span>
+          <span className="text-xs text-muted-foreground hidden sm:inline ml-2">Sort by:</span>
           <select
             value={sortKey}
             onChange={(e) => onSortChange(e.target.value as SortKey)}
-            className="h-8 rounded-lg border border-border bg-white dark:bg-gray-900 px-2 text-xs font-medium outline-none focus:border-[#0d4f4f]"
+            className="h-8 rounded-lg border border-border bg-white dark:bg-gray-900 text-xs font-medium outline-none focus:border-[#0d4f4f]"
+            style={{ paddingLeft: '0.5rem', paddingRight: '1.5rem' }}
           >
-            <option value="score">Sort by: Score</option>
-            <option value="date">Sort by: Date</option>
-            <option value="name">Sort by: Name</option>
-            <option value="temperature">Sort by: Temperature</option>
+            <option value="score">Score</option>
+            <option value="date">Wedding Date</option>
+            <option value="name">Name</option>
+            <option value="temperature">Temperature</option>
           </select>
         </div>
       </div>
