@@ -702,12 +702,6 @@ export default function CoupleQuotesPage() {
         actionNewTab={true}
       />
 
-      {seasonData.length > 0 && (
-        <div className="px-6">
-          <BridalShowHistoryChart seasons={seasonData} />
-        </div>
-      )}
-
       <ProductionPills pills={[
         { label: 'Booked', count: stats.booked, color: 'green' },
         { label: 'Failed', count: stats.failed, color: 'red' },
@@ -732,6 +726,10 @@ export default function CoupleQuotesPage() {
               />
             </div>
           </div>
+
+          {seasonData.length > 0 && (
+            <BridalShowHistoryChart seasons={seasonData} />
+          )}
 
           {renderSection('section-all', 'ALL MEETINGS', filteredMeetings, 'bg-gray-100 text-gray-700')}
           {renderSection('section-booked', 'BOOKED', bookedMeetings, 'bg-green-100 text-green-700')}
