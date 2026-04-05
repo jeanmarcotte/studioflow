@@ -36,6 +36,10 @@ export interface Lead {
   inquiry_depth_score: number | null
   response_speed_hours: number | null
   score_breakdown: any | null
+  next_contact_due: string | null
+  contact_status: string | null
+  reactivation_count: number | null
+  reactivated_at: string | null
 }
 
 export type FilterKey = 'no-no-yes' | 'no-no-no' | 'contacted'

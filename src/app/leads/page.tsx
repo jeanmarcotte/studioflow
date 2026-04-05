@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { FilterBar } from '@/components/leads/FilterBar'
 import { LeadGrid } from '@/components/leads/LeadGrid'
 import { LeadDetailSheet } from '@/components/leads/LeadDetailSheet'
+import { EmailComposeModal } from '@/components/leads/EmailComposeModal'
 import { useLeadsRealtime } from '@/hooks/useLeadsRealtime'
 import { toast } from 'sonner'
 import type { Lead, FilterKey } from '@/lib/lead-utils'
@@ -47,7 +48,11 @@ const LEADS_SELECT = `
   referral_source,
   inquiry_depth_score,
   response_speed_hours,
-  score_breakdown
+  score_breakdown,
+  next_contact_due,
+  contact_status,
+  reactivation_count,
+  reactivated_at
 `
 
 export default function LeadsPage() {
@@ -55,6 +60,7 @@ export default function LeadsPage() {
   const [loading, setLoading] = useState(true)
   const [activeFilter, setActiveFilter] = useState<FilterKey>('no-no-yes')
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [emailLead, setEmailLead] = useState<Lead | null>(null)
 
   // ── Fetch all non-hidden leads ────────────────────────────────
   const fetchLeads = useCallback(async () => {
@@ -103,9 +109,11 @@ export default function LeadsPage() {
     })
   }, []))
 
-  // ── Filter logic ──────────────────────────────────────────────
+  // ── Filter + sort logic ────────────────────────────────────────
   const filteredLeads = useMemo(() => {
-    return leads.filter(l => {
+    const today = new Date().toISOString().split('T')[0]
+
+    const filtered = leads.filter(l => {
       switch (activeFilter) {
         case 'no-no-yes':
           return l.status === 'new' && !l.has_photographer && !l.has_videographer && l.has_venue === true
@@ -116,6 +124,14 @@ export default function LeadsPage() {
         default:
           return true
       }
+    })
+
+    // Sort: overdue first, then due today, then by score
+    return filtered.sort((a, b) => {
+      const aOverdue = a.next_contact_due && a.next_contact_due < today ? 2 : a.next_contact_due === today ? 1 : 0
+      const bOverdue = b.next_contact_due && b.next_contact_due < today ? 2 : b.next_contact_due === today ? 1 : 0
+      if (aOverdue !== bOverdue) return bOverdue - aOverdue
+      return (b.book_score ?? 0) - (a.book_score ?? 0)
     })
   }, [leads, activeFilter])
 
@@ -131,15 +147,13 @@ export default function LeadsPage() {
     setLeads(prev => prev.filter(l => l.id !== id))
   }, [])
 
-  // ── Email compose (placeholder — Block 4) ─────────────────────
+  // ── Email compose modal ────────────────────────────────────────
   const handleEmailClick = useCallback((lead: Lead) => {
-    const email = lead.email
-    if (email) {
-      window.open(`mailto:${email}?subject=SIGS Photography — Your Wedding Day!`, '_blank')
-      toast.success('Opening email compose')
-    } else {
+    if (!lead.email) {
       toast.error('No email on file for this lead')
+      return
     }
+    setEmailLead(lead)
   }, [])
 
   // ── Card tap → open detail sheet ────────────────────────────────
@@ -203,6 +217,16 @@ export default function LeadsPage() {
         onClose={() => setSelectedLead(null)}
         onUpdate={handleLeadUpdate}
       />
+
+      {/* Email Compose Modal */}
+      {emailLead && (
+        <EmailComposeModal
+          lead={emailLead}
+          open={!!emailLead}
+          onClose={() => setEmailLead(null)}
+          onTouchLogged={() => fetchLeads()}
+        />
+      )}
     </div>
   )
 }

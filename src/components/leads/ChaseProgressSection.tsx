@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface Contact {
@@ -14,15 +14,18 @@ interface Contact {
 
 interface ChaseProgressSectionProps {
   ballotId: string
+  refreshKey?: number
 }
 
 const MAX_TOUCHES = 6
 
-function formatContactDate(dateStr: string | null): string {
+function formatContactDateTime(dateStr: string | null): string {
   if (!dateStr) return '—'
   const d = new Date(dateStr)
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+  const hh = d.getHours().toString().padStart(2, '0')
+  const mm = d.getMinutes().toString().padStart(2, '0')
+  return `${months[d.getMonth()]} ${d.getDate()}, ${hh}:${mm}`
 }
 
 function daysAgo(dateStr: string | null): string {
@@ -37,28 +40,29 @@ function daysAgo(dateStr: string | null): string {
 
 function contactTypeLabel(type: string): string {
   const map: Record<string, string> = {
-    call: 'Call', text: 'Text', email: 'Email', voicemail: 'Voicemail', zoom: 'Zoom', in_person: 'In Person'
+    call: 'CALL', text: 'TEXT', email: 'EMAIL', voicemail: 'VM', zoom: 'ZOOM', in_person: 'IN PERSON', view: 'VIEW'
   }
-  return map[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+  return map[type] || type.toUpperCase()
 }
 
-export function ChaseProgressSection({ ballotId }: ChaseProgressSectionProps) {
+export function ChaseProgressSection({ ballotId, refreshKey }: ChaseProgressSectionProps) {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function fetch() {
-      const { data } = await supabase
-        .from('lead_contacts')
-        .select('id, contact_number, contact_type, contact_date, outcome, notes')
-        .eq('ballot_id', ballotId)
-        .order('contact_number', { ascending: true })
+  const fetchContacts = useCallback(async () => {
+    const { data } = await supabase
+      .from('lead_contacts')
+      .select('id, contact_number, contact_type, contact_date, outcome, notes')
+      .eq('ballot_id', ballotId)
+      .order('contact_number', { ascending: true })
 
-      setContacts((data as Contact[]) || [])
-      setLoading(false)
-    }
-    fetch()
+    setContacts((data as Contact[]) || [])
+    setLoading(false)
   }, [ballotId])
+
+  useEffect(() => {
+    fetchContacts()
+  }, [fetchContacts, refreshKey])
 
   const touchCount = contacts.length
   const lastContact = contacts.length > 0 ? contacts[contacts.length - 1] : null
@@ -66,7 +70,7 @@ export function ChaseProgressSection({ ballotId }: ChaseProgressSectionProps) {
   return (
     <div className="space-y-3">
       <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-        <span>📞</span> Chase Progress
+        <span>📞</span> Chase History
       </h3>
 
       {loading ? (
@@ -99,21 +103,29 @@ export function ChaseProgressSection({ ballotId }: ChaseProgressSectionProps) {
             Touch {touchCount} of {MAX_TOUCHES}
             {lastContact?.contact_date && (
               <span className="ml-2">
-                — Last: {formatContactDate(lastContact.contact_date)} {daysAgo(lastContact.contact_date)}
+                — Last: {formatContactDateTime(lastContact.contact_date)} {daysAgo(lastContact.contact_date)}
               </span>
             )}
           </div>
 
-          {/* History */}
+          {/* Detailed history cards */}
           {contacts.length > 0 && (
-            <div className="space-y-1.5 pt-1">
+            <div className="space-y-1 pt-1">
               {contacts.map(c => (
-                <div key={c.id} className="text-xs text-muted-foreground flex gap-2">
-                  <span className="font-semibold text-foreground shrink-0">Touch {c.contact_number}:</span>
-                  <span>{contactTypeLabel(c.contact_type)}</span>
-                  <span>—</span>
-                  <span>{formatContactDate(c.contact_date)}</span>
-                  {c.notes && <span className="italic truncate">— "{c.notes}"</span>}
+                <div key={c.id} className="rounded-lg border border-border/60 bg-gray-50 px-3 py-2">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-bold text-foreground">Touch {c.contact_number}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#0d4f4f] bg-[#0d4f4f]/10 px-1.5 py-0.5 rounded">
+                      {contactTypeLabel(c.contact_type)}
+                    </span>
+                    <span className="text-muted-foreground ml-auto">{formatContactDateTime(c.contact_date)}</span>
+                  </div>
+                  {c.notes && (
+                    <div className="text-xs text-muted-foreground mt-1 italic">"{c.notes}"</div>
+                  )}
+                  {c.outcome && c.outcome !== 'sent' && (
+                    <div className="text-[10px] text-muted-foreground/70 mt-0.5">Outcome: {c.outcome}</div>
+                  )}
                 </div>
               ))}
             </div>

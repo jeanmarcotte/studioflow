@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { ArrowLeft, Skull, Calendar, X } from 'lucide-react'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -14,10 +14,13 @@ import type { Lead } from '@/lib/lead-utils'
 import {
   coupleName, getScoreTier, getScoreColors, getTempConfig, SCORE_DOT_COLORS,
 } from '@/lib/lead-utils'
+import { logTouch, undoTouch } from '@/lib/chase-actions'
 import { ContactSection } from './ContactSection'
 import { DiscoverySection } from './DiscoverySection'
 import { ChaseProgressSection } from './ChaseProgressSection'
 import { ScoreBreakdown } from './ScoreBreakdown'
+import { NextTouchCard } from './NextTouchCard'
+import { ResurrectButton } from './ResurrectButton'
 import { BookedModal } from './BookedModal'
 import { LostModal } from './LostModal'
 
@@ -31,6 +34,50 @@ interface LeadDetailSheetProps {
 export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailSheetProps) {
   const [bookedOpen, setBookedOpen] = useState(false)
   const [lostOpen, setLostOpen] = useState(false)
+  const [chaseRefreshKey, setChaseRefreshKey] = useState(0)
+  const autoLoggedRef = useRef<string | null>(null)
+
+  // ── Auto-log touch on sheet open (WO-349) ─────────────────────
+  useEffect(() => {
+    if (!isOpen || !lead) return
+    if (lead.status !== 'contacted') return
+    // Only auto-log once per lead open
+    if (autoLoggedRef.current === lead.id) return
+    autoLoggedRef.current = lead.id
+
+    logTouch(lead.id, lead.entity_id, 'view', 'Viewed lead detail').then(result => {
+      if (result) {
+        setChaseRefreshKey(k => k + 1)
+        toast(`Logged as Touch #${result.touchNumber}`, {
+          action: {
+            label: 'Undo',
+            onClick: async () => {
+              await undoTouch(result.contactId, lead.id)
+              setChaseRefreshKey(k => k + 1)
+            },
+          },
+        })
+
+        // Update local lead state with new contact count
+        onUpdate({
+          ...lead,
+          contact_count: result.touchNumber,
+          last_contact_date: new Date().toISOString(),
+          temperature: 'hot',
+          ...(result.touchNumber >= 6 ? { status: 'dead', contact_status: 'exhausted' } : {}),
+        })
+
+        if (result.touchNumber >= 6) {
+          toast.info('Lead marked as dead after 6 touches')
+        }
+      }
+    })
+  }, [isOpen, lead?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset auto-log ref when sheet closes
+  useEffect(() => {
+    if (!isOpen) autoLoggedRef.current = null
+  }, [isOpen])
 
   const handleKill = useCallback(async () => {
     if (!lead) return
@@ -61,6 +108,10 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
     onUpdate(updated)
   }, [onUpdate])
 
+  const handleTouchLogged = useCallback(() => {
+    setChaseRefreshKey(k => k + 1)
+  }, [])
+
   const handleBooked = useCallback(() => {
     setBookedOpen(false)
     if (lead) {
@@ -77,6 +128,11 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
     onClose()
   }, [lead, onUpdate, onClose])
 
+  const handleResurrected = useCallback((updated: Lead) => {
+    onUpdate(updated)
+    setChaseRefreshKey(k => k + 1)
+  }, [onUpdate])
+
   if (!lead) return null
 
   const score = lead.book_score ?? 0
@@ -84,6 +140,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
   const colors = getScoreColors(score)
   const temp = getTempConfig(lead.temperature)
   const dotColor = SCORE_DOT_COLORS[tier]
+  const isDead = lead.status === 'dead'
 
   return (
     <>
@@ -109,6 +166,11 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
           </SheetHeader>
 
           <div className="px-4 py-4 space-y-5">
+            {/* Resurrect banner for dead leads */}
+            {isDead && (
+              <ResurrectButton lead={lead} onResurrected={handleResurrected} />
+            )}
+
             {/* Score summary bar */}
             <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-border/60">
               <Badge className={`${colors.bg} ${colors.text} ${colors.border} border font-bold text-base px-3 py-1`}>
@@ -130,6 +192,11 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
               </span>
             </div>
 
+            {/* Next Touch Recommendation */}
+            {!isDead && (lead.contact_count || 0) < 6 && (
+              <NextTouchCard lead={lead} onTouchLogged={handleTouchLogged} />
+            )}
+
             {/* Section 1: Contact */}
             <ContactSection lead={lead} />
 
@@ -141,7 +208,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
             <Separator />
 
             {/* Section 3: Chase Progress */}
-            <ChaseProgressSection ballotId={lead.id} />
+            <ChaseProgressSection ballotId={lead.id} refreshKey={chaseRefreshKey} />
 
             <Separator />
 
@@ -151,23 +218,25 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
             <Separator />
 
             {/* Section 5: Outcome Buttons */}
-            <div className="space-y-2.5 pb-4">
-              <Button
-                className="w-full h-14 text-base font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
-                onClick={() => setBookedOpen(true)}
-              >
-                <Calendar className="h-5 w-5 mr-2" />
-                BOOKED!
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full h-14 text-base font-bold text-red-600 border-red-300 hover:bg-red-50 rounded-xl"
-                onClick={() => setLostOpen(true)}
-              >
-                <X className="h-5 w-5 mr-2" />
-                NOT INTERESTED
-              </Button>
-            </div>
+            {!isDead && (
+              <div className="space-y-2.5 pb-4">
+                <Button
+                  className="w-full h-14 text-base font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
+                  onClick={() => setBookedOpen(true)}
+                >
+                  <Calendar className="h-5 w-5 mr-2" />
+                  BOOKED!
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-14 text-base font-bold text-red-600 border-red-300 hover:bg-red-50 rounded-xl"
+                  onClick={() => setLostOpen(true)}
+                >
+                  <X className="h-5 w-5 mr-2" />
+                  NOT INTERESTED
+                </Button>
+              </div>
+            )}
           </div>
         </SheetContent>
       </Sheet>

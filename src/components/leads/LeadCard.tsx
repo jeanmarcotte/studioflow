@@ -29,6 +29,10 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick }: LeadCardPr
   const temp = getTempConfig(lead.temperature)
   const dotColor = SCORE_DOT_COLORS[tier]
 
+  const today = new Date().toISOString().split('T')[0]
+  const isOverdue = lead.next_contact_due != null && lead.next_contact_due < today
+  const isDueToday = lead.next_contact_due === today
+
   return (
     <motion.div
       whileHover={{ y: -4, boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}
@@ -56,6 +60,16 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick }: LeadCardPr
             {temp.label}
           </span>
           <span className={`ml-auto text-[11px] font-bold tracking-wider ${colors.text}`}>{tier}-TIER</span>
+          {isOverdue && (
+            <Badge className="bg-red-100 text-red-700 border-red-300 border text-[10px] font-bold px-1.5 py-0 animate-pulse">
+              OVERDUE
+            </Badge>
+          )}
+          {isDueToday && !isOverdue && (
+            <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300 border text-[10px] font-bold px-1.5 py-0">
+              DUE TODAY
+            </Badge>
+          )}
         </div>
 
         {/* Lead info */}
