@@ -1,13 +1,18 @@
 'use client'
 
-import { Phone, MessageSquare, Mail } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Phone, MessageSquare, Mail, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
 import type { Lead } from '@/lib/lead-utils'
 import { getCallScript, getTextTemplate, formatWeddingDate, formatShowName } from '@/lib/lead-utils'
+import { useRouter } from 'next/navigation'
 
 interface ContactSectionProps {
   lead: Lead
+  onUpdate?: (updated: Lead) => void
 }
 
 function formatPhone(phone: string | null): string {
@@ -22,7 +27,15 @@ function formatPhone(phone: string | null): string {
   return phone
 }
 
-export function ContactSection({ lead }: ContactSectionProps) {
+export function ContactSection({ lead, onUpdate }: ContactSectionProps) {
+  const router = useRouter()
+  const [isEditingEmail, setIsEditingEmail] = useState(false)
+  const [editedEmail, setEditedEmail] = useState(lead?.email || '')
+
+  useEffect(() => {
+    setEditedEmail(lead?.email || '')
+  }, [lead?.email])
+
   const handleCall = async () => {
     await navigator.clipboard.writeText(getCallScript(lead))
     toast.success('Script copied! Call from iPhone')
@@ -31,6 +44,31 @@ export function ContactSection({ lead }: ContactSectionProps) {
   const handleText = async () => {
     await navigator.clipboard.writeText(getTextTemplate(lead))
     toast.success('Text copied! Send from iPhone')
+  }
+
+  const handleEmailSave = async () => {
+    if (!lead?.id) return
+
+    try {
+      const { error } = await supabase
+        .from('ballots')
+        .update({ email: editedEmail.trim() })
+        .eq('id', lead.id)
+
+      if (error) throw error
+
+      toast.success('Email updated')
+      setIsEditingEmail(false)
+      onUpdate?.({ ...lead, email: editedEmail.trim() })
+    } catch (err) {
+      console.error('Failed to update email:', err)
+      toast.error('Failed to update email')
+    }
+  }
+
+  const handleEmailCancel = () => {
+    setEditedEmail(lead?.email || '')
+    setIsEditingEmail(false)
   }
 
   return (
@@ -57,19 +95,44 @@ export function ContactSection({ lead }: ContactSectionProps) {
 
       {/* Email */}
       <div className="flex items-center justify-between">
-        <div className="text-sm truncate mr-2">
-          <span className="text-muted-foreground mr-2">✉️</span>
-          <span className="font-medium">{lead.email || '—'}</span>
+        <div className="text-sm flex items-center gap-2 flex-1 mr-2">
+          <span className="text-muted-foreground">✉️</span>
+          {isEditingEmail ? (
+            <div className="flex items-center gap-1 flex-1">
+              <Input
+                type="email"
+                value={editedEmail}
+                onChange={(e) => setEditedEmail(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleEmailSave()
+                  if (e.key === 'Escape') handleEmailCancel()
+                }}
+                className="h-8 text-sm"
+                autoFocus
+              />
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 shrink-0" onClick={handleEmailSave}>
+                <Check className="w-3.5 h-3.5" />
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 shrink-0" onClick={handleEmailCancel}>
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <span
+              className="font-medium cursor-pointer hover:underline truncate"
+              onClick={() => setIsEditingEmail(true)}
+              title="Click to edit"
+            >
+              {lead.email || 'No email — click to add'}
+            </span>
+          )}
         </div>
-        {lead.email && (
+        {!isEditingEmail && lead.email && (
           <Button
             variant="ghost"
             size="sm"
             className="h-9 px-3 text-xs shrink-0"
-            onClick={() => {
-              window.open(`mailto:${lead.email}?subject=SIGS Photography — Your Wedding Day!`, '_blank')
-              toast.success('Opening email compose')
-            }}
+            onClick={() => router.push(`/leads/${lead.id}/compose`)}
           >
             <Mail className="h-3.5 w-3.5 mr-1" /> Email
           </Button>

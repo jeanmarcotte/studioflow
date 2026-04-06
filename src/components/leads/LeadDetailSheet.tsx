@@ -160,7 +160,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
             )}
 
             {/* 3. Contact Info */}
-            <ContactSection lead={lead} />
+            <ContactSection lead={lead} onUpdate={handleLeadUpdate} />
 
             <Separator />
 
