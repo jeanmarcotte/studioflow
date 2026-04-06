@@ -58,6 +58,9 @@ export function NextTouchCard({ lead, onTouchLogged }: NextTouchCardProps) {
       toast.info(`Cooldown active — try again in ~${result.cooldownHoursLeft}h`)
       return
     }
+    if (result.exhausted) {
+      toast.info('Lead marked as exhausted after 6 touches with no response.')
+    }
     toast(`Logged Touch #${result.touchNumber}`, {
       action: {
         label: 'Undo',

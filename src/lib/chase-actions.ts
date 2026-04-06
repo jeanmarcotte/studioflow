@@ -14,7 +14,7 @@ export async function logTouch(
   entityId: string | null,
   contactType: 'call' | 'text' | 'email' | 'view',
   notes?: string
-): Promise<{ contactId: string; touchNumber: number; cooldownHoursLeft?: number } | null> {
+): Promise<{ contactId: string; touchNumber: number; cooldownHoursLeft?: number; exhausted?: boolean } | null> {
   // 1. Get current contact_count
   const { data: ballot } = await supabase
     .from('ballots')
@@ -37,7 +37,7 @@ export async function logTouch(
   const newCount = (current.contact_count || 0) + 1
   const now = new Date()
   const nextDue = new Date()
-  nextDue.setDate(nextDue.getDate() + 2)
+  nextDue.setDate(nextDue.getDate() + 3)
   const newTemp = calculateTemperature(now)
 
   // 2. Insert lead_contacts
@@ -65,24 +65,36 @@ export async function logTouch(
       last_contact_date: now.toISOString(),
       next_contact_due: nextDue.toISOString().split('T')[0],
       temperature: newTemp,
+      contact_status: 'active',
       status: newCount === 1 && current.contact_count === 0 ? 'contacted' : undefined,
     })
     .eq('id', ballotId)
 
   // 4. Check exhaustion (Touch 6)
   if (newCount >= 6) {
-    await supabase
+    // Check if lead has NOT progressed to meeting_booked or booked
+    const { data: leadCheck } = await supabase
       .from('ballots')
-      .update({ status: 'dead', contact_status: 'exhausted' })
+      .select('status')
       .eq('id', ballotId)
+      .limit(1)
 
-    if (entityId) {
-      await supabase.from('entity_events').insert({
-        entity_id: entityId,
-        event_type: 'exhausted',
-        event_data: { touches: 6, ballot_id: ballotId },
-        created_by: 'marianna',
-      })
+    if (leadCheck && leadCheck[0] && !['meeting_booked', 'booked', 'quoted'].includes(leadCheck[0].status)) {
+      await supabase
+        .from('ballots')
+        .update({ status: 'dead', contact_status: 'exhausted' })
+        .eq('id', ballotId)
+
+      if (entityId) {
+        await supabase.from('entity_events').insert({
+          entity_id: entityId,
+          event_type: 'exhausted',
+          event_data: { touches: 6, ballot_id: ballotId },
+          created_by: 'marianna',
+        })
+      }
+
+      return { contactId: contact[0].id, touchNumber: newCount, exhausted: true }
     }
   }
 
