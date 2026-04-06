@@ -26,7 +26,7 @@ const MEETING_TYPES = [
 
 export function BookedModal({ lead, open, onClose, onBooked }: BookedModalProps) {
   const [apptDate, setApptDate] = useState('')
-  const [apptTime, setApptTime] = useState('18:30')
+  const [apptTime, setApptTime] = useState('14:00')
   const [meetingType, setMeetingType] = useState('zoom')
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -87,7 +87,7 @@ export function BookedModal({ lead, open, onClose, onBooked }: BookedModalProps)
       })
     }
 
-    // 4. Send email notification with ALL info
+    // 4. Send email notification
     try {
       await fetch('/api/leads/notify-appointment', {
         method: 'POST',
@@ -95,23 +95,9 @@ export function BookedModal({ lead, open, onClose, onBooked }: BookedModalProps)
         body: JSON.stringify({
           bride: lead.bride_first_name,
           groom: lead.groom_first_name,
-          phone: lead.cell_phone,
-          email: lead.email,
           weddingDate: lead.wedding_date,
           venue: lead.venue_name,
           source: lead.show_id,
-          budget: lead.budget_range,
-          apptDate,
-          apptTime,
-          meetingType,
-          notes,
-          album: lead.want_album,
-          engagement: lead.want_engagement,
-          dj: (lead as any).has_dj,
-          planner: lead.planner_involved,
-          multiDay: lead.multi_day_event,
-          firstLook: (lead as any).first_look,
-          bridalParty: lead.bridal_party_size,
         }),
       })
     } catch (e) {
@@ -144,40 +130,15 @@ export function BookedModal({ lead, open, onClose, onBooked }: BookedModalProps)
             />
           </div>
 
-          {/* Appointment Time */}
+          {/* Appointment Time (24h) */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Appointment Time</label>
-            <select
+            <input
+              type="time"
               value={apptTime}
               onChange={(e) => setApptTime(e.target.value)}
-              className="w-full h-11 rounded-lg border border-border bg-white dark:bg-slate-800 px-3 text-sm outline-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
-            >
-              <option value="09:00">9:00 AM</option>
-              <option value="09:30">9:30 AM</option>
-              <option value="10:00">10:00 AM</option>
-              <option value="10:30">10:30 AM</option>
-              <option value="11:00">11:00 AM</option>
-              <option value="11:30">11:30 AM</option>
-              <option value="12:00">12:00 PM</option>
-              <option value="12:30">12:30 PM</option>
-              <option value="13:00">1:00 PM</option>
-              <option value="13:30">1:30 PM</option>
-              <option value="14:00">2:00 PM</option>
-              <option value="14:30">2:30 PM</option>
-              <option value="15:00">3:00 PM</option>
-              <option value="15:30">3:30 PM</option>
-              <option value="16:00">4:00 PM</option>
-              <option value="16:30">4:30 PM</option>
-              <option value="17:00">5:00 PM</option>
-              <option value="17:30">5:30 PM</option>
-              <option value="18:00">6:00 PM</option>
-              <option value="18:30">6:30 PM</option>
-              <option value="19:00">7:00 PM</option>
-              <option value="19:30">7:30 PM</option>
-              <option value="20:00">8:00 PM</option>
-              <option value="20:30">8:30 PM</option>
-              <option value="21:00">9:00 PM</option>
-            </select>
+              className="w-full h-11 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+            />
           </div>
 
           {/* Meeting Type */}

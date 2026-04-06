@@ -12,13 +12,11 @@ interface DiscoverySectionProps {
 }
 
 const BUDGET_OPTIONS = [
-  { value: 'under_2k', label: 'Under $2,000' },
-  { value: '2k_3k', label: '$2,000 - $3,000' },
-  { value: '3k_4k', label: '$3,000 - $4,000' },
-  { value: '4k_5k', label: '$4,000 - $5,000' },
-  { value: '5k_7k', label: '$5,000 - $7,000' },
-  { value: '7k_10k', label: '$7,000 - $10,000' },
-  { value: 'over_10k', label: 'Over $10,000' },
+  { value: 'under_4k', label: 'Under $4K' },
+  { value: '4k_6k', label: '$4K–$6K' },
+  { value: '6k_8k', label: '$6K–$8K' },
+  { value: '8k_10k', label: '$8K–$10K' },
+  { value: 'over_10k', label: 'Over $10K' },
   { value: 'flexible', label: 'Flexible' },
 ]
 
@@ -91,7 +89,7 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
 
   const setRadioValue = (field: string, val: string) => {
     // For boolean columns, store as boolean; for text columns, store as string
-    if (field === 'multi_day_event' || field === 'planner_involved' || field === 'has_dj') {
+    if (field === 'multi_day_event' || field === 'planner_involved') {
       saveField(field, val === 'yes' ? true : val === 'no' ? false : null)
     } else {
       saveField(field, val)
@@ -105,16 +103,14 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
         {saving && <span className="text-[10px] text-muted-foreground/60 ml-auto">Saving...</span>}
       </h3>
 
-      {/* Budget dropdown — own row, full width */}
-      <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">Budget</label>
+      {/* Budget dropdown — full width */}
+      <div>
         <select
           value={lead.budget_range || ''}
           onChange={(e) => saveField('budget_range', e.target.value || null)}
-          className={`block w-full h-10 px-3 rounded-md border bg-white dark:bg-slate-800 text-sm outline-none transition-all ${
+          className={`w-full h-9 rounded-lg border bg-white dark:bg-slate-800 px-3 text-sm outline-none transition-all ${
             !lead.budget_range ? 'border-red-400 ring-1 ring-red-200' : 'border-green-300'
           }`}
-          style={{ maxWidth: '100%' }}
         >
           <option value="">Select budget...</option>
           {BUDGET_OPTIONS.map(o => (

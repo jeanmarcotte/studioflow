@@ -30,10 +30,9 @@ interface LeadDetailSheetProps {
   isOpen: boolean
   onClose: () => void
   onUpdate: (updated: Lead) => void
-  onEmailCompose?: (lead: Lead) => void
 }
 
-export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate, onEmailCompose }: LeadDetailSheetProps) {
+export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailSheetProps) {
   const [bookedOpen, setBookedOpen] = useState(false)
   const [lostOpen, setLostOpen] = useState(false)
   const [zoomConfirmOpen, setZoomConfirmOpen] = useState(false)
@@ -152,25 +151,24 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate, onEmailCompos
         <SheetContent
           side="right"
           showCloseButton={false}
-          className="!w-full sm:!max-w-[600px] p-0 flex flex-col"
+          className="w-full sm:max-w-[600px] overflow-y-auto p-0"
         >
-          {/* Header — fixed at top, not sticky (works better inside flex) */}
-          <SheetHeader className="shrink-0 bg-white dark:bg-slate-900 border-b border-border/60 px-4 py-3" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+          {/* Header */}
+          <SheetHeader className="sticky top-0 z-10 bg-white border-b border-border/60 px-4 py-3">
             <div className="flex items-center gap-2">
-              <button
-                onClick={onClose}
-                className="h-11 w-11 -ml-2 flex items-center justify-center rounded-lg hover:bg-muted active:bg-muted/80 shrink-0"
-                aria-label="Close"
-              >
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={onClose}>
                 <ArrowLeft className="h-5 w-5" />
-              </button>
+              </Button>
               <SheetTitle className="flex-1 truncate text-base font-bold">
                 {coupleName(lead)}
               </SheetTitle>
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-red-500 hover:bg-red-50" onClick={handleKill}>
+                <Skull className="h-5 w-5" />
+              </Button>
             </div>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+          <div className="px-4 py-3 space-y-3">
             {/* Resurrect banner for dead leads */}
             {isDead && (
               <ResurrectButton lead={lead} onResurrected={handleResurrected} />
@@ -263,7 +261,17 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate, onEmailCompos
                   </Button>
                   <Button
                     className="h-10 text-[11px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex flex-col items-center gap-0.5 px-1"
-                    onClick={() => onEmailCompose?.(lead)}
+                    onClick={() => {
+                      const bride = lead.bride_first_name || 'there'
+                      const show = formatShowName(lead.show_id)
+                      const venue = lead.venue_name || 'your venue'
+                      const date = formatWeddingDate(lead.wedding_date)
+                      const subject = encodeURIComponent(`Following up from ${show} - SIGS Photography`)
+                      const body = encodeURIComponent(
+                        `Hi ${bride},\n\nWe met you at the ${show} bridal show! Have you booked your photographer and videographer yet?\n\nWe'd love to chat about your wedding at ${venue} on ${date}. Would you be available for a quick Zoom call this week?\n\nBest,\n\nJean Marcotte\nPrincipal Photographer\nSIGS Photography\n416-831-8942\nwww.sigsphoto.ca`
+                      )
+                      window.open(`mailto:${lead.email || ''}?subject=${subject}&body=${body}`, '_blank')
+                    }}
                   >
                     <Mail className="h-3.5 w-3.5" />
                     Email

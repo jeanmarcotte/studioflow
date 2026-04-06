@@ -8,10 +8,7 @@ import { AddLeadModal } from '@/components/leads/AddLeadModal'
 import { FilterSidebar, type SidebarFilters } from '@/components/leads/FilterSidebar'
 import { LeadGridArea } from '@/components/leads/LeadGridArea'
 import { toast } from 'sonner'
-import { Send } from 'lucide-react'
 import type { Lead, FilterKey } from '@/lib/lead-utils'
-import { formatWeddingDate, coupleName } from '@/lib/lead-utils'
-import { logTouch } from '@/lib/chase-actions'
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
 
@@ -43,7 +40,7 @@ const DEFAULT_FILTERS: SidebarFilters = {
   chaseStatus: [],
 }
 
-const PAGE_SIZE = 25
+const PAGE_SIZE = 20
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
@@ -59,11 +56,6 @@ export default function LeadsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   const [allLeads, setAllLeads] = useState<Lead[]>([])  // includes hidden, for search
-  const [emailLead, setEmailLead] = useState<Lead | null>(null)
-  const [emailTo, setEmailTo] = useState('')
-  const [emailSubject, setEmailSubject] = useState('')
-  const [emailBody, setEmailBody] = useState('')
-  const [emailSending, setEmailSending] = useState(false)
 
   // Persist sidebar collapsed state
   useEffect(() => {
@@ -284,23 +276,12 @@ export default function LeadsPage() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <SafeSection name="LeadsHeader">
-          <LeadsHeader
-            onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
-            onAddLead={() => setShowAddModal(true)}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onLogoClick={() => {
-              setFilters(DEFAULT_FILTERS)
-              setShowLost(false)
-              setSearchQuery('')
-              setCurrentPage(1)
-            }}
-          />
+          <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} onAddLead={() => setShowAddModal(true)} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
         </SafeSection>
 
         {/* Main panel — floating card */}
-        <div className="flex-1 p-3 min-h-0 overflow-hidden">
-          <div className="h-full bg-white dark:bg-slate-900 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 flex flex-col overflow-hidden">
+        <div className="flex-1 p-3 min-h-0">
+          <div className="h-full bg-white dark:bg-slate-900 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 overflow-hidden flex flex-col">
             <SafeSection name="LeadGridArea">
               <LeadGridArea
                 leads={filteredLeads}
@@ -341,7 +322,6 @@ export default function LeadsPage() {
       {selectedLead && (
         <SafeSection name="LeadDetailSheet">
           <LazyDetailSheet
-            key={selectedLead.id}
             lead={selectedLead}
             onClose={() => setSelectedLead(null)}
             onUpdate={(updated) => {
@@ -353,102 +333,18 @@ export default function LeadsPage() {
                 setSelectedLead(updated)
               }
             }}
-            onEmailCompose={(lead) => {
-              setEmailLead(lead)
-              setEmailTo(lead.email || '')
-              setEmailSubject('Met you at the bridal show — SIGS Photography')
-              const bride = lead.bride_first_name || 'there'
-              const date = formatWeddingDate(lead.wedding_date)
-              const venue = lead.venue_name || 'your venue'
-              setEmailBody(`Hi ${bride},\n\nThank you for connecting with us! We're excited to learn more about your ${date} wedding at ${venue}.\n\nI'd love to schedule a quick call or Zoom to discuss your photography vision and answer any questions. Or you can visit us at our studio in Toronto located just north of Yorkdale Mall. Allen Rd and Sheppard.\n\nWhat time works best for you this week?\n\nBest regards,\n\nJean Marcotte\nPrincipal Photographer\nSIGS Photography\n416-831-8942\nwww.sigsphoto.ca`)
-            }}
           />
         </SafeSection>
-      )}
-
-      {/* Email composer — rendered at page level, completely outside Sheet */}
-      {emailLead && (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setEmailLead(null)}
-        >
-          <div
-            className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-md p-6 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">✉️ Compose Email</h3>
-              <button onClick={() => setEmailLead(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-lg">✕</button>
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">To</label>
-              <input
-                type="email"
-                className="w-full h-10 px-3 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm"
-                value={emailTo}
-                onChange={(e) => setEmailTo(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Subject</label>
-              <input
-                type="text"
-                className="w-full h-10 px-3 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm"
-                value={emailSubject}
-                onChange={(e) => setEmailSubject(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Message</label>
-              <textarea
-                className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm resize-none"
-                rows={8}
-                value={emailBody}
-                onChange={(e) => setEmailBody(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2 justify-end pt-2">
-              <button onClick={() => setEmailLead(null)} className="px-4 py-2 rounded-md border border-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm">
-                Cancel
-              </button>
-              <button
-                disabled={emailSending || !emailTo}
-                onClick={async () => {
-                  setEmailSending(true)
-                  try {
-                    const res = await fetch('/api/leads/send-email', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ to: emailTo, subject: emailSubject, body: emailBody }),
-                    })
-                    if (!res.ok) throw new Error('Failed to send')
-                    toast.success(`Email sent to ${emailLead.bride_first_name || coupleName(emailLead)}`)
-                    await logTouch(emailLead.id, emailLead.entity_id, 'email', `Email: ${emailSubject}`)
-                    setEmailLead(null)
-                  } catch {
-                    toast.error('Failed to send email')
-                  }
-                  setEmailSending(false)
-                }}
-                className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 text-sm disabled:opacity-50"
-              >
-                {emailSending ? 'Sending...' : 'Send Now'}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   )
 }
 
-function LazyDetailSheet({ lead, onClose, onUpdate, onEmailCompose }: { lead: Lead; onClose: () => void; onUpdate: (l: Lead) => void; onEmailCompose: (l: Lead) => void }) {
+function LazyDetailSheet({ lead, onClose, onUpdate }: { lead: Lead; onClose: () => void; onUpdate: (l: Lead) => void }) {
   const [Sheet, setSheet] = useState<any>(null)
   useEffect(() => {
     import('@/components/leads/LeadDetailSheet').then(mod => setSheet(() => mod.LeadDetailSheet)).catch(err => console.error('Failed to load LeadDetailSheet:', err))
   }, [])
   if (!Sheet) return null
-  return <Sheet lead={lead} isOpen={true} onClose={onClose} onUpdate={onUpdate} onEmailCompose={onEmailCompose} />
+  return <Sheet lead={lead} isOpen={true} onClose={onClose} onUpdate={onUpdate} />
 }

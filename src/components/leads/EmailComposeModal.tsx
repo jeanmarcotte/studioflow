@@ -1,11 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Send, X } from 'lucide-react'
+import { Copy, Send } from 'lucide-react'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import type { Lead } from '@/lib/lead-utils'
-import { coupleName, formatWeddingDate } from '@/lib/lead-utils'
+import { coupleName } from '@/lib/lead-utils'
+import { getTemplateForTouch, renderTemplate, getTemplateVariables } from '@/lib/template-utils'
 import { logTouch } from '@/lib/chase-actions'
 
 interface EmailComposeModalProps {
@@ -16,122 +20,127 @@ interface EmailComposeModalProps {
 }
 
 export function EmailComposeModal({ lead, open, onClose, onTouchLogged }: EmailComposeModalProps) {
-  const [toEmail, setToEmail] = useState('')
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
-  const [sending, setSending] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!open) return
-    setToEmail(lead.email || '')
-    const bride = lead.bride_first_name || 'there'
-    const date = formatWeddingDate(lead.wedding_date)
-    const venue = lead.venue_name || 'your venue'
+    setLoading(true)
 
-    setSubject('Met you at the bridal show — SIGS Photography')
-    setBody(
-      `Hi ${bride},\n\nThank you for connecting with us! We're excited to learn more about your ${date} wedding at ${venue}.\n\nI'd love to schedule a quick call or Zoom to discuss your photography vision and answer any questions. Or you can visit us at our studio in Toronto located just north of Yorkdale Mall. Allen Rd and Sheppard.\n\nWhat time works best for you this week?\n\nBest regards,\n\nJean Marcotte\nPrincipal Photographer\nSIGS Photography\n416-831-8942\nwww.sigsphoto.ca`
-    )
+    const touchNum = (lead.contact_count || 0) + 1
+    const vars = getTemplateVariables(lead)
+
+    getTemplateForTouch(touchNum, 'email').then(tmpl => {
+      if (tmpl) {
+        setSubject(renderTemplate(tmpl.subject || `Your ${lead.venue_name || ''} Wedding Photography`, vars))
+        setBody(renderTemplate(tmpl.body, vars))
+      } else {
+        // Fallback
+        setSubject(`SIGS Photography — Your ${lead.venue_name || 'Wedding'} Day!`)
+        setBody(`Hi ${vars.bride_name},\n\nI hope this email finds you well! I wanted to follow up about your upcoming wedding.\n\nWould you be available for a quick Zoom call this week?\n\nWarmly,\nMarianna\nSIGS Photography\n416-831-8942`)
+      }
+      setLoading(false)
+    })
   }, [open, lead])
 
-  const handleSend = async () => {
-    if (!toEmail) { toast.error('No email address'); return }
-    setSending(true)
-    try {
-      const res = await fetch('/api/leads/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: toEmail,
-          subject,
-          body,
-        }),
+  const handleCopy = async () => {
+    const full = `Subject: ${subject}\n\n${body}`
+    await navigator.clipboard.writeText(full)
+    toast.success('Email copied to clipboard!')
+
+    // Log touch
+    const result = await logTouch(lead.id, lead.entity_id, 'email', `Email: ${subject}`)
+    if (result) {
+      toast(`Logged as Touch #${result.touchNumber}`, {
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            const { undoTouch } = await import('@/lib/chase-actions')
+            await undoTouch(result.contactId, lead.id)
+          },
+        },
       })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Send failed')
-      }
-
-      toast.success(`Email sent to ${lead.bride_first_name || coupleName(lead)}`)
-
-      const result = await logTouch(lead.id, lead.entity_id, 'email', `Email: ${subject}`)
-      if (result) {
-        onTouchLogged?.()
-      }
-      onClose()
-    } catch (err: any) {
-      toast.error(`Failed to send: ${err.message}`)
+      onTouchLogged?.()
     }
-    setSending(false)
+    onClose()
   }
 
-  if (!open) return null
+  const handleSend = async () => {
+    const mailto = `mailto:${lead.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    window.open(mailto, '_blank')
+    toast.success('Opening email compose')
+
+    // Log touch
+    const result = await logTouch(lead.id, lead.entity_id, 'email', `Email: ${subject}`)
+    if (result) {
+      toast(`Logged as Touch #${result.touchNumber}`, {
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            const { undoTouch } = await import('@/lib/chase-actions')
+            await undoTouch(result.contactId, lead.id)
+          },
+        },
+      })
+      onTouchLogged?.()
+    }
+    onClose()
+  }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span>✉️</span> Email: {lead.bride_first_name || coupleName(lead)}
+          </DialogTitle>
+        </DialogHeader>
 
-      {/* Modal */}
-      <div className="relative w-full max-w-lg mx-4 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden" style={{ zIndex: 101 }}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-            ✉️ Compose Email
-          </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+        {loading ? (
+          <div className="py-8 text-center text-muted-foreground text-sm">Loading template...</div>
+        ) : (
+          <div className="space-y-3 py-2">
+            <div className="text-sm">
+              <span className="text-muted-foreground">To:</span>{' '}
+              <span className="font-medium">{lead.email || '—'}</span>
+            </div>
 
-        {/* Form */}
-        <div className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-500">To</label>
-            <input
-              type="email"
-              value={toEmail}
-              onChange={(e) => setToEmail(e.target.value)}
-              className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm outline-none focus:border-[#0d4f4f] focus:ring-2 focus:ring-[#0d4f4f]/20"
-            />
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Subject</label>
+              <input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className="w-full h-10 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Body</label>
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                rows={10}
+                className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none resize-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20 font-mono text-xs leading-relaxed"
+              />
+            </div>
           </div>
+        )}
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-500">Subject</label>
-            <input
-              type="text"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm outline-none focus:border-[#0d4f4f] focus:ring-2 focus:ring-[#0d4f4f]/20"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-500">Message</label>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={10}
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm outline-none resize-y focus:border-[#0d4f4f] focus:ring-2 focus:ring-[#0d4f4f]/20 leading-relaxed"
-            />
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-5 py-3 border-t border-slate-200 dark:border-slate-700">
-          <Button variant="outline" onClick={onClose} disabled={sending} className="h-9 px-4 text-sm rounded-lg">
-            Cancel
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={handleCopy} disabled={loading}>
+            <Copy className="h-4 w-4 mr-1.5" /> Copy
           </Button>
           <Button
             onClick={handleSend}
-            disabled={sending || !toEmail}
-            className="h-9 px-5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50"
+            disabled={loading || !lead.email}
+            className="bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white"
           >
-            <Send className="h-4 w-4 mr-1.5" />
-            {sending ? 'Sending...' : 'Send Now'}
+            <Send className="h-4 w-4 mr-1.5" /> Send
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
