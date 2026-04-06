@@ -153,24 +153,28 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
         <SheetContent
           side="right"
           showCloseButton={false}
-          className="!w-full sm:!max-w-[600px] overflow-y-auto p-0"
+          className="!w-full sm:!max-w-[600px] p-0 flex flex-col"
         >
-          {/* Header */}
-          <SheetHeader className="sticky top-0 z-10 bg-white border-b border-border/60 px-4 py-3">
+          {/* Header — fixed at top, not sticky (works better inside flex) */}
+          <SheetHeader className="shrink-0 bg-white dark:bg-slate-900 border-b border-border/60 px-4 py-3" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={onClose}>
+              <button
+                onClick={onClose}
+                className="h-11 w-11 -ml-2 flex items-center justify-center rounded-lg hover:bg-muted active:bg-muted/80 shrink-0"
+                aria-label="Close"
+              >
                 <ArrowLeft className="h-5 w-5" />
-              </Button>
+              </button>
               <SheetTitle className="flex-1 truncate text-base font-bold">
                 {coupleName(lead)}
               </SheetTitle>
-              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-red-500 hover:bg-red-50" onClick={handleKill}>
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30" onClick={handleKill}>
                 <Skull className="h-5 w-5" />
               </Button>
             </div>
           </SheetHeader>
 
-          <div className="px-4 py-3 space-y-3">
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
             {/* Resurrect banner for dead leads */}
             {isDead && (
               <ResurrectButton lead={lead} onResurrected={handleResurrected} />

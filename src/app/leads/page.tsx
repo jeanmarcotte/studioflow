@@ -333,6 +333,7 @@ export default function LeadsPage() {
       {selectedLead && (
         <SafeSection name="LeadDetailSheet">
           <LazyDetailSheet
+            key={selectedLead.id}
             lead={selectedLead}
             onClose={() => setSelectedLead(null)}
             onUpdate={(updated) => {
