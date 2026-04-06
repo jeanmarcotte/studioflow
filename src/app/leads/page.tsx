@@ -8,6 +8,7 @@ import { AddLeadModal } from '@/components/leads/AddLeadModal'
 import { FilterSidebar, type SidebarFilters } from '@/components/leads/FilterSidebar'
 import { LeadGridArea } from '@/components/leads/LeadGridArea'
 import { toast } from 'sonner'
+import { SourceFilter } from '@/components/leads/SourceFilter'
 import type { Lead, FilterKey } from '@/lib/lead-utils'
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -55,6 +56,7 @@ export default function LeadsPage() {
   const [sortKey, setSortKey] = useState<'score' | 'date' | 'name' | 'temperature'>('date')
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
   const [allLeads, setAllLeads] = useState<Lead[]>([])  // includes hidden, for search
 
   // Persist sidebar collapsed state
@@ -68,7 +70,7 @@ export default function LeadsPage() {
   }
 
   // Reset page when filters or search change
-  useEffect(() => { setCurrentPage(1) }, [filters, sortKey, searchQuery])
+  useEffect(() => { setCurrentPage(1) }, [filters, sortKey, searchQuery, selectedSourceId])
 
   // Fetch leads
   useEffect(() => {
@@ -117,6 +119,11 @@ export default function LeadsPage() {
     const todayStr = today.toISOString().split('T')[0]
 
     return leads.filter(l => {
+      // Filter by source
+      if (selectedSourceId) {
+        if (l.lead_source_id !== selectedSourceId) return false;
+      }
+
       // Exclude lost leads unless showLost is active
       if (isLost(l) && !showLost) return false
 
@@ -216,7 +223,7 @@ export default function LeadsPage() {
 
       return true
     })
-  }, [leads, allLeads, filters, showLost, searchQuery])
+  }, [leads, allLeads, filters, showLost, searchQuery, selectedSourceId])
 
   const counts = useMemo(() => ({
     'no-no-yes': leads.filter(l => isNNY(l)).length,
@@ -276,7 +283,12 @@ export default function LeadsPage() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <SafeSection name="LeadsHeader">
-          <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} onAddLead={() => setShowAddModal(true)} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+          <div className="flex items-center">
+            <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} onAddLead={() => setShowAddModal(true)} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+          </div>
+          <div className="px-4 pb-2 md:px-6">
+            <SourceFilter selectedSourceId={selectedSourceId} onSourceChange={setSelectedSourceId} />
+          </div>
         </SafeSection>
 
         {/* Main panel — floating card */}
