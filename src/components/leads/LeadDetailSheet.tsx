@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Skull, Calendar, X, Video, PhoneForwarded, Mail } from 'lucide-react'
 import {
@@ -16,7 +16,7 @@ import {
   coupleName, getScoreTier, getScoreColors, getTempConfig, SCORE_DOT_COLORS, formatShowName, formatWeddingDate,
 } from '@/lib/lead-utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { logTouch, undoTouch } from '@/lib/chase-actions'
+import { logTouch } from '@/lib/chase-actions'
 import { ContactSection } from './ContactSection'
 import { DiscoverySection } from './DiscoverySection'
 import { ChaseProgressSection } from './ChaseProgressSection'
@@ -39,49 +39,6 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
   const [lostOpen, setLostOpen] = useState(false)
   const [zoomConfirmOpen, setZoomConfirmOpen] = useState(false)
   const [chaseRefreshKey, setChaseRefreshKey] = useState(0)
-  const autoLoggedRef = useRef<string | null>(null)
-
-  // ── Auto-log touch on sheet open (WO-349) ─────────────────────
-  useEffect(() => {
-    if (!isOpen || !lead) return
-    if (lead.status !== 'contacted') return
-    // Only auto-log once per lead open
-    if (autoLoggedRef.current === lead.id) return
-    autoLoggedRef.current = lead.id
-
-    logTouch(lead.id, lead.entity_id, 'view', 'Viewed lead detail').then(result => {
-      if (result) {
-        setChaseRefreshKey(k => k + 1)
-        toast(`Logged as Touch #${result.touchNumber}`, {
-          action: {
-            label: 'Undo',
-            onClick: async () => {
-              await undoTouch(result.contactId, lead.id)
-              setChaseRefreshKey(k => k + 1)
-            },
-          },
-        })
-
-        // Update local lead state with new contact count
-        onUpdate({
-          ...lead,
-          contact_count: result.touchNumber,
-          last_contact_date: new Date().toISOString(),
-          temperature: 'hot',
-          ...(result.touchNumber >= 6 ? { status: 'dead', contact_status: 'exhausted' } : {}),
-        })
-
-        if (result.touchNumber >= 6) {
-          toast.info('Lead marked as dead after 6 touches')
-        }
-      }
-    })
-  }, [isOpen, lead?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Reset auto-log ref when sheet closes
-  useEffect(() => {
-    if (!isOpen) autoLoggedRef.current = null
-  }, [isOpen])
 
   const handleKill = useCallback(async () => {
     if (!lead) return
@@ -246,23 +203,22 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
                   <Button
                     className="h-10 text-[11px] font-bold bg-teal-600 hover:bg-teal-700 text-white rounded-lg flex flex-col items-center gap-0.5 px-1"
                     onClick={async () => {
-                      console.log("=== FOLLOW UP CLICKED ===")
-                      console.log("Lead ID:", lead.id)
-                      try {
-                        const result = await logTouch(lead.id, lead.entity_id, 'call', 'Follow up')
-                        console.log("Follow up logTouch result:", result)
-                        if (result) {
-                          toast.success('Follow up logged')
-                          onUpdate({
-                            ...lead,
-                            contact_count: result.touchNumber,
-                            last_contact_date: new Date().toISOString(),
-                            temperature: 'hot',
-                          })
-                        }
-                      } catch (error) {
-                        console.error("Follow up logTouch failed:", error)
+                      const result = await logTouch(lead.id, lead.entity_id, 'call', 'Follow up')
+                      if (!result) {
+                        toast.error('Failed to log follow up')
+                        return
                       }
+                      if (result.cooldownHoursLeft) {
+                        toast.info(`Cooldown active — try again in ~${result.cooldownHoursLeft}h`)
+                        return
+                      }
+                      toast.success('Follow up logged')
+                      onUpdate({
+                        ...lead,
+                        contact_count: result.touchNumber,
+                        last_contact_date: new Date().toISOString(),
+                        temperature: 'hot',
+                      })
                     }}
                   >
                     <PhoneForwarded className="h-3.5 w-3.5" />

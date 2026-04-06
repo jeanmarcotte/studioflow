@@ -14,7 +14,7 @@ export async function logTouch(
   entityId: string | null,
   contactType: 'call' | 'text' | 'email' | 'view',
   notes?: string
-): Promise<{ contactId: string; touchNumber: number } | null> {
+): Promise<{ contactId: string; touchNumber: number; cooldownHoursLeft?: number } | null> {
   // 1. Get current contact_count
   const { data: ballot } = await supabase
     .from('ballots')
@@ -25,10 +25,13 @@ export async function logTouch(
   const current = ballot?.[0]
   if (!current) return null
 
-  // Check 4-hour cooldown
-  if (current.last_contact_date) {
+  // Check 4-hour cooldown (skip for 'view' type)
+  if (contactType !== 'view' && current.last_contact_date) {
     const hoursSince = (Date.now() - new Date(current.last_contact_date).getTime()) / (1000 * 60 * 60)
-    if (hoursSince < 4) return null
+    if (hoursSince < 4) {
+      const hoursLeft = Math.ceil(4 - hoursSince)
+      return { contactId: '', touchNumber: -1, cooldownHoursLeft: hoursLeft }
+    }
   }
 
   const newCount = (current.contact_count || 0) + 1
