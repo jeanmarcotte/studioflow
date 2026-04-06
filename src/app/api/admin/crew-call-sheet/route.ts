@@ -8,7 +8,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY)
+}
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://studioflow-zeta.vercel.app'
 
 // ── Types ────────────────────────────────────────────────────────
@@ -351,7 +353,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const { error: sendErr } = await resend.emails.send(emailPayload)
+        const { error: sendErr } = await getResend().emails.send(emailPayload)
         if (sendErr) {
           emailResults.push({ name: cm.member_name, success: false, error: String(sendErr) })
         } else {
@@ -397,7 +399,7 @@ export async function POST(request: NextRequest) {
 </div>`
 
     try {
-      await resend.emails.send({
+      await getResend().emails.send({
         from: 'SIGS Photography <noreply@sigsphoto.ca>',
         to: ['mariannakogan@gmail.com'],
         subject: `Crew Call Sheet Sent — ${couple_name} | ${subjectDate}`,

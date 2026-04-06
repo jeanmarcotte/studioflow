@@ -182,7 +182,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
             <Separator />
 
             {/* 5. Score Breakdown (moved up) */}
-            <ScoreBreakdown lead={lead} />
+            <ScoreBreakdown breakdown={lead.score_breakdown} />
 
             <Separator />
 

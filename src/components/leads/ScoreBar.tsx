@@ -12,19 +12,19 @@ export function ScoreBar({ score, showBadge = true, size = 'md' }: ScoreBarProps
 
   if (score >= 85) {
     bgColor = 'bg-red-500';
-    badge = 'HOT';
+    badge = '🔥 HOT';
   } else if (score >= 70) {
     bgColor = 'bg-orange-500';
-    badge = 'CALL NOW';
+    badge = '🔴 CALL NOW';
   } else if (score >= 50) {
     bgColor = 'bg-yellow-500';
-    badge = 'NURTURE';
+    badge = '🟡 NURTURE';
   } else if (score >= 30) {
     bgColor = 'bg-green-500';
-    badge = 'EARLY';
+    badge = '🟢 EARLY';
   } else {
     bgColor = 'bg-gray-500';
-    badge = 'COLD';
+    badge = '⚫ COLD';
   }
 
   const heights = {

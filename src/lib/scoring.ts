@@ -147,16 +147,16 @@ export function calculateScore(lead: Lead): ScoreBreakdown {
 
   if (score >= 85) {
     temperature = 'hot';
-    badge = 'HOT';
+    badge = '🔥 HOT';
   } else if (score >= 70) {
     temperature = 'warm';
-    badge = 'CALL NOW';
+    badge = '🔴 CALL NOW';
   } else if (score >= 50) {
     temperature = 'cool';
-    badge = 'NURTURE';
+    badge = '🟡 NURTURE';
   } else {
     temperature = 'cold';
-    badge = 'COLD';
+    badge = '⚫ COLD';
   }
 
   return {
