@@ -166,14 +166,14 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
             </div>
           </SheetHeader>
 
-          <div className="px-4 py-4 space-y-5">
+          <div className="px-4 py-3 space-y-3">
             {/* Resurrect banner for dead leads */}
             {isDead && (
               <ResurrectButton lead={lead} onResurrected={handleResurrected} />
             )}
 
-            {/* Score summary bar */}
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-border/60">
+            {/* 1. Score summary bar */}
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 border border-border/60">
               <Badge className={`${colors.bg} ${colors.text} ${colors.border} border font-bold text-base px-3 py-1`}>
                 {score}
               </Badge>
@@ -193,48 +193,48 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
               </span>
             </div>
 
-            {/* Next Touch Recommendation */}
+            {/* 2. Next Touch Recommendation */}
             {!isDead && (lead.contact_count || 0) < 6 && (
               <NextTouchCard lead={lead} onTouchLogged={handleTouchLogged} />
             )}
 
-            {/* Section 1: Contact */}
+            {/* 3. Contact Info */}
             <ContactSection lead={lead} />
 
             <Separator />
 
-            {/* Section 2: Discovery */}
-            <DiscoverySection lead={lead} onUpdate={handleLeadUpdate} />
-
-            <Separator />
-
-            {/* Section 3: Chase Progress */}
+            {/* 4. Chase Progress (moved up) */}
             <ChaseProgressSection ballotId={lead.id} refreshKey={chaseRefreshKey} />
 
             <Separator />
 
-            {/* Section 4: Score Breakdown */}
+            {/* 5. Score Breakdown (moved up) */}
             <ScoreBreakdown lead={lead} />
 
             <Separator />
 
-            {/* Section 5: Outcome Buttons */}
+            {/* 6. Discovery (moved down) */}
+            <DiscoverySection lead={lead} onUpdate={handleLeadUpdate} />
+
+            <Separator />
+
+            {/* 7. Make Appt / Not Interested buttons */}
             {!isDead && (
-              <div className="space-y-2.5 pb-4">
+              <div className="flex gap-2 pb-3">
                 <Button
-                  className="w-full h-14 text-base font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
+                  className="flex-1 h-12 text-sm font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
                   onClick={() => setBookedOpen(true)}
                 >
-                  <Calendar className="h-5 w-5 mr-2" />
-                  BOOKED!
+                  <Calendar className="h-4 w-4 mr-1.5" />
+                  Make Appt
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full h-14 text-base font-bold text-red-600 border-red-300 hover:bg-red-50 rounded-xl"
+                  className="flex-1 h-12 text-sm font-bold text-red-600 border-red-300 hover:bg-red-50 rounded-xl"
                   onClick={() => setLostOpen(true)}
                 >
-                  <X className="h-5 w-5 mr-2" />
-                  NOT INTERESTED
+                  <X className="h-4 w-4 mr-1.5" />
+                  Not Interested
                 </Button>
               </div>
             )}

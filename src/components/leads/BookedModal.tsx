@@ -87,7 +87,24 @@ export function BookedModal({ lead, open, onClose, onBooked }: BookedModalProps)
       })
     }
 
-    toast.success(`Meeting booked for ${coupleName(lead)}!`)
+    // 4. Send email notification
+    try {
+      await fetch('/api/leads/notify-appointment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bride: lead.bride_first_name,
+          groom: lead.groom_first_name,
+          weddingDate: lead.wedding_date,
+          venue: lead.venue_name,
+          source: lead.show_id,
+        }),
+      })
+    } catch (e) {
+      console.error('Email notification failed:', e)
+    }
+
+    toast.success(`Appointment created! Email sent.`)
     setSubmitting(false)
     onBooked()
   }
@@ -97,7 +114,7 @@ export function BookedModal({ lead, open, onClose, onBooked }: BookedModalProps)
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span>🎉</span> Booking: {coupleName(lead)}
+            <span>📅</span> Make Appointment: {coupleName(lead)}
           </DialogTitle>
         </DialogHeader>
 

@@ -100,7 +100,6 @@ export function ScoreBreakdown({ lead }: ScoreBreakdownProps) {
     calculateVenueScore(lead),
     calculateBudgetScore(lead),
     calculateUpsellScore(lead),
-    calculateEthnicityScore(lead),
     calculateSourceScore(lead),
   ]
 
