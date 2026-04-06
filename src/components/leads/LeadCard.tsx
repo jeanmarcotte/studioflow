@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Badge } from '@/components/ui/badge'
+import { ScoreBar } from './ScoreBar'
 import type { Lead } from '@/lib/lead-utils'
 import {
   getScoreTier,
@@ -109,11 +110,14 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick }: LeadCardPr
           </div>
         </div>
 
+        {/* Score bar */}
+        <ScoreBar score={score} size="sm" showBadge={false} />
+
         {/* Status badge */}
         {(() => {
           const sb = STATUS_BADGE[lead.status] || STATUS_BADGE.new
           return (
-            <Badge className={`${sb.bg} ${sb.text} border-0 text-[11px] font-bold px-2 py-0.5 w-fit`}>
+            <Badge className={`${sb.bg} ${sb.text} border-0 text-[11px] font-bold px-2 py-0.5 w-fit mt-2`}>
               {sb.label}
             </Badge>
           )
