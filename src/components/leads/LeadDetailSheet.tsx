@@ -202,7 +202,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate, onOpenEmailCo
             )}
 
             {/* 3. Contact Info */}
-            <ContactSection lead={lead} />
+            <ContactSection lead={lead} onUpdate={handleLeadUpdate} />
 
             <Separator />
 

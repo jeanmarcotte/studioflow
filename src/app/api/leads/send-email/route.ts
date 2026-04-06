@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY)
+}
 
 export async function POST(req: NextRequest) {
   try {
     const { to, subject, body } = await req.json()
 
-    await resend.emails.send({
+    await getResend().emails.send({
       from: 'SIGS Photography <noreply@sigsphoto.ca>',
       to: [to],
       bcc: ['jeanmarcotte@gmail.com'],
