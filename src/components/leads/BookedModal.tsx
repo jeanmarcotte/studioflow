@@ -1,191 +1,122 @@
-'use client'
+// src/components/leads/BookedModal.tsx
 
-import { useState } from 'react'
-import { Calendar } from 'lucide-react'
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { supabase } from '@/lib/supabase'
-import { toast } from 'sonner'
-import type { Lead } from '@/lib/lead-utils'
-import { coupleName } from '@/lib/lead-utils'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+import { Calendar, Loader2 } from 'lucide-react';
 
 interface BookedModalProps {
-  lead: Lead
-  open: boolean
-  onClose: () => void
-  onBooked: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  lead: {
+    id: string;
+    bride_name: string;
+    groom_name?: string;
+    email?: string;
+  };
+  onSuccess?: () => void;
 }
 
-const MEETING_TYPES = [
-  { value: 'zoom', label: 'Zoom' },
-  { value: 'in_person', label: 'In-Person' },
-  { value: 'phone', label: 'Phone' },
-]
+export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModalProps) {
+  const [appointmentDate, setAppointmentDate] = useState('');
+  const [appointmentTime, setAppointmentTime] = useState('14:00');
+  const [saving, setSaving] = useState(false);
 
-export function BookedModal({ lead, open, onClose, onBooked }: BookedModalProps) {
-  const [apptDate, setApptDate] = useState('')
-  const [apptTime, setApptTime] = useState('14:00')
-  const [meetingType, setMeetingType] = useState('zoom')
-  const [notes, setNotes] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-
-  const handleSubmit = async () => {
-    if (!apptDate) {
-      toast.error('Please select an appointment date')
-      return
+  const handleBook = async () => {
+    if (!appointmentDate) {
+      toast.error('Please select an appointment date');
+      return;
     }
 
-    setSubmitting(true)
-
-    // 1. Update ballot status
-    const { error: ballotError } = await supabase
-      .from('ballots')
-      .update({ status: 'meeting_booked' })
-      .eq('id', lead.id)
-
-    if (ballotError) {
-      toast.error('Failed to update lead status')
-      setSubmitting(false)
-      return
-    }
-
-    // 2. Create sales_meetings row (use actual table schema)
-    const { error: meetingError } = await supabase
-      .from('sales_meetings')
-      .insert({
-        ballot_id: lead.id,
-        bride_name: lead.bride_first_name || '',
-        groom_name: lead.groom_first_name || '',
-        wedding_date: lead.wedding_date,
-        service_needs: lead.service_needs || 'photo_video',
-        lead_source: lead.show_id || null,
-        appt_date: apptDate,
-        status: 'scheduled',
-      })
-
-    if (meetingError) {
-      console.error('Sales meeting insert error:', meetingError)
-      // Non-fatal — ballot already updated
-      toast.error('Meeting created but sales_meetings insert had an issue')
-    }
-
-    // 3. Log entity event
-    if (lead.entity_id) {
-      await supabase.from('entity_events').insert({
-        entity_id: lead.entity_id,
-        event_type: 'meeting_booked',
-        event_data: {
-          ballot_id: lead.id,
-          appt_date: apptDate,
-          appt_time: apptTime,
-          meeting_type: meetingType,
-          notes,
-        },
-        created_by: 'marianna',
-      })
-    }
-
-    // 4. Send email notification
+    setSaving(true);
     try {
-      await fetch('/api/leads/notify-appointment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bride: lead.bride_first_name,
-          groom: lead.groom_first_name,
-          weddingDate: lead.wedding_date,
-          venue: lead.venue_name,
-          source: lead.show_id,
-        }),
-      })
-    } catch (e) {
-      console.error('Email notification failed:', e)
-    }
+      const appointmentDateTime = `${appointmentDate}T${appointmentTime}:00`;
 
-    toast.success(`Appointment created! Email sent.`)
-    setSubmitting(false)
-    onBooked()
-  }
+      // Update lead status
+      const { error } = await supabase
+        .from('ballots')
+        .update({
+          status: 'meeting_booked',
+          zoom_invite_sent_at: new Date().toISOString(),
+          notes: `Appointment booked for ${appointmentDateTime}`,
+        })
+        .eq('id', lead.id);
+
+      if (error) throw error;
+
+      toast.success(`Appointment booked for ${lead.bride_name}!`);
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      toast.error('Failed to book appointment');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const coupleName = lead.groom_name
+    ? `${lead.bride_name} & ${lead.groom_name}`
+    : lead.bride_name;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <span>📅</span> Make Appointment: {coupleName(lead)}
-          </DialogTitle>
+          <DialogTitle>Book Appointment</DialogTitle>
+          <DialogDescription>
+            Schedule a consultation with {coupleName}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
-          {/* Appointment Date */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Appointment Date</label>
-            <input
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="date">Appointment Date</Label>
+            <Input
+              id="date"
               type="date"
-              value={apptDate}
-              onChange={(e) => setApptDate(e.target.value)}
-              className="w-full h-11 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+              value={appointmentDate}
+              onChange={(e) => setAppointmentDate(e.target.value)}
             />
           </div>
 
-          {/* Appointment Time (24h) */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Appointment Time</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="time">Time</Label>
+            <Input
+              id="time"
               type="time"
-              value={apptTime}
-              onChange={(e) => setApptTime(e.target.value)}
-              className="w-full h-11 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
-            />
-          </div>
-
-          {/* Meeting Type */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Meeting Type</label>
-            <div className="flex rounded-lg border border-border overflow-hidden">
-              {MEETING_TYPES.map(t => (
-                <button
-                  key={t.value}
-                  onClick={() => setMeetingType(t.value)}
-                  className={`flex-1 h-11 text-sm font-medium transition-colors ${
-                    meetingType === t.value
-                      ? 'bg-[#0d4f4f] text-white'
-                      : 'bg-white text-muted-foreground hover:bg-muted/60'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Notes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none resize-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
-              placeholder="Optional notes..."
+              value={appointmentTime}
+              onChange={(e) => setAppointmentTime(e.target.value)}
             />
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={submitting}>Cancel</Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="bg-green-600 hover:bg-green-700 text-white"
-          >
-            <Calendar className="h-4 w-4 mr-1.5" />
-            {submitting ? 'Booking...' : 'Book Meeting'}
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
           </Button>
-        </DialogFooter>
+          <Button onClick={handleBook} disabled={saving}>
+            {saving ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Calendar className="w-4 h-4 mr-2" />
+            )}
+            Book Appointment
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

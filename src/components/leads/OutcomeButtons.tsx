@@ -1,3 +1,5 @@
+// src/components/leads/OutcomeButtons.tsx
+
 'use client';
 
 import { useState } from 'react';
@@ -5,10 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Calendar, XCircle } from 'lucide-react';
 import { BookedModal } from './BookedModal';
 import { LostModal } from './LostModal';
-import type { Lead } from '@/lib/lead-utils';
 
 interface OutcomeButtonsProps {
-  lead: Lead;
+  lead: {
+    id: string;
+    bride_name: string;
+    groom_name?: string;
+    email?: string;
+  };
   onUpdate?: () => void;
 }
 
@@ -20,7 +26,7 @@ export function OutcomeButtons({ lead, onUpdate }: OutcomeButtonsProps) {
     <>
       <div className="flex gap-2">
         <Button
-          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+          className="flex-1 bg-green-600 hover:bg-green-700"
           onClick={() => setShowBookedModal(true)}
         >
           <Calendar className="w-4 h-4 mr-2" />
@@ -37,23 +43,17 @@ export function OutcomeButtons({ lead, onUpdate }: OutcomeButtonsProps) {
       </div>
 
       <BookedModal
-        lead={lead}
         open={showBookedModal}
-        onClose={() => setShowBookedModal(false)}
-        onBooked={() => {
-          setShowBookedModal(false);
-          onUpdate?.();
-        }}
+        onOpenChange={setShowBookedModal}
+        lead={lead}
+        onSuccess={onUpdate}
       />
 
       <LostModal
-        lead={lead}
         open={showLostModal}
-        onClose={() => setShowLostModal(false)}
-        onLost={() => {
-          setShowLostModal(false);
-          onUpdate?.();
-        }}
+        onOpenChange={setShowLostModal}
+        lead={lead}
+        onSuccess={onUpdate}
       />
     </>
   );

@@ -265,16 +265,16 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
       {lead && (
         <>
           <BookedModal
-            lead={lead}
             open={bookedOpen}
-            onClose={() => setBookedOpen(false)}
-            onBooked={handleBooked}
+            onOpenChange={setBookedOpen}
+            lead={{ id: lead.id, bride_name: lead.bride_first_name || '', groom_name: lead.groom_first_name || '', email: lead.email || undefined }}
+            onSuccess={handleBooked}
           />
           <LostModal
-            lead={lead}
             open={lostOpen}
-            onClose={() => setLostOpen(false)}
-            onLost={handleLost}
+            onOpenChange={setLostOpen}
+            lead={{ id: lead.id, bride_name: lead.bride_first_name || '', groom_name: lead.groom_first_name || '' }}
+            onSuccess={handleLost}
           />
           {/* Zoom confirmation */}
           <Dialog open={zoomConfirmOpen} onOpenChange={setZoomConfirmOpen}>
