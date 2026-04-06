@@ -137,9 +137,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
 
           <div className="px-4 py-3 space-y-3">
             {/* Resurrect banner for dead leads */}
-            {isDead && (
-              <ResurrectButton lead={lead} onResurrected={handleResurrected} />
-            )}
+            <ResurrectButton leadId={lead.id} currentStatus={lead.status} onSuccess={() => handleResurrected({ ...lead, status: 'contacted', contact_count: 0 })} />
 
             {/* 1. Score summary bar */}
             <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 border border-border/60">

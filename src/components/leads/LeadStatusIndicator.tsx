@@ -1,3 +1,5 @@
+// src/components/leads/LeadStatusIndicator.tsx
+
 'use client';
 
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +15,10 @@ export function LeadStatusIndicator({
   contactCount,
   nextContactDue
 }: LeadStatusIndicatorProps) {
+  // Check if overdue
   const isOverdue = nextContactDue && new Date(nextContactDue) < new Date();
+
+  // Check if exhausted (6+ touches, no response)
   const isExhausted = contactCount >= 6 && status !== 'meeting_booked' && status !== 'booked';
 
   if (isExhausted) {
@@ -32,6 +37,7 @@ export function LeadStatusIndicator({
     );
   }
 
+  // Today
   if (nextContactDue) {
     const dueDate = new Date(nextContactDue);
     const today = new Date();
@@ -44,6 +50,7 @@ export function LeadStatusIndicator({
     }
   }
 
+  // Status-based badges
   const statusBadges: Record<string, { label: string; className: string }> = {
     new: { label: 'New', className: 'bg-blue-500' },
     contacted: { label: 'Contacted', className: 'bg-cyan-500' },
