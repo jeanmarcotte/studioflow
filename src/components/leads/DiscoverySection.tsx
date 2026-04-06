@@ -12,11 +12,11 @@ interface DiscoverySectionProps {
 }
 
 const BUDGET_OPTIONS = [
-  { value: 'under_4k', label: 'Under $4K' },
-  { value: '4k_6k', label: '$4K–$6K' },
-  { value: '6k_8k', label: '$6K–$8K' },
-  { value: '8k_10k', label: '$8K–$10K' },
-  { value: 'over_10k', label: 'Over $10K' },
+  { value: 'under_4k', label: 'Under $4,000' },
+  { value: '4k_6k', label: '$4,000 - $6,000' },
+  { value: '6k_8k', label: '$6,000 - $8,000' },
+  { value: '8k_10k', label: '$8,000 - $10,000' },
+  { value: 'over_10k', label: 'Over $10,000' },
   { value: 'flexible', label: 'Flexible' },
 ]
 
@@ -103,14 +103,16 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
         {saving && <span className="text-[10px] text-muted-foreground/60 ml-auto">Saving...</span>}
       </h3>
 
-      {/* Budget dropdown — full width */}
-      <div>
+      {/* Budget dropdown — own row, full width */}
+      <div className="space-y-1">
+        <label className="text-xs text-muted-foreground">Budget</label>
         <select
           value={lead.budget_range || ''}
           onChange={(e) => saveField('budget_range', e.target.value || null)}
-          className={`w-full h-9 rounded-lg border bg-white dark:bg-slate-800 px-3 text-sm outline-none transition-all ${
+          className={`block w-full h-10 px-3 rounded-md border bg-white dark:bg-slate-800 text-sm outline-none transition-all ${
             !lead.budget_range ? 'border-red-400 ring-1 ring-red-200' : 'border-green-300'
           }`}
+          style={{ maxWidth: '100%' }}
         >
           <option value="">Select budget...</option>
           {BUDGET_OPTIONS.map(o => (
