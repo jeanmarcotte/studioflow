@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { ArrowLeft, Skull, Calendar, X, Video, PhoneForwarded, Mail } from 'lucide-react'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -33,6 +34,7 @@ interface LeadDetailSheetProps {
 }
 
 export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailSheetProps) {
+  const router = useRouter()
   const [bookedOpen, setBookedOpen] = useState(false)
   const [lostOpen, setLostOpen] = useState(false)
   const [zoomConfirmOpen, setZoomConfirmOpen] = useState(false)
@@ -269,15 +271,8 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
                   <Button
                     className="h-10 text-[11px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex flex-col items-center gap-0.5 px-1"
                     onClick={() => {
-                      const bride = lead.bride_first_name || 'there'
-                      const show = formatShowName(lead.show_id)
-                      const venue = lead.venue_name || 'your venue'
-                      const date = formatWeddingDate(lead.wedding_date)
-                      const subject = encodeURIComponent(`Following up from ${show} - SIGS Photography`)
-                      const body = encodeURIComponent(
-                        `Hi ${bride},\n\nWe met you at the ${show} bridal show! Have you booked your photographer and videographer yet?\n\nWe'd love to chat about your wedding at ${venue} on ${date}. Would you be available for a quick Zoom call this week?\n\nBest,\n\nJean Marcotte\nPrincipal Photographer\nSIGS Photography\n416-831-8942\nwww.sigsphoto.ca`
-                      )
-                      window.open(`mailto:${lead.email || ''}?subject=${subject}&body=${body}`, '_blank')
+                      if (!lead.email) { toast.error('No email on file'); return }
+                      router.push(`/leads/${lead.id}/compose`)
                     }}
                   >
                     <Mail className="h-3.5 w-3.5" />
