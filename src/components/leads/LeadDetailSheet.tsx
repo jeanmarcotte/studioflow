@@ -267,10 +267,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
                   </Button>
                   <Button
                     className="h-10 text-[11px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex flex-col items-center gap-0.5 px-1"
-                    onClick={() => {
-                      if (!lead.email) { toast.error('No email on file'); return }
-                      setEmailComposeOpen(true)
-                    }}
+                    onClick={() => setEmailComposeOpen(true)}}
                   >
                     <Mail className="h-3.5 w-3.5" />
                     Email
