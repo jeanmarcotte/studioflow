@@ -4,6 +4,7 @@ import { X, ChevronsLeft, ChevronsRight, RotateCcw, ChevronDown } from 'lucide-r
 import { Nunito } from 'next/font/google'
 import { ButtonWithBadge } from '@/components/ui/button-with-badge'
 import Link from 'next/link'
+import { UserProfile } from './UserProfile'
 import type { FilterKey } from '@/lib/lead-utils'
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -295,13 +296,19 @@ export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, sho
       {open && <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] lg:hidden" onClick={onClose} />}
 
       {/* Desktop sidebar */}
-      <aside className={`${nunito.className} hidden lg:block w-[288px] shrink-0 p-4 pr-2 bg-slate-50 dark:bg-slate-950`}>
-        {filterCard}
+      <aside className={`${nunito.className} hidden lg:flex flex-col w-[288px] shrink-0 p-4 pr-2 bg-slate-50 dark:bg-slate-950`}>
+        <div className="flex-1 min-h-0">{filterCard}</div>
+        <div className="border-t border-border/40 pt-2 mt-2">
+          <UserProfile />
+        </div>
       </aside>
 
       {/* Mobile drawer */}
-      <aside className={`${nunito.className} lg:hidden fixed inset-y-0 left-0 z-50 w-[300px] p-3 bg-slate-50 dark:bg-slate-950 shadow-2xl transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
-        {filterCard}
+      <aside className={`${nunito.className} lg:hidden fixed inset-y-0 left-0 z-50 w-[300px] p-3 bg-slate-50 dark:bg-slate-950 shadow-2xl transition-transform duration-200 flex flex-col ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex-1 min-h-0">{filterCard}</div>
+        <div className="border-t border-border/40 pt-2 mt-2">
+          <UserProfile />
+        </div>
       </aside>
     </>
   )

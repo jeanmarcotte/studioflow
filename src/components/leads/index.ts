@@ -15,3 +15,4 @@ export { VenueCombobox } from './VenueCombobox';
 export { ReferrerSelect } from './ReferrerSelect';
 export { ChaseSubFilters, type ChaseFilter } from './ChaseSubFilters';
 export { SourceDropdown } from './SourceDropdown';
+export { UserProfile } from './UserProfile';

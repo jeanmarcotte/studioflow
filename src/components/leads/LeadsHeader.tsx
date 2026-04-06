@@ -80,10 +80,6 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
             <Plus className="h-4 w-4 mr-1" /> Add Lead
           </Button>
 
-          {/* User initials */}
-          <div className="h-8 w-8 rounded-full bg-[#0d4f4f] text-white text-xs font-bold flex items-center justify-center shrink-0 cursor-pointer" title="Jean Marcotte">
-            JM
-          </div>
         </div>
       </header>
 
