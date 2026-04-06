@@ -1,10 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Send } from 'lucide-react'
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog'
+import { Send, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import type { Lead } from '@/lib/lead-utils'
@@ -57,7 +54,6 @@ export function EmailComposeModal({ lead, open, onClose, onTouchLogged }: EmailC
 
       toast.success(`Email sent to ${lead.bride_first_name || coupleName(lead)}`)
 
-      // Log touch
       const result = await logTouch(lead.id, lead.entity_id, 'email', `Email: ${subject}`)
       if (result) {
         onTouchLogged?.()
@@ -69,62 +65,73 @@ export function EmailComposeModal({ lead, open, onClose, onTouchLogged }: EmailC
     setSending(false)
   }
 
-  return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <span>✉️</span> Compose Email
-          </DialogTitle>
-        </DialogHeader>
+  if (!open) return null
 
-        <div className="space-y-3 py-2">
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+      {/* Modal */}
+      <div className="relative w-full max-w-lg mx-4 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden" style={{ zIndex: 101 }}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            ✉️ Compose Email
+          </h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
           <div className="space-y-1">
-            <label className="text-xs text-muted-foreground">To</label>
+            <label className="text-xs font-medium text-slate-500">To</label>
             <input
               type="email"
-              autoFocus
               value={toEmail}
               onChange={(e) => setToEmail(e.target.value)}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="w-full h-9 rounded-lg border border-border bg-white dark:bg-slate-800 px-3 text-sm outline-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+              className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm outline-none focus:border-[#0d4f4f] focus:ring-2 focus:ring-[#0d4f4f]/20"
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Subject</label>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-500">Subject</label>
             <input
+              type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="w-full h-10 rounded-lg border border-border bg-white dark:bg-slate-800 px-3 text-sm outline-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+              className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm outline-none focus:border-[#0d4f4f] focus:ring-2 focus:ring-[#0d4f4f]/20"
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Message</label>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-500">Message</label>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              onPointerDown={(e) => e.stopPropagation()}
               rows={10}
-              className="w-full rounded-lg border border-border bg-white dark:bg-slate-800 px-3 py-2 text-sm outline-none resize-y focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20 leading-relaxed"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm outline-none resize-y focus:border-[#0d4f4f] focus:ring-2 focus:ring-[#0d4f4f]/20 leading-relaxed"
             />
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={sending}>Cancel</Button>
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-5 py-3 border-t border-slate-200 dark:border-slate-700">
+          <Button variant="outline" onClick={onClose} disabled={sending} className="h-9 px-4 text-sm rounded-lg">
+            Cancel
+          </Button>
           <Button
             onClick={handleSend}
             disabled={sending || !toEmail}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="h-9 px-5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50"
           >
             <Send className="h-4 w-4 mr-1.5" />
             {sending ? 'Sending...' : 'Send Now'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   )
 }
