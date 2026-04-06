@@ -75,7 +75,7 @@ export const studioflowAdminConfig: SidebarConfig = {
           icon: BarChart3,
           children: [
             { title: 'SIGS SEO', href: '/admin/marketing/sigs-seo', icon: Search },
-            { title: 'BridalFlow', href: 'https://bridalflow.vercel.app/admin', icon: Globe, external: true },
+            { title: 'BridalFlow', href: 'https://studioflow-zeta.vercel.app/leads', icon: Globe, external: true },
           ],
         },
         {
