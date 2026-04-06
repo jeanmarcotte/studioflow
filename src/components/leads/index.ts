@@ -13,3 +13,4 @@ export { LeadSourceSelect } from './LeadSourceSelect';
 export { SourceFilter } from './SourceFilter';
 export { VenueCombobox } from './VenueCombobox';
 export { ReferrerSelect } from './ReferrerSelect';
+export { ChaseSubFilters, type ChaseFilter } from './ChaseSubFilters';
