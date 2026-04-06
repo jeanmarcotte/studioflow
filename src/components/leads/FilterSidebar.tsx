@@ -30,6 +30,7 @@ interface FilterSidebarProps {
   onClose: () => void
   collapsed: boolean
   onCollapsedChange: (collapsed: boolean) => void
+  chaseSubFilters?: React.ReactNode
 }
 
 const LOCATIONS = [
@@ -178,7 +179,7 @@ function CollapsedBar({ filters, counts, update, onExpand, onReset }: {
 
 /* ── Main export ─────────────────────────────────────────────── */
 
-export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, showLost, onShowLostChange, open, onClose, collapsed, onCollapsedChange }: FilterSidebarProps) {
+export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, showLost, onShowLostChange, open, onClose, collapsed, onCollapsedChange, chaseSubFilters }: FilterSidebarProps) {
   const update = (patch: Partial<SidebarFilters>) => onFiltersChange({ ...filters, ...patch })
   const resetAll = () => onFiltersChange({ status: 'no-no-yes', location: null, dateRange: 'all', venueType: [], venueRating: null, religion: [], ceremonyLocation: [], chaseStatus: [] })
   const toggleArr = (key: 'venueType' | 'chaseStatus' | 'religion' | 'ceremonyLocation', item: string) => {
@@ -231,6 +232,7 @@ export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, sho
               <SectionLabel>Chase Status</SectionLabel>
               <PillRow items={CHASE} selected={filters.chaseStatus} onToggle={(i) => toggleArr('chaseStatus', i)} />
             </div>
+            {chaseSubFilters && <div className="mt-2">{chaseSubFilters}</div>}
           </>
         )}
 

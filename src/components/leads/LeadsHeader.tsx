@@ -15,9 +15,10 @@ interface LeadsHeaderProps {
   onMenuToggle: () => void
   onAddLead?: () => void
   onLeadSelect?: (leadId: string) => void
+  sourceFilter?: React.ReactNode
 }
 
-export function LeadsHeader({ onMenuToggle, onAddLead, onLeadSelect }: LeadsHeaderProps) {
+export function LeadsHeader({ onMenuToggle, onAddLead, onLeadSelect, sourceFilter }: LeadsHeaderProps) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [legendOpen, setLegendOpen] = useState(false)
@@ -36,6 +37,9 @@ export function LeadsHeader({ onMenuToggle, onAddLead, onLeadSelect }: LeadsHead
           <div className="hidden sm:block">
             <LeadSearch onSelect={(leadId) => onLeadSelect?.(leadId)} />
           </div>
+
+          {/* Source Filter */}
+          {sourceFilter}
 
           <div className="flex-1" />
 
