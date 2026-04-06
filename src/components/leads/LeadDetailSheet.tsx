@@ -25,6 +25,9 @@ import { NextTouchCard } from './NextTouchCard'
 import { ResurrectButton } from './ResurrectButton'
 import { BookedModal } from './BookedModal'
 import { LostModal } from './LostModal'
+import { ChaseProgress } from './ChaseProgress'
+import { ContactHistory } from './ContactHistory'
+import { LeadStatusIndicator } from './LeadStatusIndicator'
 
 interface LeadDetailSheetProps {
   lead: Lead | null
@@ -121,6 +124,11 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
               <SheetTitle className="flex-1 truncate text-base font-bold">
                 {coupleName(lead)}
               </SheetTitle>
+              <LeadStatusIndicator
+                status={lead.status}
+                contactCount={lead.contact_count || 0}
+                nextContactDue={lead.next_contact_due}
+              />
               <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-red-500 hover:bg-red-50" onClick={handleKill}>
                 <Skull className="h-5 w-5" />
               </Button>
@@ -164,8 +172,12 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
 
             <Separator />
 
-            {/* 4. Chase Progress (moved up) */}
+            {/* 4. Chase Progress */}
+            <ChaseProgress touchCount={lead.contact_count || 0} />
             <ChaseProgressSection ballotId={lead.id} refreshKey={chaseRefreshKey} />
+
+            {/* 4b. Contact History */}
+            <ContactHistory leadId={lead.id} />
 
             <Separator />
 
