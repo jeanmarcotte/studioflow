@@ -291,8 +291,8 @@ export default function LeadsPage() {
         </SafeSection>
 
         {/* Main panel — floating card */}
-        <div className="flex-1 p-3 min-h-0">
-          <div className="h-full bg-white dark:bg-slate-900 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 overflow-hidden flex flex-col">
+        <div className="flex-1 p-3 min-h-0 overflow-hidden">
+          <div className="h-full bg-white dark:bg-slate-900 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 flex flex-col overflow-hidden">
             <SafeSection name="LeadGridArea">
               <LeadGridArea
                 leads={filteredLeads}

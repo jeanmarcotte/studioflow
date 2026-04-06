@@ -168,9 +168,6 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
               <SheetTitle className="flex-1 truncate text-base font-bold">
                 {coupleName(lead)}
               </SheetTitle>
-              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30" onClick={handleKill}>
-                <Skull className="h-5 w-5" />
-              </Button>
             </div>
           </SheetHeader>
 

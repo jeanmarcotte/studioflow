@@ -99,12 +99,14 @@ export function ChaseProgressSection({ ballotId, refreshKey }: ChaseProgressSect
             })}
           </div>
 
-          <div className="text-sm text-muted-foreground">
-            Touch {touchCount} of {MAX_TOUCHES}
-            {lastContact?.contact_date && (
-              <span className="ml-2">
-                — Last: {formatContactDateTime(lastContact.contact_date)} {daysAgo(lastContact.contact_date)}
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Touch {touchCount} of {MAX_TOUCHES}</span>
+            {lastContact?.contact_date ? (
+              <span className="text-xs">
+                Last: {formatContactDateTime(lastContact.contact_date)} {daysAgo(lastContact.contact_date)}
               </span>
+            ) : (
+              <span className="text-xs italic">No contacts logged yet</span>
             )}
           </div>
 
@@ -112,7 +114,7 @@ export function ChaseProgressSection({ ballotId, refreshKey }: ChaseProgressSect
           {contacts.length > 0 && (
             <div className="space-y-1 pt-1">
               {contacts.map(c => (
-                <div key={c.id} className="rounded-lg border border-border/60 bg-gray-50 px-3 py-2">
+                <div key={c.id} className="rounded-lg border border-border/60 bg-gray-50 dark:bg-slate-800/50 px-3 py-1.5">
                   <div className="flex items-center gap-2 text-xs">
                     <span className="font-bold text-foreground">Touch {c.contact_number}</span>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#0d4f4f] bg-[#0d4f4f]/10 px-1.5 py-0.5 rounded">
@@ -121,18 +123,11 @@ export function ChaseProgressSection({ ballotId, refreshKey }: ChaseProgressSect
                     <span className="text-muted-foreground ml-auto">{formatContactDateTime(c.contact_date)}</span>
                   </div>
                   {c.notes && (
-                    <div className="text-xs text-muted-foreground mt-1 italic">"{c.notes}"</div>
-                  )}
-                  {c.outcome && c.outcome !== 'sent' && (
-                    <div className="text-[10px] text-muted-foreground/70 mt-0.5">Outcome: {c.outcome}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 italic">"{c.notes}"</div>
                   )}
                 </div>
               ))}
             </div>
-          )}
-
-          {contacts.length === 0 && (
-            <div className="text-xs text-muted-foreground italic">No contacts logged yet</div>
           )}
         </>
       )}
