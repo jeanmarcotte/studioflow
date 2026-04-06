@@ -24,6 +24,7 @@ import { NextTouchCard } from './NextTouchCard'
 import { ResurrectButton } from './ResurrectButton'
 import { BookedModal } from './BookedModal'
 import { LostModal } from './LostModal'
+import { EmailComposeModal } from './EmailComposeModal'
 
 interface LeadDetailSheetProps {
   lead: Lead | null
@@ -36,7 +37,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
   const [bookedOpen, setBookedOpen] = useState(false)
   const [lostOpen, setLostOpen] = useState(false)
   const [zoomConfirmOpen, setZoomConfirmOpen] = useState(false)
-  const [emailConfirmOpen, setEmailConfirmOpen] = useState(false)
+  const [emailComposeOpen, setEmailComposeOpen] = useState(false)
   const [chaseRefreshKey, setChaseRefreshKey] = useState(0)
   const autoLoggedRef = useRef<string | null>(null)
 
@@ -264,7 +265,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
                     className="h-10 text-[11px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex flex-col items-center gap-0.5 px-1"
                     onClick={() => {
                       if (!lead.email) { toast.error('No email on file'); return }
-                      setEmailConfirmOpen(true)
+                      setEmailComposeOpen(true)
                     }}
                   >
                     <Mail className="h-3.5 w-3.5" />
@@ -338,37 +339,13 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          {/* Email confirmation */}
-          <Dialog open={emailConfirmOpen} onOpenChange={setEmailConfirmOpen}>
-            <DialogContent className="sm:max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Send Email</DialogTitle>
-              </DialogHeader>
-              <p className="text-sm text-muted-foreground">
-                Open email to <strong>{coupleName(lead)}</strong> at <strong>{lead.email}</strong>?
-              </p>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setEmailConfirmOpen(false)}>Cancel</Button>
-                <Button
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                  onClick={() => {
-                    setEmailConfirmOpen(false)
-                    const bride = lead.bride_first_name || 'there'
-                    const show = formatShowName(lead.show_id)
-                    const venue = lead.venue_name || 'your venue'
-                    const date = formatWeddingDate(lead.wedding_date)
-                    const subject = encodeURIComponent(`Following up from ${show} - SIGS Photography`)
-                    const body = encodeURIComponent(
-                      `Hi ${bride},\n\nWe met you at the ${show} bridal show! Have you booked your photographer and videographer yet?\n\nWe'd love to chat about your wedding at ${venue} on ${date}. Would you be available for a quick Zoom call this week?\n\nBest,\n\nJean Marcotte\nPrincipal Photographer\nSIGS Photography\n416-831-8942\nwww.sigsphoto.ca`
-                    )
-                    window.open(`mailto:${lead.email || ''}?subject=${subject}&body=${body}`, '_blank')
-                  }}
-                >
-                  Send
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          {/* Email composer */}
+          <EmailComposeModal
+            lead={lead}
+            open={emailComposeOpen}
+            onClose={() => setEmailComposeOpen(false)}
+            onTouchLogged={() => setChaseRefreshKey(k => k + 1)}
+          />
         </>
       )}
     </>
