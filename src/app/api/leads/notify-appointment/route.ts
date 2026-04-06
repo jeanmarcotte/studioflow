@@ -20,6 +20,22 @@ export async function POST(req: NextRequest) {
 
     const coupleName = bride && groom ? `${bride} & ${groom}` : bride || groom || 'Unknown'
 
+    // Format appointment date/time for subject
+    let apptLabel = ''
+    if (apptDate) {
+      const d = new Date(apptDate + 'T12:00:00')
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      apptLabel = `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`
+    }
+    let timeLabel = ''
+    if (apptTime) {
+      const [h, m] = apptTime.split(':').map(Number)
+      const ampm = h >= 12 ? 'PM' : 'AM'
+      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+      timeLabel = `${h12}:${String(m).padStart(2, '0')} ${ampm}`
+    }
+
     // Build discovery summary
     const discoveryItems: string[] = []
     if (album) discoveryItems.push(`Album: ${album}`)
@@ -37,7 +53,7 @@ export async function POST(req: NextRequest) {
     await resend.emails.send({
       from: 'SIGS BridalFlow <noreply@sigsphoto.ca>',
       to: ['jeanmarcotte@gmail.com', 'mariannakogan@gmail.com'],
-      subject: `New Appointment: ${coupleName}`,
+      subject: `📅 APPT BOOKED: ${coupleName}${apptLabel ? ` — ${apptLabel}` : ''}${timeLabel ? ` @ ${timeLabel}` : ''}`,
       html: `
         <div style="font-family: sans-serif; max-width: 550px;">
           <h2 style="color: #0d4f4f; margin-bottom: 16px;">New Appointment Booked</h2>
