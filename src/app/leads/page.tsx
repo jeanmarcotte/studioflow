@@ -9,6 +9,7 @@ import { FilterSidebar, type SidebarFilters } from '@/components/leads/FilterSid
 import { LeadGridArea } from '@/components/leads/LeadGridArea'
 import { toast } from 'sonner'
 import { SourceFilter } from '@/components/leads/SourceFilter'
+import { ChaseSubFilters, type ChaseFilter } from '@/components/leads/ChaseSubFilters'
 import type { Lead, FilterKey } from '@/lib/lead-utils'
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -57,6 +58,7 @@ export default function LeadsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
+  const [chaseFilter, setChaseFilter] = useState<ChaseFilter>('all')
   const [allLeads, setAllLeads] = useState<Lead[]>([])  // includes hidden, for search
 
   // Persist sidebar collapsed state
@@ -70,7 +72,7 @@ export default function LeadsPage() {
   }
 
   // Reset page when filters or search change
-  useEffect(() => { setCurrentPage(1) }, [filters, sortKey, searchQuery, selectedSourceId])
+  useEffect(() => { setCurrentPage(1); setChaseFilter('all') }, [filters, sortKey, searchQuery, selectedSourceId])
 
   // Fetch leads
   useEffect(() => {
@@ -221,9 +223,27 @@ export default function LeadsPage() {
         if (!matches) return false
       }
 
+      // Chase sub-filter (only when CONTACTED)
+      if (filters.status === 'contacted' && chaseFilter !== 'all') {
+        switch (chaseFilter) {
+          case 'due_today':
+            if (l.next_contact_due !== todayStr) return false
+            break
+          case 'overdue':
+            if (!(l.next_contact_due && l.next_contact_due < todayStr && l.contact_status !== 'exhausted')) return false
+            break
+          case 'upcoming':
+            if (!(l.next_contact_due && l.next_contact_due > todayStr)) return false
+            break
+          case 'exhausted':
+            if (l.contact_status !== 'exhausted' && l.status !== 'dead') return false
+            break
+        }
+      }
+
       return true
     })
-  }, [leads, allLeads, filters, showLost, searchQuery, selectedSourceId])
+  }, [leads, allLeads, filters, showLost, searchQuery, selectedSourceId, chaseFilter])
 
   const counts = useMemo(() => ({
     'no-no-yes': leads.filter(l => isNNY(l)).length,
@@ -235,6 +255,18 @@ export default function LeadsPage() {
   } as Record<FilterKey, number>), [leads])
 
   const lostCount = useMemo(() => leads.filter(l => isLost(l)).length, [leads])
+
+  const chaseCounts = useMemo(() => {
+    const contacted = leads.filter(l => l.status === 'contacted')
+    const today = new Date().toISOString().split('T')[0]
+    return {
+      all: contacted.length,
+      due_today: contacted.filter(l => l.next_contact_due === today).length,
+      overdue: contacted.filter(l => l.next_contact_due != null && l.next_contact_due < today && l.contact_status !== 'exhausted').length,
+      upcoming: contacted.filter(l => l.next_contact_due != null && l.next_contact_due > today).length,
+      exhausted: contacted.filter(l => l.contact_status === 'exhausted' || l.status === 'dead').length,
+    }
+  }, [leads])
 
   // Loading
   if (loading) {
@@ -286,8 +318,15 @@ export default function LeadsPage() {
           <div className="flex items-center">
             <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} onAddLead={() => setShowAddModal(true)} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
           </div>
-          <div className="px-4 pb-2 md:px-6">
+          <div className="px-4 pb-2 md:px-6 flex flex-wrap items-center gap-2">
             <SourceFilter selectedSourceId={selectedSourceId} onSourceChange={setSelectedSourceId} />
+            {filters.status === 'contacted' && (
+              <ChaseSubFilters
+                activeFilter={chaseFilter}
+                onFilterChange={setChaseFilter}
+                counts={chaseCounts}
+              />
+            )}
           </div>
         </SafeSection>
 
