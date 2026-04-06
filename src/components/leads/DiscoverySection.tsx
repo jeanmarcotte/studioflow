@@ -20,123 +20,41 @@ const BUDGET_OPTIONS = [
   { value: 'flexible', label: 'Flexible' },
 ]
 
-const VENUE_TYPE_OPTIONS = [
-  { value: 'banquet_hall', label: 'Banquet Hall' },
-  { value: 'estate', label: 'Estate' },
-  { value: 'golf_club', label: 'Golf Club' },
-  { value: 'restaurant', label: 'Restaurant' },
-  { value: 'hotel', label: 'Hotel' },
-  { value: 'barn', label: 'Barn' },
-  { value: 'winery', label: 'Winery' },
-  { value: 'backyard', label: 'Backyard' },
+const RADIO_FIELDS: { label: string; field: string }[] = [
+  { label: 'Album', field: 'want_album' },
+  { label: 'Engagement', field: 'want_engagement' },
+  { label: 'DJ', field: 'has_dj' },
+  { label: 'Planner', field: 'planner_involved' },
+  { label: 'Multi-Day', field: 'multi_day_event' },
+  { label: 'First Look', field: 'first_look' },
 ]
 
-function FieldSelect({ label, value, options, required, recommended, onChange }: {
+function RadioRow({ label, value, onChange }: {
   label: string
   value: string | null
-  options: { value: string; label: string }[]
-  required?: boolean
-  recommended?: boolean
-  onChange: (val: string) => void
-}) {
-  const isEmpty = !value
-  const borderClass = isEmpty && required
-    ? 'border-red-400 ring-1 ring-red-200 animate-pulse'
-    : isEmpty && recommended
-      ? 'border-yellow-400'
-      : value
-        ? 'border-green-300'
-        : 'border-border'
-
-  return (
-    <div className="flex items-center gap-3">
-      <label className="text-[11px] text-muted-foreground font-medium shrink-0 w-20">{label}</label>
-      <div className="relative flex-1 min-w-0">
-        <select
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          className={`w-full h-8 rounded-md border bg-white px-2 pr-7 text-xs outline-none transition-all ${borderClass}`}
-        >
-          <option value="">Select...</option>
-          {options.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-        {value && (
-          <Check className="absolute right-7 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-green-500" />
-        )}
-      </div>
-    </div>
-  )
-}
-
-function FieldToggle({ label, value, onChange }: {
-  label: string
-  value: string | null
-  recommended?: boolean
   onChange: (val: string) => void
 }) {
   const opts = ['yes', 'no', 'maybe'] as const
   return (
-    <div>
-      <label className="text-[11px] text-muted-foreground font-medium mb-1 block">{label}</label>
-      <div className="flex rounded-md border border-border overflow-hidden">
+    <div className="flex items-center justify-between py-1.5">
+      <span className="text-sm text-slate-700 dark:text-slate-300">{label}</span>
+      <div className="flex gap-4">
         {opts.map(o => (
           <button
             key={o}
             onClick={() => onChange(o)}
-            className={`h-7 px-2.5 text-xs font-medium transition-colors capitalize ${
-              value === o
-                ? 'bg-[#0d4f4f] text-white'
-                : 'bg-white text-muted-foreground hover:bg-muted/60'
-            }`}
+            className="flex items-center gap-1 group"
           >
-            {o}
+            <span className={`h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+              value === o
+                ? 'border-[#0d4f4f] bg-[#0d4f4f]'
+                : 'border-slate-300 dark:border-slate-600 group-hover:border-slate-400'
+            }`}>
+              {value === o && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+            </span>
           </button>
         ))}
       </div>
-    </div>
-  )
-}
-
-function FieldCheckbox({ label, checked, onChange }: {
-  label: string
-  checked: boolean
-  onChange: (val: boolean) => void
-}) {
-  return (
-    <div>
-      <label className="text-[11px] text-muted-foreground font-medium mb-1 block">{label}</label>
-      <button
-        onClick={() => onChange(!checked)}
-        className={`h-7 w-7 rounded-md border flex items-center justify-center transition-colors ${
-          checked ? 'bg-[#0d4f4f] border-[#0d4f4f] text-white' : 'bg-white border-border text-transparent hover:bg-muted/60'
-        }`}
-      >
-        <Check className="h-4 w-4" />
-      </button>
-    </div>
-  )
-}
-
-function FieldNumber({ label, value, min, max, onChange }: {
-  label: string
-  value: number | null
-  min?: number
-  max?: number
-  onChange: (val: number | null) => void
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <label className="text-[11px] text-muted-foreground font-medium shrink-0 w-20">{label}</label>
-      <input
-        type="number"
-        value={value ?? ''}
-        min={min}
-        max={max}
-        onChange={(e) => onChange(e.target.value ? parseInt(e.target.value) : null)}
-        className="h-8 w-20 rounded-md border border-border bg-white px-2 text-xs text-right outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
-      />
     </div>
   )
 }
@@ -160,6 +78,24 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
     setSaving(false)
   }, [lead, onUpdate])
 
+  // Normalize boolean fields to yes/no/maybe strings for radio display
+  const getRadioValue = (field: string): string | null => {
+    const v = (lead as any)[field]
+    if (v === true) return 'yes'
+    if (v === false) return 'no'
+    if (typeof v === 'string') return v
+    return null
+  }
+
+  const setRadioValue = (field: string, val: string) => {
+    // For boolean columns, store as boolean; for text columns, store as string
+    if (field === 'multi_day_event' || field === 'planner_involved') {
+      saveField(field, val === 'yes' ? true : val === 'no' ? false : null)
+    } else {
+      saveField(field, val)
+    }
+  }
+
   return (
     <div className="space-y-2">
       <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -167,64 +103,56 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
         {saving && <span className="text-[10px] text-muted-foreground/60 ml-auto">Saving...</span>}
       </h3>
 
-      <div className="space-y-2">
-        {/* Row 1: Budget */}
-        <FieldSelect
-          label="Budget"
-          value={lead.budget_range}
-          options={BUDGET_OPTIONS}
-          required
-          onChange={(v) => saveField('budget_range', v || null)}
-        />
+      {/* Budget dropdown — full width */}
+      <div>
+        <select
+          value={lead.budget_range || ''}
+          onChange={(e) => saveField('budget_range', e.target.value || null)}
+          className={`w-full h-9 rounded-lg border bg-white dark:bg-slate-800 px-3 text-sm outline-none transition-all ${
+            !lead.budget_range ? 'border-red-400 ring-1 ring-red-200' : 'border-green-300'
+          }`}
+        >
+          <option value="">Select budget...</option>
+          {BUDGET_OPTIONS.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
 
-        {/* Row 2: Album + Engagement side by side */}
-        <div className="flex gap-3">
-          <FieldToggle
-            label="Album"
-            value={lead.want_album}
-            onChange={(v) => saveField('want_album', v)}
-          />
-          <FieldToggle
-            label="Engagement"
-            value={lead.want_engagement}
-            onChange={(v) => saveField('want_engagement', v)}
-          />
+      {/* Radio button grid */}
+      <div className="rounded-lg border border-border/60 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 dark:bg-slate-800/50 border-b border-border/60">
+          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Field</span>
+          <div className="flex gap-4">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase w-4 text-center">Y</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase w-4 text-center">N</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase w-4 text-center">?</span>
+          </div>
         </div>
+        {/* Rows */}
+        <div className="px-3 divide-y divide-border/40">
+          {RADIO_FIELDS.map(rf => (
+            <RadioRow
+              key={rf.field}
+              label={rf.label}
+              value={getRadioValue(rf.field)}
+              onChange={(val) => setRadioValue(rf.field, val)}
+            />
+          ))}
+        </div>
+      </div>
 
-        {/* Row 3: Bridal Party */}
-        <FieldNumber
-          label="Bridal Party"
-          value={lead.bridal_party_size}
+      {/* Bridal Party */}
+      <div className="flex items-center gap-3">
+        <label className="text-sm text-slate-700 dark:text-slate-300 shrink-0">Bridal Party</label>
+        <input
+          type="number"
+          value={lead.bridal_party_size ?? ''}
           min={1}
           max={20}
-          onChange={(v) => saveField('bridal_party_size', v)}
-        />
-
-        {/* Row 4: Multi-Day + Planner + DJ */}
-        <div className="flex items-end gap-3">
-          <FieldCheckbox
-            label="Multi-Day"
-            checked={lead.multi_day_event === true}
-            onChange={(v) => saveField('multi_day_event', v)}
-          />
-          <FieldCheckbox
-            label="Planner"
-            checked={lead.planner_involved === true}
-            onChange={(v) => saveField('planner_involved', v)}
-          />
-          <FieldCheckbox
-            label="DJ"
-            checked={(lead as any).has_dj === true}
-            onChange={(v) => saveField('has_dj', v)}
-          />
-        </div>
-
-        {/* Row 5: Venue Type (full width) */}
-        <FieldSelect
-          label="Venue Type"
-          value={lead.venue_type}
-          options={VENUE_TYPE_OPTIONS}
-          onChange={(v) => saveField('venue_type', v || null)}
+          onChange={(e) => saveField('bridal_party_size', e.target.value ? parseInt(e.target.value) : null)}
+          className="h-8 w-20 rounded-lg border border-border bg-white dark:bg-slate-800 px-2 text-sm text-right outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
         />
       </div>
     </div>
