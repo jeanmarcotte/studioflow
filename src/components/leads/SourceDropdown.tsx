@@ -75,23 +75,29 @@ export function SourceDropdown({ value, onChange }: SourceDropdownProps) {
         </span>
         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuItem onClick={() => onChange(null)}>
+      <DropdownMenuContent align="start" className="w-56 bg-white border border-gray-200 shadow-lg">
+        <DropdownMenuItem onClick={() => onChange(null)} className="cursor-pointer">
           <Check className={cn("mr-2 h-4 w-4", !value ? "opacity-100" : "opacity-0")} />
-          All Sources
+          <span className="text-gray-900 font-medium">All Sources</span>
         </DropdownMenuItem>
 
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="bg-gray-200" />
 
         {bridalShows.length > 0 && (
           <DropdownMenuGroup>
-            <DropdownMenuLabel>Bridal Shows</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-gray-500 text-xs font-medium uppercase tracking-wide">
+              Bridal Shows
+            </DropdownMenuLabel>
             {bridalShows.map(source => (
-              <DropdownMenuItem key={source.id} onClick={() => onChange(source.id)}>
-                <Check className={cn("mr-2 h-4 w-4", value === source.id ? "opacity-100" : "opacity-0")} />
-                <span className="flex-1 truncate">{getShortName(source.display_name)}</span>
+              <DropdownMenuItem
+                key={source.id}
+                onClick={() => onChange(source.id)}
+                className="cursor-pointer"
+              >
+                <Check className={cn("mr-2 h-4 w-4 text-gray-900", value === source.id ? "opacity-100" : "opacity-0")} />
+                <span className="flex-1 truncate text-gray-900">{getShortName(source.display_name)}</span>
                 {source.lead_count > 0 && (
-                  <span className="ml-2 text-xs text-muted-foreground">{source.lead_count}</span>
+                  <span className="ml-2 text-xs text-gray-500">{source.lead_count}</span>
                 )}
               </DropdownMenuItem>
             ))}
@@ -100,15 +106,21 @@ export function SourceDropdown({ value, onChange }: SourceDropdownProps) {
 
         {digital.length > 0 && (
           <>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-gray-200" />
             <DropdownMenuGroup>
-              <DropdownMenuLabel>Digital</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-gray-500 text-xs font-medium uppercase tracking-wide">
+                Digital
+              </DropdownMenuLabel>
               {digital.map(source => (
-                <DropdownMenuItem key={source.id} onClick={() => onChange(source.id)}>
-                  <Check className={cn("mr-2 h-4 w-4", value === source.id ? "opacity-100" : "opacity-0")} />
-                  <span className="flex-1 truncate">{source.display_name}</span>
+                <DropdownMenuItem
+                  key={source.id}
+                  onClick={() => onChange(source.id)}
+                  className="cursor-pointer"
+                >
+                  <Check className={cn("mr-2 h-4 w-4 text-gray-900", value === source.id ? "opacity-100" : "opacity-0")} />
+                  <span className="flex-1 truncate text-gray-900">{source.display_name}</span>
                   {source.lead_count > 0 && (
-                    <span className="ml-2 text-xs text-muted-foreground">{source.lead_count}</span>
+                    <span className="ml-2 text-xs text-gray-500">{source.lead_count}</span>
                   )}
                 </DropdownMenuItem>
               ))}
@@ -118,15 +130,21 @@ export function SourceDropdown({ value, onChange }: SourceDropdownProps) {
 
         {referrals.length > 0 && (
           <>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-gray-200" />
             <DropdownMenuGroup>
-              <DropdownMenuLabel>Referrals</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-gray-500 text-xs font-medium uppercase tracking-wide">
+                Referrals
+              </DropdownMenuLabel>
               {referrals.map(source => (
-                <DropdownMenuItem key={source.id} onClick={() => onChange(source.id)}>
-                  <Check className={cn("mr-2 h-4 w-4", value === source.id ? "opacity-100" : "opacity-0")} />
-                  <span className="flex-1 truncate">{source.display_name}</span>
+                <DropdownMenuItem
+                  key={source.id}
+                  onClick={() => onChange(source.id)}
+                  className="cursor-pointer"
+                >
+                  <Check className={cn("mr-2 h-4 w-4 text-gray-900", value === source.id ? "opacity-100" : "opacity-0")} />
+                  <span className="flex-1 truncate text-gray-900">{source.display_name}</span>
                   {source.lead_count > 0 && (
-                    <span className="ml-2 text-xs text-muted-foreground">{source.lead_count}</span>
+                    <span className="ml-2 text-xs text-gray-500">{source.lead_count}</span>
                   )}
                 </DropdownMenuItem>
               ))}
