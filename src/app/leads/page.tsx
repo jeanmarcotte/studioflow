@@ -57,7 +57,6 @@ export default function LeadsPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [sortKey, setSortKey] = useState<'score' | 'date' | 'name' | 'temperature'>('date')
   const [currentPage, setCurrentPage] = useState(1)
-  const [searchQuery, setSearchQuery] = useState('')
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
   const [chaseFilter, setChaseFilter] = useState<ChaseFilter>('all')
   const [allLeads, setAllLeads] = useState<Lead[]>([])  // includes hidden, for search
@@ -73,7 +72,7 @@ export default function LeadsPage() {
   }
 
   // Reset page when filters or search change
-  useEffect(() => { setCurrentPage(1); setChaseFilter('all') }, [filters, sortKey, searchQuery, selectedSourceId])
+  useEffect(() => { setCurrentPage(1); setChaseFilter('all') }, [filters, sortKey, selectedSourceId])
 
   // Fetch leads
   useEffect(() => {
@@ -109,15 +108,6 @@ export default function LeadsPage() {
 
   // Filter logic
   const filteredLeads = useMemo(() => {
-    // Global search — bypass all filters, search all leads including hidden
-    const q = searchQuery.trim().toLowerCase()
-    if (q) {
-      return allLeads.filter(l => {
-        const fields = [l.bride_first_name, l.bride_last_name, l.groom_first_name, l.groom_last_name]
-        return fields.some(f => f && f.toLowerCase().includes(q))
-      })
-    }
-
     const today = new Date()
     const todayStr = today.toISOString().split('T')[0]
 
@@ -244,7 +234,7 @@ export default function LeadsPage() {
 
       return true
     })
-  }, [leads, allLeads, filters, showLost, searchQuery, selectedSourceId, chaseFilter])
+  }, [leads, filters, showLost, selectedSourceId, chaseFilter])
 
   const counts = useMemo(() => ({
     'no-no-yes': leads.filter(l => isNNY(l)).length,
@@ -316,7 +306,14 @@ export default function LeadsPage() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <SafeSection name="LeadsHeader">
-          <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} onAddLead={() => setShowAddModal(true)} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+          <LeadsHeader
+            onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+            onAddLead={() => setShowAddModal(true)}
+            onLeadSelect={(leadId) => {
+              const found = allLeads.find(l => l.id === leadId)
+              if (found) setSelectedLead(found)
+            }}
+          />
         </SafeSection>
 
         {/* Filter Bar */}

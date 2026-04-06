@@ -1,23 +1,23 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Settings, Plus, Menu, Sun, Moon, X, Phone, MessageSquare, Mail, Skull, BarChart3 } from 'lucide-react'
+import { Settings, Plus, Menu, Sun, Moon, X, Phone, MessageSquare, Mail, Skull, BarChart3 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Nunito } from 'next/font/google'
 import Link from 'next/link'
+import { LeadSearch } from './LeadSearch'
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
 
 interface LeadsHeaderProps {
   onMenuToggle: () => void
   onAddLead?: () => void
-  searchQuery?: string
-  onSearchChange?: (query: string) => void
+  onLeadSelect?: (leadId: string) => void
 }
 
-export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChange }: LeadsHeaderProps) {
+export function LeadsHeader({ onMenuToggle, onAddLead, onLeadSelect }: LeadsHeaderProps) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [legendOpen, setLegendOpen] = useState(false)
@@ -32,17 +32,9 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
             <Menu className="h-5 w-5" />
           </Button>
 
-          {/* Search — pl-9 ensures text clears icon */}
-          <div className="relative w-72 hidden sm:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search all leads..."
-              value={searchQuery ?? ''}
-              onChange={(e) => onSearchChange?.(e.target.value)}
-              className="w-full h-9 rounded-lg border border-border bg-muted/30 dark:bg-gray-900 text-sm outline-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
-              style={{ paddingLeft: '2.25rem', paddingRight: '0.75rem' }}
-            />
+          {/* Search */}
+          <div className="hidden sm:block">
+            <LeadSearch onSelect={(leadId) => onLeadSelect?.(leadId)} />
           </div>
 
           <div className="flex-1" />
