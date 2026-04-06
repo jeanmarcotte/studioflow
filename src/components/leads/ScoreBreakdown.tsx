@@ -57,9 +57,10 @@ function calculateVenueScore(lead: ScoreBreakdownProps['lead']): ScoreFactor {
 function calculateBudgetScore(lead: ScoreBreakdownProps['lead']): ScoreFactor {
   const b = lead.budget_range
   if (!b) return { label: 'Budget', points: 0, hint: 'not set' }
-  if (b === 'over_10k') return { label: 'Budget', points: 10, hint: 'over $10K' }
-  if (b === '8k_10k') return { label: 'Budget', points: 8, hint: '$8K–$10K' }
-  if (b === '6k_8k') return { label: 'Budget', points: 5, hint: '$6K–$8K' }
+  if (b === 'over_10k') return { label: 'Budget', points: 10, hint: 'over $10,000' }
+  if (b === '7k_10k' || b === '8k_10k') return { label: 'Budget', points: 8, hint: '$7,000–$10,000' }
+  if (b === '5k_7k' || b === '6k_8k') return { label: 'Budget', points: 5, hint: '$5,000–$7,000' }
+  if (b === '4k_5k' || b === '4k_6k') return { label: 'Budget', points: 3, hint: '$4,000–$5,000' }
   return { label: 'Budget', points: 0, hint: b.replace(/_/g, ' ') }
 }
 

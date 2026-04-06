@@ -19,12 +19,14 @@ interface EmailComposeModalProps {
 }
 
 export function EmailComposeModal({ lead, open, onClose, onTouchLogged }: EmailComposeModalProps) {
+  const [toEmail, setToEmail] = useState('')
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
 
   useEffect(() => {
     if (!open) return
+    setToEmail(lead.email || '')
     const bride = lead.bride_first_name || 'there'
     const date = formatWeddingDate(lead.wedding_date)
     const venue = lead.venue_name || 'your venue'
@@ -36,14 +38,14 @@ export function EmailComposeModal({ lead, open, onClose, onTouchLogged }: EmailC
   }, [open, lead])
 
   const handleSend = async () => {
-    if (!lead.email) { toast.error('No email on file'); return }
+    if (!toEmail) { toast.error('No email address'); return }
     setSending(true)
     try {
       const res = await fetch('/api/leads/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: lead.email,
+          to: toEmail,
           subject,
           body,
         }),
@@ -77,9 +79,14 @@ export function EmailComposeModal({ lead, open, onClose, onTouchLogged }: EmailC
         </DialogHeader>
 
         <div className="space-y-3 py-2">
-          <div className="text-sm">
-            <span className="text-muted-foreground">To:</span>{' '}
-            <span className="font-medium">{lead.email || '—'}</span>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">To</label>
+            <input
+              type="email"
+              value={toEmail}
+              onChange={(e) => setToEmail(e.target.value)}
+              className="w-full h-9 rounded-lg border border-border bg-white dark:bg-slate-800 px-3 text-sm outline-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -106,7 +113,7 @@ export function EmailComposeModal({ lead, open, onClose, onTouchLogged }: EmailC
           <Button variant="outline" onClick={onClose} disabled={sending}>Cancel</Button>
           <Button
             onClick={handleSend}
-            disabled={sending || !lead.email}
+            disabled={sending || !toEmail}
             className="bg-indigo-600 hover:bg-indigo-700 text-white"
           >
             <Send className="h-4 w-4 mr-1.5" />

@@ -12,10 +12,12 @@ interface DiscoverySectionProps {
 }
 
 const BUDGET_OPTIONS = [
-  { value: 'under_4k', label: 'Under $4,000' },
-  { value: '4k_6k', label: '$4,000 - $6,000' },
-  { value: '6k_8k', label: '$6,000 - $8,000' },
-  { value: '8k_10k', label: '$8,000 - $10,000' },
+  { value: 'under_2k', label: 'Under $2,000' },
+  { value: '2k_3k', label: '$2,000 - $3,000' },
+  { value: '3k_4k', label: '$3,000 - $4,000' },
+  { value: '4k_5k', label: '$4,000 - $5,000' },
+  { value: '5k_7k', label: '$5,000 - $7,000' },
+  { value: '7k_10k', label: '$7,000 - $10,000' },
   { value: 'over_10k', label: 'Over $10,000' },
   { value: 'flexible', label: 'Flexible' },
 ]
@@ -89,7 +91,7 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
 
   const setRadioValue = (field: string, val: string) => {
     // For boolean columns, store as boolean; for text columns, store as string
-    if (field === 'multi_day_event' || field === 'planner_involved') {
+    if (field === 'multi_day_event' || field === 'planner_involved' || field === 'has_dj') {
       saveField(field, val === 'yes' ? true : val === 'no' ? false : null)
     } else {
       saveField(field, val)
