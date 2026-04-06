@@ -120,9 +120,10 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
     onClose()
   }, [lead, onUpdate, onClose])
 
-  const handleLost = useCallback(() => {
+  const handleLost = useCallback(async () => {
     setLostOpen(false)
     if (lead) {
+      await supabase.from('ballots').update({ status: 'lost' }).eq('id', lead.id)
       onUpdate({ ...lead, status: 'lost' })
     }
     onClose()
