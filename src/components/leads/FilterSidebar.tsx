@@ -191,9 +191,10 @@ export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, sho
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm overflow-hidden flex flex-col h-full">
       {/* Card header */}
       <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between shrink-0">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Filter</h2>
+        <Link href="/leads" onClick={resetAll} className="text-lg font-bold text-[#0d4f4f] dark:text-teal-400 tracking-tight hover:text-[#0d4f4f]/80">
+          SIGS BridalFlow
+        </Link>
         <div className="flex items-center gap-2">
-          <button onClick={resetAll} className="text-sm text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">Reset</button>
           <button onClick={() => onCollapsedChange(true)} className="hidden lg:flex h-7 w-7 rounded-md items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Collapse">
             <ChevronsLeft className="h-4 w-4" />
           </button>
@@ -205,11 +206,6 @@ export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, sho
 
       {/* Card body — scrollable */}
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
-        {/* Logo */}
-        <Link href="/leads" className="block text-base font-bold text-[#0d4f4f] dark:text-teal-400 tracking-tight hover:text-[#0d4f4f]/80 mb-1">
-          SIGS BridalFlow
-        </Link>
-
         {/* STATUS */}
         <div className="space-y-2.5">
           <SectionLabel>Status</SectionLabel>
