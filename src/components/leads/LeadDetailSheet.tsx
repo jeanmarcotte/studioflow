@@ -24,24 +24,19 @@ import { NextTouchCard } from './NextTouchCard'
 import { ResurrectButton } from './ResurrectButton'
 import { BookedModal } from './BookedModal'
 import { LostModal } from './LostModal'
-import { Send } from 'lucide-react'
 
 interface LeadDetailSheetProps {
   lead: Lead | null
   isOpen: boolean
   onClose: () => void
   onUpdate: (updated: Lead) => void
+  onEmailCompose?: (lead: Lead) => void
 }
 
-export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailSheetProps) {
+export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate, onEmailCompose }: LeadDetailSheetProps) {
   const [bookedOpen, setBookedOpen] = useState(false)
   const [lostOpen, setLostOpen] = useState(false)
   const [zoomConfirmOpen, setZoomConfirmOpen] = useState(false)
-  const [showEmailComposer, setShowEmailComposer] = useState(false)
-  const [emailTo, setEmailTo] = useState('')
-  const [emailSubject, setEmailSubject] = useState('')
-  const [emailBody, setEmailBody] = useState('')
-  const [emailSending, setEmailSending] = useState(false)
   const [chaseRefreshKey, setChaseRefreshKey] = useState(0)
   const autoLoggedRef = useRef<string | null>(null)
 
@@ -268,15 +263,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
                   </Button>
                   <Button
                     className="h-10 text-[11px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex flex-col items-center gap-0.5 px-1"
-                    onClick={() => {
-                      setEmailTo(lead.email || '')
-                      setEmailSubject('Met you at the bridal show — SIGS Photography')
-                      const bride = lead.bride_first_name || 'there'
-                      const date = formatWeddingDate(lead.wedding_date)
-                      const venue = lead.venue_name || 'your venue'
-                      setEmailBody(`Hi ${bride},\n\nThank you for connecting with us! We're excited to learn more about your ${date} wedding at ${venue}.\n\nI'd love to schedule a quick call or Zoom to discuss your photography vision and answer any questions. Or you can visit us at our studio in Toronto located just north of Yorkdale Mall. Allen Rd and Sheppard.\n\nWhat time works best for you this week?\n\nBest regards,\n\nJean Marcotte\nPrincipal Photographer\nSIGS Photography\n416-831-8942\nwww.sigsphoto.ca`)
-                      setShowEmailComposer(true)
-                    }}
+                    onClick={() => onEmailCompose?.(lead)}
                   >
                     <Mail className="h-3.5 w-3.5" />
                     Email
@@ -349,81 +336,6 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          {/* Email composer — plain div, no Dialog */}
-          {showEmailComposer && (
-            <div
-              className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-              style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-              onClick={() => setShowEmailComposer(false)}
-            >
-              <div
-                className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-md p-6 space-y-4"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">✉️ Compose Email</h3>
-                  <button onClick={() => setShowEmailComposer(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded">✕</button>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">To</label>
-                  <input
-                    type="email"
-                    className="w-full h-10 px-3 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm"
-                    value={emailTo}
-                    onChange={(e) => setEmailTo(e.target.value)}
-                    autoFocus
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Subject</label>
-                  <input
-                    type="text"
-                    className="w-full h-10 px-3 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm"
-                    value={emailSubject}
-                    onChange={(e) => setEmailSubject(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Message</label>
-                  <textarea
-                    className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm resize-none"
-                    rows={8}
-                    value={emailBody}
-                    onChange={(e) => setEmailBody(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-2 justify-end pt-2">
-                  <button onClick={() => setShowEmailComposer(false)} className="px-4 py-2 rounded-md border border-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm">
-                    Cancel
-                  </button>
-                  <button
-                    disabled={emailSending || !emailTo}
-                    onClick={async () => {
-                      setEmailSending(true)
-                      try {
-                        const res = await fetch('/api/leads/send-email', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ to: emailTo, subject: emailSubject, body: emailBody }),
-                        })
-                        if (!res.ok) throw new Error('Failed to send')
-                        toast.success(`Email sent to ${lead.bride_first_name || coupleName(lead)}`)
-                        const result = await logTouch(lead.id, lead.entity_id, 'email', `Email: ${emailSubject}`)
-                        if (result) setChaseRefreshKey(k => k + 1)
-                        setShowEmailComposer(false)
-                      } catch {
-                        toast.error('Failed to send email')
-                      }
-                      setEmailSending(false)
-                    }}
-                    className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 text-sm disabled:opacity-50"
-                  >
-                    {emailSending ? 'Sending...' : 'Send Now'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </>
       )}
     </>
