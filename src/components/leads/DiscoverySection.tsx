@@ -1,10 +1,13 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Check } from 'lucide-react'
+import { Check, Star } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import type { Lead } from '@/lib/lead-utils'
+import { LeadSourceSelect } from './LeadSourceSelect'
+import { VenueCombobox } from './VenueCombobox'
+import { ReferrerSelect } from './ReferrerSelect'
 
 interface DiscoverySectionProps {
   lead: Lead
@@ -102,6 +105,70 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
         <span>📋</span> Discovery
         {saving && <span className="text-[10px] text-muted-foreground/60 ml-auto">Saving...</span>}
       </h3>
+
+      {/* Lead Source */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium">Lead Source</label>
+        <LeadSourceSelect
+          value={lead.lead_source_id}
+          onChange={async (sourceId) => {
+            const { error } = await supabase
+              .from('ballots')
+              .update({ lead_source_id: sourceId })
+              .eq('id', lead.id);
+            if (!error) {
+              onUpdate({ ...lead, lead_source_id: sourceId } as Lead);
+              toast.success('Lead source updated');
+            }
+          }}
+        />
+      </div>
+
+      {/* Venue */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium">Venue</label>
+        <VenueCombobox
+          value={lead.venue_name}
+          onSelect={async (venueName, jeanScore) => {
+            const { error } = await supabase
+              .from('ballots')
+              .update({
+                venue_name: venueName,
+                venue_rating: jeanScore,
+                has_venue: !!venueName
+              })
+              .eq('id', lead.id);
+            if (!error) {
+              onUpdate({ ...lead, venue_name: venueName, venue_rating: jeanScore, has_venue: !!venueName } as Lead);
+              toast.success('Venue updated');
+            }
+          }}
+        />
+        {lead.venue_rating && (
+          <div className="text-xs text-muted-foreground flex items-center mt-1">
+            <Star className="w-3 h-3 mr-1 fill-yellow-400 text-yellow-400" />
+            Jean's Score: {lead.venue_rating}/10
+          </div>
+        )}
+      </div>
+
+      {/* Referrer */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium">Referred By</label>
+        <ReferrerSelect
+          value={lead.referrer_id}
+          onChange={async (referrerId) => {
+            const { error } = await supabase
+              .from('ballots')
+              .update({ referrer_id: referrerId })
+              .eq('id', lead.id);
+            if (!error) {
+              onUpdate({ ...lead, referrer_id: referrerId } as Lead);
+              toast.success('Referrer updated');
+            }
+          }}
+        />
+      </div>
 
       {/* Budget dropdown — full width */}
       <div>
