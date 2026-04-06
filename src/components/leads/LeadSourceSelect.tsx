@@ -1,97 +1,95 @@
-'use client'
+// src/components/leads/LeadSourceSelect.tsx
 
-import { useState, useEffect } from 'react'
-import { Check } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/lib/supabase';
+import { Loader2 } from 'lucide-react';
 
 interface LeadSource {
-  id: string
-  slug: string
-  display_name: string
-  source_type: string
-  category_name: string | null
+  id: string;
+  slug: string;
+  display_name: string;
+  source_type: string;
 }
 
 interface LeadSourceSelectProps {
-  value: string | null
-  onChange: (sourceId: string | null, sourceType: string | null) => void
-  required?: boolean
+  value: string | null;
+  onChange: (sourceId: string | null) => void;
+  disabled?: boolean;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  bridal_shows: '📅',
-  digital: '💻',
-  referrals: '🤝',
-  organic: '🌱',
-}
-
-export function LeadSourceSelect({ value, onChange, required }: LeadSourceSelectProps) {
-  const [sources, setSources] = useState<LeadSource[]>([])
+export function LeadSourceSelect({ value, onChange, disabled }: LeadSourceSelectProps) {
+  const [sources, setSources] = useState<LeadSource[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase
-      .from('lead_sources')
-      .select('id, slug, display_name, source_type, lead_source_categories(category_name)')
-      .eq('is_active', true)
-      .order('display_name')
-      .then(({ data }) => {
-        const mapped = (data || []).map((s: any) => ({
-          id: s.id,
-          slug: s.slug,
-          display_name: s.display_name,
-          source_type: s.source_type,
-          category_name: s.lead_source_categories?.category_name || null,
-        }))
-        setSources(mapped)
-      })
-  }, [])
+    async function fetchSources() {
+      const { data, error } = await supabase
+        .from('lead_sources')
+        .select('id, slug, display_name, source_type')
+        .eq('is_active', true)
+        .order('display_name');
 
-  // Group by category
-  const groups = sources.reduce<Record<string, LeadSource[]>>((acc, s) => {
-    const cat = s.category_name || 'other'
-    if (!acc[cat]) acc[cat] = []
-    acc[cat].push(s)
-    return acc
-  }, {})
-
-  const isEmpty = !value
-  const borderClass = isEmpty && required
-    ? 'border-red-400 ring-1 ring-red-200 animate-pulse'
-    : value
-      ? 'border-green-300'
-      : 'border-border'
-
-  const handleChange = (sourceId: string) => {
-    if (!sourceId) {
-      onChange(null, null)
-      return
+      if (!error && data) {
+        setSources(data);
+      }
+      setLoading(false);
     }
-    const source = sources.find(s => s.id === sourceId)
-    onChange(sourceId, source?.source_type || null)
+    fetchSources();
+  }, []);
+
+  if (loading) {
+    return <Loader2 className="w-4 h-4 animate-spin" />;
   }
 
+  // Group by source_type
+  const bridalShows = sources.filter(s => s.source_type === 'bridal_show');
+  const digital = sources.filter(s => ['website', 'instagram_dm', 'facebook_dm', 'google_ads', 'seo', 'instagram_organic'].includes(s.source_type));
+  const referrals = sources.filter(s => ['past_client', 'planner', 'venue', 'referral', 'wom'].includes(s.source_type));
+
   return (
-    <div className="flex items-center justify-between gap-3">
-      <label className="text-sm text-muted-foreground shrink-0 w-28">Lead Source</label>
-      <div className="relative flex-1">
-        <select
-          value={value || ''}
-          onChange={(e) => handleChange(e.target.value)}
-          className={`w-full h-10 rounded-lg border bg-white px-3 text-sm outline-none transition-all ${borderClass}`}
-        >
-          <option value="">Select source...</option>
-          {Object.entries(groups).map(([cat, items]) => (
-            <optgroup key={cat} label={`${CATEGORY_ICONS[cat] || '📌'} ${cat.replace(/_/g, ' ').toUpperCase()}`}>
-              {items.map(s => (
-                <option key={s.id} value={s.id}>{s.display_name}</option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-        {value && (
-          <Check className="absolute right-8 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+    <Select
+      value={value || ''}
+      onValueChange={(v) => onChange(v || null)}
+      disabled={disabled}
+    >
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select lead source..." />
+      </SelectTrigger>
+      <SelectContent>
+        {bridalShows.length > 0 && (
+          <>
+            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Bridal Shows</div>
+            {bridalShows.map(source => (
+              <SelectItem key={source.id} value={source.id}>
+                {source.display_name}
+              </SelectItem>
+            ))}
+          </>
         )}
-      </div>
-    </div>
-  )
+        {digital.length > 0 && (
+          <>
+            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Digital</div>
+            {digital.map(source => (
+              <SelectItem key={source.id} value={source.id}>
+                {source.display_name}
+              </SelectItem>
+            ))}
+          </>
+        )}
+        {referrals.length > 0 && (
+          <>
+            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Referrals</div>
+            {referrals.map(source => (
+              <SelectItem key={source.id} value={source.id}>
+                {source.display_name}
+              </SelectItem>
+            ))}
+          </>
+        )}
+      </SelectContent>
+    </Select>
+  );
 }
