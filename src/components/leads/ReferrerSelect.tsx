@@ -1,170 +1,175 @@
-'use client'
+// src/components/leads/ReferrerSelect.tsx
 
-import { useState, useEffect, useRef } from 'react'
-import { Search, Plus, Check } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
-import { toast } from 'sonner'
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Check, ChevronsUpDown, Plus, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { supabase } from '@/lib/supabase';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface Referrer {
-  id: string
-  name: string
-  relationship_type: string | null
+  id: string;
+  name: string;
+  relationship_type: string | null;
+  referral_count: number;
 }
 
 interface ReferrerSelectProps {
-  value: string | null
-  onChange: (referrerId: string | null) => void
+  value: string | null;
+  onChange: (referrerId: string | null, referrerName: string | null) => void;
 }
 
-const RELATIONSHIP_TYPES = [
-  { value: 'past_client', label: 'Past Client' },
-  { value: 'venue_contact', label: 'Venue Contact' },
-  { value: 'planner', label: 'Planner' },
-  { value: 'vendor', label: 'Vendor' },
-  { value: 'friend', label: 'Friend/Family' },
-]
-
 export function ReferrerSelect({ value, onChange }: ReferrerSelectProps) {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<Referrer[]>([])
-  const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState<Referrer | null>(null)
-  const [creating, setCreating] = useState(false)
-  const [newType, setNewType] = useState('past_client')
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [referrers, setReferrers] = useState<Referrer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
 
-  // Load selected referrer on mount
   useEffect(() => {
-    if (!value) { setSelected(null); return }
-    supabase
+    fetchReferrers();
+  }, []);
+
+  async function fetchReferrers() {
+    const { data } = await supabase
       .from('referrers')
-      .select('id, name, relationship_type')
-      .eq('id', value)
-      .limit(1)
-      .then(({ data }) => {
-        if (data?.[0]) setSelected(data[0] as Referrer)
-      })
-  }, [value])
+      .select('id, name, relationship_type, referral_count')
+      .order('name');
 
-  // Search referrers
-  useEffect(() => {
-    if (!query || query.length < 2) { setResults([]); return }
-    const timer = setTimeout(async () => {
-      const { data } = await supabase
-        .from('referrers')
-        .select('id, name, relationship_type')
-        .ilike('name', `%${query}%`)
-        .limit(8)
-      setResults((data as Referrer[]) || [])
-    }, 200)
-    return () => clearTimeout(timer)
-  }, [query])
-
-  const handleSelect = (ref: Referrer) => {
-    setSelected(ref)
-    onChange(ref.id)
-    setOpen(false)
-    setQuery('')
+    if (data) setReferrers(data);
+    setLoading(false);
   }
 
-  const handleCreate = async () => {
-    if (!query.trim()) return
-    setCreating(true)
+  async function createReferrer(name: string) {
+    setCreating(true);
     const { data, error } = await supabase
       .from('referrers')
-      .insert({ name: query.trim(), relationship_type: newType })
-      .select('id, name, relationship_type')
-      .limit(1)
+      .insert({ name, relationship_type: 'unknown' })
+      .select()
+      .limit(1);
 
-    if (error || !data?.[0]) {
-      toast.error('Failed to create referrer')
-      setCreating(false)
-      return
+    if (error) {
+      toast.error('Failed to create referrer');
+      setCreating(false);
+      return;
     }
 
-    const newRef = data[0] as Referrer
-    handleSelect(newRef)
-    toast.success(`Created referrer: ${newRef.name}`)
-    setCreating(false)
+    if (data && data[0]) {
+      toast.success(`Created referrer: ${name}`);
+      await fetchReferrers();
+      onChange(data[0].id, data[0].name);
+      setOpen(false);
+      setSearch('');
+    }
+    setCreating(false);
   }
 
-  const handleClear = () => {
-    setSelected(null)
-    onChange(null)
-    setQuery('')
-  }
+  const filtered = search
+    ? referrers.filter(r => r.name.toLowerCase().includes(search.toLowerCase()))
+    : referrers;
+
+  const selectedReferrer = referrers.find(r => r.id === value);
+  const exactMatch = filtered.some(r => r.name.toLowerCase() === search.toLowerCase());
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      <label className="text-sm text-muted-foreground shrink-0 w-28">Referred By</label>
-      <div className="relative flex-1">
-        {selected ? (
-          <div className="flex items-center h-10 rounded-lg border border-green-300 bg-white px-3 text-sm gap-2">
-            <Check className="h-4 w-4 text-green-500 shrink-0" />
-            <span className="flex-1 truncate">{selected.name}</span>
-            <button onClick={handleClear} className="text-muted-foreground hover:text-foreground text-xs">
-              ✕
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
-                onFocus={() => setOpen(true)}
-                placeholder="Search referrers..."
-                className="w-full h-10 rounded-lg border border-border bg-white pl-9 pr-3 text-sm outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
-              />
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between"
+        >
+          <span className="truncate">
+            {selectedReferrer?.name || 'Select referrer...'}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-0" align="start">
+        <div className="p-2 border-b">
+          <Input
+            placeholder="Search or create referrer..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-8"
+          />
+        </div>
+        <div className="max-h-64 overflow-y-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-4 h-4 animate-spin" />
             </div>
-
-            {open && query.length >= 2 && (
-              <div className="absolute z-50 top-full mt-1 w-full rounded-lg border border-border bg-white shadow-lg overflow-hidden">
-                {results.map(r => (
-                  <button
-                    key={r.id}
-                    onClick={() => handleSelect(r)}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-muted/60 transition-colors"
-                  >
-                    <span className="font-medium">{r.name}</span>
-                    {r.relationship_type && (
-                      <span className="text-xs text-muted-foreground">({r.relationship_type.replace(/_/g, ' ')})</span>
-                    )}
-                  </button>
-                ))}
-
-                {results.length === 0 && (
-                  <div className="px-3 py-2 text-xs text-muted-foreground">No matches found</div>
-                )}
-
-                <div className="border-t border-border px-3 py-2 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={newType}
-                      onChange={(e) => setNewType(e.target.value)}
-                      className="h-8 rounded border border-border bg-white px-2 text-xs"
-                    >
-                      {RELATIONSHIP_TYPES.map(t => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <button
-                    onClick={handleCreate}
-                    disabled={creating}
-                    className="w-full flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[#0d4f4f] hover:bg-[#0d4f4f]/5 rounded transition-colors"
-                  >
-                    <Plus className="h-4 w-4" />
-                    {creating ? 'Creating...' : `Create "${query}"`}
-                  </button>
+          ) : (
+            <>
+              {/* Clear selection option */}
+              {value && (
+                <div
+                  className="flex items-center px-3 py-2 cursor-pointer hover:bg-accent border-b text-muted-foreground"
+                  onClick={() => {
+                    onChange(null, null);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="text-sm">Clear selection</span>
                 </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  )
+              )}
+
+              {/* Create new option */}
+              {search && !exactMatch && (
+                <div
+                  className="flex items-center px-3 py-2 cursor-pointer hover:bg-accent border-b"
+                  onClick={() => createReferrer(search)}
+                >
+                  {creating ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-2" />
+                  )}
+                  <span className="text-sm">Create "{search}"</span>
+                </div>
+              )}
+
+              {filtered.map(referrer => (
+                <div
+                  key={referrer.id}
+                  className={cn(
+                    "flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-accent",
+                    value === referrer.id && "bg-accent"
+                  )}
+                  onClick={() => {
+                    onChange(referrer.id, referrer.name);
+                    setOpen(false);
+                    setSearch('');
+                  }}
+                >
+                  <div className="flex items-center">
+                    {value === referrer.id && <Check className="w-4 h-4 mr-2" />}
+                    <span className={cn(value === referrer.id ? "ml-0" : "ml-6")}>
+                      {referrer.name}
+                    </span>
+                  </div>
+                  {referrer.referral_count > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {referrer.referral_count} referrals
+                    </span>
+                  )}
+                </div>
+              ))}
+
+              {filtered.length === 0 && !search && (
+                <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+                  No referrers yet. Type a name to create one.
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 }
