@@ -8,7 +8,6 @@ import { AddLeadModal } from '@/components/leads/AddLeadModal'
 import { FilterSidebar, type SidebarFilters } from '@/components/leads/FilterSidebar'
 import { LeadGridArea } from '@/components/leads/LeadGridArea'
 import { toast } from 'sonner'
-import { EmailComposerForm } from '@/components/leads/EmailComposerForm'
 import type { Lead, FilterKey } from '@/lib/lead-utils'
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -57,7 +56,6 @@ export default function LeadsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   const [allLeads, setAllLeads] = useState<Lead[]>([])  // includes hidden, for search
-  const [emailComposerLead, setEmailComposerLead] = useState<Lead | null>(null)
 
   // Persist sidebar collapsed state
   useEffect(() => {
@@ -324,7 +322,6 @@ export default function LeadsPage() {
       {selectedLead && (
         <SafeSection name="LeadDetailSheet">
           <LazyDetailSheet
-            key={selectedLead.id}
             lead={selectedLead}
             onClose={() => setSelectedLead(null)}
             onUpdate={(updated) => {
@@ -336,38 +333,18 @@ export default function LeadsPage() {
                 setSelectedLead(updated)
               }
             }}
-            onOpenEmailComposer={(lead) => setEmailComposerLead(lead)}
           />
         </SafeSection>
-      )}
-
-      {/* Email Composer - OUTSIDE Sheet to avoid focus trap conflicts */}
-      {emailComposerLead && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"
-          onClick={() => setEmailComposerLead(null)}
-        >
-          <div
-            className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-lg p-6 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">✉️ Compose Email</h3>
-              <button onClick={() => setEmailComposerLead(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md text-xl">×</button>
-            </div>
-            <EmailComposerForm lead={emailComposerLead} onClose={() => setEmailComposerLead(null)} />
-          </div>
-        </div>
       )}
     </div>
   )
 }
 
-function LazyDetailSheet({ lead, onClose, onUpdate, onOpenEmailComposer }: { lead: Lead; onClose: () => void; onUpdate: (l: Lead) => void; onOpenEmailComposer: (l: Lead) => void }) {
+function LazyDetailSheet({ lead, onClose, onUpdate }: { lead: Lead; onClose: () => void; onUpdate: (l: Lead) => void }) {
   const [Sheet, setSheet] = useState<any>(null)
   useEffect(() => {
     import('@/components/leads/LeadDetailSheet').then(mod => setSheet(() => mod.LeadDetailSheet)).catch(err => console.error('Failed to load LeadDetailSheet:', err))
   }, [])
   if (!Sheet) return null
-  return <Sheet lead={lead} isOpen={true} onClose={onClose} onUpdate={onUpdate} onOpenEmailComposer={onOpenEmailComposer} />
+  return <Sheet lead={lead} isOpen={true} onClose={onClose} onUpdate={onUpdate} />
 }
