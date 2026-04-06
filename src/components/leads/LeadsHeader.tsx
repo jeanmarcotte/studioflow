@@ -32,11 +32,6 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
             <Menu className="h-5 w-5" />
           </Button>
 
-          {/* Logo */}
-          <Link href="/leads" className="text-base font-bold text-[#0d4f4f] dark:text-teal-400 tracking-tight shrink-0 hover:text-[#0d4f4f]/80">
-            SIGS BridalFlow
-          </Link>
-
           {/* Search — pl-9 ensures text clears icon */}
           <div className="relative w-72 hidden sm:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />

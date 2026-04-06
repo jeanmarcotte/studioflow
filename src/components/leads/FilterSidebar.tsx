@@ -3,6 +3,7 @@
 import { X, ChevronsLeft, ChevronsRight, RotateCcw, ChevronDown } from 'lucide-react'
 import { Nunito } from 'next/font/google'
 import { ButtonWithBadge } from '@/components/ui/button-with-badge'
+import Link from 'next/link'
 import type { FilterKey } from '@/lib/lead-utils'
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -204,6 +205,11 @@ export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, sho
 
       {/* Card body — scrollable */}
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
+        {/* Logo */}
+        <Link href="/leads" className="block text-base font-bold text-[#0d4f4f] dark:text-teal-400 tracking-tight hover:text-[#0d4f4f]/80 mb-1">
+          SIGS BridalFlow
+        </Link>
+
         {/* STATUS */}
         <div className="space-y-2.5">
           <SectionLabel>Status</SectionLabel>
