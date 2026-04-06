@@ -8,7 +8,7 @@ import { AddLeadModal } from '@/components/leads/AddLeadModal'
 import { FilterSidebar, type SidebarFilters } from '@/components/leads/FilterSidebar'
 import { LeadGridArea } from '@/components/leads/LeadGridArea'
 import { toast } from 'sonner'
-import { SourceFilter } from '@/components/leads/SourceFilter'
+import { SourceDropdown } from '@/components/leads/SourceDropdown'
 import { ChaseSubFilters, type ChaseFilter } from '@/components/leads/ChaseSubFilters'
 import type { Lead, FilterKey } from '@/lib/lead-utils'
 
@@ -56,6 +56,7 @@ export default function LeadsPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [sortKey, setSortKey] = useState<'score' | 'date' | 'name' | 'temperature'>('date')
   const [currentPage, setCurrentPage] = useState(1)
+  const [searchQuery, setSearchQuery] = useState('')
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
   const [chaseFilter, setChaseFilter] = useState<ChaseFilter>('all')
   const [allLeads, setAllLeads] = useState<Lead[]>([])  // includes hidden, for search
@@ -71,7 +72,7 @@ export default function LeadsPage() {
   }
 
   // Reset page when filters or search change
-  useEffect(() => { setCurrentPage(1); setChaseFilter('all') }, [filters, sortKey, selectedSourceId])
+  useEffect(() => { setCurrentPage(1); setChaseFilter('all') }, [filters, sortKey, searchQuery, selectedSourceId])
 
   // Fetch leads
   useEffect(() => {
@@ -111,6 +112,19 @@ export default function LeadsPage() {
     const todayStr = today.toISOString().split('T')[0]
 
     return leads.filter(l => {
+      // Search filter
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase()
+        const match = (
+          (l.bride_first_name || '').toLowerCase().includes(q) ||
+          (l.bride_last_name || '').toLowerCase().includes(q) ||
+          (l.groom_first_name || '').toLowerCase().includes(q) ||
+          (l.groom_last_name || '').toLowerCase().includes(q) ||
+          (l.venue_name || '').toLowerCase().includes(q)
+        )
+        if (!match) return false
+      }
+
       // Filter by source
       if (selectedSourceId) {
         if (l.lead_source_id !== selectedSourceId) return false;
@@ -233,7 +247,7 @@ export default function LeadsPage() {
 
       return true
     })
-  }, [leads, filters, showLost, selectedSourceId, chaseFilter])
+  }, [leads, filters, showLost, searchQuery, selectedSourceId, chaseFilter])
 
   const counts = useMemo(() => ({
     'no-no-yes': leads.filter(l => isNNY(l)).length,
@@ -315,11 +329,9 @@ export default function LeadsPage() {
           <LeadsHeader
             onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
             onAddLead={() => setShowAddModal(true)}
-            onLeadSelect={(leadId) => {
-              const found = allLeads.find(l => l.id === leadId)
-              if (found) setSelectedLead(found)
-            }}
-            sourceFilter={<SourceFilter selectedSourceId={selectedSourceId} onSourceChange={setSelectedSourceId} />}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            sourceFilter={<SourceDropdown value={selectedSourceId} onChange={setSelectedSourceId} />}
           />
         </SafeSection>
 

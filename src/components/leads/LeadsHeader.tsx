@@ -1,24 +1,25 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Settings, Plus, Menu, Sun, Moon, X, Phone, MessageSquare, Mail, Skull, BarChart3 } from 'lucide-react'
+import { Search, Settings, Plus, Menu, Sun, Moon, X, Phone, MessageSquare, Mail, Skull, BarChart3 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Nunito } from 'next/font/google'
 import Link from 'next/link'
-import { LeadSearch } from './LeadSearch'
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
 
 interface LeadsHeaderProps {
   onMenuToggle: () => void
   onAddLead?: () => void
-  onLeadSelect?: (leadId: string) => void
+  searchQuery?: string
+  onSearchChange?: (query: string) => void
   sourceFilter?: React.ReactNode
 }
 
-export function LeadsHeader({ onMenuToggle, onAddLead, onLeadSelect, sourceFilter }: LeadsHeaderProps) {
+export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChange, sourceFilter }: LeadsHeaderProps) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [legendOpen, setLegendOpen] = useState(false)
@@ -34,8 +35,14 @@ export function LeadsHeader({ onMenuToggle, onAddLead, onLeadSelect, sourceFilte
           </Button>
 
           {/* Search */}
-          <div className="hidden sm:block">
-            <LeadSearch onSelect={(leadId) => onLeadSelect?.(leadId)} />
+          <div className="relative hidden sm:block">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search leads..."
+              className="pl-9 w-64"
+              value={searchQuery ?? ''}
+              onChange={(e) => onSearchChange?.(e.target.value)}
+            />
           </div>
 
           {/* Source Filter */}
