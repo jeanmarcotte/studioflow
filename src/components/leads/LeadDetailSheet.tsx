@@ -148,7 +148,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
         <SheetContent
           side="right"
           showCloseButton={false}
-          className="w-full sm:max-w-[550px] overflow-y-auto p-0"
+          className="w-full sm:max-w-[600px] overflow-y-auto p-0"
         >
           {/* Header */}
           <SheetHeader className="sticky top-0 z-10 bg-white border-b border-border/60 px-4 py-3">
