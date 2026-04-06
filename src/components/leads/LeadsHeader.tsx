@@ -10,9 +10,10 @@ const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
 
 interface LeadsHeaderProps {
   onMenuToggle: () => void
+  onAddLead?: () => void
 }
 
-export function LeadsHeader({ onMenuToggle }: LeadsHeaderProps) {
+export function LeadsHeader({ onMenuToggle, onAddLead }: LeadsHeaderProps) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -60,7 +61,7 @@ export function LeadsHeader({ onMenuToggle }: LeadsHeaderProps) {
         </Button>
 
         {/* Add Lead */}
-        <Button className="h-9 px-3 text-sm font-semibold bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white rounded-lg">
+        <Button className="h-9 px-3 text-sm font-semibold bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white rounded-lg" onClick={onAddLead}>
           <Plus className="h-4 w-4 mr-1" /> Add Lead
         </Button>
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, Component, type ReactNode, type ErrorInfo
 import { Nunito } from 'next/font/google'
 import { supabase } from '@/lib/supabase'
 import { LeadsHeader } from '@/components/leads/LeadsHeader'
+import { AddLeadModal } from '@/components/leads/AddLeadModal'
 import { FilterSidebar, type SidebarFilters } from '@/components/leads/FilterSidebar'
 import { LeadGridArea } from '@/components/leads/LeadGridArea'
 import { toast } from 'sonner'
@@ -50,6 +51,7 @@ export default function LeadsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showLost, setShowLost] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [sortKey, setSortKey] = useState<'score' | 'date' | 'name' | 'temperature'>('score')
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -262,7 +264,7 @@ export default function LeadsPage() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <SafeSection name="LeadsHeader">
-          <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
+          <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} onAddLead={() => setShowAddModal(true)} />
         </SafeSection>
 
         {/* Main panel — floating card */}
@@ -293,6 +295,16 @@ export default function LeadsPage() {
           </div>
         </div>
       </div>
+
+      {/* Add Lead Modal */}
+      <AddLeadModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onLeadAdded={(newLead) => {
+          setLeads(prev => [newLead, ...prev])
+          toast.success('Lead added successfully')
+        }}
+      />
 
       {/* Detail sheet lazy-loaded only when needed */}
       {selectedLead && (
