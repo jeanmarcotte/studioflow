@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import type { Lead } from '@/lib/lead-utils'
-import { coupleName, formatShowName, formatWeddingDate } from '@/lib/lead-utils'
+import { coupleName, formatWeddingDate } from '@/lib/lead-utils'
 import { logTouch } from '@/lib/chase-actions'
 
 interface EmailComposeModalProps {
@@ -26,13 +26,12 @@ export function EmailComposeModal({ lead, open, onClose, onTouchLogged }: EmailC
   useEffect(() => {
     if (!open) return
     const bride = lead.bride_first_name || 'there'
-    const show = formatShowName(lead.show_id)
     const date = formatWeddingDate(lead.wedding_date)
     const venue = lead.venue_name || 'your venue'
 
-    setSubject('Your Wedding Photography — SIGS Photography')
+    setSubject('Met you at the bridal show — SIGS Photography')
     setBody(
-      `Hi ${bride},\n\nThank you for connecting with us at ${show}! We're excited to learn more about your ${date} wedding at ${venue}.\n\nI'd love to schedule a quick call or Zoom to discuss your photography vision and answer any questions.\n\nWhat time works best for you this week?\n\nBest regards,\n\nJean Marcotte\nPrincipal Photographer\nSIGS Photography\n416-831-8942\nwww.sigsphoto.ca`
+      `Hi ${bride},\n\nThank you for connecting with us! We're excited to learn more about your ${date} wedding at ${venue}.\n\nI'd love to schedule a quick call or Zoom to discuss your photography vision and answer any questions. Or you can visit us at our studio in Toronto located just north of Yorkdale Mall. Allen Rd and Sheppard.\n\nWhat time works best for you this week?\n\nBest regards,\n\nJean Marcotte\nPrincipal Photographer\nSIGS Photography\n416-831-8942\nwww.sigsphoto.ca`
     )
   }, [open, lead])
 
