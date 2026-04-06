@@ -5,9 +5,6 @@ import { Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import type { Lead } from '@/lib/lead-utils'
-import { LeadSourceSelect } from './LeadSourceSelect'
-import { ReferrerSelect } from './ReferrerSelect'
-import { lookupVenue, autoRateVenue } from '@/lib/venue-utils'
 
 interface DiscoverySectionProps {
   lead: Lead
@@ -21,19 +18,6 @@ const BUDGET_OPTIONS = [
   { value: '8k_10k', label: '$8K–$10K' },
   { value: 'over_10k', label: 'Over $10K' },
   { value: 'flexible', label: 'Flexible' },
-]
-
-const ETHNICITY_OPTIONS = [
-  { value: 'italian', label: 'Italian' },
-  { value: 'portuguese', label: 'Portuguese' },
-  { value: 'greek', label: 'Greek' },
-  { value: 'middle_eastern', label: 'Middle Eastern' },
-  { value: 'south_asian', label: 'South Asian' },
-  { value: 'filipino', label: 'Filipino' },
-  { value: 'chinese', label: 'Chinese' },
-  { value: 'korean', label: 'Korean' },
-  { value: 'caribbean', label: 'Caribbean' },
-  { value: 'other', label: 'Other' },
 ]
 
 const VENUE_TYPE_OPTIONS = [
@@ -65,13 +49,13 @@ function FieldSelect({ label, value, options, required, recommended, onChange }:
         : 'border-border'
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      <label className="text-sm text-muted-foreground shrink-0 w-28">{label}</label>
+    <div className="flex items-center gap-3">
+      <label className="text-[11px] text-muted-foreground font-medium shrink-0 w-20">{label}</label>
       <div className="relative flex-1">
         <select
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full h-10 rounded-lg border bg-white px-3 text-sm outline-none transition-all ${borderClass}`}
+          className={`w-full h-8 rounded-md border bg-white px-2 text-xs outline-none transition-all ${borderClass}`}
         >
           <option value="">Select...</option>
           {options.map(o => (
@@ -79,32 +63,29 @@ function FieldSelect({ label, value, options, required, recommended, onChange }:
           ))}
         </select>
         {value && (
-          <Check className="absolute right-8 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+          <Check className="absolute right-7 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-green-500" />
         )}
       </div>
     </div>
   )
 }
 
-function FieldToggle({ label, value, recommended, onChange }: {
+function FieldToggle({ label, value, onChange }: {
   label: string
   value: string | null
   recommended?: boolean
   onChange: (val: string) => void
 }) {
   const opts = ['yes', 'no', 'maybe'] as const
-  const isEmpty = !value
-  const borderClass = isEmpty && recommended ? 'border-yellow-400' : 'border-border'
-
   return (
-    <div className="flex items-center justify-between gap-3">
-      <label className="text-sm text-muted-foreground shrink-0 w-28">{label}</label>
-      <div className={`flex rounded-lg border overflow-hidden ${borderClass}`}>
+    <div>
+      <label className="text-[11px] text-muted-foreground font-medium mb-1 block">{label}</label>
+      <div className="flex rounded-md border border-border overflow-hidden">
         {opts.map(o => (
           <button
             key={o}
             onClick={() => onChange(o)}
-            className={`h-10 px-4 text-sm font-medium transition-colors capitalize ${
+            className={`h-7 px-2.5 text-xs font-medium transition-colors capitalize ${
               value === o
                 ? 'bg-[#0d4f4f] text-white'
                 : 'bg-white text-muted-foreground hover:bg-muted/60'
@@ -124,15 +105,15 @@ function FieldCheckbox({ label, checked, onChange }: {
   onChange: (val: boolean) => void
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <label className="text-sm text-muted-foreground shrink-0 w-28">{label}</label>
+    <div>
+      <label className="text-[11px] text-muted-foreground font-medium mb-1 block">{label}</label>
       <button
         onClick={() => onChange(!checked)}
-        className={`h-10 w-10 rounded-lg border flex items-center justify-center transition-colors ${
+        className={`h-7 w-7 rounded-md border flex items-center justify-center transition-colors ${
           checked ? 'bg-[#0d4f4f] border-[#0d4f4f] text-white' : 'bg-white border-border text-transparent hover:bg-muted/60'
         }`}
       >
-        <Check className="h-5 w-5" />
+        <Check className="h-4 w-4" />
       </button>
     </div>
   )
@@ -146,15 +127,15 @@ function FieldNumber({ label, value, min, max, onChange }: {
   onChange: (val: number | null) => void
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <label className="text-sm text-muted-foreground shrink-0 w-28">{label}</label>
+    <div>
+      <label className="text-[11px] text-muted-foreground font-medium mb-1 block">{label}</label>
       <input
         type="number"
         value={value ?? ''}
         min={min}
         max={max}
         onChange={(e) => onChange(e.target.value ? parseInt(e.target.value) : null)}
-        className="h-10 w-24 rounded-lg border border-border bg-white px-3 text-sm text-right outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+        className="h-7 w-16 rounded-md border border-border bg-white px-2 text-xs text-right outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
       />
     </div>
   )
@@ -162,10 +143,6 @@ function FieldNumber({ label, value, min, max, onChange }: {
 
 export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
   const [saving, setSaving] = useState(false)
-  const [venueQuery, setVenueQuery] = useState('')
-  const [venueResults, setVenueResults] = useState<any[]>([])
-  const [venueOpen, setVenueOpen] = useState(false)
-  const [sourceType, setSourceType] = useState<string | null>(null)
 
   const saveField = useCallback(async (field: string, value: any) => {
     setSaving(true)
@@ -183,41 +160,15 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
     setSaving(false)
   }, [lead, onUpdate])
 
-  const handleVenueSearch = useCallback(async (q: string) => {
-    setVenueQuery(q)
-    if (q.length >= 2) {
-      const results = await lookupVenue(q)
-      setVenueResults(results)
-      setVenueOpen(results.length > 0)
-    } else {
-      setVenueResults([])
-      setVenueOpen(false)
-    }
-  }, [])
-
-  const handleVenueSelect = useCallback(async (venue: any) => {
-    setVenueOpen(false)
-    setVenueQuery('')
-    await saveField('venue_name', venue.venue_name)
-    await autoRateVenue(lead.id, venue)
-    // Update local state with venue info
-    const updates: Partial<Lead> = { venue_name: venue.venue_name }
-    if (venue.jean_score != null) updates.venue_rating = venue.jean_score
-    if (venue.venue_type) updates.venue_type = venue.venue_type
-    onUpdate({ ...lead, ...updates } as Lead)
-    toast.success(`Venue rated: ${venue.jean_score}/10`)
-  }, [lead, onUpdate, saveField])
-
-  const isReferralSource = sourceType === 'past_client' || sourceType === 'venue' || sourceType === 'planner' || sourceType === 'vendor' || sourceType === 'referral' || lead.referrer_id != null
-
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
         <span>📋</span> Discovery
         {saving && <span className="text-[10px] text-muted-foreground/60 ml-auto">Saving...</span>}
       </h3>
 
-      <div className="space-y-2.5">
+      <div className="space-y-2">
+        {/* Row 1: Budget */}
         <FieldSelect
           label="Budget"
           value={lead.budget_range}
@@ -225,42 +176,43 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
           required
           onChange={(v) => saveField('budget_range', v || null)}
         />
-        <FieldSelect
-          label="Ethnicity"
-          value={lead.inferred_ethnicity}
-          options={ETHNICITY_OPTIONS}
-          required
-          onChange={(v) => saveField('inferred_ethnicity', v || null)}
-        />
-        <FieldToggle
-          label="Album"
-          value={lead.want_album}
-          recommended
-          onChange={(v) => saveField('want_album', v)}
-        />
-        <FieldToggle
-          label="Engagement"
-          value={lead.want_engagement}
-          recommended
-          onChange={(v) => saveField('want_engagement', v)}
-        />
-        <FieldNumber
-          label="Bridal Party"
-          value={lead.bridal_party_size}
-          min={1}
-          max={20}
-          onChange={(v) => saveField('bridal_party_size', v)}
-        />
-        <FieldCheckbox
-          label="Multi-Day"
-          checked={lead.multi_day_event === true}
-          onChange={(v) => saveField('multi_day_event', v)}
-        />
-        <FieldCheckbox
-          label="Planner"
-          checked={lead.planner_involved === true}
-          onChange={(v) => saveField('planner_involved', v)}
-        />
+
+        {/* Row 2: Album + Engagement side by side */}
+        <div className="flex gap-3">
+          <FieldToggle
+            label="Album"
+            value={lead.want_album}
+            onChange={(v) => saveField('want_album', v)}
+          />
+          <FieldToggle
+            label="Engagement"
+            value={lead.want_engagement}
+            onChange={(v) => saveField('want_engagement', v)}
+          />
+        </div>
+
+        {/* Row 3: Multi-Day + Planner + Bridal Party */}
+        <div className="flex items-end gap-3">
+          <FieldCheckbox
+            label="Multi-Day"
+            checked={lead.multi_day_event === true}
+            onChange={(v) => saveField('multi_day_event', v)}
+          />
+          <FieldCheckbox
+            label="Planner"
+            checked={lead.planner_involved === true}
+            onChange={(v) => saveField('planner_involved', v)}
+          />
+          <FieldNumber
+            label="Bridal Party"
+            value={lead.bridal_party_size}
+            min={1}
+            max={20}
+            onChange={(v) => saveField('bridal_party_size', v)}
+          />
+        </div>
+
+        {/* Row 4: Venue Type */}
         <FieldSelect
           label="Venue Type"
           value={lead.venue_type}
