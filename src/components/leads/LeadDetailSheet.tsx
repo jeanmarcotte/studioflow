@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Skull, Calendar, X, Video, PhoneForwarded, Mail } from 'lucide-react'
+import { ArrowLeft, Skull, Video, PhoneForwarded, Mail } from 'lucide-react'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet'
@@ -23,8 +23,7 @@ import { ChaseProgressSection } from './ChaseProgressSection'
 import { ScoreBreakdown } from './ScoreBreakdown'
 import { NextTouchCard } from './NextTouchCard'
 import { ResurrectButton } from './ResurrectButton'
-import { BookedModal } from './BookedModal'
-import { LostModal } from './LostModal'
+import { OutcomeButtons } from './OutcomeButtons'
 import { ChaseProgress } from './ChaseProgress'
 import { ContactHistory } from './ContactHistory'
 import { LeadStatusIndicator } from './LeadStatusIndicator'
@@ -38,8 +37,6 @@ interface LeadDetailSheetProps {
 
 export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailSheetProps) {
   const router = useRouter()
-  const [bookedOpen, setBookedOpen] = useState(false)
-  const [lostOpen, setLostOpen] = useState(false)
   const [zoomConfirmOpen, setZoomConfirmOpen] = useState(false)
   const [chaseRefreshKey, setChaseRefreshKey] = useState(0)
 
@@ -76,22 +73,6 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
     setChaseRefreshKey(k => k + 1)
   }, [])
 
-  const handleBooked = useCallback(() => {
-    setBookedOpen(false)
-    if (lead) {
-      onUpdate({ ...lead, status: 'meeting_booked' })
-    }
-    onClose()
-  }, [lead, onUpdate, onClose])
-
-  const handleLost = useCallback(async () => {
-    setLostOpen(false)
-    if (lead) {
-      await supabase.from('ballots').update({ status: 'lost' }).eq('id', lead.id)
-      onUpdate({ ...lead, status: 'lost' })
-    }
-    onClose()
-  }, [lead, onUpdate, onClose])
 
   const handleResurrected = useCallback((updated: Lead) => {
     onUpdate(updated)
@@ -192,14 +173,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
             {/* 7. Action buttons */}
             {!isDead && (
               <div className="space-y-2 pb-3">
-                <div className="grid grid-cols-4 gap-1.5">
-                  <Button
-                    className="h-10 text-[11px] font-bold bg-green-600 hover:bg-green-700 text-white rounded-lg flex flex-col items-center gap-0.5 px-1"
-                    onClick={() => setBookedOpen(true)}
-                  >
-                    <Calendar className="h-3.5 w-3.5" />
-                    Appt
-                  </Button>
+                <div className="grid grid-cols-3 gap-1.5">
                   <Button
                     className="h-10 text-[11px] font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex flex-col items-center gap-0.5 px-1"
                     onClick={() => {
@@ -245,14 +219,13 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
                     Email
                   </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  className="w-full h-9 text-sm font-bold text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg"
-                  onClick={() => setLostOpen(true)}
-                >
-                  <X className="h-4 w-4 mr-1.5" />
-                  Not Interested
-                </Button>
+                <OutcomeButtons
+                  lead={{ id: lead.id, bride_name: lead.bride_first_name || '', groom_name: lead.groom_first_name || '', email: lead.email || undefined }}
+                  onUpdate={() => {
+                    if (lead) onUpdate({ ...lead })
+                    onClose()
+                  }}
+                />
               </div>
             )}
           </div>
@@ -262,18 +235,6 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
       {/* Modals */}
       {lead && (
         <>
-          <BookedModal
-            open={bookedOpen}
-            onOpenChange={setBookedOpen}
-            lead={{ id: lead.id, bride_name: lead.bride_first_name || '', groom_name: lead.groom_first_name || '', email: lead.email || undefined }}
-            onSuccess={handleBooked}
-          />
-          <LostModal
-            open={lostOpen}
-            onOpenChange={setLostOpen}
-            lead={{ id: lead.id, bride_name: lead.bride_first_name || '', groom_name: lead.groom_first_name || '' }}
-            onSuccess={handleLost}
-          />
           {/* Zoom confirmation */}
           <Dialog open={zoomConfirmOpen} onOpenChange={setZoomConfirmOpen}>
             <DialogContent className="sm:max-w-sm">
