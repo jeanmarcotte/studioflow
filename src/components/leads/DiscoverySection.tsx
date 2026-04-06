@@ -51,11 +51,11 @@ function FieldSelect({ label, value, options, required, recommended, onChange }:
   return (
     <div className="flex items-center gap-3">
       <label className="text-[11px] text-muted-foreground font-medium shrink-0 w-20">{label}</label>
-      <div className="relative flex-1">
+      <div className="relative flex-1 min-w-0">
         <select
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full h-8 rounded-md border bg-white px-2 text-xs outline-none transition-all ${borderClass}`}
+          className={`w-full h-8 rounded-md border bg-white px-2 pr-7 text-xs outline-none transition-all ${borderClass}`}
         >
           <option value="">Select...</option>
           {options.map(o => (
@@ -127,15 +127,15 @@ function FieldNumber({ label, value, min, max, onChange }: {
   onChange: (val: number | null) => void
 }) {
   return (
-    <div>
-      <label className="text-[11px] text-muted-foreground font-medium mb-1 block">{label}</label>
+    <div className="flex items-center gap-3">
+      <label className="text-[11px] text-muted-foreground font-medium shrink-0 w-20">{label}</label>
       <input
         type="number"
         value={value ?? ''}
         min={min}
         max={max}
         onChange={(e) => onChange(e.target.value ? parseInt(e.target.value) : null)}
-        className="h-7 w-16 rounded-md border border-border bg-white px-2 text-xs text-right outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+        className="h-8 w-20 rounded-md border border-border bg-white px-2 text-xs text-right outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
       />
     </div>
   )
@@ -191,7 +191,16 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
           />
         </div>
 
-        {/* Row 3: Multi-Day + Planner + Bridal Party */}
+        {/* Row 3: Bridal Party */}
+        <FieldNumber
+          label="Bridal Party"
+          value={lead.bridal_party_size}
+          min={1}
+          max={20}
+          onChange={(v) => saveField('bridal_party_size', v)}
+        />
+
+        {/* Row 4: Multi-Day + Planner + DJ */}
         <div className="flex items-end gap-3">
           <FieldCheckbox
             label="Multi-Day"
@@ -203,16 +212,14 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
             checked={lead.planner_involved === true}
             onChange={(v) => saveField('planner_involved', v)}
           />
-          <FieldNumber
-            label="Bridal Party"
-            value={lead.bridal_party_size}
-            min={1}
-            max={20}
-            onChange={(v) => saveField('bridal_party_size', v)}
+          <FieldCheckbox
+            label="DJ"
+            checked={(lead as any).has_dj === true}
+            onChange={(v) => saveField('has_dj', v)}
           />
         </div>
 
-        {/* Row 4: Venue Type */}
+        {/* Row 5: Venue Type (full width) */}
         <FieldSelect
           label="Venue Type"
           value={lead.venue_type}

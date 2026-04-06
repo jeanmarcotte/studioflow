@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { ArrowLeft, Skull, Calendar, X } from 'lucide-react'
+import { ArrowLeft, Skull, Calendar, X, Video } from 'lucide-react'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet'
@@ -218,19 +218,46 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
 
             <Separator />
 
-            {/* 7. Make Appt / Not Interested buttons */}
+            {/* 7. Make Appt / Send Zoom / Not Interested buttons */}
             {!isDead && (
-              <div className="flex gap-2 pb-3">
-                <Button
-                  className="flex-1 h-12 text-sm font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
-                  onClick={() => setBookedOpen(true)}
-                >
-                  <Calendar className="h-4 w-4 mr-1.5" />
-                  Make Appt
-                </Button>
+              <div className="space-y-2 pb-3">
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1 h-11 text-sm font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
+                    onClick={() => setBookedOpen(true)}
+                  >
+                    <Calendar className="h-4 w-4 mr-1.5" />
+                    Make Appt
+                  </Button>
+                  <Button
+                    className="flex-1 h-11 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
+                    onClick={async () => {
+                      if (!lead.email) { toast.error('No email on file'); return }
+                      try {
+                        await fetch('/api/leads/send-zoom-invite', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            leadId: lead.id,
+                            email: lead.email,
+                            bride: lead.bride_first_name,
+                            groom: lead.groom_first_name,
+                          }),
+                        })
+                        await supabase.from('ballots').update({ zoom_invite_sent_at: new Date().toISOString() }).eq('id', lead.id)
+                        toast.success('Zoom invite sent!')
+                      } catch (e) {
+                        toast.error('Failed to send invite')
+                      }
+                    }}
+                  >
+                    <Video className="h-4 w-4 mr-1.5" />
+                    Send Zoom
+                  </Button>
+                </div>
                 <Button
                   variant="outline"
-                  className="flex-1 h-12 text-sm font-bold text-red-600 border-red-300 hover:bg-red-50 rounded-xl"
+                  className="w-full h-11 text-sm font-bold text-red-600 border-red-300 hover:bg-red-50 rounded-xl"
                   onClick={() => setLostOpen(true)}
                 >
                   <X className="h-4 w-4 mr-1.5" />
