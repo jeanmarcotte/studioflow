@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion'
 import { Badge } from '@/components/ui/badge'
-import { QuickActions } from './QuickActions'
 import type { Lead } from '@/lib/lead-utils'
 import {
   getScoreTier,
@@ -22,6 +21,16 @@ const CHANNEL_ICONS: Record<string, string> = {
   email: '✉️',
   phone: '📞',
   referral: '🤝',
+}
+
+const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
+  new: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', label: 'NEW' },
+  contacted: { bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-700 dark:text-blue-400', label: 'CONTACTED' },
+  meeting_booked: { bg: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-700 dark:text-purple-400', label: 'APPT' },
+  quoted: { bg: 'bg-orange-100 dark:bg-orange-900/40', text: 'text-orange-700 dark:text-orange-400', label: 'QUOTED' },
+  booked: { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-400', label: 'BOOKED' },
+  dead: { bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-400', label: 'LOST' },
+  lost: { bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-400', label: 'LOST' },
 }
 
 interface LeadCardProps {
@@ -100,8 +109,15 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick }: LeadCardPr
           </div>
         </div>
 
-        {/* Quick actions */}
-        <QuickActions lead={lead} onHide={onHide} onEmailClick={onEmailClick} />
+        {/* Status badge */}
+        {(() => {
+          const sb = STATUS_BADGE[lead.status] || STATUS_BADGE.new
+          return (
+            <Badge className={`${sb.bg} ${sb.text} border-0 text-[11px] font-bold px-2 py-0.5 w-fit`}>
+              {sb.label}
+            </Badge>
+          )
+        })()}
       </div>
     </motion.div>
   )

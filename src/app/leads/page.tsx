@@ -54,6 +54,8 @@ export default function LeadsPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [sortKey, setSortKey] = useState<'score' | 'date' | 'name' | 'temperature'>('date')
   const [currentPage, setCurrentPage] = useState(1)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [allLeads, setAllLeads] = useState<Lead[]>([])  // includes hidden, for search
 
   // Persist sidebar collapsed state
   useEffect(() => {
@@ -65,8 +67,8 @@ export default function LeadsPage() {
     localStorage.setItem('bridalflow-sidebar-collapsed', String(collapsed))
   }
 
-  // Reset page when filters change
-  useEffect(() => { setCurrentPage(1) }, [filters, sortKey])
+  // Reset page when filters or search change
+  useEffect(() => { setCurrentPage(1) }, [filters, sortKey, searchQuery])
 
   // Fetch leads
   useEffect(() => {
@@ -75,13 +77,14 @@ export default function LeadsPage() {
         const { data, error } = await supabase
           .from('ballots')
           .select('*')
-          .or('hidden.eq.false,hidden.is.null')
           .order('book_score', { ascending: false })
 
         if (error) {
           setFetchError(error.message)
         } else {
-          setLeads((data as Lead[]) || [])
+          const all = (data as Lead[]) || []
+          setAllLeads(all)
+          setLeads(all.filter(l => !l.hidden))
         }
       } catch (err: any) {
         setFetchError(String(err))
@@ -101,6 +104,15 @@ export default function LeadsPage() {
 
   // Filter logic
   const filteredLeads = useMemo(() => {
+    // Global search — bypass all filters, search all leads including hidden
+    const q = searchQuery.trim().toLowerCase()
+    if (q) {
+      return allLeads.filter(l => {
+        const fields = [l.bride_first_name, l.bride_last_name, l.groom_first_name, l.groom_last_name]
+        return fields.some(f => f && f.toLowerCase().includes(q))
+      })
+    }
+
     const today = new Date()
     const todayStr = today.toISOString().split('T')[0]
 
@@ -204,7 +216,7 @@ export default function LeadsPage() {
 
       return true
     })
-  }, [leads, filters, showLost])
+  }, [leads, allLeads, filters, showLost, searchQuery])
 
   const counts = useMemo(() => ({
     'no-no-yes': leads.filter(l => isNNY(l)).length,
@@ -264,7 +276,7 @@ export default function LeadsPage() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <SafeSection name="LeadsHeader">
-          <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} onAddLead={() => setShowAddModal(true)} />
+          <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} onAddLead={() => setShowAddModal(true)} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
         </SafeSection>
 
         {/* Main panel — floating card */}

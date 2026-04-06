@@ -12,9 +12,11 @@ const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
 interface LeadsHeaderProps {
   onMenuToggle: () => void
   onAddLead?: () => void
+  searchQuery?: string
+  onSearchChange?: (query: string) => void
 }
 
-export function LeadsHeader({ onMenuToggle, onAddLead }: LeadsHeaderProps) {
+export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChange }: LeadsHeaderProps) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [legendOpen, setLegendOpen] = useState(false)
@@ -37,7 +39,9 @@ export function LeadsHeader({ onMenuToggle, onAddLead }: LeadsHeaderProps) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search all leads..."
+              value={searchQuery ?? ''}
+              onChange={(e) => onSearchChange?.(e.target.value)}
               className="w-full h-9 rounded-lg border border-border bg-muted/30 dark:bg-gray-900 text-sm outline-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
               style={{ paddingLeft: '2.25rem', paddingRight: '0.75rem' }}
             />
