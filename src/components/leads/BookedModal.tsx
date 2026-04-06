@@ -87,7 +87,7 @@ export function BookedModal({ lead, open, onClose, onBooked }: BookedModalProps)
       })
     }
 
-    // 4. Send email notification
+    // 4. Send email notification with ALL info
     try {
       await fetch('/api/leads/notify-appointment', {
         method: 'POST',
@@ -95,9 +95,23 @@ export function BookedModal({ lead, open, onClose, onBooked }: BookedModalProps)
         body: JSON.stringify({
           bride: lead.bride_first_name,
           groom: lead.groom_first_name,
+          phone: lead.cell_phone,
+          email: lead.email,
           weddingDate: lead.wedding_date,
           venue: lead.venue_name,
           source: lead.show_id,
+          budget: lead.budget_range,
+          apptDate,
+          apptTime,
+          meetingType,
+          notes,
+          album: lead.want_album,
+          engagement: lead.want_engagement,
+          dj: (lead as any).has_dj,
+          planner: lead.planner_involved,
+          multiDay: lead.multi_day_event,
+          firstLook: (lead as any).first_look,
+          bridalParty: lead.bridal_party_size,
         }),
       })
     } catch (e) {

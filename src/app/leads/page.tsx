@@ -40,7 +40,7 @@ const DEFAULT_FILTERS: SidebarFilters = {
   chaseStatus: [],
 }
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 25
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
@@ -276,7 +276,18 @@ export default function LeadsPage() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <SafeSection name="LeadsHeader">
-          <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} onAddLead={() => setShowAddModal(true)} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+          <LeadsHeader
+            onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+            onAddLead={() => setShowAddModal(true)}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onLogoClick={() => {
+              setFilters(DEFAULT_FILTERS)
+              setShowLost(false)
+              setSearchQuery('')
+              setCurrentPage(1)
+            }}
+          />
         </SafeSection>
 
         {/* Main panel — floating card */}

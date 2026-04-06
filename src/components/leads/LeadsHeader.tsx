@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Settings, Plus, Menu, Sun, Moon, X, Phone, MessageSquare, Mail, Skull } from 'lucide-react'
+import { Search, Settings, Plus, Menu, Sun, Moon, Phone, MessageSquare, Mail, Skull } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -14,9 +14,10 @@ interface LeadsHeaderProps {
   onAddLead?: () => void
   searchQuery?: string
   onSearchChange?: (query: string) => void
+  onLogoClick?: () => void
 }
 
-export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChange }: LeadsHeaderProps) {
+export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChange, onLogoClick }: LeadsHeaderProps) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [legendOpen, setLegendOpen] = useState(false)
@@ -24,18 +25,24 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
 
   return (
     <>
-      <header className={`${nunito.className} sticky top-0 z-30 bg-white dark:bg-gray-950 border-b border-border/60 px-4 py-3 md:px-6`}>
+      <header className={`${nunito.className} sticky top-0 z-30 bg-white dark:bg-gray-950 border-b border-border/60 px-4 py-2 md:px-6 md:py-3`}>
+        {/* Row 1: Logo + actions */}
         <div className="flex items-center gap-3">
           {/* Mobile menu toggle */}
           <Button variant="ghost" size="icon" className="h-9 w-9 lg:hidden shrink-0" onClick={onMenuToggle}>
             <Menu className="h-5 w-5" />
           </Button>
 
-          {/* Logo */}
-          <span className="text-base font-bold text-[#0d4f4f] dark:text-teal-400 tracking-tight shrink-0">SIGS BridalFlow</span>
+          {/* Logo — clickable to reset */}
+          <button
+            onClick={onLogoClick}
+            className="text-base font-bold text-[#0d4f4f] dark:text-teal-400 tracking-tight shrink-0 hover:opacity-80 transition-opacity"
+          >
+            SIGS BridalFlow
+          </button>
 
-          {/* Search — pl-9 ensures text clears icon */}
-          <div className="relative flex-1 max-w-xs hidden sm:block">
+          {/* Search — desktop only */}
+          <div className="relative flex-1 max-w-xs hidden md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <input
               type="text"
@@ -67,8 +74,8 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
             <Settings className="h-4 w-4" />
           </Button>
 
-          {/* Add Lead */}
-          <Button className="h-9 px-3 text-sm font-semibold bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white rounded-lg" onClick={onAddLead}>
+          {/* Add Lead — desktop only */}
+          <Button className="h-9 px-3 text-sm font-semibold bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white rounded-lg hidden md:flex" onClick={onAddLead}>
             <Plus className="h-4 w-4 mr-1" /> Add Lead
           </Button>
 
@@ -76,6 +83,24 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
           <div className="h-8 w-8 rounded-full bg-[#0d4f4f] text-white text-xs font-bold flex items-center justify-center shrink-0 cursor-pointer" title="Jean Marcotte">
             JM
           </div>
+        </div>
+
+        {/* Row 2: Search + Add Lead (mobile only) */}
+        <div className="flex items-center gap-2 mt-2 md:hidden">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search all leads..."
+              value={searchQuery ?? ''}
+              onChange={(e) => onSearchChange?.(e.target.value)}
+              className="w-full h-9 rounded-lg border border-border bg-muted/30 dark:bg-gray-900 text-sm outline-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+              style={{ paddingLeft: '2.25rem', paddingRight: '0.75rem' }}
+            />
+          </div>
+          <Button className="h-9 px-3 text-sm font-semibold bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white rounded-lg shrink-0" onClick={onAddLead}>
+            <Plus className="h-4 w-4 mr-1" /> Add
+          </Button>
         </div>
       </header>
 
@@ -132,8 +157,7 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
               <div className="space-y-1.5">
                 {[
                   { icon: <Phone className="h-4 w-4" />, label: 'Phone', desc: 'Tap to call, copies script to clipboard' },
-                  { icon: <MessageSquare className="h-4 w-4" />, label: 'Text', desc: 'Tap to text, copies template to clipboard' },
-                  { icon: <Mail className="h-4 w-4" />, label: 'Email', desc: 'Opens email compose' },
+                  { icon: <Mail className="h-4 w-4" />, label: 'Email', desc: 'Opens email compose with template' },
                   { icon: <Skull className="h-4 w-4" />, label: 'Lost', desc: 'Move lead to LOST (removes from active queue)' },
                 ].map(a => (
                   <div key={a.label} className="flex items-center gap-2">
