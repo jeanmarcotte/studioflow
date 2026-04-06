@@ -244,15 +244,22 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
                   <Button
                     className="h-10 text-[11px] font-bold bg-teal-600 hover:bg-teal-700 text-white rounded-lg flex flex-col items-center gap-0.5 px-1"
                     onClick={async () => {
-                      const result = await logTouch(lead.id, lead.entity_id, 'call', 'Follow up')
-                      if (result) {
-                        toast.success('Follow up logged')
-                        onUpdate({
-                          ...lead,
-                          contact_count: result.touchNumber,
-                          last_contact_date: new Date().toISOString(),
-                          temperature: 'hot',
-                        })
+                      console.log("=== FOLLOW UP CLICKED ===")
+                      console.log("Lead ID:", lead.id)
+                      try {
+                        const result = await logTouch(lead.id, lead.entity_id, 'call', 'Follow up')
+                        console.log("Follow up logTouch result:", result)
+                        if (result) {
+                          toast.success('Follow up logged')
+                          onUpdate({
+                            ...lead,
+                            contact_count: result.touchNumber,
+                            last_contact_date: new Date().toISOString(),
+                            temperature: 'hot',
+                          })
+                        }
+                      } catch (error) {
+                        console.error("Follow up logTouch failed:", error)
                       }
                     }}
                   >

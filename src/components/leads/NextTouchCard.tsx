@@ -41,30 +41,50 @@ export function NextTouchCard({ lead, onTouchLogged }: NextTouchCardProps) {
   if (touchNum > 6 || loading) return null
 
   const handleCopyScript = async () => {
+    console.log("=== COPY SCRIPT CLICKED ===")
+    console.log("Template:", template)
     if (!template) return
     const text = template.subject ? `Subject: ${template.subject}\n\n${template.body}` : template.body
-    await navigator.clipboard.writeText(text)
-    toast.success(`Touch ${touchNum} script copied!`)
+    try {
+      await navigator.clipboard.writeText(text)
+      console.log("Clipboard write succeeded")
+      toast.success(`Touch ${touchNum} script copied!`)
+    } catch (error) {
+      console.error("Clipboard write failed:", error)
+    }
   }
 
   const handleLogTouch = async () => {
+    console.log("=== LOG TOUCH CLICKED ===")
+    console.log("Lead ID:", lead.id)
+    console.log("Entity ID:", lead.entity_id)
+    console.log("Touch num:", touchNum)
     const contactType = (template?.type || 'text') as 'call' | 'text' | 'email'
-    const result = await logTouch(lead.id, lead.entity_id, contactType, `Touch ${touchNum}`)
-    if (result) {
-      toast(`Logged Touch #${result.touchNumber}`, {
-        action: {
-          label: 'Undo',
-          onClick: async () => {
-            const { undoTouch } = await import('@/lib/chase-actions')
-            await undoTouch(result.contactId, lead.id)
+    console.log("Contact type:", contactType)
+    try {
+      console.log("About to call logTouch API...")
+      const result = await logTouch(lead.id, lead.entity_id, contactType, `Touch ${touchNum}`)
+      console.log("logTouch result:", result)
+      if (result) {
+        toast(`Logged Touch #${result.touchNumber}`, {
+          action: {
+            label: 'Undo',
+            onClick: async () => {
+              const { undoTouch } = await import('@/lib/chase-actions')
+              await undoTouch(result.contactId, lead.id)
+            },
           },
-        },
-      })
-      onTouchLogged?.()
+        })
+        onTouchLogged?.()
+      }
+    } catch (error) {
+      console.error("logTouch API call failed:", error)
     }
   }
 
   const typeLabel = template?.type?.toUpperCase() || 'TEXT'
+
+  console.log("Rendering NextTouchCard, handleLogTouch is:", typeof handleLogTouch, "handleCopyScript is:", typeof handleCopyScript)
 
   return (
     <div className="rounded-xl border border-[#0d4f4f]/20 bg-[#0d4f4f]/5 p-3 space-y-2">
