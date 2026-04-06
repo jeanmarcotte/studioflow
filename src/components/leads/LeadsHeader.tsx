@@ -6,6 +6,7 @@ import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Nunito } from 'next/font/google'
+import Link from 'next/link'
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
 
@@ -32,10 +33,12 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
           </Button>
 
           {/* Logo */}
-          <span className="text-base font-bold text-[#0d4f4f] dark:text-teal-400 tracking-tight shrink-0">SIGS BridalFlow</span>
+          <Link href="/leads" className="text-base font-bold text-[#0d4f4f] dark:text-teal-400 tracking-tight shrink-0 hover:text-[#0d4f4f]/80">
+            SIGS BridalFlow
+          </Link>
 
           {/* Search — pl-9 ensures text clears icon */}
-          <div className="relative flex-1 max-w-xs hidden sm:block">
+          <div className="relative w-72 hidden sm:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <input
               type="text"

@@ -45,7 +45,7 @@ const DEFAULT_FILTERS: SidebarFilters = {
   chaseStatus: [],
 }
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 25
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
@@ -318,26 +318,100 @@ export default function LeadsPage() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <SafeSection name="LeadsHeader">
-          <div className="flex items-center">
-            <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} onAddLead={() => setShowAddModal(true)} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+          <LeadsHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} onAddLead={() => setShowAddModal(true)} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+        </SafeSection>
+
+        {/* Filter Bar */}
+        <div className="flex items-center justify-between px-4 py-2 border-b border-border/40 bg-muted/30">
+          {/* Left: Main Filters */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant={filters.status === 'no-no-yes' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => { setFilters(f => ({ ...f, status: 'no-no-yes' })); setChaseFilter('all') }}
+              className="h-7 text-xs"
+            >
+              NNY <span className="ml-1 opacity-70">({counts['no-no-yes']})</span>
+            </Button>
+            <Button
+              variant={filters.status === 'no-no-no' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => { setFilters(f => ({ ...f, status: 'no-no-no' })); setChaseFilter('all') }}
+              className="h-7 text-xs"
+            >
+              NNN <span className="ml-1 opacity-70">({counts['no-no-no']})</span>
+            </Button>
+            <Button
+              variant={filters.status === 'contacted' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => { setFilters(f => ({ ...f, status: 'contacted' })); setChaseFilter('all') }}
+              className="h-7 text-xs"
+            >
+              CONTACTED <span className="ml-1 opacity-70">({counts['contacted']})</span>
+            </Button>
+            <Button
+              variant={filters.status === 'meeting_booked' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => { setFilters(f => ({ ...f, status: 'meeting_booked' })); setChaseFilter('all') }}
+              className="h-7 text-xs"
+            >
+              APPT <span className="ml-1 opacity-70">({counts['meeting_booked']})</span>
+            </Button>
+            <Button
+              variant={filters.status === 'quoted' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => { setFilters(f => ({ ...f, status: 'quoted' })); setChaseFilter('all') }}
+              className="h-7 text-xs"
+            >
+              QUOTED <span className="ml-1 opacity-70">({counts['quoted']})</span>
+            </Button>
+            <Button
+              variant={filters.status === 'booked' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => { setFilters(f => ({ ...f, status: 'booked' })); setChaseFilter('all') }}
+              className="h-7 text-xs"
+            >
+              BOOKED <span className="ml-1 opacity-70">({counts['booked']})</span>
+            </Button>
           </div>
-          <div className="px-4 pb-2 md:px-6 flex flex-wrap items-center gap-2">
+
+          {/* Center: Source + Analytics */}
+          <div className="flex items-center gap-2">
             <SourceFilter selectedSourceId={selectedSourceId} onSourceChange={setSelectedSourceId} />
             <Link href="/leads/analytics">
-              <Button variant="outline" size="sm" className="h-8">
-                <BarChart3 className="w-4 h-4 mr-2" />
+              <Button variant="outline" size="sm" className="h-7">
+                <BarChart3 className="w-4 h-4 mr-1" />
                 Analytics
               </Button>
             </Link>
-            {filters.status === 'contacted' && (
-              <ChaseSubFilters
-                activeFilter={chaseFilter}
-                onFilterChange={setChaseFilter}
-                counts={chaseCounts}
-              />
-            )}
           </div>
-        </SafeSection>
+
+          {/* Right: Sort */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Sort by:</span>
+            <select
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as any)}
+              className="h-7 rounded-md border border-border bg-background px-2 text-xs outline-none"
+            >
+              <option value="date">Wedding Date</option>
+              <option value="name">Name</option>
+              <option value="score">Score</option>
+              <option value="temperature">Temperature</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Chase sub-filters (only when CONTACTED is active) */}
+        {filters.status === 'contacted' && (
+          <div className="px-4 py-1.5 border-b border-border/40 bg-muted/20">
+            <ChaseSubFilters
+              activeFilter={chaseFilter}
+              onFilterChange={setChaseFilter}
+              counts={chaseCounts}
+            />
+          </div>
+        )}
 
         {/* Main panel — floating card */}
         <div className="flex-1 p-3 min-h-0">
