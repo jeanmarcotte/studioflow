@@ -10,9 +10,7 @@ import { LeadGridArea } from '@/components/leads/LeadGridArea'
 import { toast } from 'sonner'
 import { SourceFilter } from '@/components/leads/SourceFilter'
 import { ChaseSubFilters, type ChaseFilter } from '@/components/leads/ChaseSubFilters'
-import { BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import Link from 'next/link'
 import type { Lead, FilterKey } from '@/lib/lead-utils'
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -375,15 +373,9 @@ export default function LeadsPage() {
             </Button>
           </div>
 
-          {/* Center: Source + Analytics */}
+          {/* Center: Source */}
           <div className="flex items-center gap-2">
             <SourceFilter selectedSourceId={selectedSourceId} onSourceChange={setSelectedSourceId} />
-            <Link href="/leads/analytics">
-              <Button variant="outline" size="sm" className="h-7">
-                <BarChart3 className="w-4 h-4 mr-1" />
-                Analytics
-              </Button>
-            </Link>
           </div>
 
           {/* Right: Sort */}

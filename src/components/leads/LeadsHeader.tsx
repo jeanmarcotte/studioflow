@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Settings, Plus, Menu, Sun, Moon, X, Phone, MessageSquare, Mail, Skull } from 'lucide-react'
+import { Search, Settings, Plus, Menu, Sun, Moon, X, Phone, MessageSquare, Mail, Skull, BarChart3 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -59,6 +59,13 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
           )}
+
+          {/* Analytics */}
+          <Link href="/leads/analytics">
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" title="Analytics">
+              <BarChart3 className="h-4 w-4" />
+            </Button>
+          </Link>
 
           {/* Settings / Legend */}
           <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={() => setLegendOpen(true)} title="Legend">
