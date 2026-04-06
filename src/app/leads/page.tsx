@@ -34,7 +34,6 @@ const DEFAULT_FILTERS: SidebarFilters = {
   dateRange: 'all',
   venueType: [],
   venueRating: null,
-  ethnicity: [],
   religion: [],
   ceremonyLocation: [],
   chaseStatus: [],
@@ -50,6 +49,7 @@ export default function LeadsPage() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [showLost, setShowLost] = useState(false)
   const [sortKey, setSortKey] = useState<'score' | 'date' | 'name' | 'temperature'>('score')
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -73,8 +73,7 @@ export default function LeadsPage() {
         const { data, error } = await supabase
           .from('ballots')
           .select('*')
-          .eq('hidden', false)
-          .in('status', ['new', 'contacted'])
+          .or('hidden.eq.false,hidden.is.null')
           .order('book_score', { ascending: false })
 
         if (error) {
@@ -90,23 +89,48 @@ export default function LeadsPage() {
     doFetch()
   }, [])
 
+  // Bucket helpers — each lead falls into exactly ONE bucket
+  const isLost = (l: Lead) =>
+    ['dead', 'lost'].includes(l.status) || l.has_photographer === true || l.has_videographer === true
+  const isNNY = (l: Lead) =>
+    l.status === 'new' && l.has_venue === true && !l.has_photographer && !l.has_videographer
+  const isNNN = (l: Lead) =>
+    l.status === 'new' && !l.has_venue && !l.has_photographer && !l.has_videographer
+
   // Filter logic
   const filteredLeads = useMemo(() => {
     const today = new Date()
     const todayStr = today.toISOString().split('T')[0]
 
     return leads.filter(l => {
-      // Status
-      switch (filters.status) {
-        case 'no-no-yes':
-          if (!(l.status === 'new' && !l.has_photographer && !l.has_videographer && l.has_venue === true)) return false
-          break
-        case 'no-no-no':
-          if (!(l.status === 'new' && !l.has_photographer && !l.has_videographer && !l.has_venue)) return false
-          break
-        case 'contacted':
-          if (l.status !== 'contacted') return false
-          break
+      // Exclude lost leads unless showLost is active
+      if (isLost(l) && !showLost) return false
+
+      // If showLost is on and we're looking at lost leads, show them all (no status filter)
+      if (showLost && isLost(l)) {
+        // Still apply other filters below
+      } else {
+        // Status bucket filter
+        switch (filters.status) {
+          case 'no-no-yes':
+            if (!isNNY(l)) return false
+            break
+          case 'no-no-no':
+            if (!isNNN(l)) return false
+            break
+          case 'contacted':
+            if (l.status !== 'contacted') return false
+            break
+          case 'meeting_booked':
+            if (l.status !== 'meeting_booked') return false
+            break
+          case 'quoted':
+            if (l.status !== 'quoted') return false
+            break
+          case 'booked':
+            if (l.status !== 'booked') return false
+            break
+        }
       }
 
       // Location (single select)
@@ -148,13 +172,6 @@ export default function LeadsPage() {
         }
       }
 
-      // Ethnicity
-      if (filters.ethnicity.length > 0) {
-        const eth = (l.inferred_ethnicity || '').toLowerCase()
-        const matches = filters.ethnicity.some(e => eth.includes(e.toLowerCase()))
-        if (!matches) return false
-      }
-
       // Religion
       if (filters.religion.length > 0) {
         const rel = ((l as any).religion || '').toLowerCase()
@@ -185,13 +202,18 @@ export default function LeadsPage() {
 
       return true
     })
-  }, [leads, filters])
+  }, [leads, filters, showLost])
 
   const counts = useMemo(() => ({
-    'no-no-yes': leads.filter(l => l.status === 'new' && !l.has_photographer && !l.has_videographer && l.has_venue === true).length,
-    'no-no-no': leads.filter(l => l.status === 'new' && !l.has_photographer && !l.has_videographer && !l.has_venue).length,
+    'no-no-yes': leads.filter(l => isNNY(l)).length,
+    'no-no-no': leads.filter(l => isNNN(l)).length,
     'contacted': leads.filter(l => l.status === 'contacted').length,
+    'meeting_booked': leads.filter(l => l.status === 'meeting_booked').length,
+    'quoted': leads.filter(l => l.status === 'quoted').length,
+    'booked': leads.filter(l => l.status === 'booked').length,
   } as Record<FilterKey, number>), [leads])
+
+  const lostCount = useMemo(() => leads.filter(l => isLost(l)).length, [leads])
 
   // Loading
   if (loading) {
@@ -226,6 +248,9 @@ export default function LeadsPage() {
           filters={filters}
           onFiltersChange={setFilters}
           counts={counts}
+          lostCount={lostCount}
+          showLost={showLost}
+          onShowLostChange={setShowLost}
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           collapsed={sidebarCollapsed}
@@ -276,7 +301,7 @@ export default function LeadsPage() {
             lead={selectedLead}
             onClose={() => setSelectedLead(null)}
             onUpdate={(updated) => {
-              if (!['new', 'contacted'].includes(updated.status) || updated.hidden) {
+              if (updated.hidden) {
                 setLeads(prev => prev.filter(l => l.id !== updated.id))
                 setSelectedLead(null)
               } else {

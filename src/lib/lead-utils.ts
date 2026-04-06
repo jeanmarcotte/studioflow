@@ -45,7 +45,7 @@ export interface Lead {
   referrer_id: string | null
 }
 
-export type FilterKey = 'no-no-yes' | 'no-no-no' | 'contacted'
+export type FilterKey = 'no-no-yes' | 'no-no-no' | 'contacted' | 'meeting_booked' | 'quoted' | 'booked'
 
 export const SCORE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   A: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' },

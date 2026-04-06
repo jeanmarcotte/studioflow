@@ -2,6 +2,7 @@
 
 import { X, ChevronsLeft, ChevronsRight, RotateCcw, ChevronDown } from 'lucide-react'
 import { Nunito } from 'next/font/google'
+import { ButtonWithBadge } from '@/components/ui/button-with-badge'
 import type { FilterKey } from '@/lib/lead-utils'
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -12,7 +13,6 @@ export interface SidebarFilters {
   dateRange: string
   venueType: string[]
   venueRating: string | null
-  ethnicity: string[]
   religion: string[]
   ceremonyLocation: string[]
   chaseStatus: string[]
@@ -22,6 +22,9 @@ interface FilterSidebarProps {
   filters: SidebarFilters
   onFiltersChange: (filters: SidebarFilters) => void
   counts: Record<FilterKey, number>
+  lostCount: number
+  showLost: boolean
+  onShowLostChange: (show: boolean) => void
   open: boolean
   onClose: () => void
   collapsed: boolean
@@ -44,7 +47,6 @@ const VENUE_TYPES = [
   { value: 'barn', label: 'Barn' }, { value: 'winery', label: 'Winery' },
 ]
 const RATINGS = ['All', '5\u2605', '4\u2605', '3\u2605', '2\u2605', '1\u2605']
-const ETHNICITIES = ['Italian', 'Portuguese', 'Greek', 'Jewish', 'Indian', 'Canadian']
 const RELIGIONS = ['Catholic', 'Orthodox', 'Non-denom', 'Muslim', 'Hindu', 'Sikh', 'Jewish', 'Christian', 'Other']
 const CEREMONY = ['Church', 'Temple', 'Hotel', 'Venue', 'Outdoor/Barn']
 const CHASE = ['Due Today', 'Overdue', 'Upcoming', 'Exhausted']
@@ -140,7 +142,14 @@ function StatusCard({ label, count, active, onClick, className }: { label: strin
 
 /* ── Collapsed view ─────────────────────────────────────────── */
 
-const SICONS: Record<FilterKey, string> = { 'no-no-yes': '\u{1F7E2}', 'no-no-no': '\u26AA', 'contacted': '\u{1F4DE}' }
+const SICONS: Record<FilterKey, string> = {
+  'no-no-yes': '\u{1F7E2}',
+  'no-no-no': '\u26AA',
+  'contacted': '\u{1F4DE}',
+  'meeting_booked': '\u{1F4C5}',
+  'quoted': '\u{1F4B0}',
+  'booked': '\u2705',
+}
 
 function CollapsedBar({ filters, counts, update, onExpand, onReset }: {
   filters: SidebarFilters; counts: Record<FilterKey, number>; update: (p: Partial<SidebarFilters>) => void; onExpand: () => void; onReset: () => void
@@ -150,7 +159,7 @@ function CollapsedBar({ filters, counts, update, onExpand, onReset }: {
       <button onClick={onExpand} className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-colors shadow-sm border border-slate-200/60 dark:border-slate-800 mb-2" title="Expand">
         <ChevronsRight className="h-4 w-4" />
       </button>
-      {(['no-no-yes', 'no-no-no', 'contacted'] as FilterKey[]).map(key => (
+      {(['no-no-yes', 'no-no-no', 'contacted', 'meeting_booked', 'quoted', 'booked'] as FilterKey[]).map(key => (
         <button key={key} onClick={() => update({ status: key })} title={`${key} (${counts[key]})`}
           className={`h-10 w-10 rounded-lg flex items-center justify-center text-sm transition-all duration-200 ${
             filters.status === key ? 'bg-gradient-to-br from-teal-500 to-teal-600 shadow-lg shadow-teal-500/25' : 'hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
@@ -168,10 +177,10 @@ function CollapsedBar({ filters, counts, update, onExpand, onReset }: {
 
 /* ── Main export ─────────────────────────────────────────────── */
 
-export function FilterSidebar({ filters, onFiltersChange, counts, open, onClose, collapsed, onCollapsedChange }: FilterSidebarProps) {
+export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, showLost, onShowLostChange, open, onClose, collapsed, onCollapsedChange }: FilterSidebarProps) {
   const update = (patch: Partial<SidebarFilters>) => onFiltersChange({ ...filters, ...patch })
-  const resetAll = () => onFiltersChange({ status: 'no-no-yes', location: null, dateRange: 'all', venueType: [], venueRating: null, ethnicity: [], religion: [], ceremonyLocation: [], chaseStatus: [] })
-  const toggleArr = (key: 'venueType' | 'chaseStatus' | 'ethnicity' | 'religion' | 'ceremonyLocation', item: string) => {
+  const resetAll = () => onFiltersChange({ status: 'no-no-yes', location: null, dateRange: 'all', venueType: [], venueRating: null, religion: [], ceremonyLocation: [], chaseStatus: [] })
+  const toggleArr = (key: 'venueType' | 'chaseStatus' | 'religion' | 'ceremonyLocation', item: string) => {
     const cur = filters[key]; update({ [key]: cur.includes(item) ? cur.filter(i => i !== item) : [...cur, item] })
   }
 
@@ -198,11 +207,19 @@ export function FilterSidebar({ filters, onFiltersChange, counts, open, onClose,
         {/* STATUS */}
         <div className="space-y-2.5">
           <SectionLabel>Status</SectionLabel>
+          {/* Row 1: NNY and NNN side by side */}
           <div className="grid grid-cols-2 gap-2">
-            <StatusCard label="NO-NO-YES" count={counts['no-no-yes']} active={filters.status === 'no-no-yes'} onClick={() => update({ status: 'no-no-yes' })} />
-            <StatusCard label="NO-NO-NO" count={counts['no-no-no']} active={filters.status === 'no-no-no'} onClick={() => update({ status: 'no-no-no' })} />
+            <StatusCard label="NNY" count={counts['no-no-yes']} active={filters.status === 'no-no-yes'} onClick={() => update({ status: 'no-no-yes' })} />
+            <StatusCard label="NNN" count={counts['no-no-no']} active={filters.status === 'no-no-no'} onClick={() => update({ status: 'no-no-no' })} />
           </div>
+          {/* Row 2: CONTACTED full width */}
           <StatusCard label="CONTACTED" count={counts['contacted']} active={filters.status === 'contacted'} onClick={() => update({ status: 'contacted' })} className="w-full" />
+          {/* Row 3: APPT, QUOTED, BOOKED — three buttons */}
+          <div className="grid grid-cols-3 gap-2">
+            <StatusCard label="APPT" count={counts['meeting_booked']} active={filters.status === 'meeting_booked'} onClick={() => update({ status: 'meeting_booked' })} />
+            <StatusCard label="QUOTED" count={counts['quoted']} active={filters.status === 'quoted'} onClick={() => update({ status: 'quoted' })} />
+            <StatusCard label="BOOKED" count={counts['booked']} active={filters.status === 'booked'} onClick={() => update({ status: 'booked' })} />
+          </div>
         </div>
 
         {/* CHASE STATUS (contacted only) */}
@@ -243,12 +260,6 @@ export function FilterSidebar({ filters, onFiltersChange, counts, open, onClose,
           <SinglePillRow items={RATINGS} selected={filters.venueRating} onSelect={(v) => update({ venueRating: v })} />
         </div>
 
-        {/* ETHNICITY */}
-        <div className="space-y-2">
-          <SectionLabel>Ethnicity</SectionLabel>
-          <PillRow items={ETHNICITIES} selected={filters.ethnicity} onToggle={(i) => toggleArr('ethnicity', i)} />
-        </div>
-
         {/* RELIGION */}
         <div className="space-y-2">
           <SectionLabel>Religion</SectionLabel>
@@ -259,6 +270,16 @@ export function FilterSidebar({ filters, onFiltersChange, counts, open, onClose,
         <div className="space-y-2">
           <SectionLabel>Ceremony Location</SectionLabel>
           <PillRow items={CEREMONY} selected={filters.ceremonyLocation} onToggle={(i) => toggleArr('ceremonyLocation', i)} />
+        </div>
+
+        {/* LOST TOGGLE */}
+        <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
+          <ButtonWithBadge
+            label="Lost"
+            count={lostCount}
+            active={showLost}
+            onClick={() => onShowLostChange(!showLost)}
+          />
         </div>
       </div>
     </div>
