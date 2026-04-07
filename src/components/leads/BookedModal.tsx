@@ -6,6 +6,22 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Generate time slots from 9 AM to 8 PM in 15-min increments
+const timeSlots = (() => {
+  const slots: { value: string; label: string }[] = [];
+  for (let hour = 9; hour <= 20; hour++) {
+    for (let min = 0; min < 60; min += 15) {
+      const h = hour % 12 || 12;
+      const ampm = hour < 12 ? 'AM' : 'PM';
+      const label = `${h}:${min.toString().padStart(2, '0')} ${ampm}`;
+      const value = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+      slots.push({ value, label });
+    }
+  }
+  return slots;
+})();
 import {
   Dialog,
   DialogContent,
@@ -93,13 +109,19 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="time">Time</Label>
-            <Input
-              id="time"
-              type="time"
-              value={appointmentTime}
-              onChange={(e) => setAppointmentTime(e.target.value)}
-            />
+            <Label>Time</Label>
+            <Select value={appointmentTime} onValueChange={(v) => setAppointmentTime(v || '14:00')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select time" />
+              </SelectTrigger>
+              <SelectContent>
+                {timeSlots.map((slot) => (
+                  <SelectItem key={slot.value} value={slot.value}>
+                    {slot.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
