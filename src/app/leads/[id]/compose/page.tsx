@@ -11,9 +11,11 @@ import { TemplateContext } from '@/lib/email/types';
 interface Lead {
   id: string;
   entity_id: string;
-  bride_name: string;
-  groom_name: string;
-  email: string;
+  bride_first_name: string | null;
+  bride_last_name: string | null;
+  groom_first_name: string | null;
+  groom_last_name: string | null;
+  email: string | null;
   venue_name: string | null;
   wedding_date: string | null;
   show_id: string | null;
@@ -34,7 +36,7 @@ export default function ComposeEmailPage() {
       try {
         const { data, error } = await supabase
           .from('ballots')
-          .select('id, entity_id, bride_name, groom_name, email, venue_name, wedding_date, show_id, contact_count')
+          .select('id, entity_id, bride_first_name, bride_last_name, groom_first_name, groom_last_name, email, venue_name, wedding_date, show_id, contact_count')
           .eq('id', leadId)
           .limit(1);
 
@@ -47,7 +49,7 @@ export default function ComposeEmailPage() {
         setLead(data[0]);
       } catch (err) {
         console.error('Error loading lead:', err);
-        setError('Failed to load lead');
+        setError('Failed to load lead: ' + (err as any)?.message);
       } finally {
         setLoading(false);
       }
@@ -103,18 +105,21 @@ export default function ComposeEmailPage() {
     );
   }
 
+  const brideName = [lead.bride_first_name, lead.bride_last_name].filter(Boolean).join(' ') || 'Bride';
+  const groomName = [lead.groom_first_name, lead.groom_last_name].filter(Boolean).join(' ');
+
   const templateContext: TemplateContext = {
-    bride_name: lead.bride_name || '',
-    groom_name: lead.groom_name || '',
+    bride_name: brideName,
+    groom_name: groomName,
     venue_name: lead.venue_name || 'your venue',
     wedding_date: lead.wedding_date || '',
     wedding_day: getWeddingDay(lead.wedding_date),
     show_name: getShowName(lead.show_id),
   };
 
-  const coupleName = lead.groom_name
-    ? `${lead.bride_name} & ${lead.groom_name}`
-    : lead.bride_name;
+  const coupleName = groomName
+    ? `${brideName} & ${groomName}`
+    : brideName;
 
   return (
     <div className="min-h-screen bg-background">
@@ -136,8 +141,8 @@ export default function ComposeEmailPage() {
       <main className="max-w-3xl mx-auto px-4 py-6">
         <div className="bg-card rounded-lg border p-6">
           <EmailComposer
-            to={lead.email}
-            recipientName={lead.bride_name}
+            to={lead.email || ''}
+            recipientName={brideName}
             templateCategory="chase"
             templateContext={templateContext}
             leadId={lead.id}
