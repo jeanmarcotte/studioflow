@@ -30,7 +30,7 @@ export function OutcomeButtons({ lead, onUpdate }: OutcomeButtonsProps) {
           onClick={() => setShowBookedModal(true)}
         >
           <Calendar className="w-4 h-4 mr-2" />
-          Booked!
+          Make Appt!
         </Button>
         <Button
           variant="destructive"
