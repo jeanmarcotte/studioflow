@@ -47,7 +47,7 @@ interface BookedModalProps {
 
 export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModalProps) {
   const [appointmentDate, setAppointmentDate] = useState('');
-  const [appointmentTime, setAppointmentTime] = useState('14:00');
+  const [appointmentTime, setAppointmentTime] = useState('18:00');
   const [saving, setSaving] = useState(false);
 
   const handleBook = async () => {
