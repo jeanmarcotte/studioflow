@@ -111,12 +111,12 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
           <div className="space-y-2">
             <Label>Time</Label>
             <Select value={appointmentTime} onValueChange={(v) => setAppointmentTime(v || '14:00')}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-white border-gray-200">
                 <SelectValue placeholder="Select time" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white border border-gray-200 shadow-lg max-h-60">
                 {timeSlots.map((slot) => (
-                  <SelectItem key={slot.value} value={slot.value}>
+                  <SelectItem key={slot.value} value={slot.value} className="text-gray-900 cursor-pointer">
                     {slot.label}
                   </SelectItem>
                 ))}
@@ -135,7 +135,7 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
             ) : (
               <Calendar className="w-4 h-4 mr-2" />
             )}
-            Book Appointment
+            Make Appt!
           </Button>
         </div>
       </DialogContent>
