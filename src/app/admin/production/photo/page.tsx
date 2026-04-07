@@ -88,6 +88,15 @@ const getVendorInfo = (vendor: string | null) => {
   }
 }
 
+const DONE_EDITING_STATUSES = [
+  'completed',
+  'proofs_delivered',
+  'at_lab',
+  'at_studio',
+  'picked_up',
+  'waiting_approval',
+]
+
 const LANES = [
   { key: 'not_started', label: 'Ready to Start', badge: 'bg-gray-100 text-gray-700' },
   { key: 'in_progress', label: 'In Progress', badge: 'bg-blue-100 text-blue-700' },
@@ -178,11 +187,11 @@ export default function PhotoProductionPage() {
         supabase
           .from('couples')
           .select('id, couple_name, wedding_date'),
-        // Completed count
+        // Completed count (all done-editing statuses)
         supabase
           .from('jobs')
           .select('id', { count: 'exact', head: true })
-          .in('status', ['completed', 'picked_up']),
+          .in('status', DONE_EDITING_STATUSES),
         // Waiting for order (past weddings without photo order)
         supabase
           .from('couples')
@@ -197,12 +206,12 @@ export default function PhotoProductionPage() {
         // Photos progress (all jobs including completed for true progress + YTD)
         supabase
           .from('jobs')
-          .select('job_type, edited_so_far, photos_taken, total_proofs'),
-        // Cemetery — completed & picked up jobs
+          .select('job_type, edited_so_far, photos_taken, total_proofs, status'),
+        // Cemetery — done editing jobs
         supabase
           .from('jobs')
           .select('*')
-          .in('status', ['completed', 'picked_up'])
+          .in('status', DONE_EDITING_STATUSES)
           .order('created_at', { ascending: false }),
       ])
 
@@ -243,11 +252,12 @@ export default function PhotoProductionPage() {
         setTotalPhotos(taken)
         setTotalProofsAll(proofs)
 
-        // YTD row uses ONLY proofs-type jobs
+        // YTD row uses ONLY proofs-type jobs that are NOT done editing
         const proofsOnly = photosRes.data.filter((r: any) => r.job_type && r.job_type.toLowerCase().includes('proofs'))
-        const ytdEdited = proofsOnly.reduce((sum, r: any) => sum + (r.edited_so_far || 0), 0)
-        const ytdTaken = proofsOnly.reduce((sum, r: any) => sum + (r.photos_taken || 0), 0)
-        const ytdProofs = proofsOnly.reduce((sum, r: any) => sum + (r.total_proofs || 0), 0)
+        const activeProofs = proofsOnly.filter((r: any) => !DONE_EDITING_STATUSES.includes(r.status))
+        const ytdEdited = activeProofs.reduce((sum, r: any) => sum + (r.edited_so_far || 0), 0)
+        const ytdTaken = activeProofs.reduce((sum, r: any) => sum + (r.photos_taken || 0), 0)
+        const ytdProofs = activeProofs.reduce((sum, r: any) => sum + (r.total_proofs || 0), 0)
         setYtdData({ photos_taken: ytdTaken, edited_so_far: ytdEdited, total_proofs: ytdProofs })
       }
 
@@ -811,7 +821,7 @@ export default function PhotoProductionPage() {
                         const pt = job.photos_taken || 0
                         const esf = job.edited_so_far || 0
                         const tp = job.total_proofs || 0
-                        const isCompleted = job.status === 'completed' || job.status === 'picked_up'
+                        const isCompleted = DONE_EDITING_STATUSES.includes(job.status)
                         const remaining = isCompleted ? 0 : Math.max(0, tp > 0 ? tp - esf : pt - esf)
                         const deleted = tp > 0 ? pt - tp : 0
                         const pctDeleted = deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null
