@@ -121,8 +121,8 @@ export default function LeadsPage() {
           (l.groom_first_name || '').toLowerCase().includes(q) ||
           (l.groom_last_name || '').toLowerCase().includes(q) ||
           (l.venue_name || '').toLowerCase().includes(q) ||
-          ((l as any).phone || '').toLowerCase().includes(q) ||
-          ((l as any).email || '').toLowerCase().includes(q)
+          (l.cell_phone || '').toLowerCase().includes(q) ||
+          (l.email || '').toLowerCase().includes(q)
         )
         if (!match) return false
       }
