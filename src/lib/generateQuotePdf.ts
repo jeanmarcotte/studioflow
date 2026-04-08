@@ -428,7 +428,10 @@ export async function generateQuotePdf(data: QuotePdfData, options?: { returnBas
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
   doc.setTextColor(...COLORS.dark)
-  doc.text(`${data.packageName} — ${data.packageHours} hours`, margin, y)
+  const totalHours = (data.packageHours || 0) + (data.extraHours || 0)
+  doc.text(data.packageName, margin, y)
+  y += 7
+  doc.text(`Total Hours: ${totalHours}`, margin, y)
   y += 7
 
   // Features in 2 columns
@@ -436,11 +439,15 @@ export async function generateQuotePdf(data: QuotePdfData, options?: { returnBas
   doc.setFontSize(7.5)
   doc.setTextColor(...COLORS.body)
   const midCol = margin + contentWidth / 2
-  const half = Math.ceil(data.packageFeatures.length / 2)
+  // Replace base hours with total hours in features
+  const features = data.packageFeatures.map(f =>
+    f.replace(/Up to \d+ hours of coverage/, `Up to ${totalHours} hours of coverage`)
+  )
+  const half = Math.ceil(features.length / 2)
   for (let i = 0; i < half; i++) {
     checkPageBreak(5)
-    const left = data.packageFeatures[i]
-    const right = data.packageFeatures[i + half]
+    const left = features[i]
+    const right = features[i + half]
     if (left) doc.text(`• ${left}`, margin + 2, y)
     if (right) doc.text(`• ${right}`, midCol, y)
     y += featureLineH
@@ -588,7 +595,7 @@ export async function generateQuotePdf(data: QuotePdfData, options?: { returnBas
 
   // Line items — ordered per pricing summary spec
   const lines: Array<{ label: string; amount: number; show: boolean }> = [
-    { label: `${data.packageName} (${data.packageHours}hr)`, amount: data.pricing.basePrice, show: true },
+    { label: `${data.packageName} (${(data.packageHours || 0) + (data.extraHours || 0)}hr)`, amount: data.pricing.basePrice, show: true },
     { label: `Extra coverage: ${data.extraHours} hrs`, amount: data.pricing.extraHoursPrice, show: data.pricing.extraHoursPrice > 0 },
     { label: 'Split Morning Team (4th team member, 2 hrs)', amount: data.pricing.splitMorningTeamPrice, show: data.pricing.splitMorningTeamPrice > 0 },
     { label: 'Extra Photographer', amount: data.pricing.extraPhotographerPrice, show: data.pricing.extraPhotographerPrice > 0 },
