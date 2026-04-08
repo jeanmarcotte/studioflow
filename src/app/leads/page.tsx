@@ -300,7 +300,7 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className={`${nunito.className} h-screen flex bg-slate-50 dark:bg-slate-950`}>
+    <div className={`${nunito.className} h-[100dvh] flex bg-slate-50 dark:bg-slate-950`}>
       {/* Sidebar — full viewport height, starts at top */}
       <SafeSection name="FilterSidebar">
         <FilterSidebar
@@ -339,7 +339,7 @@ export default function LeadsPage() {
 
         {/* Main panel — floating card */}
         <div className="flex-1 p-3 min-h-0">
-          <div className="h-full bg-white dark:bg-slate-900 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 overflow-hidden flex flex-col">
+          <div className="h-full bg-white dark:bg-slate-900 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 overflow-y-auto flex flex-col">
             <SafeSection name="LeadGridArea">
               <LeadGridArea
                 leads={filteredLeads}
