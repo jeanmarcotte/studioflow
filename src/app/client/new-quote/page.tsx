@@ -2474,6 +2474,48 @@ function QuoteBuilderInner() {
             <textarea {...register('notes')} rows={3} placeholder="Special requests, vision for the day, additional details..." className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring resize-none" />
           </div>
 
+          {/* Apply Discounts */}
+          <div className="bg-background rounded border border-border p-6">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4">Apply Discounts</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">Discount 1</label>
+                <div className="flex items-center gap-2">
+                  <select
+                    {...register('discountType')}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setValue('discountType', value as any)
+                      if (value === 'percent') setValue('discountAmount', 50)
+                    }}
+                    className="px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring"
+                  >
+                    <option value="none">None</option>
+                    <option value="percent">%</option>
+                    <option value="flat">$</option>
+                  </select>
+                  {watchedValues.discountType !== 'none' && (
+                    <input
+                      type="number"
+                      {...register('discountAmount', { valueAsNumber: true })}
+                      placeholder={watchedValues.discountType === 'percent' ? '50' : '500'}
+                      className="w-24 px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring"
+                    />
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">Discount 2 (flat $)</label>
+                <input
+                  type="number"
+                  {...register('discount2Amount', { valueAsNumber: true })}
+                  placeholder="0"
+                  className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Pricing Summary */}
           <div className="bg-primary text-primary-foreground rounded p-6">
             <h2 className="text-sm font-semibold uppercase tracking-wide mb-4 flex items-center gap-2">
@@ -2592,60 +2634,23 @@ function QuoteBuilderInner() {
                   <span className="font-mono">${pricing.subtotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                 </div>
                 
-                {/* Discount Controls - inside pricing summary */}
-                <div className="flex justify-between items-center mt-2 py-2 border-y border-border/50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Discount 1</span>
-                    <select 
-                      {...register('discountType')}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        setValue('discountType', value as any)
-                        // Prefill 50% when % is selected
-                        if (value === 'percent') {
-                          setValue('discountAmount', 50)
-                        }
-                      }}
-                      className="px-2 py-1 text-xs bg-primary/80 border border-border/50 rounded text-primary-foreground focus:outline-none"
-                    >
-                      <option value="none">—</option>
-                      <option value="percent">%</option>
-                      <option value="flat">$</option>
-                    </select>
-                    {watchedValues.discountType !== 'none' && (
-                      <input
-                        type="number"
-                        {...register('discountAmount', { valueAsNumber: true })}
-                        placeholder={watchedValues.discountType === 'percent' ? '10' : '500'}
-                        className="w-20 px-2 py-1 text-xs bg-background border border-ring rounded text-foreground focus:outline-none"
-                      />
-                    )}
+                {/* Discount 1 — read-only display */}
+                {pricing.discount > 0 && (
+                  <div className="flex justify-between mt-2">
+                    <span className="text-red-400">
+                      Discount{watchedValues.discountType === 'percent' ? ` (${watchedValues.discountAmount}%)` : ''}
+                    </span>
+                    <span className="font-mono text-red-400">-${pricing.discount.toLocaleString()}</span>
                   </div>
-                  <span className={`font-mono ${watchedValues.discountAmount && watchedValues.discountType !== 'none' ? 'text-red-400' : 'text-muted-foreground'}`}>
-                    {watchedValues.discountAmount && watchedValues.discountType !== 'none'
-                      ? watchedValues.discountType === 'percent'
-                        ? `-${watchedValues.discountAmount}%`
-                        : `-$${watchedValues.discountAmount.toLocaleString()}`
-                      : '$0'}
-                  </span>
-                </div>
-                
-                {/* Discount 2 - Always flat $ */}
-                <div className="flex justify-between items-center py-2 border-b border-border/50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Discount 2</span>
-                    <span className="text-muted-foreground text-xs">$</span>
-                    <input
-                      type="number"
-                      {...register('discount2Amount', { valueAsNumber: true })}
-                      placeholder="0"
-                      className="w-20 px-2 py-1 text-xs bg-background border border-ring rounded text-foreground focus:outline-none"
-                    />
+                )}
+
+                {/* Discount 2 — read-only display */}
+                {(watchedValues.discount2Amount || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-red-400">Discount 2</span>
+                    <span className="font-mono text-red-400">-${watchedValues.discount2Amount?.toLocaleString()}</span>
                   </div>
-                  <span className={`font-mono ${(watchedValues.discount2Amount || 0) > 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
-                    {(watchedValues.discount2Amount || 0) > 0 ? `-$${watchedValues.discount2Amount?.toLocaleString()}` : '$0'}
-                  </span>
-                </div>
+                )}
                 
                 <div className="flex justify-between text-muted-foreground mt-2">
                   <span>HST (13%)</span>
@@ -2821,6 +2826,7 @@ function QuoteBuilderInner() {
                     discount_type: watchedValues.discountType === 'none' ? null : watchedValues.discountType,
                     discount_value: watchedValues.discountAmount || null,
                     discount_amount: pricing.discount,
+                    discount_2_amount: watchedValues.discount2Amount || null,
                     subtotal: pricing.subtotal,
                     hst_amount: pricing.hst,
                     total: pricing.total,
@@ -2832,11 +2838,16 @@ function QuoteBuilderInner() {
 
                   if (clientQuoteId || savedQuoteId) {
                     // Update existing client_quotes record
-                    await fetch('/api/client/quotes', {
+                    const res = await fetch('/api/client/quotes', {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ id: clientQuoteId || savedQuoteId, ...quotePayload }),
                     })
+                    if (!res.ok) {
+                      const err = await res.json().catch(() => ({ error: 'Save failed' }))
+                      console.error('[Download PDF] Save failed:', err)
+                      alert('Failed to save quote: ' + (err.error || 'Unknown error'))
+                    }
                   } else {
                     // Insert new (or upsert by ballot_id)
                     const res = await fetch('/api/client/quotes', {
@@ -2848,11 +2859,18 @@ function QuoteBuilderInner() {
                         show_id: ballotShowId || null,
                       }),
                     })
-                    const result = await res.json().catch(() => null)
-                    if (result?.id) setSavedQuoteId(result.id)
+                    if (!res.ok) {
+                      const err = await res.json().catch(() => ({ error: 'Save failed' }))
+                      console.error('[Download PDF] Save failed:', err)
+                      alert('Failed to save quote: ' + (err.error || 'Unknown error'))
+                    } else {
+                      const result = await res.json().catch(() => null)
+                      if (result?.id) setSavedQuoteId(result.id)
+                    }
                   }
                 } catch (err) {
                   console.error('[Download PDF] Failed to save quote:', err)
+                  alert('Failed to save quote. PDF will still download.')
                 }
 
                 // Generate and download PDF
