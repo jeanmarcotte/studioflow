@@ -2597,7 +2597,7 @@ function QuoteBuilderInner() {
               </div>
 
               {/* Discount Controls — inside dark box */}
-              <div data-dark-panel className="bg-slate-700/50 rounded-lg p-4 my-3">
+              <div data-dark-panel className="bg-slate-700/50 rounded-lg p-4 my-3" style={{ ['--background' as string]: '#475569', ['--input' as string]: '#64748b' }}>
                 <div className="text-sm text-slate-400 mb-3">Apply Discount</div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
