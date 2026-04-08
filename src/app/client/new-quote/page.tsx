@@ -379,10 +379,10 @@ const PACKAGE_PORTRAITS: Record<string, Record<string, number>> = {
 
 // Show ID → Lead Source mapping for BridalFlow integration
 const SHOW_ID_TO_LEAD_SOURCE: Record<string, string> = {
-  'modern-feb-2026': 'MBS Winter 2026',
-  'weddingring-oakville-mar-2026': 'OBS Mar 2026',
-  'weddingring-newmarket-mar-2026': 'NBS Mar 2026',
-  'hamilton-ring-mar-2026': 'Hamilton Ring Mar 2026',
+  'modern-feb-2026': 'Modern Bridal Show - Winter 2026',
+  'weddingring-oakville-mar-2026': 'The Ring Oakville - Winter 2026',
+  'weddingring-newmarket-mar-2026': 'The Ring Newmarket - Winter 2026',
+  'hamilton-ring-mar-2026': 'The Ring Hamilton - Winter 2026',
   'referral': 'Referral',
 }
 
