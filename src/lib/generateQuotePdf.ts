@@ -431,8 +431,6 @@ export async function generateQuotePdf(data: QuotePdfData, options?: { returnBas
   const totalHours = (data.packageHours || 0) + (data.extraHours || 0)
   doc.text(data.packageName, margin, y)
   y += 7
-  doc.text(`Total Hours: ${totalHours}`, margin, y)
-  y += 7
 
   // Features in 2 columns
   doc.setFont('helvetica', 'normal')
