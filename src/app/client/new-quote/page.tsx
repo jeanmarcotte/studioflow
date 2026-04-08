@@ -2491,204 +2491,201 @@ function QuoteBuilderInner() {
             <textarea {...register('notes')} rows={3} placeholder="Special requests, vision for the day, additional details..." className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring resize-none" />
           </div>
 
-          {/* Pricing Summary — Premium Dark */}
-          <div className="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700">
-            <div className="flex items-center gap-2 mb-6">
-              <DollarSign className="w-5 h-5 text-emerald-400" />
-              <h3 className="text-lg font-bold text-white tracking-wide">PRICING SUMMARY</h3>
-            </div>
+          {/* Pricing Summary */}
+          <div className="bg-background rounded border border-border p-6">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-emerald-500" />
+              Pricing Summary
+            </h2>
 
-            <div className="space-y-3 text-sm">
+            <div className="space-y-2 text-sm">
               {/* Package */}
-              <div className="flex justify-between items-center py-2">
+              <div className="flex justify-between items-center py-1">
                 <div>
-                  <span className="text-white font-medium">{PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.name}</span>
-                  <span className="text-slate-400 text-sm ml-2">({PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours}hr, {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.photographers}P{(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers || 0) > 0 ? ` + ${PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers}V` : ''})</span>
+                  <span className="text-foreground font-medium">{PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.name}</span>
+                  <span className="text-muted-foreground text-sm ml-2">({PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours}hr, {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.photographers}P{(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers || 0) > 0 ? ` + ${PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers}V` : ''})</span>
                 </div>
-                <span className="font-mono text-white">${pricing.basePrice.toLocaleString()}</span>
+                <span className="font-mono text-foreground">${pricing.basePrice.toLocaleString()}</span>
               </div>
 
               {/* Extra coverage */}
               {pricing.extraHoursPrice > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-slate-300">Extra coverage: {watchedValues.extraHours} hrs</span>
-                  <span className="font-mono text-slate-300">${pricing.extraHoursPrice.toLocaleString()}</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-muted-foreground">Extra coverage: {watchedValues.extraHours} hrs</span>
+                  <span className="font-mono text-muted-foreground">${pricing.extraHoursPrice.toLocaleString()}</span>
                 </div>
               )}
 
               {/* Split Morning Team */}
               {pricing.splitMorningTeamPrice > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-slate-300">Split Morning Team</span>
-                  <span className="font-mono text-slate-300">${pricing.splitMorningTeamPrice.toLocaleString()}</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-muted-foreground">Split Morning Team</span>
+                  <span className="font-mono text-muted-foreground">${pricing.splitMorningTeamPrice.toLocaleString()}</span>
                 </div>
               )}
 
               {/* Extra Photographer */}
               {pricing.extraPhotographerPrice > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-slate-300">Extra Photographer</span>
-                  <span className="font-mono text-slate-300">${pricing.extraPhotographerPrice.toLocaleString()}</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-muted-foreground">Extra Photographer</span>
+                  <span className="font-mono text-muted-foreground">${pricing.extraPhotographerPrice.toLocaleString()}</span>
                 </div>
               )}
 
               {/* Wedding Album — paid */}
               {pricing.albumPrice > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-slate-300">Wedding Album ({watchedValues.albumSize === '10x8' ? '10"×8"' : '14"×11"'} {watchedValues.albumType})</span>
-                  <span className="font-mono text-slate-300">${pricing.albumPrice.toLocaleString()}</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-muted-foreground">Wedding Album ({watchedValues.albumSize === '10x8' ? '10"×8"' : '14"×11"'} {watchedValues.albumType})</span>
+                  <span className="font-mono text-muted-foreground">${pricing.albumPrice.toLocaleString()}</span>
                 </div>
               )}
 
               {/* Wedding Album — included */}
               {albumIncluded && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-emerald-400">28×11 Premium Album (included)</span>
-                  <span className="font-mono text-emerald-400">$0</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-emerald-600 dark:text-emerald-400">28×11 Premium Album (included)</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400">$0</span>
                 </div>
               )}
 
               {/* Acrylic Cover */}
               {pricing.acrylicCoverPrice > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-slate-300">Acrylic Cover Upgrade</span>
-                  <span className="font-mono text-slate-300">${pricing.acrylicCoverPrice.toLocaleString()}</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-muted-foreground">Acrylic Cover Upgrade</span>
+                  <span className="font-mono text-muted-foreground">${pricing.acrylicCoverPrice.toLocaleString()}</span>
                 </div>
               )}
 
               {/* Parent Albums — paid */}
               {pricing.parentAlbumsPrice > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-slate-300">Parent Albums ({watchedValues.parentAlbumQty})</span>
-                  <span className="font-mono text-slate-300">${pricing.parentAlbumsPrice.toLocaleString()}</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-muted-foreground">Parent Albums ({watchedValues.parentAlbumQty})</span>
+                  <span className="font-mono text-muted-foreground">${pricing.parentAlbumsPrice.toLocaleString()}</span>
                 </div>
               )}
 
               {/* Parent Albums — included */}
               {parentAlbumsIncluded === 'free' && (watchedValues.parentAlbumQty || 0) > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-emerald-400">Parent Albums ({watchedValues.parentAlbumQty}) — included</span>
-                  <span className="font-mono text-emerald-400">$0</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-emerald-600 dark:text-emerald-400">Parent Albums ({watchedValues.parentAlbumQty}) — included</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400">$0</span>
                 </div>
               )}
 
               {/* Thank You Cards */}
               {pricing.thankYouCardsPrice > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-slate-300">Thank You Cards ({thankYouCardQty})</span>
-                  <span className="font-mono text-slate-300">${pricing.thankYouCardsPrice.toLocaleString()}</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-muted-foreground">Thank You Cards ({thankYouCardQty})</span>
+                  <span className="font-mono text-muted-foreground">${pricing.thankYouCardsPrice.toLocaleString()}</span>
                 </div>
               )}
 
               {/* Additional Prints */}
               {pricing.printsPrice > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-slate-300">Additional Prints</span>
-                  <span className="font-mono text-slate-300">${pricing.printsPrice.toLocaleString()}</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-muted-foreground">Additional Prints</span>
+                  <span className="font-mono text-muted-foreground">${pricing.printsPrice.toLocaleString()}</span>
                 </div>
               )}
 
               {/* Prints — included */}
               {printsIncluded === 'free' && printsTotal > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-emerald-400">Prints — included</span>
-                  <span className="font-mono text-emerald-400">$0</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-emerald-600 dark:text-emerald-400">Prints — included</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400">$0</span>
                 </div>
               )}
 
               {/* Bride's Choice Location */}
               {pricing.locationFee > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-slate-300">Bride's Choice Location</span>
-                  <span className="font-mono text-slate-300">${pricing.locationFee.toLocaleString()}</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-muted-foreground">Bride's Choice Location</span>
+                  <span className="font-mono text-muted-foreground">${pricing.locationFee.toLocaleString()}</span>
                 </div>
               )}
 
-              {/* Divider */}
-              <div className="border-t border-slate-600 my-4" />
+              <div className="border-t border-border pt-3 mt-3">
+                {/* Subtotal */}
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-foreground font-medium">Subtotal</span>
+                  <span className="font-mono text-foreground">${pricing.subtotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                </div>
 
-              {/* Subtotal */}
-              <div className="flex justify-between items-center py-2">
-                <span className="text-white font-medium">Subtotal</span>
-                <span className="font-mono text-white">${pricing.subtotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-              </div>
-
-              {/* Discount Controls — inside dark box */}
-              <div data-dark-panel className="bg-slate-700/50 rounded-lg p-4 my-3" style={{ ['--background' as string]: '#475569', ['--input' as string]: '#64748b' }}>
-                <div className="text-sm text-slate-400 mb-3">Apply Discount</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <select
-                      {...register('discountType')}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        setValue('discountType', value as any)
-                        if (value === 'percent') setValue('discountAmount', 50)
-                      }}
-                      className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
-                    >
-                      <option value="none">No discount</option>
-                      <option value="percent">Percentage (%)</option>
-                      <option value="flat">Flat amount ($)</option>
-                    </select>
-                  </div>
-                  {watchedValues.discountType !== 'none' && (
-                    <div className="relative">
-                      <input
-                        type="number"
-                        {...register('discountAmount', { valueAsNumber: true })}
-                        placeholder={watchedValues.discountType === 'percent' ? '50' : '500'}
+                {/* Discount Controls */}
+                <div className="bg-muted/50 rounded-lg p-4 my-3">
+                  <div className="text-sm text-muted-foreground mb-3">Apply Discount</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <select
+                        {...register('discountType')}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setValue('discountType', value as any)
+                          if (value === 'percent') setValue('discountAmount', 50)
+                        }}
                         className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
-                      />
-                      <span className="absolute right-3 top-2.5 text-slate-400 text-sm">
-                        {watchedValues.discountType === 'percent' ? '%' : '$'}
-                      </span>
+                      >
+                        <option value="none">No discount</option>
+                        <option value="percent">Percentage (%)</option>
+                        <option value="flat">Flat amount ($)</option>
+                      </select>
                     </div>
-                  )}
+                    {watchedValues.discountType !== 'none' && (
+                      <div className="relative">
+                        <input
+                          type="number"
+                          {...register('discountAmount', { valueAsNumber: true })}
+                          placeholder={watchedValues.discountType === 'percent' ? '50' : '500'}
+                          className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
+                        />
+                        <span className="absolute right-3 top-2.5 text-muted-foreground text-sm">
+                          {watchedValues.discountType === 'percent' ? '%' : '$'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {/* Discount 2 — flat */}
+                  <div className="mt-3">
+                    <div className="text-xs text-muted-foreground mb-1">Discount 2 (flat $)</div>
+                    <input
+                      type="number"
+                      {...register('discount2Amount', { valueAsNumber: true })}
+                      placeholder="0"
+                      className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
+                    />
+                  </div>
                 </div>
-                {/* Discount 2 — flat */}
-                <div className="mt-3">
-                  <div className="text-xs text-slate-400 mb-1">Discount 2 (flat $)</div>
-                  <input
-                    type="number"
-                    {...register('discount2Amount', { valueAsNumber: true })}
-                    placeholder="0"
-                    className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
-                  />
+
+                {/* Discount Display — RED */}
+                {pricing.discount > 0 && (
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-red-600 dark:text-red-400">
+                      Discount{watchedValues.discountType === 'percent' ? ` (${watchedValues.discountAmount}%)` : ''}
+                    </span>
+                    <span className="font-mono text-red-600 dark:text-red-400">-${pricing.discount.toLocaleString()}</span>
+                  </div>
+                )}
+
+                {/* Discount 2 Display — RED */}
+                {(watchedValues.discount2Amount || 0) > 0 && (
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-red-600 dark:text-red-400">Discount 2</span>
+                    <span className="font-mono text-red-600 dark:text-red-400">-${(watchedValues.discount2Amount || 0).toLocaleString()}</span>
+                  </div>
+                )}
+
+                {/* HST */}
+                <div className="flex justify-between items-center text-muted-foreground py-1 mt-2">
+                  <span>HST (13%)</span>
+                  <span className="font-mono">${pricing.hst.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-              </div>
 
-              {/* Discount Display — RED */}
-              {pricing.discount > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-red-400">
-                    Discount{watchedValues.discountType === 'percent' ? ` (${watchedValues.discountAmount}%)` : ''}
-                  </span>
-                  <span className="font-mono text-red-400">-${pricing.discount.toLocaleString()}</span>
+                <div className="border-t border-border mt-3 pt-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-bold text-foreground">TOTAL</span>
+                    <span className="text-2xl font-mono font-bold text-emerald-600 dark:text-emerald-400">${pricing.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
                 </div>
-              )}
-
-              {/* Discount 2 Display — RED */}
-              {(watchedValues.discount2Amount || 0) > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-red-400">Discount 2</span>
-                  <span className="font-mono text-red-400">-${(watchedValues.discount2Amount || 0).toLocaleString()}</span>
-                </div>
-              )}
-
-              {/* HST */}
-              <div className="flex justify-between items-center py-2">
-                <span className="text-slate-400">HST (13%)</span>
-                <span className="font-mono text-slate-400">${pricing.hst.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-
-              {/* Final Divider */}
-              <div className="border-t-2 border-slate-500 my-4" />
-
-              {/* TOTAL — Premium */}
-              <div className="flex justify-between items-center py-3">
-                <span className="text-xl font-bold text-white">TOTAL</span>
-                <span className="text-3xl font-mono font-bold text-amber-400">${pricing.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>
