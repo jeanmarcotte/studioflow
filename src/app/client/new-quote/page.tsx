@@ -2597,7 +2597,7 @@ function QuoteBuilderInner() {
               </div>
 
               {/* Discount Controls — inside dark box */}
-              <div className="bg-slate-700/50 rounded-lg p-4 my-3">
+              <div data-dark-panel className="bg-slate-700/50 rounded-lg p-4 my-3">
                 <div className="text-sm text-slate-400 mb-3">Apply Discount</div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -2608,7 +2608,7 @@ function QuoteBuilderInner() {
                         setValue('discountType', value as any)
                         if (value === 'percent') setValue('discountAmount', 50)
                       }}
-                      className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none [&]:!bg-slate-600 [&]:!border-slate-500 [&]:!text-white"
+                      className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
                     >
                       <option value="none">No discount</option>
                       <option value="percent">Percentage (%)</option>
@@ -2621,7 +2621,7 @@ function QuoteBuilderInner() {
                         type="number"
                         {...register('discountAmount', { valueAsNumber: true })}
                         placeholder={watchedValues.discountType === 'percent' ? '50' : '500'}
-                        className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none [&]:!bg-slate-600 [&]:!border-slate-500 [&]:!text-white"
+                        className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
                       />
                       <span className="absolute right-3 top-2.5 text-slate-400 text-sm">
                         {watchedValues.discountType === 'percent' ? '%' : '$'}
@@ -2636,7 +2636,7 @@ function QuoteBuilderInner() {
                     type="number"
                     {...register('discount2Amount', { valueAsNumber: true })}
                     placeholder="0"
-                    className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none [&]:!bg-slate-600 [&]:!border-slate-500 [&]:!text-white"
+                    className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
                   />
                 </div>
               </div>
