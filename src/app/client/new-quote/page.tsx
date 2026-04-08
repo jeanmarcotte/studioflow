@@ -745,6 +745,22 @@ function QuoteBuilderInner() {
           setValue('engagementLocation', loc?.value || q.engagement_location)
         }
 
+        // Lead source — derive from ballot if empty
+        if (!q.lead_source && q.ballot_id) {
+          try {
+            const ballotRes = await fetch(`/api/client/quotes/prefill?ballot_id=${q.ballot_id}`)
+            if (ballotRes.ok) {
+              const ballot = await ballotRes.json()
+              if (ballot.show_id) {
+                const derived = SHOW_ID_TO_LEAD_SOURCE[ballot.show_id] || ballot.show_id
+                setValue('leadSource', derived)
+                setBallotId(q.ballot_id)
+                setBallotShowId(ballot.show_id)
+              }
+            }
+          } catch { /* best effort */ }
+        }
+
         // Discount
         if (q.discount_type) {
           setValue('discountType', q.discount_type)
