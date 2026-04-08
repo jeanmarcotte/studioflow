@@ -2608,8 +2608,7 @@ function QuoteBuilderInner() {
                         setValue('discountType', value as any)
                         if (value === 'percent') setValue('discountAmount', 50)
                       }}
-                      className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
-                      style={{ backgroundColor: '#475569', borderColor: '#64748b', color: '#ffffff' }}
+                      className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none [&]:!bg-slate-600 [&]:!border-slate-500 [&]:!text-white"
                     >
                       <option value="none">No discount</option>
                       <option value="percent">Percentage (%)</option>
@@ -2622,8 +2621,7 @@ function QuoteBuilderInner() {
                         type="number"
                         {...register('discountAmount', { valueAsNumber: true })}
                         placeholder={watchedValues.discountType === 'percent' ? '50' : '500'}
-                        className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
-                        style={{ backgroundColor: '#475569', borderColor: '#64748b', color: '#ffffff' }}
+                        className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none [&]:!bg-slate-600 [&]:!border-slate-500 [&]:!text-white"
                       />
                       <span className="absolute right-3 top-2.5 text-slate-400 text-sm">
                         {watchedValues.discountType === 'percent' ? '%' : '$'}
@@ -2638,8 +2636,7 @@ function QuoteBuilderInner() {
                     type="number"
                     {...register('discount2Amount', { valueAsNumber: true })}
                     placeholder="0"
-                    className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
-                    style={{ backgroundColor: '#475569', borderColor: '#64748b', color: '#ffffff' }}
+                    className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none [&]:!bg-slate-600 [&]:!border-slate-500 [&]:!text-white"
                   />
                 </div>
               </div>
