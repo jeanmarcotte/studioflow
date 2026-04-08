@@ -87,6 +87,7 @@ export async function POST(request: Request) {
           .update({
             ...buildQuoteFields(body),
             ballot_id: ballotId,
+            updated_at: new Date().toISOString(),
             pdf_downloaded_at: new Date().toISOString(),
             pdf_download_count: (existingQuote.pdf_download_count || 0) + 1,
           })
@@ -253,6 +254,7 @@ export async function PATCH(request: Request) {
       .from('client_quotes')
       .update({
         ...buildQuoteFields(body),
+        updated_at: new Date().toISOString(),
         pdf_downloaded_at: new Date().toISOString(),
         pdf_download_count: body.pdf_download_count || 1,
       })

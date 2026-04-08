@@ -2608,7 +2608,8 @@ function QuoteBuilderInner() {
                         setValue('discountType', value as any)
                         if (value === 'percent') setValue('discountAmount', 50)
                       }}
-                      className="w-full h-10 px-3 bg-slate-600 border border-slate-500 rounded-lg text-white text-sm focus:outline-none"
+                      className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
+                      style={{ backgroundColor: '#475569', borderColor: '#64748b', color: '#ffffff' }}
                     >
                       <option value="none">No discount</option>
                       <option value="percent">Percentage (%)</option>
@@ -2621,7 +2622,8 @@ function QuoteBuilderInner() {
                         type="number"
                         {...register('discountAmount', { valueAsNumber: true })}
                         placeholder={watchedValues.discountType === 'percent' ? '50' : '500'}
-                        className="w-full h-10 px-3 bg-slate-600 border border-slate-500 rounded-lg text-white text-sm focus:outline-none"
+                        className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
+                        style={{ backgroundColor: '#475569', borderColor: '#64748b', color: '#ffffff' }}
                       />
                       <span className="absolute right-3 top-2.5 text-slate-400 text-sm">
                         {watchedValues.discountType === 'percent' ? '%' : '$'}
@@ -2636,7 +2638,8 @@ function QuoteBuilderInner() {
                     type="number"
                     {...register('discount2Amount', { valueAsNumber: true })}
                     placeholder="0"
-                    className="w-full h-10 px-3 bg-slate-600 border border-slate-500 rounded-lg text-white text-sm focus:outline-none"
+                    className="w-full h-10 px-3 rounded-lg text-sm focus:outline-none"
+                    style={{ backgroundColor: '#475569', borderColor: '#64748b', color: '#ffffff' }}
                   />
                 </div>
               </div>
