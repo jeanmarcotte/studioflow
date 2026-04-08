@@ -112,7 +112,7 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
               <SelectTrigger className="bg-[#faf8f5] border-[#0d4f4f]/20 text-[#0d4f4f] h-12 text-base">
                 <SelectValue placeholder="Select time" />
               </SelectTrigger>
-              <SelectContent className="bg-[#faf8f5] border border-[#0d4f4f]/20 shadow-lg max-h-60">
+              <SelectContent alignItemWithTrigger={false} className="bg-[#faf8f5] border border-[#0d4f4f]/20 shadow-lg max-h-60">
                 {timeSlots.map((slot) => (
                   <SelectItem key={slot.value} value={slot.value} className="text-[#0d4f4f] cursor-pointer text-base py-2">
                     {slot.label}
