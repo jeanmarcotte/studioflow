@@ -8,16 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-// Generate time slots from 9 AM to 8 PM in 15-min increments
+// Generate time slots from 09:00 to 21:00 in 30-min increments (24h format)
 const timeSlots = (() => {
   const slots: { value: string; label: string }[] = [];
-  for (let hour = 9; hour <= 20; hour++) {
-    for (let min = 0; min < 60; min += 15) {
-      const h = hour % 12 || 12;
-      const ampm = hour < 12 ? 'AM' : 'PM';
-      const label = `${h}:${min.toString().padStart(2, '0')} ${ampm}`;
+  for (let hour = 9; hour <= 21; hour++) {
+    for (let min = 0; min < 60; min += 30) {
+      if (hour === 21 && min > 0) break;
       const value = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-      slots.push({ value, label });
+      slots.push({ value, label: value });
     }
   }
   return slots;
@@ -110,13 +108,13 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
 
           <div className="space-y-2">
             <Label>Time</Label>
-            <Select value={appointmentTime} onValueChange={(v) => setAppointmentTime(v || '14:00')}>
-              <SelectTrigger className="bg-white border-gray-200">
+            <Select value={appointmentTime} onValueChange={(v) => setAppointmentTime(v || '18:00')}>
+              <SelectTrigger className="bg-[#faf8f5] border-[#0d4f4f]/20 text-[#0d4f4f] h-12 text-base">
                 <SelectValue placeholder="Select time" />
               </SelectTrigger>
-              <SelectContent className="bg-white border border-gray-200 shadow-lg max-h-60">
+              <SelectContent className="bg-[#faf8f5] border border-[#0d4f4f]/20 shadow-lg max-h-60">
                 {timeSlots.map((slot) => (
-                  <SelectItem key={slot.value} value={slot.value} className="text-gray-900 cursor-pointer">
+                  <SelectItem key={slot.value} value={slot.value} className="text-[#0d4f4f] cursor-pointer text-base py-2">
                     {slot.label}
                   </SelectItem>
                 ))}

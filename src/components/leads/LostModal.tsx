@@ -13,13 +13,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Loader2, XCircle } from 'lucide-react';
@@ -97,18 +90,28 @@ export function LostModal({ open, onOpenChange, lead, onSuccess }: LostModalProp
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Reason</Label>
-            <Select value={lossReason} onValueChange={(v) => setLossReason(v || '')}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a reason" />
-              </SelectTrigger>
-              <SelectContent>
-                {LOSS_REASONS.map((reason) => (
-                  <SelectItem key={reason.value} value={reason.value}>
-                    {reason.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-1.5">
+              {LOSS_REASONS.map((reason) => (
+                <label
+                  key={reason.value}
+                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-colors text-sm ${
+                    lossReason === reason.value
+                      ? 'border-[#0d4f4f] bg-[#0d4f4f]/5 text-[#0d4f4f]'
+                      : 'border-gray-200 bg-[#faf8f5] text-gray-700 hover:border-[#0d4f4f]/30'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="loss-reason"
+                    value={reason.value}
+                    checked={lossReason === reason.value}
+                    onChange={(e) => setLossReason(e.target.value)}
+                    className="accent-[#0d4f4f] w-4 h-4"
+                  />
+                  {reason.label}
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-2">
