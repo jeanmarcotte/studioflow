@@ -28,13 +28,14 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
   return (
     <>
       <header className={`${nunito.className} sticky top-0 z-30 bg-white dark:bg-gray-950 border-b border-border/60 px-4 py-3 md:px-6`}>
+        {/* Row 1: Menu, Source Filter, Icons, +Add (desktop only) */}
         <div className="flex items-center gap-3">
           {/* Mobile menu toggle */}
           <Button variant="ghost" size="icon" className="h-9 w-9 lg:hidden shrink-0" onClick={onMenuToggle}>
             <Menu className="h-5 w-5" />
           </Button>
 
-          {/* Search */}
+          {/* Search — desktop only */}
           <div className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -75,11 +76,27 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
             <Settings className="h-4 w-4" />
           </Button>
 
-          {/* Add Lead */}
-          <Button className="h-9 px-3 text-sm font-semibold bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white rounded-lg" onClick={onAddLead}>
+          {/* Add Lead — desktop only */}
+          <Button className="hidden sm:inline-flex h-9 px-3 text-sm font-semibold bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white rounded-lg" onClick={onAddLead}>
             <Plus className="h-4 w-4 mr-1" /> Add Lead
           </Button>
 
+        </div>
+
+        {/* Row 2: Search + compact +New — mobile only */}
+        <div className="flex sm:hidden items-center gap-2 mt-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search leads..."
+              className="pl-9 w-full h-9"
+              value={searchQuery ?? ''}
+              onChange={(e) => onSearchChange?.(e.target.value)}
+            />
+          </div>
+          <Button className="h-9 px-3 text-sm font-semibold bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white rounded-lg shrink-0" onClick={onAddLead}>
+            <Plus className="h-4 w-4" /> New
+          </Button>
         </div>
       </header>
 
