@@ -87,7 +87,7 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="bg-white sm:max-w-md shadow-xl">
         <DialogHeader>
           <DialogTitle>Book Appointment</DialogTitle>
           <DialogDescription>
@@ -98,9 +98,10 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="date">Appointment Date</Label>
-            <Input
+            <input
               id="date"
               type="date"
+              className="w-full h-12 px-4 border border-gray-300 rounded-lg text-base bg-white text-gray-900"
               value={appointmentDate}
               onChange={(e) => setAppointmentDate(e.target.value)}
             />
@@ -127,7 +128,7 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleBook} disabled={saving}>
+          <Button className="bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white" onClick={handleBook} disabled={saving}>
             {saving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
