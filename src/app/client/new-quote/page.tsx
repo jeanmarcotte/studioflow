@@ -760,9 +760,9 @@ function QuoteBuilderInner() {
         }
 
         // Parent albums included state
-        if (q.parent_albums_count > 0 && q.parent_albums_price === 0) {
+        if (q.parent_albums_count > 0 && (q.parent_albums_price === 0 || q.parent_albums_price === null)) {
           setParentAlbumsIncluded('free')
-        } else if (q.parent_albums_count > 0) {
+        } else if (q.parent_albums_count > 0 && q.parent_albums_price > 0) {
           setParentAlbumsIncluded('paid')
         }
 
@@ -2831,15 +2831,15 @@ function QuoteBuilderInner() {
                     parent_albums_price: pricing.parentAlbumsPrice,
                     prints_included: printsIncluded || null,
                     discount_type: watchedValues.discountType === 'none' ? null : watchedValues.discountType,
-                    discount_value: watchedValues.discountAmount || null,
+                    discount_value: watchedValues.discountAmount ?? null,
                     discount_amount: pricing.discount,
                     subtotal: pricing.subtotal,
                     hst_amount: pricing.hst,
                     total: pricing.total,
                     installments,
                     timeline,
-                    notes: watchedValues.notes || null,
-                    lead_source: watchedValues.leadSource || null,
+                    notes: watchedValues.notes ?? null,
+                    lead_source: watchedValues.leadSource ?? null,
                   }
 
                   if (clientQuoteId || savedQuoteId) {
@@ -3001,15 +3001,15 @@ function QuoteBuilderInner() {
                     parent_albums_price: pricing.parentAlbumsPrice,
                     prints_included: printsIncluded || null,
                     discount_type: watchedValues.discountType === 'none' ? null : watchedValues.discountType,
-                    discount_value: watchedValues.discountAmount || null,
+                    discount_value: watchedValues.discountAmount ?? null,
                     discount_amount: pricing.discount,
                     subtotal: pricing.subtotal,
                     hst_amount: pricing.hst,
                     total: pricing.total,
                     installments,
                     timeline,
-                    notes: watchedValues.notes || null,
-                    lead_source: watchedValues.leadSource || null,
+                    notes: watchedValues.notes ?? null,
+                    lead_source: watchedValues.leadSource ?? null,
                   }
 
                   if (clientQuoteId || savedQuoteId) {
