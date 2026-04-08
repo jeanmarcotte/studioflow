@@ -48,6 +48,7 @@ function buildQuoteFields(body: any) {
     discount_type: body.discount_type ?? null,
     discount_value: body.discount_value ?? null,
     discount_amount: body.discount_amount ?? null,
+    discount_2_amount: body.discount_2_amount ?? null,
     subtotal: body.subtotal ?? null,
     hst_amount: body.hst_amount ?? null,
     total: body.total ?? null,

@@ -750,6 +750,7 @@ function QuoteBuilderInner() {
           setValue('discountType', q.discount_type)
           if (q.discount_value) setValue('discountAmount', q.discount_value)
         }
+        if (q.discount_2_amount) setValue('discount2Amount', q.discount_2_amount)
 
         // Installments
         if (Array.isArray(q.installments) && q.installments.length > 0) {
@@ -2833,6 +2834,7 @@ function QuoteBuilderInner() {
                     discount_type: watchedValues.discountType === 'none' ? null : watchedValues.discountType,
                     discount_value: watchedValues.discountAmount ?? null,
                     discount_amount: pricing.discount,
+                    discount_2_amount: watchedValues.discount2Amount ?? null,
                     subtotal: pricing.subtotal,
                     hst_amount: pricing.hst,
                     total: pricing.total,
@@ -3003,6 +3005,7 @@ function QuoteBuilderInner() {
                     discount_type: watchedValues.discountType === 'none' ? null : watchedValues.discountType,
                     discount_value: watchedValues.discountAmount ?? null,
                     discount_amount: pricing.discount,
+                    discount_2_amount: watchedValues.discount2Amount ?? null,
                     subtotal: pricing.subtotal,
                     hst_amount: pricing.hst,
                     total: pricing.total,
