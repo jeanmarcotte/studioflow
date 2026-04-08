@@ -1043,6 +1043,12 @@ function QuoteBuilderInner() {
   if (missingLastNames) validationMessages.push('Bride and groom last names are required.')
   if (missingReferral) validationMessages.push('Please enter who referred this couple.')
 
+  // Required field styling — amber when empty
+  const reqClass = (value: string | undefined) =>
+    !value?.trim()
+      ? 'px-3 py-2 border border-amber-400 bg-amber-50 rounded text-sm focus:outline-none focus:border-ring'
+      : 'px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring'
+
   // Format phone number as (XXX) XXX-XXXX
   const formatPhone = (value: string): string => {
     const digits = value.replace(/\D/g, '').slice(0, 10)
@@ -1462,8 +1468,8 @@ function QuoteBuilderInner() {
                   Bride
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <input {...register('brideFirstName')} placeholder="First Name *" className="px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
-                  <input {...register('brideLastName')} placeholder="Last Name *" className="px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
+                  <input {...register('brideFirstName')} placeholder="First Name *" className={reqClass(watchedValues.brideFirstName)} />
+                  <input {...register('brideLastName')} placeholder="Last Name *" className={reqClass(watchedValues.brideLastName)} />
                 </div>
                 <input {...register('brideEmail')} type="email" placeholder="Email" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
                 <input {...register('bridePhone')} onChange={handlePhoneChange('bridePhone')} placeholder="(416) 555-1234" type="tel" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
@@ -1475,8 +1481,8 @@ function QuoteBuilderInner() {
                   Groom
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <input {...register('groomFirstName')} placeholder="First Name *" className="px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
-                  <input {...register('groomLastName')} placeholder="Last Name *" className="px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
+                  <input {...register('groomFirstName')} placeholder="First Name *" className={reqClass(watchedValues.groomFirstName)} />
+                  <input {...register('groomLastName')} placeholder="Last Name *" className={reqClass(watchedValues.groomLastName)} />
                 </div>
                 <input {...register('groomEmail')} type="email" placeholder="Email" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
                 <input {...register('groomPhone')} onChange={handlePhoneChange('groomPhone')} placeholder="(416) 555-1234" type="tel" className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
@@ -1494,7 +1500,7 @@ function QuoteBuilderInner() {
             <div className="grid grid-cols-4 gap-4 mb-4">
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Wedding Date *</label>
-                <input type="date" {...register('weddingDate')} className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:border-ring" />
+                <input type="date" {...register('weddingDate')} className={`w-full ${reqClass(watchedValues.weddingDate)}`} />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1"># of Guests</label>
@@ -2481,14 +2487,14 @@ function QuoteBuilderInner() {
                 <span className="text-muted-foreground">
                   {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.name} ({PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.hours}hr, {PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.photographers}P{(PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers || 0) > 0 ? ` + ${PACKAGES[watchedValues.selectedPackage as keyof typeof PACKAGES]?.videographers}V` : ''})
                 </span>
-                <span>${pricing.basePrice.toLocaleString()}</span>
+                <span className="font-mono">${pricing.basePrice.toLocaleString()}</span>
               </div>
 
               {/* Extra coverage */}
               {pricing.extraHoursPrice > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Extra coverage: {watchedValues.extraHours} hrs</span>
-                  <span>${pricing.extraHoursPrice.toLocaleString()}</span>
+                  <span className="font-mono">${pricing.extraHoursPrice.toLocaleString()}</span>
                 </div>
               )}
 
@@ -2496,7 +2502,7 @@ function QuoteBuilderInner() {
               {pricing.splitMorningTeamPrice > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Split Morning Team</span>
-                  <span>${pricing.splitMorningTeamPrice.toLocaleString()}</span>
+                  <span className="font-mono">${pricing.splitMorningTeamPrice.toLocaleString()}</span>
                 </div>
               )}
 
@@ -2504,7 +2510,7 @@ function QuoteBuilderInner() {
               {pricing.extraPhotographerPrice > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Extra Photographer</span>
-                  <span>${pricing.extraPhotographerPrice.toLocaleString()}</span>
+                  <span className="font-mono">${pricing.extraPhotographerPrice.toLocaleString()}</span>
                 </div>
               )}
 
@@ -2512,7 +2518,7 @@ function QuoteBuilderInner() {
               {pricing.albumPrice > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Wedding Album ({watchedValues.albumSize === '10x8' ? '10"×8"' : '14"×11"'} {watchedValues.albumType})</span>
-                  <span>${pricing.albumPrice.toLocaleString()}</span>
+                  <span className="font-mono">${pricing.albumPrice.toLocaleString()}</span>
                 </div>
               )}
 
@@ -2528,7 +2534,7 @@ function QuoteBuilderInner() {
               {pricing.acrylicCoverPrice > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Acrylic Cover Upgrade</span>
-                  <span>${pricing.acrylicCoverPrice.toLocaleString()}</span>
+                  <span className="font-mono">${pricing.acrylicCoverPrice.toLocaleString()}</span>
                 </div>
               )}
 
@@ -2536,7 +2542,7 @@ function QuoteBuilderInner() {
               {pricing.parentAlbumsPrice > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Parent Albums ({watchedValues.parentAlbumQty})</span>
-                  <span>${pricing.parentAlbumsPrice.toLocaleString()}</span>
+                  <span className="font-mono">${pricing.parentAlbumsPrice.toLocaleString()}</span>
                 </div>
               )}
 
@@ -2552,7 +2558,7 @@ function QuoteBuilderInner() {
               {pricing.thankYouCardsPrice > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Thank You Cards ({thankYouCardQty})</span>
-                  <span>${pricing.thankYouCardsPrice.toLocaleString()}</span>
+                  <span className="font-mono">${pricing.thankYouCardsPrice.toLocaleString()}</span>
                 </div>
               )}
 
@@ -2560,7 +2566,7 @@ function QuoteBuilderInner() {
               {pricing.printsPrice > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Additional Prints</span>
-                  <span>${pricing.printsPrice.toLocaleString()}</span>
+                  <span className="font-mono">${pricing.printsPrice.toLocaleString()}</span>
                 </div>
               )}
 
@@ -2576,14 +2582,14 @@ function QuoteBuilderInner() {
               {pricing.locationFee > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Bride's Choice Location</span>
-                  <span>${pricing.locationFee.toLocaleString()}</span>
+                  <span className="font-mono">${pricing.locationFee.toLocaleString()}</span>
                 </div>
               )}
 
               <div className="border-t border-border/50 pt-3 mt-3">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>${pricing.subtotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                  <span className="font-mono">${pricing.subtotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                 </div>
                 
                 {/* Discount Controls - inside pricing summary */}
@@ -2615,9 +2621,9 @@ function QuoteBuilderInner() {
                       />
                     )}
                   </div>
-                  <span className={watchedValues.discountAmount && watchedValues.discountType !== 'none' ? 'text-emerald-400' : 'text-muted-foreground'}>
-                    {watchedValues.discountAmount && watchedValues.discountType !== 'none' 
-                      ? watchedValues.discountType === 'percent' 
+                  <span className={`font-mono ${watchedValues.discountAmount && watchedValues.discountType !== 'none' ? 'text-red-400' : 'text-muted-foreground'}`}>
+                    {watchedValues.discountAmount && watchedValues.discountType !== 'none'
+                      ? watchedValues.discountType === 'percent'
                         ? `-${watchedValues.discountAmount}%`
                         : `-$${watchedValues.discountAmount.toLocaleString()}`
                       : '$0'}
@@ -2636,18 +2642,18 @@ function QuoteBuilderInner() {
                       className="w-20 px-2 py-1 text-xs bg-background border border-ring rounded text-foreground focus:outline-none"
                     />
                   </div>
-                  <span className={(watchedValues.discount2Amount || 0) > 0 ? 'text-emerald-400' : 'text-muted-foreground'}>
+                  <span className={`font-mono ${(watchedValues.discount2Amount || 0) > 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
                     {(watchedValues.discount2Amount || 0) > 0 ? `-$${watchedValues.discount2Amount?.toLocaleString()}` : '$0'}
                   </span>
                 </div>
                 
                 <div className="flex justify-between text-muted-foreground mt-2">
                   <span>HST (13%)</span>
-                  <span>${pricing.hst.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className="font-mono">${pricing.hst.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between text-xl font-bold mt-2 pt-2 border-t border-border/50">
                   <span>Total</span>
-                  <span className="text-emerald-400">${pricing.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className="font-mono text-emerald-400">${pricing.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
             </div>
@@ -2898,7 +2904,7 @@ function QuoteBuilderInner() {
               className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FileText className="h-4 w-4" />
-              Download PDF
+              Download &amp; Save
             </button>
 
             <button
@@ -3111,8 +3117,24 @@ function QuoteBuilderInner() {
                 </>
               )}
             </button>
+
+            <button
+              type="button"
+              disabled={actionButtonsDisabled || (!clientQuoteId && !savedQuoteId)}
+              onClick={() => {
+                const qId = clientQuoteId || savedQuoteId
+                if (qId) {
+                  window.open(`/admin/contracts/generate?quote_id=${qId}`, '_blank')
+                }
+              }}
+              className="px-6 py-3 border border-border rounded font-medium flex items-center justify-center gap-2 transition-colors hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!clientQuoteId && !savedQuoteId ? 'Save the quote first (Download & Save)' : ''}
+            >
+              <FileText className="h-4 w-4" />
+              Print Contract
+            </button>
           </div>
-          
+
           {/* Booking Instructions */}
           <div className="bg-background rounded border border-border p-8 text-center">
             <img 
