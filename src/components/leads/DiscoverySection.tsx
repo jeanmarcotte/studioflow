@@ -1,27 +1,14 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Check, Star } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import type { Lead } from '@/lib/lead-utils'
-import { LeadSourceSelect } from './LeadSourceSelect'
-import { VenueCombobox } from './VenueCombobox'
-import { ReferrerSelect } from './ReferrerSelect'
 
 interface DiscoverySectionProps {
   lead: Lead
   onUpdate: (updated: Lead) => void
 }
-
-const BUDGET_OPTIONS = [
-  { value: 'under_4k', label: 'Under $4K' },
-  { value: '4k_6k', label: '$4K–$6K' },
-  { value: '6k_8k', label: '$6K–$8K' },
-  { value: '8k_10k', label: '$8K–$10K' },
-  { value: 'over_10k', label: 'Over $10K' },
-  { value: 'flexible', label: 'Flexible' },
-]
 
 const RADIO_FIELDS: { label: string; field: string }[] = [
   { label: 'Album', field: 'want_album' },
@@ -81,7 +68,6 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
     setSaving(false)
   }, [lead, onUpdate])
 
-  // Normalize boolean fields to yes/no/maybe strings for radio display
   const getRadioValue = (field: string): string | null => {
     const v = (lead as any)[field]
     if (v === true) return 'yes'
@@ -91,7 +77,6 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
   }
 
   const setRadioValue = (field: string, val: string) => {
-    // For boolean columns, store as boolean; for text columns, store as string
     if (field === 'multi_day_event' || field === 'planner_involved') {
       saveField(field, val === 'yes' ? true : val === 'no' ? false : null)
     } else {
@@ -105,86 +90,6 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
         <span>📋</span> Discovery
         {saving && <span className="text-[10px] text-muted-foreground/60 ml-auto">Saving...</span>}
       </h3>
-
-      {/* Lead Source */}
-      <div className="space-y-1">
-        <label className="text-sm font-medium">Lead Source</label>
-        <LeadSourceSelect
-          value={lead.lead_source_id}
-          onChange={async (sourceId) => {
-            const { error } = await supabase
-              .from('ballots')
-              .update({ lead_source_id: sourceId })
-              .eq('id', lead.id);
-            if (!error) {
-              onUpdate({ ...lead, lead_source_id: sourceId } as Lead);
-              toast.success('Lead source updated');
-            }
-          }}
-        />
-      </div>
-
-      {/* Venue */}
-      <div className="space-y-1">
-        <label className="text-sm font-medium">Venue</label>
-        <VenueCombobox
-          value={lead.venue_name}
-          onSelect={async (venueName, jeanScore) => {
-            const { error } = await supabase
-              .from('ballots')
-              .update({
-                venue_name: venueName,
-                venue_rating: jeanScore,
-                has_venue: !!venueName
-              })
-              .eq('id', lead.id);
-            if (!error) {
-              onUpdate({ ...lead, venue_name: venueName, venue_rating: jeanScore, has_venue: !!venueName } as Lead);
-              toast.success('Venue updated');
-            }
-          }}
-        />
-        {lead.venue_rating && (
-          <div className="text-xs text-muted-foreground flex items-center mt-1">
-            <Star className="w-3 h-3 mr-1 fill-yellow-400 text-yellow-400" />
-            Jean's Score: {lead.venue_rating}/10
-          </div>
-        )}
-      </div>
-
-      {/* Referrer */}
-      <div className="space-y-1">
-        <label className="text-sm font-medium">Referred By</label>
-        <ReferrerSelect
-          value={lead.referrer_id}
-          onChange={async (referrerId) => {
-            const { error } = await supabase
-              .from('ballots')
-              .update({ referrer_id: referrerId })
-              .eq('id', lead.id);
-            if (!error) {
-              onUpdate({ ...lead, referrer_id: referrerId } as Lead);
-              toast.success('Referrer updated');
-            }
-          }}
-        />
-      </div>
-
-      {/* Budget dropdown — full width */}
-      <div>
-        <select
-          value={lead.budget_range || ''}
-          onChange={(e) => saveField('budget_range', e.target.value || null)}
-          className={`w-full h-9 rounded-lg border bg-white dark:bg-slate-800 px-3 text-sm outline-none transition-all ${
-            !lead.budget_range ? 'border-red-400 ring-1 ring-red-200' : 'border-green-300'
-          }`}
-        >
-          <option value="">Select budget...</option>
-          {BUDGET_OPTIONS.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-      </div>
 
       {/* Radio button grid */}
       <div className="rounded-lg border border-border/60 overflow-hidden">
@@ -210,17 +115,43 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
         </div>
       </div>
 
-      {/* Bridal Party */}
-      <div className="flex items-center gap-3">
-        <label className="text-sm text-slate-700 dark:text-slate-300 shrink-0">Bridal Party</label>
-        <input
-          type="number"
-          value={lead.bridal_party_size ?? ''}
-          min={1}
-          max={20}
-          onChange={(e) => saveField('bridal_party_size', e.target.value ? parseInt(e.target.value) : null)}
-          className="h-8 w-20 rounded-lg border border-border bg-white dark:bg-slate-800 px-2 text-sm text-right outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
-        />
+      {/* Guest Count + Bridal Party + Flower Girl/Ring Bearer */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <label className="text-sm text-slate-700 dark:text-slate-300 shrink-0 w-32"># of Guests</label>
+          <input
+            type="number"
+            value={(lead as any).guest_count ?? ''}
+            min={1}
+            max={1000}
+            onChange={(e) => saveField('guest_count', e.target.value ? parseInt(e.target.value) : null)}
+            className="h-8 w-20 rounded-lg border border-border bg-white dark:bg-slate-800 px-2 text-sm text-right outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <label className="text-sm text-slate-700 dark:text-slate-300 shrink-0 w-32"># in Bridal Party</label>
+          <input
+            type="number"
+            value={lead.bridal_party_size ?? ''}
+            min={1}
+            max={20}
+            onChange={(e) => saveField('bridal_party_size', e.target.value ? parseInt(e.target.value) : null)}
+            className="h-8 w-20 rounded-lg border border-border bg-white dark:bg-slate-800 px-2 text-sm text-right outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <label className="text-sm text-slate-700 dark:text-slate-300 shrink-0 w-32">Flower Girl / Ring Bearer</label>
+          <button
+            onClick={() => saveField('has_flower_girl', !(lead as any).has_flower_girl)}
+            className={`h-8 px-3 rounded-lg border text-sm font-medium transition-all ${
+              (lead as any).has_flower_girl
+                ? 'border-[#0d4f4f] bg-[#0d4f4f] text-white'
+                : 'border-border bg-white dark:bg-slate-800 text-slate-500'
+            }`}
+          >
+            {(lead as any).has_flower_girl ? 'Yes' : 'No'}
+          </button>
+        </div>
       </div>
     </div>
   )

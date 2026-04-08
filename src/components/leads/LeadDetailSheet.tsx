@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Skull, Video, PhoneForwarded, Mail } from 'lucide-react'
+import { ArrowLeft, Skull, Video, PhoneForwarded, Mail, ChevronDown } from 'lucide-react'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet'
@@ -19,14 +19,32 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { logTouch } from '@/lib/chase-actions'
 import { ContactSection } from './ContactSection'
 import { DiscoverySection } from './DiscoverySection'
-import { ChaseProgressSection } from './ChaseProgressSection'
-import { ScoreBreakdown } from './ScoreBreakdown'
 import { NextTouchCard } from './NextTouchCard'
 import { ResurrectButton } from './ResurrectButton'
 import { OutcomeButtons } from './OutcomeButtons'
 import { ChaseProgress } from './ChaseProgress'
 import { ContactHistory } from './ContactHistory'
 import { LeadStatusIndicator } from './LeadStatusIndicator'
+
+function TouchHistoryAccordion({ leadId, refreshKey }: { leadId: string; refreshKey: number }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="rounded-lg border border-border/60 overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
+      >
+        Touch History
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-3 pb-2">
+          <ContactHistory leadId={leadId} />
+        </div>
+      )}
+    </div>
+  )
+}
 
 interface LeadDetailSheetProps {
   lead: Lead | null
@@ -154,26 +172,12 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
 
             <Separator />
 
-            {/* 4. Chase Progress */}
-            <ChaseProgress touchCount={lead.contact_count || 0} />
-            <ChaseProgressSection ballotId={lead.id} refreshKey={chaseRefreshKey} />
-
-            {/* 4b. Contact History */}
-            <ContactHistory leadId={lead.id} />
-
-            <Separator />
-
-            {/* 5. Score Breakdown (moved up) */}
-            <ScoreBreakdown breakdown={lead.score_breakdown} />
-
-            <Separator />
-
-            {/* 6. Discovery (moved down) */}
+            {/* 4. Discovery */}
             <DiscoverySection lead={lead} onUpdate={handleLeadUpdate} />
 
             <Separator />
 
-            {/* 7. Action buttons */}
+            {/* 5. Action buttons */}
             {!isDead && (
               <div className="space-y-2 pb-3">
                 <div className="grid grid-cols-3 gap-1.5">
@@ -231,6 +235,23 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
                 />
               </div>
             )}
+
+            <Separator />
+
+            {/* 6. Chase History — bottom, inline layout */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <ChaseProgress touchCount={lead.contact_count || 0} />
+                {lead.last_contact_date && (
+                  <span className="text-xs text-muted-foreground">
+                    Last: {new Date(lead.last_contact_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+
+              {/* Touch History — collapsible, closed by default */}
+              <TouchHistoryAccordion leadId={lead.id} refreshKey={chaseRefreshKey} />
+            </div>
           </div>
         </SheetContent>
       </Sheet>
