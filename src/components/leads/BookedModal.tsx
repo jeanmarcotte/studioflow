@@ -48,6 +48,9 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
   const [appointmentTime, setAppointmentTime] = useState('18:00');
   const [saving, setSaving] = useState(false);
 
+  // Today in YYYY-MM-DD for min date
+  const today = new Date().toISOString().split('T')[0];
+
   const handleBook = async () => {
     if (!appointmentDate) {
       toast.error('Please select an appointment date');
@@ -71,6 +74,8 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
       if (error) throw error;
 
       toast.success(`Appointment booked for ${lead.bride_name}!`);
+      setAppointmentDate('');
+      setAppointmentTime('18:00');
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
@@ -97,11 +102,13 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="date">Appointment Date</Label>
+            <Label htmlFor="appt-date">Appointment Date</Label>
             <input
-              id="date"
+              id="appt-date"
               type="date"
-              className="w-full h-12 px-4 border border-gray-300 rounded-lg text-base bg-white text-gray-900"
+              min={today}
+              className="w-full h-12 px-4 border border-gray-300 rounded-lg text-base"
+              style={{ backgroundColor: '#ffffff', color: '#1a1a1a', colorScheme: 'light' }}
               value={appointmentDate}
               onChange={(e) => setAppointmentDate(e.target.value)}
             />
@@ -110,12 +117,12 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
           <div className="space-y-2">
             <Label>Time</Label>
             <Select value={appointmentTime} onValueChange={(v) => setAppointmentTime(v || '18:00')}>
-              <SelectTrigger className="bg-[#faf8f5] border-[#0d4f4f]/20 text-[#0d4f4f] h-12 text-base">
+              <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900 h-12 text-base">
                 <SelectValue placeholder="Select time" />
               </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false} className="bg-[#faf8f5] border border-[#0d4f4f]/20 shadow-lg max-h-60">
+              <SelectContent alignItemWithTrigger={false} className="bg-white border border-gray-200 shadow-lg max-h-60">
                 {timeSlots.map((slot) => (
-                  <SelectItem key={slot.value} value={slot.value} className="text-[#0d4f4f] cursor-pointer text-base py-2">
+                  <SelectItem key={slot.value} value={slot.value} className="text-gray-900 cursor-pointer text-base py-2">
                     {slot.label}
                   </SelectItem>
                 ))}
