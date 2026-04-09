@@ -112,7 +112,7 @@ export default function LeadsPage() {
     const todayStr = today.toISOString().split('T')[0]
 
     return leads.filter(l => {
-      // Search filter
+      // Search filter — when active, bypasses all other filters except lost exclusion
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
         const match = (
@@ -125,6 +125,9 @@ export default function LeadsPage() {
           (l.email || '').toLowerCase().includes(q)
         )
         if (!match) return false
+        // Exclude lost leads from search results
+        if (isLost(l)) return false
+        return true
       }
 
       // Filter by source
