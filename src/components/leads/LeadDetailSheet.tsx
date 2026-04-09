@@ -21,7 +21,8 @@ import { ContactSection } from './ContactSection'
 import { DiscoverySection } from './DiscoverySection'
 import { NextTouchCard } from './NextTouchCard'
 import { ResurrectButton } from './ResurrectButton'
-import { OutcomeButtons } from './OutcomeButtons'
+import { BookedModal } from './BookedModal'
+import { LostModal } from './LostModal'
 import { ChaseProgress } from './ChaseProgress'
 import { ContactHistory } from './ContactHistory'
 import { LeadStatusIndicator } from './LeadStatusIndicator'
@@ -56,6 +57,8 @@ interface LeadDetailSheetProps {
 export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailSheetProps) {
   const router = useRouter()
   const [zoomConfirmOpen, setZoomConfirmOpen] = useState(false)
+  const [bookedModalOpen, setBookedModalOpen] = useState(false)
+  const [lostModalOpen, setLostModalOpen] = useState(false)
   const [chaseRefreshKey, setChaseRefreshKey] = useState(0)
 
   const handleLeadUpdate = useCallback((updated: Lead) => {
@@ -196,13 +199,21 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
                     Email
                   </Button>
                 </div>
-                <OutcomeButtons
-                  lead={{ id: lead.id, bride_name: lead.bride_first_name || '', groom_name: lead.groom_first_name || '', email: lead.email || undefined }}
-                  onUpdate={() => {
-                    if (lead) onUpdate({ ...lead })
-                    onClose()
-                  }}
-                />
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => setBookedModalOpen(true)}
+                  >
+                    Make Appt!
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => setLostModalOpen(true)}
+                  >
+                    Not Interested
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -226,9 +237,28 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
         </SheetContent>
       </Sheet>
 
-      {/* Modals */}
+      {/* Modals — rendered outside Sheet so backdrop-filter works on iOS */}
       {lead && (
         <>
+          <BookedModal
+            open={bookedModalOpen}
+            onOpenChange={setBookedModalOpen}
+            lead={{ id: lead.id, bride_name: lead.bride_first_name || '', groom_name: lead.groom_first_name || '', email: lead.email || undefined }}
+            onSuccess={() => {
+              onUpdate({ ...lead })
+              onClose()
+            }}
+          />
+          <LostModal
+            open={lostModalOpen}
+            onOpenChange={setLostModalOpen}
+            lead={{ id: lead.id, bride_name: lead.bride_first_name || '', groom_name: lead.groom_first_name || '' }}
+            onSuccess={() => {
+              onUpdate({ ...lead })
+              onClose()
+            }}
+          />
+
           {/* Zoom confirmation */}
           <Dialog open={zoomConfirmOpen} onOpenChange={setZoomConfirmOpen}>
             <DialogContent className="sm:max-w-sm">
