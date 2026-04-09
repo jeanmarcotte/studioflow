@@ -13,7 +13,7 @@ export default function LoginPage() {
     const checkUser = async () => {
       const { session } = await checkAuthState()
       if (session) {
-        router.push('/client/new-quote')
+        router.push('/leads')
         return
       }
       setChecking(false)

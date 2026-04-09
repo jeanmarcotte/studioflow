@@ -24,7 +24,7 @@ export default function HomePage() {
         router.push('/admin')
       } else {
         // Default: Go to primary StudioFlow feature
-        router.push('/client/new-quote')
+        router.push('/leads')
       }
     }
 

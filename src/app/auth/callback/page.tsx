@@ -21,7 +21,7 @@ export default function AuthCallbackPage() {
 
       if (user.email && allowedEmails.includes(user.email)) {
         console.log('User authorized:', user.email)
-        router.push('/client/new-quote')
+        router.push('/leads')
       } else {
         console.log('Unauthorized email:', user.email)
         await supabase.auth.signOut()
