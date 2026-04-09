@@ -31,6 +31,7 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
         "fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0",
         className
       )}
+      style={{ WebkitBackdropFilter: 'blur(4px)', backdropFilter: 'blur(4px)' }}
       {...props}
     />
   )
