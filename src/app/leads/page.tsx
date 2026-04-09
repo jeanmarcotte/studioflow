@@ -32,12 +32,12 @@ class SafeSection extends Component<{ name: string; children: ReactNode }, { err
 }
 
 const DEFAULT_FILTERS: SidebarFilters = {
-  status: 'no-no-yes',
+  status: [],
+  weddingYear: null,
   location: null,
   dateRange: 'all',
   venueType: [],
   venueRating: null,
-  religion: [],
   ceremonyLocation: [],
   chaseStatus: [],
 }
@@ -141,28 +141,27 @@ export default function LeadsPage() {
       // If showLost is on and we're looking at lost leads, show them all (no status filter)
       if (showLost && isLost(l)) {
         // Still apply other filters below
-      } else {
-        // Status bucket filter
-        switch (filters.status) {
-          case 'no-no-yes':
-            if (!isNNY(l)) return false
-            break
-          case 'no-no-no':
-            if (!isNNN(l)) return false
-            break
-          case 'contacted':
-            if (l.status !== 'contacted') return false
-            break
-          case 'meeting_booked':
-            if (l.status !== 'meeting_booked') return false
-            break
-          case 'quoted':
-            if (l.status !== 'quoted') return false
-            break
-          case 'booked':
-            if (l.status !== 'booked') return false
-            break
-        }
+      } else if (filters.status.length > 0) {
+        // Status bucket filter (multi-select — lead must match ANY selected status)
+        const matchesAny = filters.status.some(s => {
+          switch (s) {
+            case 'no-no-yes': return isNNY(l)
+            case 'no-no-no': return isNNN(l)
+            case 'contacted': return l.status === 'contacted'
+            case 'meeting_booked': return l.status === 'meeting_booked'
+            case 'quoted': return l.status === 'quoted'
+            case 'booked': return l.status === 'booked'
+            default: return false
+          }
+        })
+        if (!matchesAny) return false
+      }
+
+      // Wedding year
+      if (filters.weddingYear) {
+        if (!l.wedding_date) return false
+        const year = l.wedding_date.substring(0, 4)
+        if (year !== filters.weddingYear) return false
       }
 
       // Location (single select)
@@ -204,13 +203,6 @@ export default function LeadsPage() {
         }
       }
 
-      // Religion
-      if (filters.religion.length > 0) {
-        const rel = ((l as any).religion || '').toLowerCase()
-        const matches = filters.religion.some(r => rel.includes(r.toLowerCase().replace('-', '')))
-        if (!matches) return false
-      }
-
       // Ceremony location
       if (filters.ceremonyLocation.length > 0) {
         const cl = ((l as any).ceremony_venue || '').toLowerCase()
@@ -219,7 +211,7 @@ export default function LeadsPage() {
       }
 
       // Chase status (contacted only)
-      if (filters.status === 'contacted' && filters.chaseStatus.length > 0) {
+      if (filters.status.includes('contacted') && filters.chaseStatus.length > 0) {
         const matches = filters.chaseStatus.some(cs => {
           switch (cs) {
             case 'Due Today': return l.next_contact_due === todayStr
@@ -233,7 +225,7 @@ export default function LeadsPage() {
       }
 
       // Chase sub-filter (only when CONTACTED)
-      if (filters.status === 'contacted' && chaseFilter !== 'all') {
+      if (filters.status.includes('contacted') && chaseFilter !== 'all') {
         switch (chaseFilter) {
           case 'due_today':
             if (l.next_contact_due !== todayStr) return false
@@ -317,7 +309,7 @@ export default function LeadsPage() {
           onClose={() => setSidebarOpen(false)}
           collapsed={sidebarCollapsed}
           onCollapsedChange={handleCollapsedChange}
-          chaseSubFilters={filters.status === 'contacted' ? (
+          chaseSubFilters={filters.status.includes('contacted') ? (
             <ChaseSubFilters
               activeFilter={chaseFilter}
               onFilterChange={setChaseFilter}
