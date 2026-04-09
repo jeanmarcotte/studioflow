@@ -50,6 +50,13 @@ const STATUS_COLORS: Record<string, string> = {
   dead: '#6b7280',       // gray
 };
 
+const SHOW_LABELS: Record<string, string> = {
+  'modern-feb-2026': 'Modern Bridal Show',
+  'weddingring-oakville-mar-2026': 'Wedding Ring Oakville',
+  'hamilton-ring-mar-2026': 'Hamilton Ring Show',
+  'manual-entry': 'Manual Entry',
+};
+
 export default function AnalyticsPage() {
   const [sourceStats, setSourceStats] = useState<SourceStats[]>([]);
   const [statusCounts, setStatusCounts] = useState<StatusCount[]>([]);
@@ -62,18 +69,10 @@ export default function AnalyticsPage() {
   }, []);
 
   async function fetchAnalytics() {
-    // Fetch all leads with source info
+    // Fetch all leads
     const { data: leads } = await supabase
       .from('ballots')
-      .select(`
-        id,
-        status,
-        lead_source_id,
-        contact_count,
-        lead_sources (
-          display_name
-        )
-      `);
+      .select('*');
 
     if (!leads) {
       setLoading(false);
@@ -86,7 +85,7 @@ export default function AnalyticsPage() {
     const sourceMap = new Map<string, { leads: number; contacted: number; meetings: number; booked: number }>();
 
     leads.forEach(lead => {
-      const sourceName = (lead.lead_sources as any)?.display_name || 'Unknown';
+      const sourceName = SHOW_LABELS[lead.show_id] || lead.show_id || 'Unknown';
       const current = sourceMap.get(sourceName) || { leads: 0, contacted: 0, meetings: 0, booked: 0 };
 
       current.leads++;
