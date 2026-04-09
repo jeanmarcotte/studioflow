@@ -104,13 +104,21 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
           <div className="space-y-2">
             <Label htmlFor="appt-date">Appointment Date</Label>
             <input
-              id="appt-date"
               type="date"
-              min={today}
-              className="w-full h-12 px-4 border border-gray-300 rounded-lg text-base"
-              style={{ backgroundColor: '#ffffff', color: '#1a1a1a', colorScheme: 'light' }}
+              id="appt-date"
               value={appointmentDate}
               onChange={(e) => setAppointmentDate(e.target.value)}
+              min={today}
+              className="w-full h-12 px-3 py-2 border border-gray-300 rounded-md text-base"
+              style={{
+                WebkitAppearance: 'none',
+                appearance: 'none',
+                backgroundColor: 'white',
+                color: '#111827',
+                fontSize: '16px',
+                lineHeight: '1.5',
+                colorScheme: 'light',
+              }}
             />
           </div>
 
