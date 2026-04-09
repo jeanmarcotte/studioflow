@@ -147,17 +147,19 @@ function buildEmailHtml(data: {
   const asapDel = safeDeleted(asapPt, asapTp)
   const asapRemain = asapTp > 0 ? asapTp - asapEsf : asapPt - asapEsf
 
-  const cemProofs = allPhotoJobs.filter((j: any) => ['completed', 'picked_up'].includes(j.status) && isProofsJob(j.job_type))
+  const cemProofs = allPhotoJobs.filter((j: any) => j.status === 'completed' && isProofsJob(j.job_type))
   const cemPt = cemProofs.reduce((s: number, j: any) => s + (j.photos_taken || 0), 0)
   const cemEsf = cemProofs.reduce((s: number, j: any) => s + (j.edited_so_far || 0), 0)
   const cemTp = cemProofs.reduce((s: number, j: any) => s + (j.total_proofs || 0), 0)
-  const cemDel = safeDeleted(cemPt, cemTp)
+  const cemDel = cemPt - cemEsf // Unedited photos in completed jobs are culled
 
   const proofsAll = allPhotoJobs.filter((j: any) => isProofsJob(j.job_type))
   const ytdPt = proofsAll.reduce((s: number, j: any) => s + (j.photos_taken || 0), 0)
   const ytdEsf = proofsAll.reduce((s: number, j: any) => s + (j.edited_so_far || 0), 0)
   const ytdTp = proofsAll.reduce((s: number, j: any) => s + (j.total_proofs || 0), 0)
-  const ytdDel = safeDeleted(ytdPt, ytdTp)
+  // Deleted = unedited in completed proofs jobs. Remaining = unedited in active proofs jobs.
+  const ytdDel = cemDel
+  const ytdRemain = proofsAll.filter((j: any) => j.status !== 'completed').reduce((s: number, j: any) => s + ((j.photos_taken || 0) - (j.edited_so_far || 0)), 0)
 
   const delivStatusGroups = ['completed', 'picked_up', 'at_lab', 'at_studio', 'ready_to_reedit', 'reediting']
   const photoDelivMap: Record<string, { done: number; at_lab: number; at_studio: number; re_edit: number }> = {}
@@ -478,7 +480,7 @@ function buildEmailHtml(data: {
         <tr style="background:#f0f0ef;font-weight:700;color:#78716c;">
           <td ${td}><strong>Completed 2026</strong></td><td ${td}></td>
           <td ${tdR}><strong>${cemPt.toLocaleString()}</strong></td><td ${tdR}><strong>${cemEsf.toLocaleString()}</strong></td>
-          <td ${tdR}><strong>${(cemTp > 0 ? cemTp - cemEsf : cemPt - cemEsf).toLocaleString()}</strong></td>
+          <td ${tdR}><strong>0</strong></td>
           <td ${tdR}><strong>${cemDel > 0 ? cemDel.toLocaleString() : '&mdash;'}</strong></td>
           <td ${tdR}><strong>${cemTp.toLocaleString()}</strong></td>
           <td ${tdR}><strong>${pctStr(cemDel, cemPt)}</strong></td>
@@ -488,7 +490,7 @@ function buildEmailHtml(data: {
           <td style="padding:10px 12px;border:none;"><strong>Year to Date</strong></td><td style="padding:10px;border:none;"></td>
           <td style="padding:10px 12px;border:none;text-align:right;"><strong>${ytdPt.toLocaleString()}</strong></td>
           <td style="padding:10px 12px;border:none;text-align:right;"><strong>${ytdEsf.toLocaleString()}</strong></td>
-          <td style="padding:10px 12px;border:none;text-align:right;"><strong>${(ytdTp > 0 ? ytdTp - ytdEsf : ytdPt - ytdEsf).toLocaleString()}</strong></td>
+          <td style="padding:10px 12px;border:none;text-align:right;"><strong>${ytdRemain.toLocaleString()}</strong></td>
           <td style="padding:10px 12px;border:none;text-align:right;"><strong>${ytdDel > 0 ? ytdDel.toLocaleString() : '&mdash;'}</strong></td>
           <td style="padding:10px 12px;border:none;text-align:right;"><strong>${ytdTp.toLocaleString()}</strong></td>
           <td style="padding:10px 12px;border:none;text-align:right;"><strong>${pctStr(ytdDel, ytdPt)}</strong></td>

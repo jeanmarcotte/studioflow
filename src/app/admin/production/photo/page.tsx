@@ -153,8 +153,8 @@ export default function PhotoProductionPage() {
   const [totalPhotos, setTotalPhotos] = useState(0)
   const [totalProofsAll, setTotalProofsAll] = useState(0)
 
-  // YTD data (all jobs including completed)
-  const [ytdData, setYtdData] = useState<{ photos_taken: number; edited_so_far: number; total_proofs: number }>({ photos_taken: 0, edited_so_far: 0, total_proofs: 0 })
+  // YTD data (all proofs jobs including completed)
+  const [ytdData, setYtdData] = useState<{ photos_taken: number; edited_so_far: number; total_proofs: number; deleted: number; remaining: number }>({ photos_taken: 0, edited_so_far: 0, total_proofs: 0, deleted: 0, remaining: 0 })
 
   // Save tracking for green flash
   const [savedFields, setSavedFields] = useState<Set<string>>(new Set())
@@ -252,13 +252,15 @@ export default function PhotoProductionPage() {
         setTotalPhotos(taken)
         setTotalProofsAll(proofs)
 
-        // YTD row uses ONLY proofs-type jobs that are NOT done editing
+        // YTD row uses ALL proofs-type jobs regardless of status
         const proofsOnly = photosRes.data.filter((r: any) => r.job_type && r.job_type.toLowerCase().includes('proofs'))
-        const activeProofs = proofsOnly.filter((r: any) => !DONE_EDITING_STATUSES.includes(r.status))
-        const ytdEdited = activeProofs.reduce((sum, r: any) => sum + (r.edited_so_far || 0), 0)
-        const ytdTaken = activeProofs.reduce((sum, r: any) => sum + (r.photos_taken || 0), 0)
-        const ytdProofs = activeProofs.reduce((sum, r: any) => sum + (r.total_proofs || 0), 0)
-        setYtdData({ photos_taken: ytdTaken, edited_so_far: ytdEdited, total_proofs: ytdProofs })
+        const ytdEdited = proofsOnly.reduce((sum, r: any) => sum + (r.edited_so_far || 0), 0)
+        const ytdTaken = proofsOnly.reduce((sum, r: any) => sum + (r.photos_taken || 0), 0)
+        const ytdProofs = proofsOnly.reduce((sum, r: any) => sum + (r.total_proofs || 0), 0)
+        // Deleted = unedited photos in completed jobs (culled). Remaining = unedited photos in active jobs (in pipeline).
+        const ytdDeleted = proofsOnly.filter((r: any) => r.status === 'completed').reduce((sum, r: any) => sum + ((r.photos_taken || 0) - (r.edited_so_far || 0)), 0)
+        const ytdRemaining = proofsOnly.filter((r: any) => r.status !== 'completed').reduce((sum, r: any) => sum + ((r.photos_taken || 0) - (r.edited_so_far || 0)), 0)
+        setYtdData({ photos_taken: ytdTaken, edited_so_far: ytdEdited, total_proofs: ytdProofs, deleted: ytdDeleted, remaining: ytdRemaining })
       }
 
       // Cemetery jobs
@@ -396,16 +398,16 @@ export default function PhotoProductionPage() {
   }, [inProgressJobs])
 
   const cemeteryProofsTotals = useMemo(() => {
-    const proofs = cemeteryJobs.filter(j => j.job_type.toLowerCase().includes('proofs'))
+    const proofs = cemeteryJobs.filter(j => j.job_type.toLowerCase().includes('proofs') && j.status === 'completed')
     const pt = proofs.reduce((s, j) => s + (j.photos_taken || 0), 0)
     const esf = proofs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
     const tp = proofs.reduce((s, j) => s + (j.total_proofs || 0), 0)
-    const remaining = Math.max(0, tp > 0 ? tp - esf : pt - esf)
-    const deleted = tp > 0 ? pt - tp : 0
+    const remaining = 0 // Completed jobs have nothing remaining
+    const deleted = pt - esf // Unedited photos in completed jobs are culled
     return {
       photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
       pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
-      pctCompleted: tp > 0 ? ((esf / tp) * 100).toFixed(1) : null,
+      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null,
     }
   }, [cemeteryJobs])
 
@@ -413,12 +415,12 @@ export default function PhotoProductionPage() {
     const pt = ytdData.photos_taken
     const esf = ytdData.edited_so_far
     const tp = ytdData.total_proofs
-    const remaining = Math.max(0, tp > 0 ? tp - esf : pt - esf)
-    const deleted = tp > 0 ? pt - tp : 0
+    const deleted = ytdData.deleted
+    const remaining = ytdData.remaining
     return {
       photosTaken: pt, editedSoFar: esf, totalProofs: tp, remaining, deleted,
       pctDeleted: deleted > 0 && pt > 0 ? ((deleted / pt) * 100).toFixed(1) : null,
-      pctCompleted: tp > 0 ? ((esf / tp) * 100).toFixed(1) : null,
+      pctCompleted: pt > 0 ? ((esf / pt) * 100).toFixed(1) : null,
     }
   }, [ytdData])
 
