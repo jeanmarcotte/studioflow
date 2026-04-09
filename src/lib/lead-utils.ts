@@ -73,11 +73,11 @@ export const TEMP_CONFIG: Record<string, { emoji: string; label: string; color: 
 }
 
 export function getScoreTier(score: number): string {
-  if (score >= 80) return 'A'
-  if (score >= 65) return 'B'
-  if (score >= 50) return 'C'
-  if (score >= 35) return 'D'
-  if (score >= 20) return 'E'
+  if (score >= 165) return 'A'
+  if (score >= 150) return 'B'
+  if (score >= 135) return 'C'
+  if (score >= 120) return 'D'
+  if (score >= 105) return 'E'
   return 'F'
 }
 

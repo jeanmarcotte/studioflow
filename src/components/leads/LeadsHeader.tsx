@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Settings, Plus, Menu, Sun, Moon, X, Phone, MessageSquare, Mail, BarChart3 } from 'lucide-react'
+import { Search, Settings, Plus, Menu, Sun, Moon, X, Phone, MessageSquare, Mail, BarChart3, RefreshCw } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,9 +17,11 @@ interface LeadsHeaderProps {
   searchQuery?: string
   onSearchChange?: (query: string) => void
   sourceFilter?: React.ReactNode
+  onRecalculateScores?: () => void
+  recalculating?: boolean
 }
 
-export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChange, sourceFilter }: LeadsHeaderProps) {
+export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChange, sourceFilter, onRecalculateScores, recalculating }: LeadsHeaderProps) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [legendOpen, setLegendOpen] = useState(false)
@@ -61,6 +63,20 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+          )}
+
+          {/* Recalculate Scores */}
+          {onRecalculateScores && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-muted-foreground hover:text-foreground"
+              onClick={onRecalculateScores}
+              disabled={recalculating}
+              title="Recalculate all scores"
+            >
+              <RefreshCw className={`h-4 w-4 ${recalculating ? 'animate-spin' : ''}`} />
             </Button>
           )}
 
@@ -113,12 +129,12 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
               <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Score Badges</h3>
               <div className="grid grid-cols-2 gap-1.5">
                 {[
-                  { range: '85–100', tier: 'A-TIER', color: 'bg-green-100 text-green-700', desc: 'Hot lead!' },
-                  { range: '70–84', tier: 'B-TIER', color: 'bg-teal-100 text-teal-700', desc: '' },
-                  { range: '55–69', tier: 'C-TIER', color: 'bg-yellow-100 text-yellow-700', desc: '' },
-                  { range: '40–54', tier: 'D-TIER', color: 'bg-orange-100 text-orange-700', desc: '' },
-                  { range: '25–39', tier: 'E-TIER', color: 'bg-red-100 text-red-700', desc: '' },
-                  { range: '0–24', tier: 'F-TIER', color: 'bg-gray-100 text-gray-500', desc: 'Cold lead' },
+                  { range: '165–200', tier: 'A-TIER', color: 'bg-green-100 text-green-700', desc: 'Hot lead!' },
+                  { range: '150–164', tier: 'B-TIER', color: 'bg-teal-100 text-teal-700', desc: '' },
+                  { range: '135–149', tier: 'C-TIER', color: 'bg-yellow-100 text-yellow-700', desc: '' },
+                  { range: '120–134', tier: 'D-TIER', color: 'bg-orange-100 text-orange-700', desc: '' },
+                  { range: '105–119', tier: 'E-TIER', color: 'bg-red-100 text-red-700', desc: '' },
+                  { range: '0–104', tier: 'F-TIER', color: 'bg-gray-100 text-gray-500', desc: 'Cold lead' },
                 ].map(s => (
                   <div key={s.tier} className="flex items-center gap-2">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${s.color}`}>{s.range}</span>

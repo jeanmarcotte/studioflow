@@ -60,6 +60,7 @@ export default function LeadsPage() {
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
   const [chaseFilter, setChaseFilter] = useState<ChaseFilter>('all')
   const [allLeads, setAllLeads] = useState<Lead[]>([])  // includes hidden, for search
+  const [recalculating, setRecalculating] = useState(false)
 
   // Persist sidebar collapsed state
   useEffect(() => {
@@ -329,6 +330,28 @@ export default function LeadsPage() {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             sourceFilter={<SourceDropdown value={selectedSourceId} onChange={setSelectedSourceId} />}
+            recalculating={recalculating}
+            onRecalculateScores={async () => {
+              setRecalculating(true)
+              try {
+                const res = await fetch('/api/leads/score-all', { method: 'POST' })
+                const result = await res.json()
+                if (result.success) {
+                  toast.success(`Scores recalculated: ${result.updated} leads updated`)
+                  // Refetch leads
+                  const { data } = await supabase.from('ballots').select('*').order('book_score', { ascending: false })
+                  if (data) {
+                    setAllLeads(data as Lead[])
+                    setLeads((data as Lead[]).filter(l => !l.hidden))
+                  }
+                } else {
+                  toast.error(result.error || 'Failed to recalculate')
+                }
+              } catch {
+                toast.error('Failed to recalculate scores')
+              }
+              setRecalculating(false)
+            }}
           />
         </SafeSection>
 
