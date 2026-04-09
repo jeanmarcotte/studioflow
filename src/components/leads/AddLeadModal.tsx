@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import type { Lead } from '@/lib/lead-utils'
+import { inferCultureFromCouple } from '@/lib/cultureInference'
 
 interface AddLeadModalProps {
   isOpen: boolean
@@ -53,6 +54,11 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
 
     setSaving(true)
     try {
+      const inferredCulture = inferCultureFromCouple(
+        form.bride_last_name || null,
+        form.groom_last_name || null,
+      )
+
       const payload = {
         bride_first_name: form.bride_first_name || null,
         bride_last_name: form.bride_last_name || null,
@@ -70,6 +76,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
         has_photographer: false,
         has_videographer: false,
         has_venue: !!form.venue_name,
+        ...(inferredCulture ? { inferred_ethnicity: inferredCulture, culture_confirmed: false } : {}),
       }
 
       const { data, error } = await supabase

@@ -47,6 +47,7 @@ export interface Lead {
   quoted_at: string | null
   appointment_date: string | null
   updated_at: string | null
+  culture_confirmed: boolean | null
 }
 
 export type FilterKey = 'no-no-yes' | 'no-no-no' | 'contacted' | 'meeting_booked' | 'quoted' | 'booked'

@@ -49,6 +49,35 @@ function RadioRow({ label, value, onChange }: {
   )
 }
 
+const CULTURE_OPTIONS = [
+  { value: '', label: 'Unknown' },
+  { value: 'portuguese', label: 'Portuguese' },
+  { value: 'greek', label: 'Greek' },
+  { value: 'italian', label: 'Italian' },
+  { value: 'filipino', label: 'Filipino' },
+  { value: 'trinidadian', label: 'Trinidadian' },
+  { value: 'ghanaian', label: 'Ghanaian' },
+  { value: 'caribbean', label: 'Caribbean' },
+  { value: 'spanish', label: 'Spanish' },
+  { value: 'mexican', label: 'Mexican' },
+  { value: 'venezuelan', label: 'Venezuelan' },
+  { value: 'colombian', label: 'Colombian' },
+  { value: 'jewish', label: 'Jewish' },
+  { value: 'south asian', label: 'South Asian' },
+  { value: 'canadian', label: 'Canadian' },
+  { value: 'chinese', label: 'Chinese' },
+  { value: 'vietnamese', label: 'Vietnamese' },
+  { value: 'korean', label: 'Korean' },
+  { value: 'japanese', label: 'Japanese' },
+  { value: 'irish', label: 'Irish' },
+  { value: 'scottish', label: 'Scottish' },
+  { value: 'ukrainian', label: 'Ukrainian' },
+  { value: 'croatian', label: 'Croatian' },
+  { value: 'french canadian', label: 'French Canadian' },
+  { value: 'middle eastern', label: 'Middle Eastern' },
+  { value: 'muslim', label: 'Muslim' },
+]
+
 export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
   const [saving, setSaving] = useState(false)
 
@@ -64,6 +93,23 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
     } else {
       toast.success('Saved', { duration: 1500 })
       onUpdate({ ...lead, [field]: value } as Lead)
+    }
+    setSaving(false)
+  }, [lead, onUpdate])
+
+  const saveCulture = useCallback(async (value: string) => {
+    setSaving(true)
+    const ethnicity = value || null
+    const { error } = await supabase
+      .from('ballots')
+      .update({ inferred_ethnicity: ethnicity, culture_confirmed: !!ethnicity })
+      .eq('id', lead.id)
+
+    if (error) {
+      toast.error('Failed to save culture')
+    } else {
+      toast.success('Culture saved', { duration: 1500 })
+      onUpdate({ ...lead, inferred_ethnicity: ethnicity, culture_confirmed: !!ethnicity } as Lead)
     }
     setSaving(false)
   }, [lead, onUpdate])
@@ -90,6 +136,23 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
         <span>📋</span> Discovery
         {saving && <span className="text-[10px] text-muted-foreground/60 ml-auto">Saving...</span>}
       </h3>
+
+      {/* Culture dropdown */}
+      <div className="flex items-center gap-3">
+        <label className="text-sm text-slate-700 dark:text-slate-300 shrink-0 w-32">Culture</label>
+        <select
+          value={lead.inferred_ethnicity || ''}
+          onChange={(e) => saveCulture(e.target.value)}
+          className="h-8 flex-1 rounded-lg border border-border bg-white dark:bg-slate-800 px-2 text-sm outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+        >
+          {CULTURE_OPTIONS.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+        {lead.inferred_ethnicity && !lead.culture_confirmed && (
+          <span className="text-[10px] text-slate-400">(auto)</span>
+        )}
+      </div>
 
       {/* Radio button grid */}
       <div className="rounded-lg border border-border/60 overflow-hidden">

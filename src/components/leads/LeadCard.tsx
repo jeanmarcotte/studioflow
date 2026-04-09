@@ -154,6 +154,11 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick }: LeadCardPr
           <div className="font-bold text-[15px] text-slate-900 dark:text-slate-100 tracking-wide leading-tight">
             {coupleName(lead)}
           </div>
+          {showHeatAndScore && lead.inferred_ethnicity && (
+            <div className="text-xs text-slate-400 dark:text-slate-500 capitalize">
+              {lead.inferred_ethnicity}{!lead.culture_confirmed && ' (auto)'}
+            </div>
+          )}
           <div className="text-sm text-slate-600 dark:text-slate-400 truncate">
             {lead.venue_name || '—'}
           </div>
