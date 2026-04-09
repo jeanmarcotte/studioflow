@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Skull, Video, PhoneForwarded, Mail, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Video, PhoneForwarded, Mail, ChevronDown } from 'lucide-react'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet'
@@ -58,31 +58,6 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
   const [zoomConfirmOpen, setZoomConfirmOpen] = useState(false)
   const [chaseRefreshKey, setChaseRefreshKey] = useState(0)
 
-  const handleKill = useCallback(async () => {
-    if (!lead) return
-    const { error } = await supabase
-      .from('ballots')
-      .update({ hidden: true })
-      .eq('id', lead.id)
-
-    if (error) {
-      toast.error('Failed to hide lead')
-      return
-    }
-
-    onUpdate({ ...lead, hidden: true })
-    onClose()
-
-    toast('Lead hidden', {
-      action: {
-        label: 'Undo',
-        onClick: async () => {
-          await supabase.from('ballots').update({ hidden: false }).eq('id', lead.id)
-        },
-      },
-    })
-  }, [lead, onUpdate, onClose])
-
   const handleLeadUpdate = useCallback((updated: Lead) => {
     onUpdate(updated)
   }, [onUpdate])
@@ -105,7 +80,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
   const temp = getTempConfig(lead.temperature)
   const dotColor = SCORE_DOT_COLORS[tier]
   const isDead = lead.status === 'dead'
-  const isAlreadyLost = lead.status === 'lost' || lead.status === 'dead'
+
 
   return (
     <>
@@ -129,11 +104,6 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
                 contactCount={lead.contact_count || 0}
                 nextContactDue={lead.next_contact_due}
               />
-              {!isAlreadyLost && (
-                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-red-500 hover:bg-red-50" onClick={handleKill}>
-                  <Skull className="h-5 w-5" />
-                </Button>
-              )}
             </div>
           </SheetHeader>
 

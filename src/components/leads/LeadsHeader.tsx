@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Settings, Plus, Menu, Sun, Moon, X, Phone, MessageSquare, Mail, Skull, BarChart3 } from 'lucide-react'
+import { Search, Settings, Plus, Menu, Sun, Moon, X, Phone, MessageSquare, Mail, BarChart3 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -155,7 +155,6 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
                   { icon: <Phone className="h-4 w-4" />, label: 'Phone', desc: 'Tap to call, copies script to clipboard' },
                   { icon: <MessageSquare className="h-4 w-4" />, label: 'Text', desc: 'Tap to text, copies template to clipboard' },
                   { icon: <Mail className="h-4 w-4" />, label: 'Email', desc: 'Opens email compose' },
-                  { icon: <Skull className="h-4 w-4" />, label: 'Lost', desc: 'Move lead to LOST (removes from active queue)' },
                 ].map(a => (
                   <div key={a.label} className="flex items-center gap-2">
                     <span className="text-slate-500 dark:text-slate-400">{a.icon}</span>
