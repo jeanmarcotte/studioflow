@@ -9,11 +9,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Settings, User, ChevronUp } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export function UserProfile() {
-  const handleLogout = () => {
-    // TODO: Implement actual logout logic
-    console.log('Logout clicked');
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/'
   };
 
   return (
