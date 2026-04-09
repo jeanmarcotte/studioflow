@@ -29,9 +29,14 @@ const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> 
   contacted: { bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-700 dark:text-blue-400', label: 'CONTACTED' },
   meeting_booked: { bg: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-700 dark:text-purple-400', label: 'APPT' },
   quoted: { bg: 'bg-orange-100 dark:bg-orange-900/40', text: 'text-orange-700 dark:text-orange-400', label: 'QUOTED' },
-  booked: { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-400', label: 'BOOKED' },
+  booked: { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-400', label: 'BOOKED ✓' },
   dead: { bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-400', label: 'LOST' },
   lost: { bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-400', label: 'LOST' },
+}
+
+function daysBetween(from: string | Date, to: Date): number {
+  const start = typeof from === 'string' ? new Date(from) : from
+  return Math.floor((to.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 }
 
 interface LeadCardProps {
@@ -47,10 +52,28 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick }: LeadCardPr
   const colors = getScoreColors(score)
   const temp = getTempConfig(lead.temperature)
   const dotColor = SCORE_DOT_COLORS[tier]
+  const status = lead.status?.toLowerCase()
+  const now = new Date()
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = now.toISOString().split('T')[0]
   const isOverdue = lead.next_contact_due != null && lead.next_contact_due < today
   const isDueToday = lead.next_contact_due === today
+
+  // Status-based display logic
+  const showHeatAndScore = ['new', 'contacted'].includes(status)
+  const isBooked = status === 'booked'
+  const isQuoted = status === 'quoted'
+  const isAppt = status === 'meeting_booked'
+
+  // Days pending for QUOTED
+  const daysPending = isQuoted
+    ? daysBetween(lead.quoted_at || lead.updated_at || lead.contacted_at || now.toISOString(), now)
+    : 0
+
+  // Days until appointment for MEETING_BOOKED
+  const daysUntilAppt = isAppt && lead.appointment_date
+    ? daysBetween(now, new Date(lead.appointment_date))
+    : null
 
   return (
     <motion.div
@@ -62,29 +85,64 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick }: LeadCardPr
         className="p-4 cursor-pointer rounded-xl border transition-all bg-white border-slate-200 hover:border-slate-300 hover:shadow-md dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-[#273548] dark:hover:border-teal-600 dark:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.3)]"
         onClick={() => onCardClick(lead)}
       >
-        {/* Score row */}
+        {/* Top row — status-specific */}
         <div className="flex items-center gap-2 mb-3">
-          <Badge className={`${colors.bg} ${colors.text} ${colors.border} border font-bold text-sm px-2.5 py-0.5`}>
-            {score}
-          </Badge>
-          <span className={`text-xs font-bold uppercase tracking-wider ${temp.color} flex items-center gap-1`}>
-            {temp.pulse ? (
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: dotColor }} />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ backgroundColor: dotColor }} />
+          {isBooked && (
+            <span className="text-2xl leading-none">💍</span>
+          )}
+
+          {isQuoted && (
+            <div className={`flex items-center gap-1.5 ${
+              daysPending <= 7 ? 'text-green-600' : daysPending <= 14 ? 'text-yellow-600' : 'text-red-600'
+            }`}>
+              <span className="text-lg leading-none">⏳</span>
+              <span className="font-bold text-sm">{daysPending} DAYS PENDING</span>
+            </div>
+          )}
+
+          {isAppt && (
+            <div className={`flex items-center gap-1.5 ${
+              daysUntilAppt === null ? 'text-purple-600' :
+              daysUntilAppt <= 1 ? 'text-red-600' :
+              daysUntilAppt <= 3 ? 'text-yellow-600' : 'text-green-600'
+            }`}>
+              <span className="text-lg leading-none">📅</span>
+              <span className="font-bold text-sm">
+                {daysUntilAppt === null ? 'APPT SCHEDULED' :
+                 daysUntilAppt === 0 ? 'TODAY!' :
+                 daysUntilAppt < 0 ? `${Math.abs(daysUntilAppt)} DAYS AGO` :
+                 `${daysUntilAppt} DAYS UNTIL APPT`}
               </span>
-            ) : (
-              <span className="inline-flex rounded-full h-2.5 w-2.5" style={{ backgroundColor: dotColor }} />
-            )}
-            {temp.label}
-          </span>
-          <span className={`ml-auto text-[11px] font-bold tracking-wider ${colors.text}`}>{tier}-TIER</span>
-          {isOverdue && (
+            </div>
+          )}
+
+          {showHeatAndScore && (
+            <>
+              <Badge className={`${colors.bg} ${colors.text} ${colors.border} border font-bold text-sm px-2.5 py-0.5`}>
+                {score}
+              </Badge>
+              <span className={`text-xs font-bold uppercase tracking-wider ${temp.color} flex items-center gap-1`}>
+                {temp.pulse ? (
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: dotColor }} />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ backgroundColor: dotColor }} />
+                  </span>
+                ) : (
+                  <span className="inline-flex rounded-full h-2.5 w-2.5" style={{ backgroundColor: dotColor }} />
+                )}
+                {temp.label}
+              </span>
+              <span className={`ml-auto text-[11px] font-bold tracking-wider ${colors.text}`}>{tier}-TIER</span>
+            </>
+          )}
+
+          {/* Overdue/due-today badges — only for contacted/new */}
+          {showHeatAndScore && isOverdue && (
             <Badge className="bg-red-100 text-red-700 border-red-300 border text-[10px] font-bold px-1.5 py-0 animate-pulse dark:bg-red-900/40 dark:text-red-400 dark:border-red-800">
               OVERDUE
             </Badge>
           )}
-          {isDueToday && !isOverdue && (
+          {showHeatAndScore && isDueToday && !isOverdue && (
             <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300 border text-[10px] font-bold px-1.5 py-0 dark:bg-yellow-900/40 dark:text-yellow-400 dark:border-yellow-800">
               DUE TODAY
             </Badge>
@@ -110,8 +168,10 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick }: LeadCardPr
           </div>
         </div>
 
-        {/* Score bar */}
-        <ScoreBar score={score} size="sm" showBadge={false} />
+        {/* Score bar — only for statuses that show score */}
+        {showHeatAndScore && (
+          <ScoreBar score={score} size="sm" showBadge={false} />
+        )}
 
         {/* Status badge */}
         {(() => {

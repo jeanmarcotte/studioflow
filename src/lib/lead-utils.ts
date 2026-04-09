@@ -43,6 +43,10 @@ export interface Lead {
   lead_source_id: string | null
   inbound_channel: string | null
   referrer_id: string | null
+  contacted_at: string | null
+  quoted_at: string | null
+  appointment_date: string | null
+  updated_at: string | null
 }
 
 export type FilterKey = 'no-no-yes' | 'no-no-no' | 'contacted' | 'meeting_booked' | 'quoted' | 'booked'
@@ -57,19 +61,19 @@ export const SCORE_COLORS: Record<string, { bg: string; text: string; border: st
 }
 
 export const SCORE_DOT_COLORS: Record<string, string> = {
-  A: '#22c55e',
-  B: '#0d9488',
+  A: '#ef4444',
+  B: '#f97316',
   C: '#eab308',
-  D: '#f97316',
-  E: '#ef4444',
-  F: '#6b7280',
+  D: '#eab308',
+  E: '#3b82f6',
+  F: '#3b82f6',
 }
 
 export const TEMP_CONFIG: Record<string, { emoji: string; label: string; color: string; pulse: boolean }> = {
-  hot:  { emoji: '🟢', label: 'HOT',  color: 'text-green-600', pulse: true },
+  hot:  { emoji: '🔴', label: 'HOT',  color: 'text-red-500', pulse: true },
   warm: { emoji: '🟡', label: 'WARM', color: 'text-yellow-600', pulse: false },
-  cool: { emoji: '🟠', label: 'COOL', color: 'text-orange-600', pulse: false },
-  cold: { emoji: '🔴', label: 'COLD', color: 'text-red-600', pulse: false },
+  cool: { emoji: '🟡', label: 'WARM', color: 'text-yellow-600', pulse: false },
+  cold: { emoji: '🔵', label: 'COLD', color: 'text-blue-500', pulse: false },
 }
 
 export function getScoreTier(score: number): string {

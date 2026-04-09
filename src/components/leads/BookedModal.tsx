@@ -61,11 +61,12 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
     try {
       const appointmentDateTime = `${appointmentDate}T${appointmentTime}:00`;
 
-      // Update lead status
+      // Update lead status + appointment_date for card countdown
       const { error } = await supabase
         .from('ballots')
         .update({
           status: 'meeting_booked',
+          appointment_date: appointmentDateTime,
           zoom_invite_sent_at: new Date().toISOString(),
           notes: `Appointment booked for ${appointmentDateTime}`,
         })

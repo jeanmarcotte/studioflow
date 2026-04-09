@@ -149,10 +149,9 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
               <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Temperature</h3>
               <div className="space-y-1">
                 {[
-                  { emoji: '🟢', label: 'HOT', desc: 'New lead OR contacted < 24 hours ago' },
-                  { emoji: '🟡', label: 'WARM', desc: 'Contacted 24–48 hours ago' },
-                  { emoji: '🟠', label: 'COOL', desc: 'Contacted 48–72 hours ago' },
-                  { emoji: '🔴', label: 'COLD', desc: 'Contacted 72+ hours ago' },
+                  { emoji: '🔴', label: 'HOT', desc: 'Score 150+ — act now!' },
+                  { emoji: '🟡', label: 'WARM', desc: 'Score 120–149 — follow up soon' },
+                  { emoji: '🔵', label: 'COLD', desc: 'Score <120 — lower priority' },
                 ].map(t => (
                   <div key={t.label} className="flex items-center gap-2">
                     <span>{t.emoji}</span>
