@@ -9,4 +9,11 @@
 |----|------|---|-------|------|
 | #1737 | 4:40 PM | 🔵 | Complete StudioFlow Database Schema Documentation | ~1220 |
 | #1733 | " | 🔵 | Comprehensive Analysis of Couple Detail Page Architecture and Patterns | ~1090 |
+
+### Apr 10, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #6381 | 11:04 AM | 🔵 | Supabase Project ID Mismatch in WO-514 Specification | ~510 |
+| #6379 | 11:03 AM | 🔵 | StudioFlow Finance Module Architecture | ~765 |
 </claude-mem-context>
