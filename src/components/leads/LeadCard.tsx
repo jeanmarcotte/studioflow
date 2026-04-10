@@ -3,6 +3,8 @@
 import { motion } from 'framer-motion'
 import { Badge } from '@/components/ui/badge'
 import { ScoreBar } from './ScoreBar'
+import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
 import type { Lead } from '@/lib/lead-utils'
 import {
   getScoreTier,
@@ -13,6 +15,19 @@ import {
   coupleName,
   SCORE_DOT_COLORS,
 } from '@/lib/lead-utils'
+
+const CULTURE_BUTTONS = [
+  { value: 'portuguese', emoji: '🇵🇹', label: 'Portuguese', points: 30 },
+  { value: 'greek', emoji: '🇬🇷', label: 'Greek', points: 30 },
+  { value: 'italian', emoji: '🇮🇹', label: 'Italian', points: 30 },
+  { value: 'filipino', emoji: '🇵🇭', label: 'Filipino', points: 30 },
+  { value: 'jewish', emoji: '🇮🇱', label: 'Jewish', points: 25 },
+  { value: 'caribbean', emoji: '🇹🇹', label: 'Caribbean', points: 24 },
+  { value: 'ghanaian', emoji: '🇬🇭', label: 'Ghanaian', points: 24 },
+  { value: 'jamaican', emoji: '🇯🇲', label: 'Jamaican', points: 24 },
+  { value: 'spanish', emoji: '🇪🇸', label: 'Spanish', points: 16 },
+  { value: 'canadian', emoji: '🇨🇦', label: 'Canadian', points: 10 },
+]
 
 const CHANNEL_ICONS: Record<string, string> = {
   ballot: '📋',
@@ -44,9 +59,10 @@ interface LeadCardProps {
   onHide: (id: string) => void
   onEmailClick: (lead: Lead) => void
   onCardClick: (lead: Lead) => void
+  onLeadUpdate?: (updated: Lead) => void
 }
 
-export function LeadCard({ lead, onHide, onEmailClick, onCardClick }: LeadCardProps) {
+export function LeadCard({ lead, onHide, onEmailClick, onCardClick, onLeadUpdate }: LeadCardProps) {
   const score = lead.book_score ?? 0
   const tier = getScoreTier(score)
   const colors = getScoreColors(score)
@@ -154,11 +170,6 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick }: LeadCardPr
           <div className="font-bold text-[15px] text-slate-900 dark:text-slate-100 tracking-wide leading-tight">
             {coupleName(lead)}
           </div>
-          {showHeatAndScore && lead.inferred_ethnicity && (
-            <div className="text-xs text-slate-400 dark:text-slate-500 capitalize">
-              {lead.inferred_ethnicity}{!lead.culture_confirmed && ' (auto)'}
-            </div>
-          )}
           <div className="text-sm text-slate-600 dark:text-slate-400 truncate">
             {lead.venue_name || '—'}
           </div>
@@ -172,6 +183,51 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick }: LeadCardPr
             {formatShowName(lead.show_id)}
           </div>
         </div>
+
+        {/* Culture flag buttons — NEW/CONTACTED only */}
+        {showHeatAndScore && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {CULTURE_BUTTONS.map(cb => {
+              const isSelected = lead.inferred_ethnicity === cb.value
+              return (
+                <button
+                  key={cb.value}
+                  className={`w-7 h-7 rounded text-base flex items-center justify-center transition-all ${
+                    isSelected
+                      ? 'border-2 border-teal-500 bg-teal-50 dark:bg-teal-900/30'
+                      : 'border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
+                  }`}
+                  title={`${cb.label} (${cb.points} pts)${isSelected ? ' ✓' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const newValue = isSelected ? null : cb.value
+                    supabase
+                      .from('ballots')
+                      .update({ inferred_ethnicity: newValue, culture_confirmed: !!newValue })
+                      .eq('id', lead.id)
+                      .then(({ error }) => {
+                        if (error) { toast.error('Failed to save culture'); return }
+                        const updated = { ...lead, inferred_ethnicity: newValue, culture_confirmed: !!newValue }
+                        onLeadUpdate?.(updated as Lead)
+                        // Recalculate score
+                        fetch('/api/leads/score', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ ballotId: lead.id }),
+                        }).then(res => res.json()).then(result => {
+                          if (result.success) {
+                            onLeadUpdate?.({ ...updated, book_score: result.bookScore } as Lead)
+                          }
+                        })
+                      })
+                  }}
+                >
+                  {cb.emoji}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {/* Score bar — only for statuses that show score */}
         {showHeatAndScore && (

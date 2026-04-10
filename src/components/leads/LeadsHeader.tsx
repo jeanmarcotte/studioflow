@@ -180,6 +180,31 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
               </div>
             </section>
 
+            {/* Culture Scoring */}
+            <section>
+              <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Culture Scoring</h3>
+              <div className="grid grid-cols-2 gap-1">
+                {[
+                  { flag: '🇵🇹', label: 'Portuguese', pts: 30 },
+                  { flag: '🇬🇷', label: 'Greek', pts: 30 },
+                  { flag: '🇮🇹', label: 'Italian', pts: 30 },
+                  { flag: '🇵🇭', label: 'Filipino', pts: 30 },
+                  { flag: '🇮🇱', label: 'Jewish', pts: 25 },
+                  { flag: '🇹🇹', label: 'Caribbean', pts: 24 },
+                  { flag: '🇬🇭', label: 'Ghanaian', pts: 24 },
+                  { flag: '🇯🇲', label: 'Jamaican', pts: 24 },
+                  { flag: '🇪🇸', label: 'Spanish', pts: 16 },
+                  { flag: '🇨🇦', label: 'Canadian', pts: 10 },
+                ].map(c => (
+                  <div key={c.label} className="flex items-center gap-1.5">
+                    <span>{c.flag}</span>
+                    <span className="text-slate-600 dark:text-slate-400">{c.label}</span>
+                    <span className="text-slate-400 dark:text-slate-500 ml-auto">{c.pts}pts</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
             {/* Status Filters */}
             <section>
               <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Status Filters</h3>

@@ -40,6 +40,7 @@ const DEFAULT_FILTERS: SidebarFilters = {
   venueRating: null,
   ceremonyLocation: [],
   chaseStatus: [],
+  culture: null,
 }
 
 const PAGE_SIZE = 25
@@ -211,6 +212,11 @@ export default function LeadsPage() {
         if (!matches) return false
       }
 
+      // Culture
+      if (filters.culture) {
+        if ((l.inferred_ethnicity || '').toLowerCase() !== filters.culture) return false
+      }
+
       // Chase status (contacted only)
       if (filters.status.includes('contacted') && filters.chaseStatus.length > 0) {
         const matches = filters.chaseStatus.some(cs => {
@@ -378,6 +384,10 @@ export default function LeadsPage() {
                   else toast.error('No email on file')
                 }}
                 onCardClick={(lead) => setSelectedLead(lead)}
+                onLeadUpdate={(updated) => {
+                  setLeads(prev => prev.map(l => l.id === updated.id ? updated : l))
+                  setAllLeads(prev => prev.map(l => l.id === updated.id ? updated : l))
+                }}
               />
             </SafeSection>
           </div>

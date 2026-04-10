@@ -19,7 +19,21 @@ export interface SidebarFilters {
   venueRating: string | null
   ceremonyLocation: string[]
   chaseStatus: string[]
+  culture: string | null
 }
+
+const CULTURE_FILTER_BUTTONS = [
+  { value: 'portuguese', emoji: '🇵🇹', label: 'Portuguese' },
+  { value: 'greek', emoji: '🇬🇷', label: 'Greek' },
+  { value: 'italian', emoji: '🇮🇹', label: 'Italian' },
+  { value: 'filipino', emoji: '🇵🇭', label: 'Filipino' },
+  { value: 'jewish', emoji: '🇮🇱', label: 'Jewish' },
+  { value: 'caribbean', emoji: '🇹🇹', label: 'Caribbean' },
+  { value: 'ghanaian', emoji: '🇬🇭', label: 'Ghanaian' },
+  { value: 'jamaican', emoji: '🇯🇲', label: 'Jamaican' },
+  { value: 'spanish', emoji: '🇪🇸', label: 'Spanish' },
+  { value: 'canadian', emoji: '🇨🇦', label: 'Canadian' },
+]
 
 interface FilterSidebarProps {
   filters: SidebarFilters
@@ -193,7 +207,7 @@ function CollapsedBar({ filters, counts, update, onExpand, onReset }: {
 
 export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, showLost, onShowLostChange, open, onClose, collapsed, onCollapsedChange, chaseSubFilters }: FilterSidebarProps) {
   const update = (patch: Partial<SidebarFilters>) => onFiltersChange({ ...filters, ...patch })
-  const resetAll = () => onFiltersChange({ status: [], weddingYear: null, location: null, dateRange: 'all', venueType: [], venueRating: null, ceremonyLocation: [], chaseStatus: [] })
+  const resetAll = () => onFiltersChange({ status: [], weddingYear: null, location: null, dateRange: 'all', venueType: [], venueRating: null, ceremonyLocation: [], chaseStatus: [], culture: null })
   const toggleStatus = (key: FilterKey) => {
     const cur = filters.status
     update({ status: cur.includes(key) ? cur.filter(k => k !== key) : [...cur, key] })
@@ -260,6 +274,30 @@ export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, sho
                 {year}
               </motion.button>
             ))}
+          </div>
+        </div>
+
+        {/* CULTURE */}
+        <div className="space-y-2">
+          <SectionLabel>Culture</SectionLabel>
+          <div className="flex flex-wrap gap-1.5">
+            {CULTURE_FILTER_BUTTONS.map(cb => {
+              const active = filters.culture === cb.value
+              return (
+                <button
+                  key={cb.value}
+                  onClick={() => update({ culture: active ? null : cb.value })}
+                  title={cb.label}
+                  className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-all duration-150 cursor-pointer active:scale-95 ${
+                    active
+                      ? 'border-2 border-teal-500 bg-teal-50 dark:bg-teal-900/30 shadow-sm'
+                      : 'border border-slate-200 dark:border-slate-700 hover:border-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20'
+                  }`}
+                >
+                  {cb.emoji}
+                </button>
+              )
+            })}
           </div>
         </div>
 

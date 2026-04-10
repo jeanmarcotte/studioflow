@@ -21,11 +21,12 @@ interface LeadGridAreaProps {
   onHide: (id: string) => void
   onEmailClick: (lead: Lead) => void
   onCardClick: (lead: Lead) => void
+  onLeadUpdate?: (updated: Lead) => void
 }
 
 const TEMP_ORDER: Record<string, number> = { hot: 0, warm: 1, cool: 2, cold: 3 }
 
-export function LeadGridArea({ leads, sortKey, onSortChange, currentPage, onPageChange, pageSize, onHide, onEmailClick, onCardClick }: LeadGridAreaProps) {
+export function LeadGridArea({ leads, sortKey, onSortChange, currentPage, onPageChange, pageSize, onHide, onEmailClick, onCardClick, onLeadUpdate }: LeadGridAreaProps) {
   const sorted = useMemo(() => {
     return [...leads].sort((a, b) => {
       switch (sortKey) {
@@ -83,6 +84,7 @@ export function LeadGridArea({ leads, sortKey, onSortChange, currentPage, onPage
                 onHide={onHide}
                 onEmailClick={onEmailClick}
                 onCardClick={onCardClick}
+                onLeadUpdate={onLeadUpdate}
               />
             ))}
           </div>
