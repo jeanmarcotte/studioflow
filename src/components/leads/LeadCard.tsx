@@ -11,7 +11,6 @@ import {
   formatShowName,
   formatWeddingDate,
   coupleName,
-  SCORE_DOT_COLORS,
 } from '@/lib/lead-utils'
 
 const CULTURE_FLAGS: Record<string, string> = {
@@ -29,6 +28,7 @@ const CULTURE_FLAGS: Record<string, string> = {
   'venezuelan': '🇪🇸',
   'colombian': '🇪🇸',
   'canadian': '🇨🇦',
+  'south asian': '🇮🇳',
 }
 
 const CHANNEL_ICONS: Record<string, string> = {
@@ -69,7 +69,7 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick, onLeadUpdate
   const tier = getScoreTier(score)
   const colors = getScoreColors(score)
   const temp = getTempConfig(lead.temperature)
-  const dotColor = SCORE_DOT_COLORS[tier]
+  const dotColor = temp.dot
   const status = lead.status?.toLowerCase()
   const now = new Date()
 

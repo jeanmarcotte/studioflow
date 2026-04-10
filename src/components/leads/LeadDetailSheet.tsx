@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import type { Lead } from '@/lib/lead-utils'
 import {
-  coupleName, getScoreTier, getScoreColors, getTempConfig, SCORE_DOT_COLORS, formatShowName, formatWeddingDate,
+  coupleName, getScoreTier, getScoreColors, getTempConfig, formatShowName, formatWeddingDate,
 } from '@/lib/lead-utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { logTouch } from '@/lib/chase-actions'
@@ -81,7 +81,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
   const tier = getScoreTier(score)
   const colors = getScoreColors(score)
   const temp = getTempConfig(lead.temperature)
-  const dotColor = SCORE_DOT_COLORS[tier]
+  const dotColor = temp.dot
   const isDead = lead.status === 'dead'
 
 

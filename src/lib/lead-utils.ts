@@ -70,11 +70,11 @@ export const SCORE_DOT_COLORS: Record<string, string> = {
   F: '#3b82f6',
 }
 
-export const TEMP_CONFIG: Record<string, { emoji: string; label: string; color: string; pulse: boolean }> = {
-  hot:  { emoji: '🔴', label: 'HOT',  color: 'text-red-500', pulse: true },
-  warm: { emoji: '🟡', label: 'WARM', color: 'text-yellow-600', pulse: false },
-  cool: { emoji: '🟡', label: 'WARM', color: 'text-yellow-600', pulse: false },
-  cold: { emoji: '🔵', label: 'COLD', color: 'text-blue-500', pulse: false },
+export const TEMP_CONFIG: Record<string, { emoji: string; label: string; color: string; dot: string; pulse: boolean }> = {
+  hot:  { emoji: '🔴', label: 'HOT',  color: 'text-red-500', dot: '#ef4444', pulse: true },
+  warm: { emoji: '🟡', label: 'WARM', color: 'text-yellow-600', dot: '#ca8a04', pulse: false },
+  cool: { emoji: '🟡', label: 'WARM', color: 'text-yellow-600', dot: '#ca8a04', pulse: false },
+  cold: { emoji: '🔵', label: 'COLD', color: 'text-blue-500', dot: '#3b82f6', pulse: false },
 }
 
 export function getScoreTier(score: number): string {

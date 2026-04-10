@@ -31,7 +31,9 @@ const CULTURE_SCORES: Record<string, number> = {
   'mexican': 16,
   'venezuelan': 16,
   'colombian': 16,
-  // Tier 5 — 10 points
+  // Tier 5 — 12 points
+  'south asian': 12,
+  // Tier 6 — 10 points
   'canadian': 10,
   'unknown': 10,
 };
