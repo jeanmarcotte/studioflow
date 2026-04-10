@@ -8,7 +8,18 @@ import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import type { Lead } from '@/lib/lead-utils'
 import { getCallScript, getTextTemplate, formatWeddingDate, formatShowName } from '@/lib/lead-utils'
+import { inferCultureFromLastName } from '@/lib/cultureInference'
 import { useRouter } from 'next/navigation'
+
+const CULTURE_FLAGS: Record<string, string> = {
+  'portuguese': '🇵🇹', 'greek': '🇬🇷', 'italian': '🇮🇹', 'filipino': '🇵🇭',
+  'jewish': '🇮🇱', 'caribbean': '🇹🇹', 'trinidadian': '🇹🇹', 'ghanaian': '🇬🇭',
+  'jamaican': '🇯🇲', 'spanish': '🇪🇸', 'mexican': '🇪🇸', 'venezuelan': '🇪🇸',
+  'colombian': '🇪🇸', 'canadian': '🇨🇦', 'south asian': '🇮🇳', 'indian': '🇮🇳',
+  'pakistani': '🇵🇰', 'chinese': '🇨🇳', 'vietnamese': '🇻🇳', 'korean': '🇰🇷',
+  'japanese': '🇯🇵', 'irish': '🇮🇪', 'scottish': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'ukrainian': '🇺🇦',
+  'croatian': '🇭🇷', 'french canadian': '🇨🇦', 'middle eastern': '🇱🇧',
+}
 
 interface ContactSectionProps {
   lead: Lead
@@ -138,6 +149,28 @@ export function ContactSection({ lead, onUpdate }: ContactSectionProps) {
           </Button>
         )}
       </div>
+
+      {/* Bride & Groom names with flags */}
+      {(() => {
+        const brideCulture = inferCultureFromLastName(lead.bride_last_name)
+        const brideFlag = brideCulture ? CULTURE_FLAGS[brideCulture.toLowerCase()] : null
+        const groomCulture = inferCultureFromLastName(lead.groom_last_name)
+        const groomFlag = groomCulture ? CULTURE_FLAGS[groomCulture.toLowerCase()] : null
+        return (
+          <div className="text-sm space-y-1 pt-1 border-t border-border/60">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Bride</span>
+              <span className="font-medium">{lead.bride_first_name} {lead.bride_last_name} {brideFlag}</span>
+            </div>
+            {lead.groom_first_name && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Groom</span>
+                <span className="font-medium">{lead.groom_first_name} {lead.groom_last_name} {groomFlag}</span>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Quick details */}
       <div className="text-sm space-y-1 pt-1 border-t border-border/60">
