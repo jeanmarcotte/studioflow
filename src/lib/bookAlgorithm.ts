@@ -14,32 +14,25 @@
 
 // Cultural rankings (based on 25 years of booking data)
 const CULTURE_SCORES: Record<string, number> = {
+  // Tier 1 — 30 points
   'portuguese': 30,
   'greek': 30,
   'italian': 30,
   'filipino': 30,
+  // Tier 2 — 25 points
   'jewish': 25,
-  'trinidadian': 24,
+  // Tier 3 — 24 points
   'caribbean': 24,
+  'trinidadian': 24,
   'ghanaian': 24,
   'jamaican': 24,
+  // Tier 4 — 16 points
   'spanish': 16,
   'mexican': 16,
   'venezuelan': 16,
   'colombian': 16,
-  'south asian': 12,
-  'indian': 12,
-  'pakistani': 12,
+  // Tier 5 — 10 points
   'canadian': 10,
-  'chinese': 8,
-  'korean': 8,
-  'japanese': 8,
-  'uk': 14,
-  'irish': 14,
-  'british': 14,
-  'russian': 14,
-  'european': 14,
-  'muslim': 6,
   'unknown': 10,
 };
 

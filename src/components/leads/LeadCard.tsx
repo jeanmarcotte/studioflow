@@ -29,6 +29,23 @@ const CULTURE_BUTTONS = [
   { value: 'canadian', emoji: '🇨🇦', label: 'Canadian', points: 10 },
 ]
 
+const CULTURE_FLAGS: Record<string, string> = {
+  'portuguese': '🇵🇹',
+  'greek': '🇬🇷',
+  'italian': '🇮🇹',
+  'filipino': '🇵🇭',
+  'jewish': '🇮🇱',
+  'caribbean': '🇹🇹',
+  'trinidadian': '🇹🇹',
+  'ghanaian': '🇬🇭',
+  'jamaican': '🇯🇲',
+  'spanish': '🇪🇸',
+  'mexican': '🇪🇸',
+  'venezuelan': '🇪🇸',
+  'colombian': '🇪🇸',
+  'canadian': '🇨🇦',
+}
+
 const CHANNEL_ICONS: Record<string, string> = {
   ballot: '📋',
   website: '🌐',
@@ -77,6 +94,7 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick, onLeadUpdate
 
   // Status-based display logic
   const showHeatAndScore = ['new', 'contacted'].includes(status)
+  const flag = lead.inferred_ethnicity ? CULTURE_FLAGS[lead.inferred_ethnicity.toLowerCase()] || null : null
   const isBooked = status === 'booked'
   const isQuoted = status === 'quoted'
   const isAppt = status === 'meeting_booked'
@@ -167,8 +185,9 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick, onLeadUpdate
 
         {/* Lead info */}
         <div className="space-y-0.5 mb-3">
-          <div className="font-bold text-[15px] text-slate-900 dark:text-slate-100 tracking-wide leading-tight">
+          <div className="font-bold text-[15px] text-slate-900 dark:text-slate-100 tracking-wide leading-tight flex items-center gap-1.5">
             {coupleName(lead)}
+            {flag && <span className="text-base" title={lead.inferred_ethnicity || ''}>{flag}</span>}
           </div>
           <div className="text-sm text-slate-600 dark:text-slate-400 truncate">
             {lead.venue_name || '—'}
