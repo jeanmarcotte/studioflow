@@ -11,24 +11,37 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const allowedEmails = ['jeanmarcotte@gmail.com', 'marianna@sigsphoto.ca', 'mariannakogan@gmail.com']
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const handleUser = async (user: { email?: string }) => {
       if (handled.current) return
-      if (event === 'SIGNED_IN' && session?.user) {
-        handled.current = true
-        const user = session.user
+      handled.current = true
 
-        if (user.email && allowedEmails.includes(user.email)) {
-          console.log('User authorized:', user.email)
-          router.push('/leads')
-        } else {
-          console.log('Unauthorized email:', user.email)
-          await supabase.auth.signOut()
-          router.push('/login?error=unauthorized')
-        }
+      if (user.email && allowedEmails.includes(user.email)) {
+        console.log('User authorized:', user.email)
+        router.push('/leads')
+      } else {
+        console.log('Unauthorized email:', user.email)
+        await supabase.auth.signOut()
+        router.push('/login?error=unauthorized')
+      }
+    }
+
+    // Listen for future auth events (in case hash is still being processed)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        await handleUser(session.user)
       }
     })
 
-    // Fallback: if auth state doesn't fire within 5s, redirect to login
+    // Also check immediately — detectSessionInUrl may have already processed the hash
+    const checkExisting = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        await handleUser(session.user)
+      }
+    }
+    checkExisting()
+
+    // Fallback: if nothing works within 5s, redirect to login
     const timeout = setTimeout(() => {
       if (!handled.current) {
         handled.current = true
