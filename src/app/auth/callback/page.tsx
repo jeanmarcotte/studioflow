@@ -1,36 +1,46 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase, handleAuthCallback } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function AuthCallbackPage() {
   const router = useRouter()
+  const handled = useRef(false)
 
   useEffect(() => {
-    const processCallback = async () => {
-      const { user, error } = await handleAuthCallback()
+    const allowedEmails = ['jeanmarcotte@gmail.com', 'marianna@sigsphoto.ca', 'mariannakogan@gmail.com']
 
-      if (error || !user) {
-        console.log('Auth failed:', error)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (handled.current) return
+      if (event === 'SIGNED_IN' && session?.user) {
+        handled.current = true
+        const user = session.user
+
+        if (user.email && allowedEmails.includes(user.email)) {
+          console.log('User authorized:', user.email)
+          router.push('/leads')
+        } else {
+          console.log('Unauthorized email:', user.email)
+          await supabase.auth.signOut()
+          router.push('/login?error=unauthorized')
+        }
+      }
+    })
+
+    // Fallback: if auth state doesn't fire within 5s, redirect to login
+    const timeout = setTimeout(() => {
+      if (!handled.current) {
+        handled.current = true
+        console.log('Auth callback timeout — redirecting to login')
         router.push('/login')
-        return
       }
+    }, 5000)
 
-      const allowedEmails = ['jeanmarcotte@gmail.com', 'marianna@sigsphoto.ca', 'mariannakogan@gmail.com']
-
-      if (user.email && allowedEmails.includes(user.email)) {
-        console.log('User authorized:', user.email)
-        router.push('/leads')
-      } else {
-        console.log('Unauthorized email:', user.email)
-        await supabase.auth.signOut()
-        router.push('/login?error=unauthorized')
-      }
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
     }
-
-    const timer = setTimeout(processCallback, 100)
-    return () => clearTimeout(timer)
   }, [router])
 
   return (
