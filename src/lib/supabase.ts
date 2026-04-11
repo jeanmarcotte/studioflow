@@ -11,10 +11,10 @@ console.log('Supabase Config:', {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    debug: true,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
-    flowType: 'pkce',
+    detectSessionInUrl: true
   }
 })
 
@@ -50,11 +50,11 @@ export const checkAuthState = async () => {
 }
 
 export const handleAuthCallback = async () => {
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) {
+  const { data: { session }, error } = await supabase.auth.getSession()
+  if (error || !session?.user) {
     return { user: null, error }
   }
-  return { user, error: null }
+  return { user: session.user, error: null }
 }
 
 // StudioFlow-specific database operations
