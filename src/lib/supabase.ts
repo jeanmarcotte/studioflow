@@ -50,11 +50,11 @@ export const checkAuthState = async () => {
 }
 
 export const handleAuthCallback = async () => {
-  const { data: { session }, error } = await supabase.auth.getSession()
-  if (error || !session?.user) {
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error || !user) {
     return { user: null, error }
   }
-  return { user: session.user, error: null }
+  return { user, error: null }
 }
 
 // StudioFlow-specific database operations
