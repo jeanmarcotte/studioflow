@@ -25,21 +25,31 @@ export default function AuthCallbackPage() {
       }
     }
 
-    // Listen for future auth events (in case hash is still being processed)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        await handleUser(session.user)
-      }
-    })
+    // Exchange the PKCE code for a session, then check user
+    const exchangeAndHandle = async () => {
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get('code')
 
-    // Also check immediately — detectSessionInUrl may have already processed the hash
-    const checkExisting = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        await handleUser(session.user)
+      if (code) {
+        // PKCE flow — must explicitly exchange the code
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (error) {
+          console.log('Code exchange failed:', error)
+          if (!handled.current) {
+            handled.current = true
+            router.push('/login')
+          }
+          return
+        }
+      }
+
+      // Now get the session (works for both PKCE and implicit flows)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await handleUser(user)
       }
     }
-    checkExisting()
+    exchangeAndHandle()
 
     // Fallback: if nothing works within 5s, redirect to login
     const timeout = setTimeout(() => {
@@ -51,7 +61,6 @@ export default function AuthCallbackPage() {
     }, 5000)
 
     return () => {
-      subscription.unsubscribe()
       clearTimeout(timeout)
     }
   }, [router])
