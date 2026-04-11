@@ -11,10 +11,10 @@ console.log('Supabase Config:', {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    debug: true,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: false,
+    flowType: 'pkce',
   }
 })
 
