@@ -46,9 +46,28 @@ const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> 
   contacted: { bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-700 dark:text-blue-400', label: 'CONTACTED' },
   meeting_booked: { bg: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-700 dark:text-purple-400', label: 'APPT' },
   quoted: { bg: 'bg-orange-100 dark:bg-orange-900/40', text: 'text-orange-700 dark:text-orange-400', label: 'QUOTED' },
-  booked: { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-400', label: 'BOOKED ✓' },
+  booked: { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-400', label: 'BOOKED \u2713' },
   dead: { bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-400', label: 'LOST' },
   lost: { bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-400', label: 'LOST' },
+}
+
+const NNY_BADGES: Record<string, { bg: string; text: string; label: string }> = {
+  NNY: { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-400', label: 'NNY' },
+  NNN: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-400', label: 'NNN' },
+  YNY: { bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-700 dark:text-blue-400', label: 'YNY' },
+  NYY: { bg: 'bg-yellow-100 dark:bg-yellow-900/40', text: 'text-yellow-700 dark:text-yellow-400', label: 'NYY' },
+  YYY: { bg: 'bg-teal-100 dark:bg-teal-900/40', text: 'text-teal-700 dark:text-teal-400', label: 'YYY' },
+  YNN: { bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-400', label: 'YNN' },
+  NYN: { bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-400', label: 'NYN' },
+  YYN: { bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-400', label: 'YYN' },
+}
+
+function getNnyBadge(lead: { has_photographer?: boolean | null; has_videographer?: boolean | null; has_venue?: boolean | null }) {
+  const p = lead.has_photographer ? 'Y' : 'N'
+  const v = lead.has_videographer ? 'Y' : 'N'
+  const d = lead.has_venue ? 'Y' : 'N'
+  const code = `${p}${v}${d}`
+  return NNY_BADGES[code] || STATUS_BADGE.new
 }
 
 function daysBetween(from: string | Date, to: Date): number {
@@ -195,7 +214,7 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick, onLeadUpdate
 
         {/* Status badge */}
         {(() => {
-          const sb = STATUS_BADGE[lead.status] || STATUS_BADGE.new
+          const sb = lead.status === 'new' ? getNnyBadge(lead) : (STATUS_BADGE[lead.status] || STATUS_BADGE.new)
           return (
             <Badge className={`${sb.bg} ${sb.text} border-0 text-[11px] font-bold px-2 py-0.5 w-fit mt-2`}>
               {sb.label}
