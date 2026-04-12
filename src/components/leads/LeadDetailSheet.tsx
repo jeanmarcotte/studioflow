@@ -245,7 +245,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
             onOpenChange={setBookedModalOpen}
             lead={{ id: lead.id, bride_name: lead.bride_first_name || '', groom_name: lead.groom_first_name || '', email: lead.email || undefined }}
             onSuccess={() => {
-              onUpdate({ ...lead })
+              onUpdate({ ...lead, status: 'meeting_booked' })
               onClose()
             }}
           />
@@ -254,7 +254,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
             onOpenChange={setLostModalOpen}
             lead={{ id: lead.id, bride_name: lead.bride_first_name || '', groom_name: lead.groom_first_name || '' }}
             onSuccess={() => {
-              onUpdate({ ...lead })
+              onUpdate({ ...lead, status: 'lost' })
               onClose()
             }}
           />
