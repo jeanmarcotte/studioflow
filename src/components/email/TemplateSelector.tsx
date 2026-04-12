@@ -57,10 +57,16 @@ export function TemplateSelector({
     return <div className="h-10 bg-muted animate-pulse rounded-md" />;
   }
 
+  const selectedName = selected === 'none'
+    ? 'No template - blank email'
+    : templates.find(t => t.id === selected)?.name || 'Select a template (optional)';
+
   return (
     <Select value={selected} onValueChange={handleSelect}>
       <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select a template (optional)" />
+        <SelectValue placeholder="Select a template (optional)">
+          {selected ? selectedName : undefined}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="none">No template - blank email</SelectItem>
