@@ -44,12 +44,16 @@ interface BookedModalProps {
 }
 
 export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModalProps) {
-  const [appointmentDate, setAppointmentDate] = useState('');
+  // Default to tomorrow's date
+  const today = new Date().toISOString().split('T')[0];
+  const tomorrow = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  })();
+  const [appointmentDate, setAppointmentDate] = useState(tomorrow);
   const [appointmentTime, setAppointmentTime] = useState('18:00');
   const [saving, setSaving] = useState(false);
-
-  // Today in YYYY-MM-DD for min date
-  const today = new Date().toISOString().split('T')[0];
 
   const handleBook = async () => {
     if (!appointmentDate) {
@@ -75,7 +79,7 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
       if (error) throw error;
 
       toast.success(`Appointment booked for ${lead.bride_name}!`);
-      setAppointmentDate('');
+      setAppointmentDate(tomorrow);
       setAppointmentTime('18:00');
       onOpenChange(false);
       onSuccess?.();
