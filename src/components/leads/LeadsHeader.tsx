@@ -93,8 +93,8 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
           </Button>
 
           {/* Add Lead — desktop only */}
-          <Button className="hidden sm:inline-flex h-9 px-3 text-sm font-semibold bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white rounded-lg" onClick={onAddLead}>
-            <Plus className="h-4 w-4 mr-1" /> Add Lead
+          <Button className="hidden sm:inline-flex h-8 px-2.5 text-xs font-semibold bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white rounded-lg mr-1" onClick={onAddLead}>
+            <Plus className="h-3.5 w-3.5 mr-0.5" /> Lead
           </Button>
 
         </div>
