@@ -140,8 +140,10 @@ export default function LeadsPage() {
       // Exclude lost leads unless showLost is active
       if (isLost(l) && !showLost) return false
 
-      // Status bucket filter
-      if (filters.status.length > 0) {
+      // When showLost is ON: only show leads with status 'lost' or 'dead'
+      if (showLost && filters.status.length === 0) {
+        if (!['dead', 'lost'].includes(l.status)) return false
+      } else if (filters.status.length > 0) {
         const matchesStatus = filters.status.some(s => {
           switch (s) {
             case 'no-no-yes': return isNNY(l)
@@ -153,11 +155,8 @@ export default function LeadsPage() {
             default: return false
           }
         })
-        // When showLost is active, lost leads pass regardless of status filter
-        if (!matchesStatus && !(showLost && isLost(l))) return false
-      } else if (showLost && !isLost(l)) {
-        // showLost with no status filter: ONLY show lost leads
-        return false
+        // When showLost is also active, lost/dead leads pass regardless of status filter
+        if (!matchesStatus && !(showLost && ['dead', 'lost'].includes(l.status))) return false
       }
 
       // Wedding year
