@@ -94,7 +94,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
           className="w-full lg:max-w-[500px] overflow-y-auto p-0"
         >
           {/* Header */}
-          <SheetHeader className="sticky top-0 z-10 bg-white border-b border-border/60 px-4 py-3">
+          <SheetHeader className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-border/60 px-4 py-3">
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={onClose}>
                 <ArrowLeft className="h-5 w-5" />
@@ -115,7 +115,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
             <ResurrectButton leadId={lead.id} currentStatus={lead.status} onSuccess={() => handleResurrected({ ...lead, status: 'contacted', contact_count: 0 })} />
 
             {/* 1. Score summary bar */}
-            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 border border-border/60">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 border border-border/60">
               <Badge className={`${colors.bg} ${colors.text} ${colors.border} border font-bold text-base px-3 py-1`}>
                 {score}
               </Badge>
