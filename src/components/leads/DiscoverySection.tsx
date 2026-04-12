@@ -203,17 +203,24 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
           />
         </div>
         <div className="flex items-center gap-3">
-          <label className="text-sm text-slate-700 dark:text-slate-300 shrink-0 w-32">Flower Girl / Ring Bearer</label>
-          <button
-            onClick={() => saveField('has_flower_girl', !(lead as any).has_flower_girl)}
-            className={`h-8 px-3 rounded-lg border text-sm font-medium transition-all ${
-              (lead as any).has_flower_girl
-                ? 'border-[#0d4f4f] bg-[#0d4f4f] text-white'
-                : 'border-border bg-white dark:bg-slate-800 text-slate-500'
-            }`}
-          >
-            {(lead as any).has_flower_girl ? 'Yes' : 'No'}
-          </button>
+          <label className="text-sm text-slate-700 dark:text-slate-300 shrink-0 w-32">Flower Girls</label>
+          <input
+            type="number"
+            min={0}
+            value={(lead as any).flower_girl_count ?? ''}
+            placeholder="0"
+            onChange={(e) => saveField('flower_girl_count', e.target.value ? parseInt(e.target.value) : null)}
+            className="h-8 w-20 rounded-lg border border-border bg-white dark:bg-slate-800 px-2 text-sm text-right outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+          />
+          <label className="text-sm text-slate-700 dark:text-slate-300 shrink-0">Ring Bearers</label>
+          <input
+            type="number"
+            min={0}
+            value={(lead as any).ring_bearer_count ?? ''}
+            placeholder="0"
+            onChange={(e) => saveField('ring_bearer_count', e.target.value ? parseInt(e.target.value) : null)}
+            className="h-8 w-20 rounded-lg border border-border bg-white dark:bg-slate-800 px-2 text-sm text-right outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+          />
         </div>
       </div>
     </div>
