@@ -118,12 +118,12 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
 
       {/* Legend Dialog */}
       <Dialog open={legendOpen} onOpenChange={setLegendOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto p-6">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] p-6 flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">Legend — Understanding Lead Cards</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-5 text-sm">
+          <div className="space-y-5 text-sm overflow-y-auto flex-1">
             {/* Score Badges */}
             <section>
               <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Score Badges</h3>
