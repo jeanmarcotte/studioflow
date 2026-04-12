@@ -159,13 +159,13 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
 
           {/* Wedding details */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 overflow-hidden">
               <label className={labelCls}>Wedding Date</label>
-              <input className={`${inputCls} min-w-0`} type="date" value={form.wedding_date} onChange={set('wedding_date')} />
+              <input className={inputCls} type="date" value={form.wedding_date} onChange={set('wedding_date')} style={{ maxWidth: '100%', boxSizing: 'border-box' }} />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 overflow-hidden">
               <label className={labelCls}>Service Needs</label>
-              <select className={`${inputCls} min-w-0`} value={form.service_needs} onChange={set('service_needs')}>
+              <select className={inputCls} value={form.service_needs} onChange={set('service_needs')}>
                 {SERVICE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
