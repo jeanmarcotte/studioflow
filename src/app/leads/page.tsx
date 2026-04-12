@@ -127,8 +127,8 @@ export default function LeadsPage() {
           (l.email || '').toLowerCase().includes(q)
         )
         if (!match) return false
-        // Exclude lost leads from search results
-        if (isLost(l)) return false
+        // Exclude lost/dead leads from search unless showLost is active
+        if (!showLost && ['dead', 'lost'].includes(l.status)) return false
         return true
       }
 

@@ -38,7 +38,7 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
           </Button>
 
           {/* Search — desktop only */}
-          <div className="relative hidden sm:block">
+          <div className="relative hidden sm:block" title="Lost leads are hidden. Toggle 'Lost' to include them.">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search leads..."
@@ -101,7 +101,7 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
 
         {/* Row 2: Search + compact +New — mobile only */}
         <div className="flex sm:hidden items-center gap-2 mt-2">
-          <div className="relative flex-1">
+          <div className="relative flex-1" title="Lost leads are hidden. Toggle 'Lost' to include them.">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search leads..."
