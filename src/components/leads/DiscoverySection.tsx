@@ -143,7 +143,7 @@ export function DiscoverySection({ lead, onUpdate }: DiscoverySectionProps) {
         <select
           value={lead.inferred_ethnicity || ''}
           onChange={(e) => saveCulture(e.target.value)}
-          className="h-8 flex-1 rounded-lg border border-border bg-white dark:bg-slate-800 px-2 text-sm outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
+          className="h-9 flex-1 rounded-lg border border-border bg-white dark:bg-slate-800 px-2 py-1.5 text-sm leading-normal outline-none transition-all focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
         >
           {CULTURE_OPTIONS.map(o => (
             <option key={o.value} value={o.value}>{o.label}</option>
