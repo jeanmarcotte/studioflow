@@ -191,7 +191,7 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick, onLeadUpdate
         <div className="space-y-0.5 mb-3">
           <div className="font-bold text-[15px] text-slate-900 dark:text-slate-100 tracking-wide leading-tight flex items-center gap-1.5">
             {coupleName(lead)}
-            {flag && <span className="text-base" title={lead.inferred_ethnicity || ''}>{flag}</span>}
+            {flag && <span className="text-base pl-1" title={lead.inferred_ethnicity || ''}>{flag}</span>}
           </div>
           <div className="text-sm text-slate-600 dark:text-slate-400 truncate">
             {lead.venue_name || '—'}
