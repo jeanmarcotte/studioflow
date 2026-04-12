@@ -79,6 +79,9 @@ export function replaceVariables(template: string, context: TemplateContext): st
   // Remove any unreplaced variables
   result = result.replace(/\{\{[^}]+\}\}/g, '');
 
+  // Convert literal \n sequences to actual newlines
+  result = result.replace(/\\n/g, '\n');
+
   return result;
 }
 
