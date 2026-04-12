@@ -157,23 +157,18 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
             </div>
           </div>
 
-          {/* Wedding details */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>Wedding Date</label>
-              <input
-                type="date"
-                value={form.wedding_date}
-                onChange={set('wedding_date')}
-                className="w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-sm outline-none focus:border-[#0d4f4f] focus:ring-1 focus:ring-[#0d4f4f]/20"
-              />
-            </div>
-            <div>
-              <label className={labelCls}>Service Needs</label>
-              <select className={inputCls} value={form.service_needs} onChange={set('service_needs')}>
-                {SERVICE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
+          {/* Wedding Date — full width so iPad date picker doesn't overflow */}
+          <div>
+            <label className={labelCls}>Wedding Date</label>
+            <input className={inputCls} type="date" value={form.wedding_date} onChange={set('wedding_date')} />
+          </div>
+
+          {/* Service Needs — full width */}
+          <div>
+            <label className={labelCls}>Service Needs</label>
+            <select className={inputCls} value={form.service_needs} onChange={set('service_needs')}>
+              {SERVICE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
           </div>
 
           <div>
