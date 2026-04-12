@@ -10,6 +10,7 @@ import { formatDate, formatDateCompact } from '@/lib/formatters'
 import { Playfair_Display, Nunito } from 'next/font/google'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
+import { SortableVideoTable } from '@/components/video/SortableVideoTable'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -168,7 +169,6 @@ export default function VideoProductionPage() {
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['completed']))
   const [showVideoOut, setShowVideoOut] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
-  const [draggedJobId, setDraggedJobId] = useState<string | null>(null)
   const editingRef = useRef<HTMLDivElement>(null)
 
   // ── Due date editing state ─────────────────────────────────────
@@ -303,56 +303,18 @@ export default function VideoProductionPage() {
     }
   }
 
-  // ── Drag-to-reorder ────────────────────────────────────────────
+  // ── Reorder handler for SortableVideoTable ───────────────────
 
-  const handleDragStart = useCallback((jobId: string) => {
-    setDraggedJobId(jobId)
-  }, [])
-
-  const handleDrop = useCallback(async (targetJobId: string, laneKey: SwimlaneKey, laneJobs: VideoJob[]) => {
-    if (!draggedJobId || draggedJobId === targetJobId) {
-      setDraggedJobId(null)
-      return
-    }
-
-    const oldIndex = laneJobs.findIndex(j => j.id === draggedJobId)
-    const newIndex = laneJobs.findIndex(j => j.id === targetJobId)
-    if (oldIndex === -1 || newIndex === -1) {
-      setDraggedJobId(null)
-      return
-    }
-
-    // Reorder locally
-    const reordered = [...laneJobs]
-    const [moved] = reordered.splice(oldIndex, 1)
-    reordered.splice(newIndex, 0, moved)
-
-    // Assign new sort_order values
-    const updates: { id: string; sort_order: number }[] = reordered.map((j, i) => ({
-      id: j.id,
-      sort_order: i + 1,
-    }))
-
-    // Optimistic local update
+  const handleEditingFullReorder = useCallback((reorderedJobs: VideoJob[]) => {
     setJobs(prev => {
       const next = [...prev]
-      for (const u of updates) {
-        const idx = next.findIndex(j => j.id === u.id)
-        if (idx !== -1) next[idx] = { ...next[idx], sort_order: u.sort_order }
+      for (let i = 0; i < reorderedJobs.length; i++) {
+        const idx = next.findIndex(j => j.id === reorderedJobs[i].id)
+        if (idx !== -1) next[idx] = { ...next[idx], sort_order: i + 1 }
       }
       return next
     })
-
-    // Persist to DB
-    for (const u of updates) {
-      await supabase
-        .from('video_jobs')
-        .update({ sort_order: u.sort_order })
-        .eq('id', u.id)
-    }
-
-    setDraggedJobId(null)
-  }, [draggedJobId])
+  }, [])
 
   // ── Computed data ──────────────────────────────────────────────
 
@@ -1242,14 +1204,25 @@ export default function VideoProductionPage() {
                 {/* Regular video job table */}
                 {!isCollapsed && (() => {
                   const laneJobs = processedJobs[lane.key as Exclude<SwimlaneKey, 'waiting_photo'>] || []
-                  return laneJobs.length > 0 ? (
+                  if (laneJobs.length === 0) return null
+                  if (lane.key === 'editing_full') {
+                    return (
+                      <SortableVideoTable
+                        columns={makeSwimlaneColumns(lane.key, hideSegments)}
+                        data={laneJobs}
+                        onReorder={handleEditingFullReorder}
+                        emptyMessage="No jobs in this lane"
+                      />
+                    )
+                  }
+                  return (
                     <DataTable
                       columns={makeSwimlaneColumns(lane.key, hideSegments)}
                       data={laneJobs}
                       showPagination={false}
                       emptyMessage="No jobs in this lane"
                     />
-                  ) : null
+                  )
                 })()}
 
                 {/* Empty lane */}
