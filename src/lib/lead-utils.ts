@@ -53,12 +53,12 @@ export interface Lead {
 export type FilterKey = 'no-no-yes' | 'no-no-no' | 'contacted' | 'meeting_booked' | 'quoted' | 'booked'
 
 export const SCORE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  A: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' },
-  B: { bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-300' },
-  C: { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300' },
-  D: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
-  E: { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300' },
-  F: { bg: 'bg-gray-100', text: 'text-gray-500', border: 'border-gray-300' },
+  A: { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-400', border: 'border-green-300 dark:border-green-700' },
+  B: { bg: 'bg-teal-100 dark:bg-teal-900/40', text: 'text-teal-700 dark:text-teal-400', border: 'border-teal-300 dark:border-teal-700' },
+  C: { bg: 'bg-yellow-100 dark:bg-yellow-900/40', text: 'text-yellow-700 dark:text-yellow-400', border: 'border-yellow-300 dark:border-yellow-700' },
+  D: { bg: 'bg-orange-100 dark:bg-orange-900/40', text: 'text-orange-700 dark:text-orange-400', border: 'border-orange-300 dark:border-orange-700' },
+  E: { bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-400', border: 'border-red-300 dark:border-red-700' },
+  F: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-400', border: 'border-gray-300 dark:border-gray-600' },
 }
 
 export const SCORE_DOT_COLORS: Record<string, string> = {
