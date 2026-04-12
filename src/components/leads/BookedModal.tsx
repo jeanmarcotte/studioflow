@@ -97,7 +97,7 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-white sm:max-w-md shadow-xl">
+      <DialogContent className="bg-white dark:bg-slate-900 sm:max-w-md shadow-xl">
         <DialogHeader>
           <DialogTitle>Book Appointment</DialogTitle>
           <DialogDescription>
@@ -107,35 +107,32 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="appt-date">Appointment Date</Label>
+            <Label htmlFor="appt-date" className="text-gray-700 dark:text-gray-200">Appointment Date</Label>
             <input
               type="date"
               id="appt-date"
               value={appointmentDate}
               onChange={(e) => setAppointmentDate(e.target.value)}
               min={today}
-              className="w-full h-12 px-3 py-2 border border-gray-300 rounded-md text-base"
+              className="w-full h-12 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-base bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100"
               style={{
                 WebkitAppearance: 'none',
                 appearance: 'none',
-                backgroundColor: 'white',
-                color: '#111827',
                 fontSize: '16px',
                 lineHeight: '1.5',
-                colorScheme: 'light',
               }}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Time</Label>
+            <Label className="text-gray-700 dark:text-gray-200">Time</Label>
             <Select value={appointmentTime} onValueChange={(v) => setAppointmentTime(v || '18:00')}>
-              <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900 h-12 text-base">
+              <SelectTrigger className="w-full bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-gray-100 h-12 text-base">
                 <SelectValue placeholder="Select time" />
               </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false} className="bg-white border border-gray-200 shadow-lg max-h-60">
+              <SelectContent alignItemWithTrigger={false} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 shadow-lg max-h-60">
                 {timeSlots.map((slot) => (
-                  <SelectItem key={slot.value} value={slot.value} className="text-gray-900 cursor-pointer text-base py-2">
+                  <SelectItem key={slot.value} value={slot.value} className="text-gray-900 dark:text-gray-100 cursor-pointer text-base py-2">
                     {slot.label}
                   </SelectItem>
                 ))}
@@ -145,7 +142,7 @@ export function BookedModal({ open, onOpenChange, lead, onSuccess }: BookedModal
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="dark:border-slate-600 dark:text-gray-200 dark:hover:bg-slate-800">
             Cancel
           </Button>
           <Button className="bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white" onClick={handleBook} disabled={saving}>
