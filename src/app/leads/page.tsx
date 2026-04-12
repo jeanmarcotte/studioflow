@@ -262,7 +262,7 @@ export default function LeadsPage() {
     'booked': leads.filter(l => l.status === 'booked').length,
   } as Record<FilterKey, number>), [leads])
 
-  const lostCount = useMemo(() => leads.filter(l => isLost(l)).length, [leads])
+  const lostCount = useMemo(() => leads.filter(l => ['dead', 'lost'].includes(l.status)).length, [leads])
 
   const chaseCounts = useMemo(() => {
     const contacted = leads.filter(l => l.status === 'contacted')
