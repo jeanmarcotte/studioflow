@@ -160,7 +160,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
           {/* Wedding Date — full width so iPad date picker doesn't overflow */}
           <div>
             <label className={labelCls}>Wedding Date</label>
-            <input className={inputCls} type="date" value={form.wedding_date} onChange={set('wedding_date')} />
+            <input className={inputCls} type="date" value={form.wedding_date} onChange={set('wedding_date')} style={{ WebkitAppearance: 'auto' as any, appearance: 'auto' as any }} />
           </div>
 
           {/* Service Needs — full width */}
