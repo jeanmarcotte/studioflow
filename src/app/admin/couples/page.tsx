@@ -9,6 +9,7 @@ import { Users, Search, Filter, ChevronUp, ChevronDown, Calendar, Camera, Frame,
 import { formatWeddingDate, formatCurrency } from '@/lib/formatters'
 import PdfImporter from '@/components/admin/PdfImporter'
 import ExtrasImporter from '@/components/admin/ExtrasImporter'
+import { HistoricalCouplesArchive } from '@/components/couples/HistoricalCouplesArchive'
 
 interface Couple {
   id: string
@@ -494,6 +495,8 @@ export default function CouplesPage() {
         emptyMessage="No couples found matching your filters."
         pageSize={50}
       />
+
+      <HistoricalCouplesArchive />
     </div>
   )
 }
