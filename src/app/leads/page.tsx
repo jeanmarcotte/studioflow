@@ -140,12 +140,9 @@ export default function LeadsPage() {
       // Exclude lost leads unless showLost is active
       if (isLost(l) && !showLost) return false
 
-      // If showLost is on and we're looking at lost leads, show them all (no status filter)
-      if (showLost && isLost(l)) {
-        // Still apply other filters below
-      } else if (filters.status.length > 0) {
-        // Status bucket filter (multi-select — lead must match ANY selected status)
-        const matchesAny = filters.status.some(s => {
+      // Status bucket filter
+      if (filters.status.length > 0) {
+        const matchesStatus = filters.status.some(s => {
           switch (s) {
             case 'no-no-yes': return isNNY(l)
             case 'no-no-no': return isNNN(l)
@@ -156,7 +153,11 @@ export default function LeadsPage() {
             default: return false
           }
         })
-        if (!matchesAny) return false
+        // When showLost is active, lost leads pass regardless of status filter
+        if (!matchesStatus && !(showLost && isLost(l))) return false
+      } else if (showLost && !isLost(l)) {
+        // showLost with no status filter: ONLY show lost leads
+        return false
       }
 
       // Wedding year
