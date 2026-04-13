@@ -52,9 +52,11 @@ interface SortableVideoTableProps<TData extends SortableRow> {
 
 function SortableTableRow<TData extends SortableRow>({
   row,
+  index,
   children,
 }: {
   row: { original: TData }
+  index: number
   children: React.ReactNode
 }) {
   const {
@@ -78,6 +80,7 @@ function SortableTableRow<TData extends SortableRow>({
       <TableCell className="text-muted-foreground text-center cursor-grab w-[30px] px-1" {...listeners}>
         <span className="text-base select-none">⠿</span>
       </TableCell>
+      <TableCell className="w-8 text-center text-gray-500 text-sm">{index + 1}</TableCell>
       {children}
     </TableRow>
   )
@@ -156,6 +159,8 @@ export function SortableVideoTable<TData extends SortableRow>({
                   <TableRow key={headerGroup.id}>
                     {/* Empty header for drag handle column */}
                     <TableHead style={{ width: 30 }} />
+                    {/* Row number column */}
+                    <TableHead className="w-8 text-center">#</TableHead>
                     {headerGroup.headers.map((header) => (
                       <TableHead key={header.id} style={{ width: header.getSize() }}>
                         {header.isPlaceholder
@@ -171,8 +176,8 @@ export function SortableVideoTable<TData extends SortableRow>({
               </TableHeader>
               <TableBody>
                 {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <SortableTableRow key={row.id} row={row}>
+                  table.getRowModel().rows.map((row, index) => (
+                    <SortableTableRow key={row.id} row={row} index={index}>
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>
                           {flexRender(
@@ -186,7 +191,7 @@ export function SortableVideoTable<TData extends SortableRow>({
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={columns.length + 1}
+                      colSpan={columns.length + 2}
                       className="h-24 text-center text-muted-foreground"
                     >
                       {emptyMessage}
