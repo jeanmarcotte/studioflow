@@ -1,6 +1,6 @@
 'use client'
 
-import { X, ChevronsLeft, ChevronsRight, RotateCcw, ChevronDown } from 'lucide-react'
+import { X, ChevronsLeft, ChevronsRight, RotateCcw, ChevronDown, ClipboardList } from 'lucide-react'
 import { Nunito } from 'next/font/google'
 import { motion } from 'framer-motion'
 import { ButtonWithBadge } from '@/components/ui/button-with-badge'
@@ -367,7 +367,15 @@ export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, sho
       {/* Desktop sidebar */}
       <aside className={`${nunito.className} hidden lg:flex flex-col w-[288px] shrink-0 p-4 pr-2 bg-slate-50 dark:bg-slate-950`}>
         <div className="flex-1 min-h-0">{filterCard}</div>
-        <div className="border-t border-border/40 pt-2 mt-2">
+        <div className="border-t border-border/40 pt-2 mt-2 space-y-2">
+          <div className="flex items-center justify-between px-2 text-xs text-slate-400 dark:text-slate-500">
+            <a href="https://sigsphoto.ca" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+              SIGS Photography
+            </a>
+            <Link href="/client/new-quote" title="Ballot Entry" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+              <ClipboardList className="h-3.5 w-3.5" />
+            </Link>
+          </div>
           <UserProfile />
         </div>
       </aside>
@@ -375,7 +383,15 @@ export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, sho
       {/* Mobile drawer */}
       <aside className={`${nunito.className} lg:hidden fixed inset-y-0 left-0 z-50 w-[300px] p-3 bg-slate-50 dark:bg-slate-950 shadow-2xl transition-transform duration-200 flex flex-col ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex-1 min-h-0">{filterCard}</div>
-        <div className="border-t border-border/40 pt-2 mt-2">
+        <div className="border-t border-border/40 pt-2 mt-2 space-y-2">
+          <div className="flex items-center justify-between px-2 text-xs text-slate-400 dark:text-slate-500">
+            <a href="https://sigsphoto.ca" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+              SIGS Photography
+            </a>
+            <Link href="/client/new-quote" title="Ballot Entry" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+              <ClipboardList className="h-3.5 w-3.5" />
+            </Link>
+          </div>
           <UserProfile />
         </div>
       </aside>
