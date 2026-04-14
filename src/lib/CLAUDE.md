@@ -16,4 +16,10 @@
 |----|------|---|-------|------|
 | #6381 | 11:04 AM | 🔵 | Supabase Project ID Mismatch in WO-514 Specification | ~510 |
 | #6379 | 11:03 AM | 🔵 | StudioFlow Finance Module Architecture | ~765 |
+
+### Apr 14, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #6571 | 3:48 PM | 🟣 | Account Ledger page implemented with snapshots, tax status, and member payables tracking | ~602 |
 </claude-mem-context>
