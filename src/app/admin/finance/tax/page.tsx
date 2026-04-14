@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2, Plus } from 'lucide-react'
+import { LedgerHeader } from '@/components/finance/ledger-header'
 
 interface PayrollRow {
   id: string
@@ -186,11 +187,11 @@ export default function BusinessTaxPage() {
 
   return (
     <div className="w-full px-3 py-4 sm:px-6 sm:py-6 space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Business Tax</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Government remittances and tax tracking</p>
-      </div>
+      <LedgerHeader
+        title="Tax & Compliance"
+        subtitle="Government remittances and tax tracking"
+        fiscalYear={fiscalYear}
+      />
 
       {/* ══════ PAYROLL REMITTANCES ══════ */}
       <Card>
