@@ -185,11 +185,11 @@ export default function BusinessTaxPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="w-full px-3 py-4 sm:px-6 sm:py-6 space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Business Tax</h1>
-        <p className="text-sm text-muted-foreground mt-1">Government remittances and tax tracking</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Business Tax</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Government remittances and tax tracking</p>
       </div>
 
       {/* ══════ PAYROLL REMITTANCES ══════ */}
@@ -211,7 +211,7 @@ export default function BusinessTaxPage() {
               <PayrollTable payroll={payroll} fiscalYear="2026-2027" selectedFiscalYear={fiscalYear} togglePaid={togglePaid} fmt={fmt} fmtDate={fmtDate} />
             </TabsContent>
           </Tabs>
-          <div className="mt-3 text-sm text-muted-foreground">
+          <div className="mt-3 text-xs sm:text-sm text-muted-foreground">
             {payrollPaidCount}/{payroll.length} paid | Total remitted: {fmt(payrollTotalRemitted)} / {fmt(payrollTotalDue)}
           </div>
         </CardContent>
@@ -225,7 +225,7 @@ export default function BusinessTaxPage() {
         </CardHeader>
         <CardContent>
           {/* Summary */}
-          <div className="flex items-center gap-4 mb-3 text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mb-3 text-xs sm:text-sm">
             <span>Target: <strong>{fmt(HST_TARGET)}</strong></span>
             <span>Deposited: <strong className="text-green-600">{fmt(hstTotalDeposited)}</strong></span>
             <span>Remaining: <strong className="text-amber-600">{fmt(hstRemaining > 0 ? hstRemaining : 0)}</strong></span>
@@ -241,7 +241,7 @@ export default function BusinessTaxPage() {
 
           {/* Deposits table */}
           {hstDeposits.length > 0 ? (
-            <div className="rounded-md border mb-4">
+            <div className="rounded-md border mb-4 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -274,21 +274,23 @@ export default function BusinessTaxPage() {
 
           {/* Add deposit form */}
           {showAddHst ? (
-            <div className="flex items-end gap-3 p-3 rounded-lg border bg-muted/30">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-end gap-3 p-3 rounded-lg border bg-muted/30">
               <div className="space-y-1">
                 <label className="text-xs font-medium">Date</label>
-                <Input type="date" value={newHstDate} onChange={e => setNewHstDate(e.target.value)} className="w-40" />
+                <Input type="date" value={newHstDate} onChange={e => setNewHstDate(e.target.value)} className="lg:w-40" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium">Amount</label>
-                <Input type="number" step="0.01" placeholder="1000" value={newHstAmount} onChange={e => setNewHstAmount(e.target.value)} className="w-32" />
+                <Input type="number" step="0.01" placeholder="1000" value={newHstAmount} onChange={e => setNewHstAmount(e.target.value)} className="lg:w-32" />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 sm:col-span-2 lg:col-span-1">
                 <label className="text-xs font-medium">Confirmation #</label>
-                <Input placeholder="Optional" value={newHstConfirmation} onChange={e => setNewHstConfirmation(e.target.value)} className="w-44" />
+                <Input placeholder="Optional" value={newHstConfirmation} onChange={e => setNewHstConfirmation(e.target.value)} className="lg:w-44" />
               </div>
-              <Button size="sm" onClick={addHstDeposit}>Save</Button>
-              <Button size="sm" variant="outline" onClick={() => setShowAddHst(false)}>Cancel</Button>
+              <div className="flex gap-2 sm:col-span-2 lg:col-span-1">
+                <Button size="sm" onClick={addHstDeposit}>Save</Button>
+                <Button size="sm" variant="outline" onClick={() => setShowAddHst(false)}>Cancel</Button>
+              </div>
             </div>
           ) : (
             <Button size="sm" variant="outline" onClick={() => setShowAddHst(true)}>
@@ -307,8 +309,8 @@ export default function BusinessTaxPage() {
         <CardContent>
           <div className="space-y-4">
             {/* Amount Due */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium w-28">Amount Due:</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+              <span className="text-xs sm:text-sm font-medium sm:w-28">Amount Due:</span>
               {businessTax?.amount_due != null ? (
                 <span className="font-mono font-semibold">{fmt(businessTax.amount_due)}</span>
               ) : (
@@ -319,7 +321,7 @@ export default function BusinessTaxPage() {
                     placeholder="Enter when bill received"
                     value={taxAmountInput}
                     onChange={e => setTaxAmountInput(e.target.value)}
-                    className="w-48"
+                    className="w-full sm:w-48"
                   />
                   <Button size="sm" onClick={updateAmountDue}>Save</Button>
                 </div>
@@ -327,14 +329,14 @@ export default function BusinessTaxPage() {
             </div>
 
             {/* Amount Paid */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium w-28">Amount Paid:</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+              <span className="text-xs sm:text-sm font-medium sm:w-28">Amount Paid:</span>
               <span className="font-mono">{fmt(Number(businessTax?.amount_paid || 0))}</span>
             </div>
 
             {/* Status */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium w-28">Status:</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+              <span className="text-xs sm:text-sm font-medium sm:w-28">Status:</span>
               <span className={
                 businessTax?.is_paid
                   ? 'text-green-600 font-semibold'
@@ -378,28 +380,28 @@ function PayrollTable({
     return <p className="text-sm text-muted-foreground py-4">No payroll records for this fiscal year.</p>
   }
   return (
-    <div className="rounded-md border mt-3">
-      <Table>
+    <div className="rounded-md border mt-3 overflow-x-auto">
+      <Table className="text-xs sm:text-sm">
         <TableHeader>
           <TableRow>
             <TableHead className="w-8 text-center">#</TableHead>
-            <TableHead>Month</TableHead>
-            <TableHead>Gross Payroll</TableHead>
-            <TableHead>Remittance</TableHead>
-            <TableHead>Due Date</TableHead>
-            <TableHead>Paid Date</TableHead>
+            <TableHead className="min-w-[80px]">Month</TableHead>
+            <TableHead className="min-w-[90px]">Gross Payroll</TableHead>
+            <TableHead className="min-w-[90px]">Remittance</TableHead>
+            <TableHead className="min-w-[70px]">Due Date</TableHead>
+            <TableHead className="min-w-[70px]">Paid Date</TableHead>
             <TableHead className="w-10 text-center">✓</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {payroll.map((row, i) => (
             <TableRow key={row.id} className={row.is_paid ? 'bg-green-50/50' : ''}>
-              <TableCell className="w-8 text-center text-gray-500 text-sm">{i + 1}</TableCell>
-              <TableCell className="font-medium">{row.month_label}</TableCell>
+              <TableCell className="w-8 text-center text-gray-500">{i + 1}</TableCell>
+              <TableCell className="font-medium whitespace-nowrap">{row.month_label}</TableCell>
               <TableCell className="font-mono">{fmt(Number(row.gross_payroll))}</TableCell>
               <TableCell className="font-mono">{fmt(Number(row.remittance_amount))}</TableCell>
-              <TableCell>{row.due_date ? fmtDate(row.due_date) : '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.paid_date ? fmtDate(row.paid_date) : ''}</TableCell>
+              <TableCell className="whitespace-nowrap">{row.due_date ? fmtDate(row.due_date) : '—'}</TableCell>
+              <TableCell className="text-muted-foreground whitespace-nowrap">{row.paid_date ? fmtDate(row.paid_date) : ''}</TableCell>
               <TableCell className="w-10 text-center">
                 <Checkbox
                   checked={row.is_paid}
