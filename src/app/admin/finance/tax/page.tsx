@@ -16,7 +16,7 @@ interface PayrollRow {
   month_num: number
   month_label: string
   gross_payroll: number
-  remittance: number
+  remittance_amount: number
   due_date: string
   is_paid: boolean
   paid_date: string | null
@@ -155,8 +155,8 @@ export default function BusinessTaxPage() {
 
   // ── Computed values ───────────────────────────────────────────
   const payrollPaidCount = payroll.filter(p => p.is_paid).length
-  const payrollTotalRemitted = payroll.filter(p => p.is_paid).reduce((sum, p) => sum + Number(p.remittance), 0)
-  const payrollTotalDue = payroll.reduce((sum, p) => sum + Number(p.remittance), 0)
+  const payrollTotalRemitted = payroll.filter(p => p.is_paid).reduce((sum, p) => sum + Number(p.remittance_amount), 0)
+  const payrollTotalDue = payroll.reduce((sum, p) => sum + Number(p.remittance_amount), 0)
 
   const hstTotalDeposited = hstDeposits.reduce((sum, d) => sum + Number(d.deposit_amount), 0)
   const hstRemaining = HST_TARGET - hstTotalDeposited
@@ -397,7 +397,7 @@ function PayrollTable({
               <TableCell className="w-8 text-center text-gray-500 text-sm">{i + 1}</TableCell>
               <TableCell className="font-medium">{row.month_label}</TableCell>
               <TableCell className="font-mono">{fmt(Number(row.gross_payroll))}</TableCell>
-              <TableCell className="font-mono">{fmt(Number(row.remittance))}</TableCell>
+              <TableCell className="font-mono">{fmt(Number(row.remittance_amount))}</TableCell>
               <TableCell>{row.due_date ? fmtDate(row.due_date) : '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.paid_date ? fmtDate(row.paid_date) : ''}</TableCell>
               <TableCell className="w-10 text-center">
