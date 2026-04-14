@@ -1,25 +1,8 @@
-export default function ExpenseDashboardPage() {
+export default function ExpensesPage() {
   return (
-    <div style={{ padding: '2rem' }}>
-      <div style={{
-        border: '2px dashed var(--color-border-tertiary, #d1d5db)',
-        borderRadius: '12px',
-        padding: '3rem',
-        textAlign: 'center' as const,
-        maxWidth: '600px',
-        margin: '2rem auto'
-      }}>
-        <div style={{ fontSize: '48px', marginBottom: '1rem' }}>🏗️</div>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-          Expense Dashboard
-        </h1>
-        <p style={{ color: 'var(--color-muted-foreground)', marginBottom: '1rem' }}>
-          Under Construction
-        </p>
-        <p style={{ color: 'var(--color-muted-foreground)', fontSize: '0.875rem' }}>
-          Track business expenses, receipts, and categorized spending.
-        </p>
-      </div>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold">Expenses</h1>
+      <p className="text-muted-foreground mt-2">Coming soon — WO-613</p>
     </div>
-  );
+  )
 }

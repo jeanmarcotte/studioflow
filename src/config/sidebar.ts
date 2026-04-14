@@ -15,9 +15,7 @@ import {
   Search,
   Scissors,
   CalendarDays,
-  Upload,
   CreditCard,
-  Clock,
   Receipt,
   UsersRound,
   CalendarCheck,
@@ -28,7 +26,6 @@ import {
   FileCheck,
   Wrench,
   Archive,
-  Landmark,
 } from 'lucide-react'
 
 export interface SidebarItem {
@@ -126,13 +123,10 @@ export const studioflowAdminConfig: SidebarConfig = {
           title: 'Finance',
           icon: DollarSign,
           children: [
-            { title: 'Income Dashboard', href: '/admin/finance', icon: DollarSign },
-            { title: 'Expense Dashboard', href: '/admin/finance/expenses', icon: CreditCard },
-            { title: 'Member Payables', href: '/admin/finance/payables', icon: Wallet },
-            { title: 'Client Upcoming Due', href: '/admin/finance/upcoming', icon: Clock },
-            { title: 'Bank Account', href: '/admin/finance/accounts', icon: Landmark },
-            { title: 'Obligations', href: '/admin/finance/obligations', icon: Receipt },
-            { title: 'Upload Payments', href: '/admin/finance/upload', icon: Upload },
+            { title: 'Account Ledger', href: '/admin/finance', icon: DollarSign },
+            { title: 'Income', href: '/admin/finance/income', icon: CreditCard },
+            { title: 'Expenses', href: '/admin/finance/expenses', icon: Wallet },
+            { title: 'Business Tax', href: '/admin/finance/tax', icon: Receipt },
           ],
         },
         { title: 'Settings', href: '/admin/settings', icon: Settings },
