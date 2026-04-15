@@ -46,14 +46,10 @@ export function FinanceSection({ couple, payments, installments }: FinanceSectio
   const [paymentsOpen, setPaymentsOpen] = useState(false);
   const [installmentsOpen, setInstallmentsOpen] = useState(false);
 
-  // C1 liability
-  const c1Liability = n(couple.c1_amount) || n(couple.contract_total);
-
-  // C2 liability
-  const c2Liability = n(couple.c2_amount);
-
-  // C3 liability
-  const c3Liability = n(couple.c3_amount) || n(couple.extras_total);
+  // Liabilities - use the columns directly
+  const c1Liability = Number(couple.c1_amount) || Number(couple.contract_total) || 0;
+  const c2Liability = Number(couple.c2_amount) || 0;
+  const c3Liability = Number(couple.c3_amount) || 0;
 
   // Payments by phase
   const c1Paid = payments.filter(p => p.phase === 'C1').reduce((sum, p) => sum + n(p.amount), 0);
