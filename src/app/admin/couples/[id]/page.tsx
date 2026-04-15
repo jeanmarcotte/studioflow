@@ -184,7 +184,7 @@ export default function CoupleDetailPage() {
   const c3Total = clientExtras.reduce((sum: number, e: any) => sum + parseFloat(e.total || '0'), 0);
 
   return (
-    <div style={{ padding: '1.5rem', maxWidth: '100%' }}>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Q1 — Alert Banner */}
       <Q01AlertBanner
         milestones={milestones}
