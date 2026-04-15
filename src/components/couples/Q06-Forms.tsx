@@ -58,7 +58,7 @@ function FormRow({ name, isComplete, href, isNA }: FormRowProps) {
           href={href}
           className="text-sm text-teal-600 font-medium hover:bg-teal-50 px-3 py-1 rounded transition-colors"
         >
-          View \u2192
+          View →
         </Link>
       ) : (
         <span className="text-sm text-slate-400">Awaiting</span>

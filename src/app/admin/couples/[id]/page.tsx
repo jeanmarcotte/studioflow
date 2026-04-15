@@ -19,6 +19,7 @@ import {
   Q13ClientPickupSlip,
 } from '@/components/couples';
 import { FinanceSection } from '@/components/couples/FinanceSection';
+import { ExtrasCard } from '@/components/couples/ExtrasCard';
 
 export default function CoupleDetailPage() {
   const params = useParams();
@@ -218,14 +219,16 @@ export default function CoupleDetailPage() {
         weddingDate={couple.wedding_date}
       />
 
-      {/* Q6 — Forms */}
-      <Q06Forms
-        dayFormApproved={milestones?.m15_day_form_approved || false}
-        photoOrderIn={milestones?.m24_photo_order_in || false}
-        videoOrderIn={milestones?.m25_video_order_in || false}
-        packageType={couple.package_type || 'photo_video'}
-        coupleId={coupleId}
-      />
+      {/* Q6 — Forms (hidden for 2025 and earlier couples) */}
+      {couple.wedding_date && new Date(couple.wedding_date).getFullYear() >= 2026 && (
+        <Q06Forms
+          dayFormApproved={milestones?.m15_day_form_approved || false}
+          photoOrderIn={milestones?.m24_photo_order_in || false}
+          videoOrderIn={milestones?.m25_video_order_in || false}
+          packageType={couple.package_type || 'photo_video'}
+          coupleId={coupleId}
+        />
+      )}
 
       {/* Finance Section — Simplified C1/C2/C3 ledger */}
       <FinanceSection
@@ -267,6 +270,9 @@ export default function CoupleDetailPage() {
           isArchived={milestones?.m35_archived || false}
         />
       )}
+
+      {/* Extras Card — C3 Client Extras */}
+      <ExtrasCard clientExtras={clientExtras} />
 
       {/* Q11 — Frames & Albums */}
       <Q11FramesAndAlbums extrasOrder={rawExtrasOrders[0] || null} />

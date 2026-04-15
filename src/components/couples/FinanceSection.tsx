@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -93,7 +94,7 @@ export function FinanceSection({ couple, payments, installments }: FinanceSectio
   ];
 
   return (
-    <Card className="mt-4">
+    <Card className="mt-4 mb-6">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Finance
@@ -133,7 +134,8 @@ export function FinanceSection({ couple, payments, installments }: FinanceSectio
           </TableFooter>
         </Table>
 
-        <div className="flex gap-2 mt-4">
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex gap-2">
           {/* View Payments Dialog */}
           <Dialog open={paymentsOpen} onOpenChange={setPaymentsOpen}>
             <DialogTrigger render={<Button variant="outline" size="sm" />}>
@@ -181,7 +183,7 @@ export function FinanceSection({ couple, payments, installments }: FinanceSectio
             </DialogContent>
           </Dialog>
 
-          {/* View Installments Dialog */}
+          {/* View Installments Dialog  */}
           <Dialog open={installmentsOpen} onOpenChange={setInstallmentsOpen}>
             <DialogTrigger render={<Button variant="outline" size="sm" />}>
               View Installments
@@ -230,6 +232,10 @@ export function FinanceSection({ couple, payments, installments }: FinanceSectio
               </Table>
             </DialogContent>
           </Dialog>
+          </div>
+          <Link href="/admin/finance/reconciliation">
+            <Button variant="outline" size="sm">Reconcile ↗</Button>
+          </Link>
         </div>
       </CardContent>
     </Card>

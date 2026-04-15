@@ -117,7 +117,7 @@ export function Q10ContractPackage({
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Hours</span>
-              <span className="font-medium">{startTime} \u2013 {endTime}</span>
+              <span className="font-medium">{startTime} – {endTime}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Day</span>
@@ -125,7 +125,7 @@ export function Q10ContractPackage({
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Locations</span>
-              <span className="font-medium">{locationCount} of 5 \u2713</span>
+              <span className="font-medium">{locationCount} of 5 ✓</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Drone</span>
@@ -176,7 +176,7 @@ export function Q10ContractPackage({
             {parentAlbumsQty > 0 && (
               <div className="flex justify-between">
                 <span className="text-slate-500">Parent Albums</span>
-                <span className="font-medium">{parentAlbumsQty} \u00d7 {parentAlbumsSize}</span>
+                <span className="font-medium">{parentAlbumsQty} × {parentAlbumsSize}</span>
               </div>
             )}
           </div>
@@ -189,16 +189,8 @@ export function Q10ContractPackage({
           </h4>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-500">C1 Subtotal</span>
-              <span className="font-medium">${subtotal.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">C1 HST</span>
-              <span className="font-medium">${tax.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
               <span className="text-slate-500">C1 Contract</span>
-              <span className="font-bold">${contractTotal.toLocaleString()}</span>
+              <span className="font-medium">${contractTotal.toLocaleString()}</span>
             </div>
             {c2FramesTotal > 0 && (
               <div className="flex justify-between">
@@ -212,15 +204,9 @@ export function Q10ContractPackage({
                 <span className="font-medium">${c3ExtrasTotal.toLocaleString()}</span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-slate-500">Paid</span>
-              <span className="font-medium text-green-600">${totalPaid.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Balance</span>
-              <span className={`font-bold ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                ${balance.toLocaleString()}
-              </span>
+            <div className="flex justify-between border-t border-slate-200 pt-2 mt-2">
+              <span className="text-slate-500">Total</span>
+              <span className="font-bold">${(contractTotal + c2FramesTotal + c3ExtrasTotal).toLocaleString()}</span>
             </div>
           </div>
         </div>
