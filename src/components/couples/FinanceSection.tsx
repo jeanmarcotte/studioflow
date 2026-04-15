@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -94,13 +93,11 @@ export function FinanceSection({ couple, payments, installments }: FinanceSectio
   ];
 
   return (
-    <Card className="mt-4 mb-6">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Finance
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="bg-white rounded-xl border border-slate-200 mt-4 mb-6">
+      <div className="px-5 py-4 border-b border-slate-200 bg-slate-50">
+        <h3 className="text-sm font-bold">Finance</h3>
+      </div>
+      <div className="p-5">
         <Table>
           <TableHeader>
             <TableRow>
@@ -237,7 +234,7 @@ export function FinanceSection({ couple, payments, installments }: FinanceSectio
             <Button variant="outline" size="sm">Reconcile ↗</Button>
           </Link>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

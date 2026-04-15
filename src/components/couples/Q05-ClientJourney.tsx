@@ -89,9 +89,9 @@ export function Q05ClientJourney({ milestones, weddingDate }: Q05ClientJourneyPr
   const sections = ['PRE-WEDDING', 'ENG SALES \u2192 WEDDING PREP', 'WEDDING \u2192 POST-PRODUCTION', 'DELIVERY \u2192 COMPLETE'];
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 mb-4">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="font-semibold text-slate-800">Client Journey</h3>
+    <div className="bg-white rounded-xl border border-slate-200 mb-4">
+      <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+        <h3 className="text-sm font-bold">Client Journey</h3>
         <div className="flex items-center gap-3 text-sm">
           <span className="text-green-600">{completed}</span>
           {urgentCount > 0 && <span className="text-red-500">{urgentCount} urgent</span>}
@@ -101,6 +101,7 @@ export function Q05ClientJourney({ milestones, weddingDate }: Q05ClientJourneyPr
           </span>
         </div>
       </div>
+      <div className="p-5">
 
       <div className="h-2 bg-slate-100 rounded-full mb-6 overflow-hidden">
         <div
@@ -149,6 +150,7 @@ export function Q05ClientJourney({ milestones, weddingDate }: Q05ClientJourneyPr
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

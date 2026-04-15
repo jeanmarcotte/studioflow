@@ -99,10 +99,11 @@ export function Q13ClientPickupSlip({ coupleId, brideName, groomName, onGenerate
   };
 
   return (
-    <div style={{ ...card, marginTop: '0.5rem' }}>
-      <div style={{ ...sectionLabel, marginBottom: '1.25rem' }}>
-        Client Pickup Slip
+    <div className="bg-white rounded-xl border border-slate-200 mb-4">
+      <div className="px-5 py-4 border-b border-slate-200 bg-slate-50">
+        <h3 className="text-sm font-bold">Client Pickup Slip</h3>
       </div>
+      <div className="p-5">
 
       <div style={{ marginBottom: '0.75rem', fontSize: '0.8125rem', color: T.textSecondary }}>
         Items being picked up:
@@ -156,6 +157,7 @@ export function Q13ClientPickupSlip({ coupleId, brideName, groomName, onGenerate
           <Printer size={16} />
           {generating ? 'Generating...' : 'Generate & Print Pickup Slip'}
         </button>
+      </div>
       </div>
     </div>
   );

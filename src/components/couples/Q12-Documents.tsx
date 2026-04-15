@@ -82,12 +82,12 @@ export function Q12Documents({ coupleId, hasClientExtras, hasExtrasOrders, refre
   ];
 
   return (
-    <div style={{ ...card, marginTop: '0.5rem' }}>
-      <div style={{ ...sectionLabel, marginBottom: '1.25rem' }}>
-        Documents
+    <div className="bg-white rounded-xl border border-slate-200 mb-4">
+      <div className="px-5 py-4 border-b border-slate-200 bg-slate-50">
+        <h3 className="text-sm font-bold">Documents</h3>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', padding: '1.25rem' }}>
         {staticRows.map((row, i) => (
           <div key={row.path}>
             {i > 0 && <div style={{ borderTop: `1px solid ${T.border}` }} />}

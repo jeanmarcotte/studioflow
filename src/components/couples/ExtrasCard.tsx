@@ -1,6 +1,5 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 
@@ -26,13 +25,14 @@ export function ExtrasCard({ clientExtras }: ExtrasCardProps) {
   const total = clientExtras.reduce((sum, e) => sum + (parseFloat(String(e.total || '0')) || 0), 0);
 
   return (
-    <Card className="mb-4">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          C3 — Client Extras
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-4">
+      {/* Green banner header — matches Contract Package and Frames & Albums */}
+      <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white px-5 py-4 flex justify-between items-center">
+        <h3 className="font-semibold">C3 — Client Extras</h3>
+        <span className="font-mono font-bold text-lg">{fmt(total)}</span>
+      </div>
+
+      <div className="p-5">
         <Table>
           <TableHeader>
             <TableRow>
@@ -63,10 +63,7 @@ export function ExtrasCard({ clientExtras }: ExtrasCardProps) {
             ))}
           </TableBody>
         </Table>
-        <div className="text-right text-sm font-semibold mt-2 text-muted-foreground">
-          Total: {fmt(total)}
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -54,9 +54,9 @@ function TeamPanel({ assignment, contract }: { assignment: any; contract: any })
   const nV = contract?.num_videographers || 0;
 
   return (
-    <div style={card}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-        <div style={sectionLabel}>Team</div>
+    <div className="bg-white rounded-xl border border-slate-200 mb-4">
+      <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+        <h3 className="text-sm font-bold">Team</h3>
         {status === 'confirmed' && (
           <span style={{
             ...pillBase,
@@ -68,18 +68,20 @@ function TeamPanel({ assignment, contract }: { assignment: any; contract: any })
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-        <RoleCard role="Lead Photographer" name={photo1} />
-        {(nP > 1 || photo2) && <RoleCard role="Second Photographer" name={photo2} />}
-        {(nV > 0 || video1) && <RoleCard role="Videographer" name={video1} />}
-      </div>
+      <div className="p-5">
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+          <RoleCard role="Lead Photographer" name={photo1} />
+          {(nP > 1 || photo2) && <RoleCard role="Second Photographer" name={photo2} />}
+          {(nV > 0 || video1) && <RoleCard role="Videographer" name={video1} />}
+        </div>
 
-      <div style={{
-        fontSize: '0.8125rem', color: T.textSecondary, borderTop: `1px solid ${T.border}`,
-        paddingTop: '0.75rem',
-      }}>
-        Contract specifies {nP} photographer{nP !== 1 ? 's' : ''}
-        {nV > 0 ? ` + ${nV} videographer${nV !== 1 ? 's' : ''}` : ''}
+        <div style={{
+          fontSize: '0.8125rem', color: T.textSecondary, borderTop: `1px solid ${T.border}`,
+          paddingTop: '0.75rem',
+        }}>
+          Contract specifies {nP} photographer{nP !== 1 ? 's' : ''}
+          {nV > 0 ? ` + ${nV} videographer${nV !== 1 ? 's' : ''}` : ''}
+        </div>
       </div>
     </div>
   );
@@ -101,9 +103,12 @@ function NotesPanel({
   const hasAnyNotes = coupleNotes || contractNotes || extrasNotes.length > 0;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5">
-      <h3 className="text-sm font-bold flex items-center gap-2 mb-4">Notes</h3>
+    <div className="bg-white rounded-xl border border-slate-200 mb-4">
+      <div className="px-5 py-4 border-b border-slate-200 bg-slate-50">
+        <h3 className="text-sm font-bold">Notes</h3>
+      </div>
 
+      <div className="p-5">
       {hasSocialMediaRestriction && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 mb-3">
           <strong>NO SOCIAL MEDIA</strong><br />
@@ -126,6 +131,7 @@ function NotesPanel({
       ) : (
         <p className="text-slate-400 text-sm">No notes</p>
       )}
+      </div>
     </div>
   );
 }
