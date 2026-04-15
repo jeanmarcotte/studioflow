@@ -13,14 +13,12 @@ import {
   Q04TeamNotes,
   Q05ClientJourney,
   Q06Forms,
-  Q07FinancialSummaryBar,
-  Q08FinanceLedger,
-  Q09ExtrasAddOns,
   Q10ContractPackage,
   Q11FramesAndAlbums,
   Q12Documents,
   Q13ClientPickupSlip,
 } from '@/components/couples';
+import { FinanceSection } from '@/components/couples/FinanceSection';
 
 export default function CoupleDetailPage() {
   const params = useParams();
@@ -229,24 +227,12 @@ export default function CoupleDetailPage() {
         coupleId={coupleId}
       />
 
-      {/* Q7 — Financial Summary Bar */}
-      <Q07FinancialSummaryBar
-        c1={contractTotal}
-        c2={c2Total}
-        c3={c3Total}
-        totalPaid={payments.reduce((s: number, p: any) => s + (parseFloat(String(p.amount || '0')) || 0), 0)}
-      />
-
-      {/* Q8 — Finance Ledger (C1 + C2 only) */}
-      <Q08FinanceLedger
-        contractTotal={contractTotal}
-        installments={installments}
+      {/* Finance Section — Simplified C1/C2/C3 ledger */}
+      <FinanceSection
+        couple={couple}
         payments={payments}
-        extrasOrder={rawExtrasOrders[0] || null}
+        installments={installments}
       />
-
-      {/* Q9 — Extras & Add-ons (C3) — SEPARATE SECTION */}
-      <Q09ExtrasAddOns clientExtras={clientExtras} />
 
       {/* Q10 — Contract Package — As Signed */}
       {contract && (
