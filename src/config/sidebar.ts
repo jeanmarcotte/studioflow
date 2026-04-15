@@ -26,6 +26,7 @@ import {
   FileCheck,
   Wrench,
   Archive,
+  ArrowLeftRight,
 } from 'lucide-react'
 
 export interface SidebarItem {
@@ -127,6 +128,7 @@ export const studioflowAdminConfig: SidebarConfig = {
             { title: 'Income Ledger', href: '/admin/finance/income', icon: CreditCard },
             { title: 'Expense Ledger', href: '/admin/finance/expenses', icon: Wallet },
             { title: 'Tax & Compliance', href: '/admin/finance/tax', icon: Receipt },
+            { title: 'Reconciliation', href: '/admin/finance/reconciliation', icon: ArrowLeftRight },
           ],
         },
         { title: 'Settings', href: '/admin/settings', icon: Settings },
