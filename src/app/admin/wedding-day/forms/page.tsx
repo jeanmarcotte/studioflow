@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { differenceInDays, parseISO } from 'date-fns'
-import { ChevronDown, ChevronRight, Search } from 'lucide-react'
+import { ChevronDown, ChevronRight, Search, Copy, ExternalLink, Check } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { supabase } from '@/lib/supabase'
 import { ProductionPageHeader, ProductionPills, ProductionSidebar } from '@/components/shared'
@@ -17,6 +17,29 @@ interface WeddingFormCouple {
   form_submitted_at: string | null
 }
 
+function CopyLinkButton({ coupleId }: { coupleId: string }) {
+  const [copied, setCopied] = useState(false)
+  const url = `https://studioflow-zeta.vercel.app/client/wedding-day-form?couple=${coupleId}`
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    await navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-input bg-background hover:bg-muted transition-colors"
+      title={url}
+    >
+      {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
+      {copied ? 'Copied' : 'Copy Link'}
+    </button>
+  )
+}
+
 export default function WeddingDayFormsPage() {
   const router = useRouter()
   const [couples, setCouples] = useState<WeddingFormCouple[]>([])
@@ -24,30 +47,27 @@ export default function WeddingDayFormsPage() {
   const [searchValue, setSearchValue] = useState('')
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
 
+  const todayStr = new Date().toISOString().split('T')[0]
+
   useEffect(() => {
     async function fetchData() {
-      // Fetch booked 2026 couples
+      // Fetch booked 2026+ couples with wedding_day_forms LEFT JOIN
       const { data: couplesData } = await supabase
         .from('couples')
-        .select('id, couple_name, wedding_date')
+        .select(`
+          id, couple_name, wedding_date,
+          wedding_day_forms (
+            id,
+            created_at
+          )
+        `)
         .eq('status', 'booked')
         .gte('wedding_date', '2026-01-01')
         .order('wedding_date', { ascending: true })
 
-      // Fetch submitted forms
-      const { data: formsData } = await supabase
-        .from('wedding_day_forms')
-        .select('id, couple_id, created_at')
-
-      const formsMap = new Map<string, { id: string; created_at: string }>()
-      if (formsData) {
-        for (const f of formsData) {
-          formsMap.set(f.couple_id, { id: f.id, created_at: f.created_at })
-        }
-      }
-
-      const merged: WeddingFormCouple[] = (couplesData ?? []).map((c) => {
-        const form = formsMap.get(c.id) ?? null
+      const merged: WeddingFormCouple[] = (couplesData ?? []).map((c: any) => {
+        const forms = Array.isArray(c.wedding_day_forms) ? c.wedding_day_forms : []
+        const form = forms.length > 0 ? forms[0] : null
         return {
           couple_id: c.id,
           couple_name: c.couple_name ?? '',
@@ -72,20 +92,25 @@ export default function WeddingDayFormsPage() {
     })
   }
 
+  const today = new Date()
   const search = searchValue.toLowerCase()
 
-  const submitted = couples.filter(
+  // Filter out past weddings entirely
+  const futureCouples = couples.filter(c => {
+    if (!c.wedding_date) return true
+    return c.wedding_date >= todayStr
+  })
+
+  const submitted = futureCouples.filter(
     (c) => c.form_id !== null && (!search || c.couple_name.toLowerCase().includes(search))
   )
-  const missing = couples.filter(
+  const missing = futureCouples.filter(
     (c) => c.form_id === null && (!search || c.couple_name.toLowerCase().includes(search))
   )
 
-  const submittedCount = couples.filter((c) => c.form_id !== null).length
-  const missingCount = couples.filter((c) => c.form_id === null).length
-  const totalCount = couples.length
-
-  const today = new Date()
+  const submittedCount = futureCouples.filter((c) => c.form_id !== null).length
+  const missingCount = futureCouples.filter((c) => c.form_id === null).length
+  const totalCount = futureCouples.length
 
   // Columns for submitted forms
   const submittedColumns: ColumnDef<WeddingFormCouple>[] = [
@@ -126,14 +151,30 @@ export default function WeddingDayFormsPage() {
         if (!d) return <span className="text-muted-foreground">—</span>
         return (
           <span>
-            {new Date(d).toLocaleDateString('en-CA', {
-              year: 'numeric',
+            {new Date(d).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
+              year: 'numeric',
             })}
           </span>
         )
       },
+    },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            window.open(`/client/wedding-day-form/${row.original.couple_id}`, '_blank')
+          }}
+          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-input bg-background hover:bg-muted transition-colors"
+        >
+          <ExternalLink className="h-3 w-3" />
+          View Form
+        </button>
+      ),
     },
   ]
 
@@ -179,7 +220,6 @@ export default function WeddingDayFormsPage() {
         const d = row.original.wedding_date
         if (!d) return <span className="text-muted-foreground">—</span>
         const days = differenceInDays(parseISO(d), today)
-        if (days < 0) return <span className="text-muted-foreground text-sm">Past</span>
         if (days === 0) return <span className="text-red-600 font-semibold">Today</span>
         if (days <= 14)
           return <span className="text-red-600 font-semibold">{days} days</span>
@@ -187,6 +227,13 @@ export default function WeddingDayFormsPage() {
           return <span className="text-amber-600 font-medium">{days} days</span>
         return <span>{days} days</span>
       },
+    },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
+        <CopyLinkButton coupleId={row.original.couple_id} />
+      ),
     },
   ]
 
@@ -199,13 +246,12 @@ export default function WeddingDayFormsPage() {
         actionLabel="+ Send Reminder"
         actionDisabled={true}
       />
-      {/* TODO WO-321: Link Send Reminder once email feature is built */}
 
       <ProductionPills
         pills={[
           { label: 'Submitted', count: submittedCount, color: 'green' },
           { label: 'Missing', count: missingCount, color: 'red' },
-          { label: 'Total 2026', count: totalCount, color: 'default' },
+          { label: 'Total', count: totalCount, color: 'default' },
         ]}
       />
 
