@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { Camera, CheckCircle, ChevronRight, Loader2, Search } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -338,7 +340,18 @@ function LocationFields({ form, updateField, prefix, showFirstLook, showPermit, 
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function WeddingDayFormPage() {
+export default function WeddingDayFormPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-teal-600" /></div>}>
+      <WeddingDayFormPage />
+    </Suspense>
+  )
+}
+
+function WeddingDayFormPage() {
+  const searchParams = useSearchParams()
+  const coupleIdParam = searchParams.get('couple')
+
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -354,6 +367,42 @@ export default function WeddingDayFormPage() {
   // Data
   const [couple, setCouple] = useState<Couple | null>(null)
   const [form, setForm] = useState<FormData>(EMPTY_FORM)
+
+  // Auto-prefill when ?couple= param is present
+  useEffect(() => {
+    if (!coupleIdParam) return
+    async function prefillFromParam() {
+      setLoading(true)
+      const { data: coupleData } = await supabase
+        .from('couples')
+        .select('id, couple_name, bride_first_name, groom_first_name, wedding_date, email, contracts(reception_venue, ceremony_location)')
+        .eq('id', coupleIdParam)
+        .limit(1)
+
+      const c = coupleData?.[0]
+      if (c) {
+        const contract = Array.isArray(c.contracts) ? c.contracts[0] : c.contracts
+        setCouple({
+          id: c.id,
+          couple_name: c.couple_name,
+          bride_first_name: c.bride_first_name,
+          groom_first_name: c.groom_first_name,
+          wedding_date: c.wedding_date,
+          reception_venue: contract?.reception_venue || null,
+          email: c.email,
+        })
+        // Prefill form fields from couple data
+        setForm(prev => ({
+          ...prev,
+          ceremony_location_name: contract?.ceremony_location || '',
+          reception_venue_name: contract?.reception_venue || '',
+        }))
+        setStep(2) // Skip to confirmation step
+      }
+      setLoading(false)
+    }
+    prefillFromParam()
+  }, [coupleIdParam])
 
   const weddingDateStr = month && day && year ? `${year}-${month}-${day}` : ''
 

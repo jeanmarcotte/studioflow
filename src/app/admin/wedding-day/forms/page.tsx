@@ -3,16 +3,17 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { differenceInDays, parseISO } from 'date-fns'
-import { ChevronDown, ChevronRight, Search, Copy, ExternalLink, Check } from 'lucide-react'
+import { ChevronDown, ChevronRight, Search, Copy, ExternalLink, Check, Send, X, Loader2 } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { supabase } from '@/lib/supabase'
-import { ProductionPageHeader, ProductionPills, ProductionSidebar } from '@/components/shared'
+import { ProductionPills, ProductionSidebar } from '@/components/shared'
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
 
 interface WeddingFormCouple {
   couple_id: string
   couple_name: string
   wedding_date: string | null
+  email: string | null
   form_id: string | null
   form_submitted_at: string | null
 }
@@ -46,6 +47,10 @@ export default function WeddingDayFormsPage() {
   const [loading, setLoading] = useState(true)
   const [searchValue, setSearchValue] = useState('')
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
+  const [showReminder, setShowReminder] = useState(false)
+  const [selectedForReminder, setSelectedForReminder] = useState<Set<string>>(new Set())
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
@@ -55,7 +60,7 @@ export default function WeddingDayFormsPage() {
       const [couplesRes, formsRes] = await Promise.all([
         supabase
           .from('couples')
-          .select('id, couple_name, wedding_date')
+          .select('id, couple_name, wedding_date, email')
           .eq('status', 'booked')
           .gte('wedding_date', todayDate)
           .order('wedding_date', { ascending: true }),
@@ -78,6 +83,7 @@ export default function WeddingDayFormsPage() {
           couple_id: c.id,
           couple_name: c.couple_name ?? '',
           wedding_date: c.wedding_date ?? null,
+          email: c.email ?? null,
           form_id: form ? form.id : null,
           form_submitted_at: form ? form.created_at : null,
         }
@@ -240,13 +246,24 @@ export default function WeddingDayFormsPage() {
 
   return (
     <div className="space-y-0">
-      <ProductionPageHeader
-        title="Wedding Day Forms"
-        subtitle="2026 season — client submissions"
-        reportHref="/admin/production/report"
-        actionLabel="+ Send Reminder"
-        actionDisabled={true}
-      />
+      {/* Header */}
+      <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Wedding Day Forms</h1>
+          <p className="text-sm text-muted-foreground">2026 season — client submissions</p>
+        </div>
+        <button
+          onClick={() => {
+            setSelectedForReminder(new Set(missing.map(c => c.couple_id)))
+            setSent(false)
+            setShowReminder(true)
+          }}
+          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          <Send className="h-4 w-4" />
+          Send Reminder
+        </button>
+      </div>
 
       <ProductionPills
         pills={[
@@ -350,6 +367,110 @@ export default function WeddingDayFormsPage() {
           ]}
         />
       </div>
+
+      {/* Send Reminder Modal */}
+      {showReminder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowReminder(false)}>
+          <div className="bg-card rounded-xl border shadow-xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b flex items-center justify-between flex-shrink-0">
+              <h2 className="font-semibold">Send Form Reminder</h2>
+              <button onClick={() => setShowReminder(false)} className="rounded-lg p-1 hover:bg-accent transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {sent ? (
+              <div className="p-8 text-center">
+                <Check className="h-10 w-10 text-green-600 mx-auto mb-3" />
+                <p className="font-semibold">Reminders sent!</p>
+                <p className="text-sm text-muted-foreground mt-1">{selectedForReminder.size} email(s) queued</p>
+                <button onClick={() => setShowReminder(false)} className="mt-4 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium">
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="p-4 border-b text-sm text-muted-foreground">
+                  Select couples to send a reminder email with their form link.
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => setSelectedForReminder(new Set(missing.map(c => c.couple_id)))}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Select all
+                    </button>
+                    <button
+                      onClick={() => setSelectedForReminder(new Set())}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                </div>
+                <div className="divide-y overflow-y-auto flex-1">
+                  {missing.map(c => (
+                    <label key={c.couple_id} className="flex items-center gap-3 p-3 hover:bg-accent/50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedForReminder.has(c.couple_id)}
+                        onChange={() => {
+                          setSelectedForReminder(prev => {
+                            const next = new Set(prev)
+                            if (next.has(c.couple_id)) next.delete(c.couple_id)
+                            else next.add(c.couple_id)
+                            return next
+                          })
+                        }}
+                        className="rounded"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium">{c.couple_name}</div>
+                        <div className="text-xs text-muted-foreground">{c.email || 'No email'}</div>
+                      </div>
+                      {c.wedding_date && (
+                        <span className="text-xs text-muted-foreground flex-shrink-0">
+                          {new Date(c.wedding_date + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+                <div className="p-4 border-t flex items-center justify-between flex-shrink-0">
+                  <span className="text-sm text-muted-foreground">{selectedForReminder.size} selected</span>
+                  <button
+                    onClick={async () => {
+                      setSending(true)
+                      try {
+                        const selected = missing.filter(c => selectedForReminder.has(c.couple_id))
+                        await fetch('/api/wedding-day-forms/send-reminders', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ couples: selected.map(c => ({
+                            couple_id: c.couple_id,
+                            couple_name: c.couple_name,
+                            email: c.email,
+                            wedding_date: c.wedding_date,
+                          })) }),
+                        })
+                        setSent(true)
+                      } catch (err) {
+                        console.error('Failed to send reminders:', err)
+                      } finally {
+                        setSending(false)
+                      }
+                    }}
+                    disabled={sending || selectedForReminder.size === 0}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    {sending ? 'Sending...' : `Send ${selectedForReminder.size} Reminder${selectedForReminder.size !== 1 ? 's' : ''}`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
