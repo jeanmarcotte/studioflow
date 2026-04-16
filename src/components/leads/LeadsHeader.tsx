@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Settings, Plus, Menu, Sun, Moon, X, Phone, MessageSquare, Mail, BarChart3, RefreshCw } from 'lucide-react'
+import { Search, Settings, Plus, Menu, Sun, Moon, X, Phone, MessageSquare, Mail, BarChart3, RefreshCw, ClipboardCopy, ScanLine } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -79,6 +79,26 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
               <RefreshCw className={`h-4 w-4 ${recalculating ? 'animate-spin' : ''}`} />
             </Button>
           )}
+
+          {/* Copy Ballot Link */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              navigator.clipboard.writeText('https://studioflow-zeta.vercel.app/ballot')
+            }}
+            title="Copy ballot link"
+          >
+            <ClipboardCopy className="h-4 w-4" />
+          </Button>
+
+          {/* Scanner */}
+          <Link href="/scanner">
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" title="Scan ballot">
+              <ScanLine className="h-4 w-4" />
+            </Button>
+          </Link>
 
           {/* Analytics */}
           <Link href="/leads/analytics">
