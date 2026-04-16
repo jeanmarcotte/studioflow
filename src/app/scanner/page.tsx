@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, ImageIcon, Camera } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -65,13 +65,31 @@ export default function ScannerPage() {
   const [error, setError] = useState<string | null>(null)
   const [savedCount, setSavedCount] = useState(0)
   const [aiOverride, setAiOverride] = useState(false)
+  const [pinEntered, setPinEntered] = useState(false)
+  const [pinInput, setPinInput] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
 
   const isShowDay = detectShowId() !== 'unknown'
-  const aiEnabled = isShowDay || aiOverride
+  const aiEnabled = (isShowDay || aiOverride) && pinEntered
 
-  const getPin = () => sessionStorage.getItem('admin_pin') || ''
+  useEffect(() => {
+    if (sessionStorage.getItem('scanner_pin') === '3991') {
+      setPinEntered(true)
+    }
+  }, [])
+
+  const handlePinSubmit = () => {
+    if (pinInput === '3991') {
+      sessionStorage.setItem('scanner_pin', '3991')
+      setPinEntered(true)
+    } else {
+      setError('Invalid PIN')
+      setPinInput('')
+    }
+  }
+
+  const getPin = () => pinEntered ? '3991' : ''
 
   const resizeImage = (file: File, maxWidth = 1600): Promise<string> => {
     return new Promise((resolve) => {
@@ -221,8 +239,29 @@ export default function ScannerPage() {
             </div>
           )}
 
+          {/* PIN Entry */}
+          {!pinEntered && (
+            <div className="bg-white rounded-xl shadow-sm p-4">
+              <Label htmlFor="pin-input" className="text-sm text-gray-700 mb-2 block">Enter PIN to unlock AI scanning</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="pin-input"
+                  type="password"
+                  inputMode="numeric"
+                  placeholder="Enter PIN"
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handlePinSubmit()}
+                  className="w-32"
+                  maxLength={4}
+                />
+                <Button onClick={handlePinSubmit}>Unlock</Button>
+              </div>
+            </div>
+          )}
+
           {/* AI Override Toggle */}
-          {!isShowDay && (
+          {!isShowDay && pinEntered && (
             <div className="flex items-center justify-between bg-white rounded-xl shadow-sm p-4">
               <Label htmlFor="ai-override" className="text-sm text-gray-700 cursor-pointer">
                 Enable AI (override show check)
@@ -253,7 +292,7 @@ export default function ScannerPage() {
                 className="w-full h-12 text-base font-bold bg-purple-600 hover:bg-purple-700"
                 size="lg"
               >
-                {aiEnabled ? 'Process with AI' : 'AI Disabled (not a show day)'}
+                {!pinEntered ? 'Enter PIN to unlock' : aiEnabled ? 'Process with AI' : 'AI Disabled (not a show day)'}
               </Button>
               <Button
                 variant="outline"
