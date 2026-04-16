@@ -33,7 +33,7 @@ export async function POST(request: Request) {
         has_photographer: body.has_photographer ?? false,
         has_videographer: body.has_videographer ?? false,
         has_venue: body.has_venue ?? false,
-        entry_method: body.entry_method || 'web',
+        entry_method: body.entry_method || 'website',
         show_id: body.show_id || null,
         status: 'new',
         created_at: new Date().toISOString(),

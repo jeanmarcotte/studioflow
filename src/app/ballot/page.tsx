@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,7 +45,7 @@ interface BallotData {
   has_photographer: boolean
   has_videographer: boolean
   has_venue: boolean
-  entry_method: 'ipad' | 'qr' | 'manual' | 'website' | 'meta' | 'web'
+  entry_method: 'ipad' | 'qr' | 'manual' | 'website' | 'meta'
   show_id: string
 }
 
@@ -61,7 +62,7 @@ const initialFormData: BallotData = {
   has_photographer: false,
   has_videographer: false,
   has_venue: false,
-  entry_method: 'web',
+  entry_method: 'website',
   show_id: '',
 }
 
@@ -98,7 +99,7 @@ export default function BallotPage() {
 
     setFormData(prev => ({
       ...prev,
-      entry_method: method === 'qr' ? 'qr' : method === 'website' ? 'website' : method === 'meta' ? 'meta' : 'web',
+      entry_method: method === 'qr' ? 'qr' : method === 'website' ? 'website' : method === 'meta' ? 'meta' : 'website',
       show_id: show.id,
     }))
     setShowLabel(show.label)
@@ -156,20 +157,24 @@ export default function BallotPage() {
     }
   }
 
-  if (showSuccess) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-500 to-green-600 text-white p-8">
+  return (
+    <AnimatePresence mode="wait">
+    {showSuccess ? (
+      <motion.div
+        key="success"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+        className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-500 to-green-600 text-white p-8"
+      >
         <div className="text-center">
           <div className="text-8xl mb-6">🎉</div>
           <h1 className="text-4xl font-bold mb-4">You&apos;re Entered!</h1>
           <p className="text-xl opacity-90">Good luck!</p>
         </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-h-[100dvh] bg-gray-50 pb-24 overflow-x-hidden max-w-[100vw]">
+      </motion.div>
+    ) : (
+    <div key="form" className="min-h-[100dvh] bg-gray-50 pb-24 overflow-x-hidden max-w-[100vw]">
       {/* Header */}
       {!isWebsiteEmbed && (
         <div className="bg-white shadow-sm sticky top-0 z-10">
@@ -197,6 +202,11 @@ export default function BallotPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="max-w-lg mx-auto px-4 pt-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
         <Card>
           <CardContent className="pt-6 space-y-5">
 
@@ -309,7 +319,12 @@ export default function BallotPage() {
                   id="venue_name"
                   name="venue_name"
                   value={formData.venue_name}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    handleChange(e)
+                    if (e.target.value.trim()) {
+                      handleToggle('has_venue', true)
+                    }
+                  }}
                   autoComplete="off"
                   placeholder="Name of your Venue"
                 />
@@ -368,21 +383,26 @@ export default function BallotPage() {
             </div>
 
             {/* Submit */}
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full h-12 text-base font-bold bg-blue-600 hover:bg-blue-700"
-              size="lg"
-            >
-              {isSubmitting ? 'Saving...' : 'ENTER TO WIN! 🎉'}
-            </Button>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full h-12 text-base font-bold bg-blue-600 hover:bg-blue-700"
+                size="lg"
+              >
+                {isSubmitting ? 'Saving...' : 'ENTER TO WIN! 🎉'}
+              </Button>
+            </motion.div>
 
             <p className="text-xs text-center text-muted-foreground">
               By entering, you agree to be contacted about your prize.
             </p>
           </CardContent>
         </Card>
+        </motion.div>
       </form>
     </div>
+    )}
+    </AnimatePresence>
   )
 }
