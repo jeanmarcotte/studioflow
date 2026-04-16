@@ -81,19 +81,12 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
             </Button>
           )}
 
-          {/* Copy Ballot Link */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 text-muted-foreground hover:text-foreground"
-            onClick={() => {
-              navigator.clipboard.writeText('https://studioflow-zeta.vercel.app/ballot')
-              toast.success('Ballot URL copied!')
-            }}
-            title="Copy ballot link"
-          >
-            <ClipboardCopy className="h-4 w-4" />
-          </Button>
+          {/* Ballot Entry */}
+          <Link href="/ballot" target="_blank">
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" title="Ballot entry form">
+              <ClipboardCopy className="h-4 w-4" />
+            </Button>
+          </Link>
 
           {/* Scanner */}
           <Link href="/scanner">
