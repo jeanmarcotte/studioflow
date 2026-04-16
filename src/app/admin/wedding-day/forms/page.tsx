@@ -51,23 +51,29 @@ export default function WeddingDayFormsPage() {
     async function fetchData() {
       const todayDate = new Date().toISOString().split('T')[0]
 
-      // Fetch future booked couples with wedding_day_forms LEFT JOIN
-      const { data: couplesData } = await supabase
-        .from('couples')
-        .select(`
-          *,
-          wedding_day_forms (
-            id,
-            created_at
-          )
-        `)
-        .eq('status', 'booked')
-        .gte('wedding_date', todayDate)
-        .order('wedding_date', { ascending: true })
+      // Separate queries — JOIN approach unreliable with Supabase PostgREST
+      const [couplesRes, formsRes] = await Promise.all([
+        supabase
+          .from('couples')
+          .select('id, couple_name, wedding_date')
+          .eq('status', 'booked')
+          .gte('wedding_date', todayDate)
+          .order('wedding_date', { ascending: true }),
+        supabase
+          .from('wedding_day_forms')
+          .select('couple_id, id, created_at'),
+      ])
 
-      const merged: WeddingFormCouple[] = (couplesData ?? []).map((c: any) => {
-        const forms = Array.isArray(c.wedding_day_forms) ? c.wedding_day_forms : []
-        const form = forms.length > 0 ? forms[0] : null
+      // Map couple_id → form
+      const formMap = new Map<string, { id: string; created_at: string }>()
+      if (formsRes.data) {
+        for (const f of formsRes.data) {
+          formMap.set(f.couple_id, { id: f.id, created_at: f.created_at })
+        }
+      }
+
+      const merged: WeddingFormCouple[] = (couplesRes.data ?? []).map((c: any) => {
+        const form = formMap.get(c.id) ?? null
         return {
           couple_id: c.id,
           couple_name: c.couple_name ?? '',
