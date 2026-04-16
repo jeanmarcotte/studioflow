@@ -112,26 +112,35 @@ export default function CouplesPage() {
 
   useEffect(() => {
     const fetchCouples = async () => {
-      const [couplesRes, paymentsRes, milestonesRes] = await Promise.all([
+      const [couplesRes, financialsRes, paymentCountsRes, milestonesRes] = await Promise.all([
         supabase
           .from('couples')
-          .select('id, couple_name, wedding_date, wedding_year, package_type, c1_amount, c2_amount, c3_amount, contract_total, contracts(reception_venue)')
+          .select('id, couple_name, wedding_date, wedding_year, package_type, contracts(reception_venue)')
           .order('wedding_date', { ascending: true }),
         supabase
+          .from('couple_financial_summary')
+          .select('couple_id, c1_owed, c2_owed, c3_owed, total_owed, total_paid, balance_due'),
+        supabase
           .from('payments')
-          .select('couple_id, amount'),
+          .select('couple_id'),
         supabase
           .from('couple_milestones')
           .select('couple_id, m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_sale_results_pdf, m11_no_sale, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in'),
       ])
 
-      // Sum payments by couple
-      const paymentSums: Record<string, { total: number; count: number }> = {}
-      if (paymentsRes.data) {
-        for (const row of paymentsRes.data) {
-          if (!paymentSums[row.couple_id]) paymentSums[row.couple_id] = { total: 0, count: 0 }
-          paymentSums[row.couple_id].total += Number(row.amount) || 0
-          paymentSums[row.couple_id].count++
+      // Map financials from VIEW
+      const financialMap: Record<string, any> = {}
+      if (financialsRes.data) {
+        for (const row of financialsRes.data) {
+          financialMap[row.couple_id] = row
+        }
+      }
+
+      // Count payments by couple
+      const paymentCounts: Record<string, number> = {}
+      if (paymentCountsRes.data) {
+        for (const row of paymentCountsRes.data) {
+          paymentCounts[row.couple_id] = (paymentCounts[row.couple_id] || 0) + 1
         }
       }
 
@@ -147,11 +156,7 @@ export default function CouplesPage() {
         setCouples(couplesRes.data.map((row: any) => {
           const contract = Array.isArray(row.contracts) ? row.contracts[0] : row.contracts
           const ms = milestonesMap[row.id]
-          const c1 = Number(row.c1_amount) || Number(row.contract_total) || 0
-          const c2 = Number(row.c2_amount) || 0
-          const c3 = Number(row.c3_amount) || 0
-          const totalInvoiced = c1 + c2 + c3
-          const totalReceived = paymentSums[row.id]?.total || 0
+          const fin = financialMap[row.id]
 
           return {
             id: row.id,
@@ -160,13 +165,13 @@ export default function CouplesPage() {
             wedding_year: row.wedding_year,
             package_type: row.package_type,
             reception_venue: contract?.reception_venue || null,
-            c1_contract: c1,
-            c2_frames_albums: c2,
-            c3_extras: c3,
-            total_invoiced: totalInvoiced,
-            total_received: totalReceived,
-            balance_due: totalInvoiced - totalReceived,
-            payments_count: paymentSums[row.id]?.count || 0,
+            c1_contract: Number(fin?.c1_owed) || 0,
+            c2_frames_albums: Number(fin?.c2_owed) || 0,
+            c3_extras: Number(fin?.c3_owed) || 0,
+            total_invoiced: Number(fin?.total_owed) || 0,
+            total_received: Number(fin?.total_paid) || 0,
+            balance_due: Number(fin?.balance_due) || 0,
+            payments_count: paymentCounts[row.id] || 0,
             eng_pipeline: computeEngPipeline(ms),
             is_shot: ms?.m19_wedding_day || false,
             m06_eng_session_shot: ms?.m06_eng_session_shot || false,
