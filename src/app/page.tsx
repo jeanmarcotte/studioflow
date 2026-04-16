@@ -17,15 +17,7 @@ export default function HomePage() {
         return
       }
 
-      // Check user preference or default to New Client Quote
-      const preference = localStorage.getItem('studioflow-mode')
-
-      if (preference === 'admin') {
-        router.push('/admin')
-      } else {
-        // Default: Go to primary StudioFlow feature
-        router.push('/leads')
-      }
+      router.push('/admin')
     }
 
     checkUserAndRedirect()

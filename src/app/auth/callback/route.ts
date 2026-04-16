@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/leads'
+  const next = searchParams.get('next') ?? '/admin'
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=no_code`)
