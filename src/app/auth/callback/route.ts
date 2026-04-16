@@ -1,5 +1,4 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -7,50 +6,53 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/leads'
 
-  if (code) {
-    const cookieStore = await cookies()
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            } catch {
-              // Ignored — setAll is called from Server Component where
-              // cookies can't be set. The middleware will refresh them.
-            }
-          },
-        },
-      }
-    )
-
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-
-    if (!error && data.user) {
-      const allowedEmails = [
-        'jeanmarcotte@gmail.com',
-        'marianna@sigsphoto.ca',
-        'mariannakogan@gmail.com',
-      ]
-
-      if (data.user.email && allowedEmails.includes(data.user.email)) {
-        return NextResponse.redirect(`${origin}${next}`)
-      }
-
-      // Unauthorized email — sign out and redirect
-      await supabase.auth.signOut()
-      return NextResponse.redirect(`${origin}/login?error=unauthorized`)
-    }
+  if (!code) {
+    return NextResponse.redirect(`${origin}/login?error=no_code`)
   }
 
-  // No code or exchange failed — back to login
-  return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+  // Build a response object to collect cookies from exchangeCodeForSession
+  const response = NextResponse.redirect(`${origin}${next}`)
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          // Read cookies from the incoming request
+          const cookieHeader = request.headers.get('cookie') ?? ''
+          return cookieHeader.split(';').filter(Boolean).map((c) => {
+            const [name, ...rest] = c.trim().split('=')
+            return { name, value: rest.join('=') }
+          })
+        },
+        setAll(cookiesToSet) {
+          // Write session cookies onto the response we will return
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
+  if (error || !data.user) {
+    return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+  }
+
+  const allowedEmails = [
+    'jeanmarcotte@gmail.com',
+    'marianna@sigsphoto.ca',
+    'mariannakogan@gmail.com',
+  ]
+
+  if (!data.user.email || !allowedEmails.includes(data.user.email)) {
+    await supabase.auth.signOut()
+    return NextResponse.redirect(`${origin}/login?error=unauthorized`)
+  }
+
+  // response already points to /leads and carries the session cookies
+  return response
 }
