@@ -47,6 +47,7 @@ export default function WeddingDayFormsPage() {
   const [loading, setLoading] = useState(true)
   const [searchValue, setSearchValue] = useState('')
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
+  const [showPast, setShowPast] = useState(false)
   const [showReminder, setShowReminder] = useState(false)
   const [selectedForReminder, setSelectedForReminder] = useState<Set<string>>(new Set())
   const [sending, setSending] = useState(false)
@@ -54,15 +55,12 @@ export default function WeddingDayFormsPage() {
 
   useEffect(() => {
     async function fetchData() {
-      const todayDate = new Date().toISOString().split('T')[0]
-
-      // Separate queries — JOIN approach unreliable with Supabase PostgREST
+      // Fetch ALL booked couples + ALL forms separately (no date filter in query)
       const [couplesRes, formsRes] = await Promise.all([
         supabase
           .from('couples')
           .select('id, couple_name, wedding_date, email')
           .eq('status', 'booked')
-          .gte('wedding_date', todayDate)
           .order('wedding_date', { ascending: true }),
         supabase
           .from('wedding_day_forms')
@@ -105,19 +103,31 @@ export default function WeddingDayFormsPage() {
   }
 
   const today = new Date()
+  const todayStr = new Date().toISOString().split('T')[0]
   const search = searchValue.toLowerCase()
 
-  // All couples are already future-only (filtered in query)
-  const submitted = couples.filter(
-    (c) => c.form_id !== null && (!search || c.couple_name.toLowerCase().includes(search))
+  // Split ALL couples by form status
+  const allSubmitted = couples.filter(c => c.form_id !== null)
+  const allMissing = couples.filter(c => c.form_id === null)
+
+  // Apply date filter (default: future only)
+  const dateFilter = (c: WeddingFormCouple) => {
+    if (showPast) return true
+    if (!c.wedding_date) return true
+    return c.wedding_date >= todayStr
+  }
+
+  // Apply search + date filter
+  const submitted = allSubmitted.filter(c =>
+    dateFilter(c) && (!search || c.couple_name.toLowerCase().includes(search))
   )
-  const missing = couples.filter(
-    (c) => c.form_id === null && (!search || c.couple_name.toLowerCase().includes(search))
+  const missing = allMissing.filter(c =>
+    dateFilter(c) && (!search || c.couple_name.toLowerCase().includes(search))
   )
 
-  const submittedCount = couples.filter((c) => c.form_id !== null).length
-  const missingCount = couples.filter((c) => c.form_id === null).length
-  const totalCount = couples.length
+  const submittedCount = allSubmitted.filter(dateFilter).length
+  const missingCount = allMissing.filter(dateFilter).length
+  const totalCount = submittedCount + missingCount
 
   // Columns for submitted forms
   const submittedColumns: ColumnDef<WeddingFormCouple>[] = [
@@ -169,18 +179,18 @@ export default function WeddingDayFormsPage() {
     },
     {
       id: 'actions',
-      header: '',
+      header: 'Actions',
       cell: ({ row }) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            window.open(`/client/wedding-day-form/${row.original.couple_id}`, '_blank')
-          }}
+        <a
+          href={`/client/wedding-day-form?couple=${row.original.couple_id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
           className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-input bg-background hover:bg-muted transition-colors"
         >
           <ExternalLink className="h-3 w-3" />
-          View Form
-        </button>
+          View
+        </a>
       ),
     },
   ]
@@ -237,7 +247,7 @@ export default function WeddingDayFormsPage() {
     },
     {
       id: 'actions',
-      header: '',
+      header: 'Actions',
       cell: ({ row }) => (
         <CopyLinkButton coupleId={row.original.couple_id} />
       ),
@@ -275,17 +285,28 @@ export default function WeddingDayFormsPage() {
 
       <div className="flex">
         <div className="flex-1 overflow-y-auto p-6 border-r border-border">
-          {/* Search */}
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search couples..."
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              className="w-full max-w-sm pl-9 pr-4 py-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-              style={{ paddingLeft: '2.25rem' }}
-            />
+          {/* Search + Toggle */}
+          <div className="flex items-center gap-4 mb-6">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search couples..."
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                style={{ paddingLeft: '2.25rem' }}
+              />
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showPast}
+                onChange={(e) => setShowPast(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-sm text-muted-foreground">Show past weddings</span>
+            </label>
           </div>
 
           {loading ? (
