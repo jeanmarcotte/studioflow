@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Calendar, Camera, Clock, X, Video, ClipboardList, DollarSign, BookOpen } from 'lucide-react'
+import { Calendar, Camera, Clock, X, Video, ClipboardList, DollarSign, BookOpen, Pencil } from 'lucide-react'
 import { format, differenceInDays, parseISO, addDays } from 'date-fns'
 import { formatWeddingDate, formatDateCompact, formatDate, formatCurrency } from '@/lib/formatters'
 import * as d3 from 'd3'
@@ -46,10 +46,13 @@ interface EditingJobRow {
   id: string
   couple_id: string
   job_type: string
+  category: string | null
   description: string | null
   vendor: string | null
   status: string
-  couples?: { couple_name: string } | null
+  photos_taken: number | null
+  edited_so_far: number | null
+  couples?: { couple_name: string; wedding_date: string | null } | null
 }
 
 interface InstallmentRow {
@@ -60,6 +63,16 @@ interface InstallmentRow {
   amount: number
   due_date: string | null
   paid: boolean | null
+  contracts?: { couples?: { couple_name: string } | null } | null
+}
+
+interface CurrentlyEditingJob {
+  id: string
+  couple_name: string
+  job_type: string
+  photos_taken: number
+  edited_so_far: number
+  status: string
 }
 
 interface YearRingData {
@@ -191,9 +204,9 @@ export default function AdminDashboardPage() {
       const [couplesRes, photoRes, videoRes, installRes, editingRes] = await Promise.all([
         supabase.from('couples').select('*').order('wedding_date', { ascending: true }),
         supabase.from('editing_queue').select('id, couple_id, status, couples(couple_name)'),
-        supabase.from('video_jobs').select('id, couple_id, status, couples(couple_name)'),
-        supabase.from('contract_installments').select('*'),
-        supabase.from('production_jobs').select('id, couple_id, job_type, description, vendor, status, couples(couple_name)'),
+        supabase.from('video_jobs').select('id, couple_id, status, couples(couple_name, wedding_date)'),
+        supabase.from('contract_installments').select('id, contract_id, installment_number, due_description, amount, due_date, paid, contracts(couples(couple_name))'),
+        supabase.from('jobs').select('id, couple_id, job_type, category, description, vendor, status, photos_taken, edited_so_far, couples(couple_name, wedding_date)'),
       ])
 
       if (couplesRes.data) setCouples(couplesRes.data)
@@ -308,11 +321,27 @@ export default function AdminDashboardPage() {
 
   // === 7 DASHBOARD BOXES ===
 
-  // BOX 1: Outstanding Photo Orders
-  const outstandingPhotos = photoJobs.filter(j => j.status === 'waiting_photo')
+  // BOX 1: Currently Editing — jobs in progress from jobs table
+  const JOB_TYPE_LABELS: Record<string, string> = {
+    eng_proofs: 'Engagement Proofs', wed_proofs: 'Wedding Proofs',
+    PARENT_BOOK: 'Parent Book', parent_album: 'Parent Album',
+    bg_album: 'B&G Album', eng_album: 'Engagement Album',
+  }
+  const currentlyEditing: CurrentlyEditingJob[] = editingJobs
+    .filter(j => j.status === 'in_progress' || j.status === 'not_started')
+    .map(j => ({
+      id: j.id,
+      couple_name: j.couples?.couple_name || 'Unknown',
+      job_type: j.job_type,
+      photos_taken: Number(j.photos_taken) || 0,
+      edited_so_far: Number(j.edited_so_far) || 0,
+      status: j.status,
+    }))
+    .sort((a, b) => a.couple_name.localeCompare(b.couple_name))
 
-  // BOX 2: Video In Production
-  const videosInProd = videoJobs.filter(j => j.status === 'in_progress' || j.status === 'not_started')
+  // BOX 2: Video In Production — exclude completed statuses
+  const VIDEO_COMPLETE_STATUSES = ['complete', 'Completed', 'Picked Up', 'Cancelled']
+  const videosInProd = videoJobs.filter(j => !VIDEO_COMPLETE_STATUSES.includes(j.status))
 
   // BOX 3: Missing Wedding Forms
   const missingForms = couples.filter(c => {
@@ -342,14 +371,15 @@ export default function AdminDashboardPage() {
 
   const dashboardBoxes: DashboardBox[] = [
     {
-      key: 'photo_orders',
-      title: 'Outstanding Photo Orders',
-      icon: Camera,
-      count: outstandingPhotos.length,
+      key: 'currently_editing',
+      title: 'Currently Editing',
+      icon: Pencil,
+      count: currentlyEditing.length,
       color: 'bg-amber-50',
       iconColor: 'text-amber-600',
-      details: outstandingPhotos.map(j => ({
-        label: j.couples?.couple_name || 'Unknown',
+      details: currentlyEditing.map(j => ({
+        label: `${j.couple_name} — ${JOB_TYPE_LABELS[j.job_type] || j.job_type.replace(/_/g, ' ')}`,
+        sub: j.photos_taken > 0 ? `${j.edited_so_far}/${j.photos_taken} edited` : j.status === 'not_started' ? 'Not started' : 'In progress',
       })),
     },
     {
@@ -361,7 +391,7 @@ export default function AdminDashboardPage() {
       iconColor: 'text-purple-600',
       details: videosInProd.map(j => ({
         label: j.couples?.couple_name || 'Unknown',
-        sub: j.status === 'in_progress' ? 'In progress' : 'Not started',
+        sub: j.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
       })),
     },
     {
@@ -383,10 +413,13 @@ export default function AdminDashboardPage() {
       count: depositsDue.length,
       color: 'bg-green-50',
       iconColor: 'text-green-600',
-      details: depositsDue.map(i => ({
-        label: i.due_description || `Installment #${i.installment_number}`,
-        sub: i.due_date ? `${formatCurrency(i.amount)} — ${formatDateCompact(i.due_date).replace(/, \d{4}$/, '')}` : formatCurrency(i.amount),
-      })),
+      details: depositsDue.map(i => {
+        const coupleName = (i.contracts as any)?.couples?.couple_name || 'Unknown'
+        return {
+          label: `${coupleName} — ${i.due_description || `Installment #${i.installment_number}`}`,
+          sub: i.due_date ? `${formatCurrency(i.amount)} — ${formatDateCompact(i.due_date).replace(/, \d{4}$/, '')}` : formatCurrency(i.amount),
+        }
+      }),
     },
     {
       key: 'albums',
