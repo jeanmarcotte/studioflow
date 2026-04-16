@@ -36,6 +36,7 @@ interface DataTableProps<TData, TValue> {
   rowNumber?: boolean
   emptyMessage?: string
   className?: string
+  rowClassName?: (row: TData) => string
 }
 
 export function DataTable<TData, TValue>({
@@ -49,6 +50,7 @@ export function DataTable<TData, TValue>({
   rowNumber = false,
   emptyMessage = "No results.",
   className,
+  rowClassName,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -132,7 +134,8 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                   onClick={() => onRowClick?.(row.original)}
                   className={cn(
-                    onRowClick && "cursor-pointer hover:bg-muted/50"
+                    onRowClick && "cursor-pointer hover:bg-muted/50",
+                    rowClassName?.(row.original)
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (
