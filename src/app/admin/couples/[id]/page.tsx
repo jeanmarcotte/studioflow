@@ -11,7 +11,6 @@ import {
   Q02Navigation,
   Q03ClientCard,
   Q04TeamNotes,
-  Q05ClientJourney,
   Q06Forms,
   Q10ContractPackage,
   Q11FramesAndAlbums,
@@ -20,6 +19,7 @@ import {
 } from '@/components/couples';
 import { FinanceSection } from '@/components/couples/FinanceSection';
 import { ExtrasCard } from '@/components/couples/ExtrasCard';
+import { JourneyDashboard } from '@/components/JourneyDashboard';
 
 export default function CoupleDetailPage() {
   const params = useParams();
@@ -213,11 +213,8 @@ export default function CoupleDetailPage() {
         hasSocialMediaRestriction={hasSocialMediaRestriction}
       />
 
-      {/* Q5 — Client Journey */}
-      <Q05ClientJourney
-        milestones={milestones}
-        weddingDate={couple.wedding_date}
-      />
+      {/* Journey Dashboard — 2×2 quadrant grid */}
+      <JourneyDashboard milestones={milestones} />
 
       {/* Q6 — Forms (hidden for 2025 and earlier couples) */}
       {couple.wedding_date && new Date(couple.wedding_date).getFullYear() >= 2026 && (
