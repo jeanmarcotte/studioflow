@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 
 const SHOWS: { id: string; dates: [string, string] }[] = [
   { id: 'modern-feb-2026', dates: ['2026-02-21', '2026-02-23'] },
@@ -63,8 +64,12 @@ export default function ScannerPage() {
   const [ballot, setBallot] = useState<BallotData>(emptyBallot)
   const [error, setError] = useState<string | null>(null)
   const [savedCount, setSavedCount] = useState(0)
+  const [aiOverride, setAiOverride] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+
+  const isShowDay = detectShowId() !== 'unknown'
+  const aiEnabled = isShowDay || aiOverride
 
   const getPin = () => sessionStorage.getItem('admin_pin') || ''
 
@@ -216,6 +221,20 @@ export default function ScannerPage() {
             </div>
           )}
 
+          {/* AI Override Toggle */}
+          {!isShowDay && (
+            <div className="flex items-center justify-between bg-white rounded-xl shadow-sm p-4">
+              <Label htmlFor="ai-override" className="text-sm text-gray-700 cursor-pointer">
+                Enable AI (override show check)
+              </Label>
+              <Switch
+                id="ai-override"
+                checked={aiOverride}
+                onCheckedChange={setAiOverride}
+              />
+            </div>
+          )}
+
           {savedCount > 0 && (
             <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-green-700 text-sm text-center font-medium">
               {savedCount} ballot{savedCount !== 1 ? 's' : ''} saved this session
@@ -230,10 +249,11 @@ export default function ScannerPage() {
               </div>
               <Button
                 onClick={processImage}
+                disabled={!aiEnabled}
                 className="w-full h-12 text-base font-bold bg-purple-600 hover:bg-purple-700"
                 size="lg"
               >
-                Process with AI
+                {aiEnabled ? 'Process with AI' : 'AI Disabled (not a show day)'}
               </Button>
               <Button
                 variant="outline"
