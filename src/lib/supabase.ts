@@ -1,26 +1,16 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-console.log('Supabase Config:', {
-  url: supabaseUrl,
-  keyLength: supabaseAnonKey?.length,
-  keyPrefix: supabaseAnonKey?.substring(0, 20) + '...'
-})
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    debug: true,
-    autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
-  }
-})
-
-// Add auth state listener for debugging
-supabase.auth.onAuthStateChange((event, session) => {
-  console.log('Auth state change:', event, session)
+    storageKey: 'studioflow-auth',
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
 })
 
 // Auth helpers
