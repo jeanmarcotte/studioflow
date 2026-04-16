@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Nunito } from 'next/font/google'
 import Link from 'next/link'
+import { toast } from 'sonner'
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
 
@@ -87,6 +88,7 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
             className="h-9 w-9 text-muted-foreground hover:text-foreground"
             onClick={() => {
               navigator.clipboard.writeText('https://studioflow-zeta.vercel.app/ballot')
+              toast.success('Ballot URL copied!')
             }}
             title="Copy ballot link"
           >
