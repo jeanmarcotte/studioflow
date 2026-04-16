@@ -372,7 +372,7 @@ export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, sho
             <a href="https://sigsphoto.ca" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
               SIGS Photography
             </a>
-            <Link href="/client/new-quote" title="Ballot Entry" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+            <Link href="/ballot" title="Ballot Entry" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
               <ClipboardList className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -388,7 +388,7 @@ export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, sho
             <a href="https://sigsphoto.ca" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
               SIGS Photography
             </a>
-            <Link href="/client/new-quote" title="Ballot Entry" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+            <Link href="/ballot" title="Ballot Entry" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
               <ClipboardList className="h-3.5 w-3.5" />
             </Link>
           </div>
