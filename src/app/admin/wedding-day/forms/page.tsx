@@ -47,22 +47,22 @@ export default function WeddingDayFormsPage() {
   const [searchValue, setSearchValue] = useState('')
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
 
-  const todayStr = new Date().toISOString().split('T')[0]
-
   useEffect(() => {
     async function fetchData() {
-      // Fetch booked 2026+ couples with wedding_day_forms LEFT JOIN
+      const todayDate = new Date().toISOString().split('T')[0]
+
+      // Fetch future booked couples with wedding_day_forms LEFT JOIN
       const { data: couplesData } = await supabase
         .from('couples')
         .select(`
-          id, couple_name, wedding_date,
+          *,
           wedding_day_forms (
             id,
             created_at
           )
         `)
         .eq('status', 'booked')
-        .gte('wedding_date', '2026-01-01')
+        .gte('wedding_date', todayDate)
         .order('wedding_date', { ascending: true })
 
       const merged: WeddingFormCouple[] = (couplesData ?? []).map((c: any) => {
@@ -95,22 +95,17 @@ export default function WeddingDayFormsPage() {
   const today = new Date()
   const search = searchValue.toLowerCase()
 
-  // Filter out past weddings entirely
-  const futureCouples = couples.filter(c => {
-    if (!c.wedding_date) return true
-    return c.wedding_date >= todayStr
-  })
-
-  const submitted = futureCouples.filter(
+  // All couples are already future-only (filtered in query)
+  const submitted = couples.filter(
     (c) => c.form_id !== null && (!search || c.couple_name.toLowerCase().includes(search))
   )
-  const missing = futureCouples.filter(
+  const missing = couples.filter(
     (c) => c.form_id === null && (!search || c.couple_name.toLowerCase().includes(search))
   )
 
-  const submittedCount = futureCouples.filter((c) => c.form_id !== null).length
-  const missingCount = futureCouples.filter((c) => c.form_id === null).length
-  const totalCount = futureCouples.length
+  const submittedCount = couples.filter((c) => c.form_id !== null).length
+  const missingCount = couples.filter((c) => c.form_id === null).length
+  const totalCount = couples.length
 
   // Columns for submitted forms
   const submittedColumns: ColumnDef<WeddingFormCouple>[] = [
