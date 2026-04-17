@@ -97,14 +97,14 @@ export default function WeddingDayFormPrintPage() {
           </div>
 
           {/* ── TIMELINE OVERVIEW ── */}
-          {(form.groom_start_time || form.bride_start_time || form.venue_arrival_time) && (
-            <div className="mb-8">
+          {(form.groom_start_time || form.bride_start_time || form.ceremony_start_time || form.venue_arrival_time) && (
+            <div className="mb-6">
               <SectionTitle>Timeline Overview</SectionTitle>
-              <div className="grid grid-cols-4 gap-3 mt-3">
-                <TimeBox label="Groom Prep" time={form.groom_start_time && form.groom_finish_time ? `${form.groom_start_time} - ${form.groom_finish_time}` : form.groom_start_time} />
-                <TimeBox label="Bride Prep" time={form.bride_start_time && form.bride_finish_time ? `${form.bride_start_time} - ${form.bride_finish_time}` : form.bride_start_time} />
-                <TimeBox label={form.has_first_look ? 'First Look' : 'Ceremony Arrival'} time={form.has_first_look ? form.first_look_time : (form.ceremony_photo_arrival_time || form.ceremony_start_time)} />
-                <TimeBox label="Coverage End" time={form.photo_video_end_time} />
+              <div className="grid grid-cols-4 gap-2 mt-3">
+                <TimeBox label="Groom Prep" time={form.groom_start_time || null} />
+                <TimeBox label="Bride Prep" time={form.bride_start_time || null} />
+                <TimeBox label={form.has_first_look ? 'First Look' : 'Ceremony'} time={form.has_first_look ? (form.first_look_time || null) : (form.ceremony_photo_arrival_time || form.ceremony_start_time || null)} />
+                <TimeBox label="Coverage End" time={form.photo_video_end_time || form.photographer_finish_time || null} />
               </div>
             </div>
           )}
@@ -322,9 +322,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 function TimeBox({ label, time }: { label: string; time: string | null }) {
   if (!time) return <div />
   return (
-    <div className="text-center bg-slate-50 rounded-lg py-3 px-2">
-      <div className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">{label}</div>
-      <div className="text-lg font-bold text-slate-900 tabular-nums">{time}</div>
+    <div className="text-center border border-slate-200 rounded-md py-2 px-1.5">
+      <div className="text-[9px] uppercase tracking-wider text-slate-400 mb-0.5 leading-tight">{label}</div>
+      <div className="text-sm font-bold text-slate-900 tabular-nums leading-tight">{time}</div>
     </div>
   )
 }
