@@ -54,64 +54,100 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
 
           <div className="flex-1" />
 
-          {/* Dark mode toggle */}
+          {/* Icons — desktop only (mobile icons in row below) */}
+          <div className="hidden sm:flex items-center gap-1">
+            {/* Dark mode toggle */}
+            {mounted && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+            )}
+
+            {/* Recalculate Scores */}
+            {onRecalculateScores && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                onClick={onRecalculateScores}
+                disabled={recalculating}
+                title="Recalculate all scores"
+              >
+                <RefreshCw className={`h-4 w-4 ${recalculating ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
+
+            <Link href="/ballot" target="_blank">
+              <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" title="Ballot entry form">
+                <ClipboardCopy className="h-4 w-4" />
+              </Button>
+            </Link>
+
+            <Link href="/scanner">
+              <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" title="Scan ballot">
+                <ScanLine className="h-4 w-4" />
+              </Button>
+            </Link>
+
+            <Link href="/leads/analytics">
+              <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" title="Analytics">
+                <BarChart3 className="h-4 w-4" />
+              </Button>
+            </Link>
+
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={() => setLegendOpen(true)} title="Legend">
+              <Settings className="h-4 w-4" />
+            </Button>
+
+            {/* Add Lead — desktop only */}
+            <Button className="h-8 px-2.5 text-xs font-semibold bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white rounded-lg mr-1" onClick={onAddLead}>
+              <Plus className="h-3.5 w-3.5 mr-0.5" /> Lead
+            </Button>
+          </div>
+
+        </div>
+
+        {/* Row 1.5: Icons — mobile only, centered */}
+        <div className="flex sm:hidden items-center justify-center gap-1 mt-2">
           {mounted && (
             <Button
               variant="ghost"
               size="icon"
               className="h-9 w-9 text-muted-foreground hover:text-foreground"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
           )}
-
-          {/* Recalculate Scores */}
           {onRecalculateScores && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 text-muted-foreground hover:text-foreground"
-              onClick={onRecalculateScores}
-              disabled={recalculating}
-              title="Recalculate all scores"
-            >
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={onRecalculateScores} disabled={recalculating}>
               <RefreshCw className={`h-4 w-4 ${recalculating ? 'animate-spin' : ''}`} />
             </Button>
           )}
-
-          {/* Ballot Entry */}
           <Link href="/ballot" target="_blank">
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" title="Ballot entry form">
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
               <ClipboardCopy className="h-4 w-4" />
             </Button>
           </Link>
-
-          {/* Scanner */}
           <Link href="/scanner">
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" title="Scan ballot">
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
               <ScanLine className="h-4 w-4" />
             </Button>
           </Link>
-
-          {/* Analytics */}
           <Link href="/leads/analytics">
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" title="Analytics">
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
               <BarChart3 className="h-4 w-4" />
             </Button>
           </Link>
-
-          {/* Settings / Legend */}
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={() => setLegendOpen(true)} title="Legend">
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={() => setLegendOpen(true)}>
             <Settings className="h-4 w-4" />
           </Button>
-
-          {/* Add Lead — desktop only */}
-          <Button className="hidden sm:inline-flex h-8 px-2.5 text-xs font-semibold bg-[#0d4f4f] hover:bg-[#0d4f4f]/90 text-white rounded-lg mr-1" onClick={onAddLead}>
-            <Plus className="h-3.5 w-3.5 mr-0.5" /> Lead
-          </Button>
-
         </div>
 
         {/* Row 2: Search + compact +New — mobile only */}

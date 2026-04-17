@@ -128,7 +128,7 @@ export default function BallotPage() {
   const playWeddingMarch = () => {
     const audio = new Audio('/sounds/wedding_march.mp3')
     audio.volume = 0.5
-    audio.play().catch(() => {})
+    audio.play().catch((e) => console.error('Wedding march failed:', e))
   }
 
   const handleReset = () => {
@@ -186,6 +186,7 @@ export default function BallotPage() {
   }
 
   return (
+    <>
     <AnimatePresence mode="wait">
     {showSuccess ? (
       <motion.div
@@ -441,5 +442,14 @@ export default function BallotPage() {
     </div>
     )}
     </AnimatePresence>
+    {/* Test Sound — fixed bottom right */}
+    <button
+      type="button"
+      onClick={playWeddingMarch}
+      className="fixed bottom-4 right-4 text-xs text-gray-400 hover:text-gray-600 underline z-50"
+    >
+      🔊 Test Sound
+    </button>
+    </>
   )
 }
