@@ -103,8 +103,12 @@ export default function WeddingDayFormPrintPage() {
               <div className="grid grid-cols-4 gap-2 mt-3">
                 <TimeBox label="Groom Prep" time={form.groom_start_time || null} />
                 <TimeBox label="Bride Prep" time={form.bride_start_time || null} />
-                <TimeBox label={form.has_first_look ? 'First Look' : 'Ceremony'} time={form.has_first_look ? (form.first_look_time || null) : (form.ceremony_photo_arrival_time || form.ceremony_start_time || null)} />
-                <TimeBox label="Coverage End" time={form.photo_video_end_time || form.photographer_finish_time || null} />
+                {form.has_first_look ? (
+                  <TimeBox label="First Look" time={form.first_look_time || null} />
+                ) : (
+                  <TimeBox label="Coverage End" time={form.photo_video_end_time || form.photographer_finish_time || null} />
+                )}
+                <TimeBox label="Ceremony Arrival" time={form.ceremony_photo_arrival_time || form.ceremony_start_time || null} />
               </div>
             </div>
           )}
