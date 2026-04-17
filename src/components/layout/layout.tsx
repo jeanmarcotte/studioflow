@@ -215,7 +215,7 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
       <aside className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-card border-r transition-all duration-300",
+        "fixed left-0 top-0 z-40 h-screen bg-card border-r transition-all duration-300 print:hidden",
         sidebarCollapsed ? "w-16" : "w-64"
       )}>
         {/* Logo */}
@@ -249,11 +249,11 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
 
       {/* Main Content */}
       <div className={cn(
-        "transition-all duration-300",
+        "transition-all duration-300 print:ml-0",
         sidebarCollapsed ? "ml-16" : "ml-64"
       )}>
         {/* Header */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-6 print:hidden">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
