@@ -55,7 +55,7 @@ export default function LeadsPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showLost, setShowLost] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [sortKey, setSortKey] = useState<'score' | 'date' | 'name' | 'temperature'>('date')
+  const [sortKey, setSortKey] = useState<'score' | 'date' | 'name' | 'temperature' | 'fresh'>('fresh')
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)

@@ -47,6 +47,7 @@ export interface Lead {
   quoted_at: string | null
   appointment_date: string | null
   updated_at: string | null
+  created_at: string | null
   culture_confirmed: boolean | null
 }
 

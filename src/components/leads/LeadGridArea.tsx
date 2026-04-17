@@ -9,7 +9,7 @@ import type { Lead } from '@/lib/lead-utils'
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
 
-type SortKey = 'score' | 'date' | 'name' | 'temperature'
+type SortKey = 'score' | 'date' | 'name' | 'temperature' | 'fresh'
 
 interface LeadGridAreaProps {
   leads: Lead[]
@@ -30,6 +30,7 @@ export function LeadGridArea({ leads, sortKey, onSortChange, currentPage, onPage
   const sorted = useMemo(() => {
     return [...leads].sort((a, b) => {
       switch (sortKey) {
+        case 'fresh': return (b.created_at || '').localeCompare(a.created_at || '')
         case 'score': return (b.book_score ?? 0) - (a.book_score ?? 0)
         case 'date': return (a.wedding_date || '9999').localeCompare(b.wedding_date || '9999')
         case 'name': return (a.bride_first_name || '').localeCompare(b.bride_first_name || '')
@@ -60,6 +61,7 @@ export function LeadGridArea({ leads, sortKey, onSortChange, currentPage, onPage
             className="h-9 min-w-[140px] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 pr-8 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/20 appearance-none"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M4.646 6.646a.5.5 0 01.708 0L8 9.293l2.646-2.647a.5.5 0 01.708.708l-3 3a.5.5 0 01-.708 0l-3-3a.5.5 0 010-.708z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center' }}
           >
+            <option value="fresh">Fresh</option>
             <option value="score">Score</option>
             <option value="date">Wedding Date</option>
             <option value="name">Name</option>
