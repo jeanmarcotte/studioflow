@@ -195,18 +195,20 @@ export default function AdminDashboardPage() {
   const [videoJobs, setVideoJobs] = useState<VideoJobRow[]>([])
   const [installments, setInstallments] = useState<InstallmentRow[]>([])
   const [editingJobs, setEditingJobs] = useState<EditingJobRow[]>([])
+  const [formCoupleIds, setFormCoupleIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [modalYear, setModalYear] = useState<number | null>(null)
   const [expandedBox, setExpandedBox] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [couplesRes, photoRes, videoRes, installRes, editingRes] = await Promise.all([
+      const [couplesRes, photoRes, videoRes, installRes, editingRes, formsRes] = await Promise.all([
         supabase.from('couples').select('*').order('wedding_date', { ascending: true }),
         supabase.from('editing_queue').select('id, couple_id, status, couples(couple_name)'),
         supabase.from('video_jobs').select('id, couple_id, status, couples(couple_name, wedding_date)'),
         supabase.from('contract_installments').select('id, contract_id, installment_number, due_description, amount, due_date, paid, contracts(couples(couple_name))'),
         supabase.from('jobs').select('id, couple_id, job_type, category, description, vendor, status, photos_taken, edited_so_far, couples(couple_name, wedding_date)'),
+        supabase.from('wedding_day_forms').select('couple_id'),
       ])
 
       if (couplesRes.data) setCouples(couplesRes.data)
@@ -214,6 +216,7 @@ export default function AdminDashboardPage() {
       if (videoRes.data) setVideoJobs(videoRes.data as unknown as VideoJobRow[])
       if (installRes.data) setInstallments(installRes.data as unknown as InstallmentRow[])
       if (editingRes.data) setEditingJobs(editingRes.data as unknown as EditingJobRow[])
+      if (formsRes.data) setFormCoupleIds(new Set(formsRes.data.map((f: { couple_id: string }) => f.couple_id)))
       setLoading(false)
     }
     fetchAll()
@@ -346,7 +349,7 @@ export default function AdminDashboardPage() {
   // BOX 3: Missing Wedding Forms
   const missingForms = couples.filter(c => {
     if (!c.wedding_date || c.status !== 'booked') return false
-    return c.form_submitted === false && c.wedding_date >= todayStr && c.wedding_date <= in60days
+    return !formCoupleIds.has(c.id) && c.wedding_date >= todayStr && c.wedding_date <= in60days
   })
 
   // BOX 4: Deposits Due (next 30 days, unpaid)
