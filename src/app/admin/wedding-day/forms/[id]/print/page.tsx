@@ -355,12 +355,16 @@ function LocationCard({
             {finishTime && <span>– {finishTime}</span>}
           </div>
         )}
-        {(address || city) && (
-          <div className="flex items-start gap-1.5 text-sm text-slate-600">
-            <MapPin className="h-3.5 w-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
-            <span>{[address, city, postalCode].filter(Boolean).join(', ')}</span>
-          </div>
-        )}
+        {(address || city) && (() => {
+          const fullAddress = [address, city, postalCode].filter(Boolean).join(', ')
+          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
+          return (
+            <div className="flex items-start gap-1.5 text-sm">
+              <MapPin className="h-3.5 w-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
+              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{fullAddress}</a>
+            </div>
+          )
+        })()}
         {intersection && <p className="text-xs text-slate-400 ml-5">Near {intersection}</p>}
         {phone && (
           <div className="flex items-center gap-1.5">
@@ -566,7 +570,11 @@ function MobileLocationCard({ title, form, prefix, name }: { title: string; form
     <MobileCard title={title}>
       {name && <p className="font-semibold text-slate-900 mb-1">{name}</p>}
       {(start || finish) && <p className="text-sm text-slate-600 mb-1">{start}{finish ? ` – ${finish}` : ''}</p>}
-      {addr && <p className="text-sm text-slate-500">{addr}{city ? `, ${city}` : ''}</p>}
+      {addr && (() => {
+        const fullAddr = addr + (city ? `, ${city}` : '')
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddr)}`
+        return <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline block">{fullAddr}</a>
+      })()}
       {phone && (
         <a href={`tel:${phone}`} className="inline-flex items-center gap-1.5 mt-2 text-base font-bold text-slate-900" style={{ minHeight: '44px' }}>
           <Phone className="h-4 w-4 text-slate-400" /> {phone}

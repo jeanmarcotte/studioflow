@@ -214,7 +214,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ coup
 
   const [{ data: form, error: formError }, { data: couple }, { data: contract }] = await Promise.all([
     supabase.from('wedding_day_forms').select('*').eq('couple_id', coupleId).single(),
-    supabase.from('couples').select('couple_name, wedding_date, package_type').eq('id', coupleId).single(),
+    supabase.from('couples').select('couple_name, wedding_date, package_type, bride_first_name, groom_first_name').eq('id', coupleId).single(),
     supabase.from('contracts').select('start_time, end_time').eq('couple_id', coupleId).single(),
   ])
 
@@ -560,12 +560,24 @@ export async function GET(request: Request, { params }: { params: Promise<{ coup
   pdf.addFooter()
 
   const buffer = Buffer.from(pdf.doc.output('arraybuffer'))
-  const safeName = coupleName.replace(/[^a-zA-Z0-9&\s-]/g, '').replace(/\s+/g, '-')
+
+  // Filename: BrideName_GroomName Month Day Year - Wedding Day Info Form.pdf
+  const brideName = stripEmojis(couple?.bride_first_name || 'Bride')
+  const groomName = stripEmojis(couple?.groom_first_name || 'Groom')
+  let filename = `${brideName}_${groomName}`
+  if (couple?.wedding_date) {
+    const d = new Date(couple.wedding_date + 'T12:00:00')
+    const month = d.toLocaleString('en-US', { month: 'long' })
+    const day = d.getDate()
+    const year = d.getFullYear()
+    filename += ` ${month} ${day} ${year}`
+  }
+  filename += ' - Wedding Day Info Form.pdf'
 
   return new Response(buffer, {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="Wedding-Day-Form-${safeName}.pdf"`,
+      'Content-Disposition': `attachment; filename="${filename}"`,
     },
   })
 }
