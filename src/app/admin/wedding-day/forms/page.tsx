@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { differenceInDays, parseISO } from 'date-fns'
-import { ChevronDown, ChevronRight, Search, Copy, ExternalLink, Check, Send, X, Loader2, Printer } from 'lucide-react'
+import { ChevronDown, ChevronRight, Search, Copy, ExternalLink, Check, Send, X, Loader2, Printer, Download } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { supabase } from '@/lib/supabase'
 import { ProductionPills, ProductionSidebar } from '@/components/shared'
@@ -183,7 +183,7 @@ export default function WeddingDayFormsPage() {
       cell: ({ row }) => (
         <div className="flex gap-1">
           <a
-            href={`/client/wedding-day-form?couple=${row.original.couple_id}`}
+            href={`/admin/wedding-day/forms/${row.original.couple_id}/print`}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
@@ -191,6 +191,14 @@ export default function WeddingDayFormsPage() {
           >
             <ExternalLink className="h-3 w-3" />
             View
+          </a>
+          <a
+            href={`/api/wedding-form-pdf/${row.original.couple_id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-input bg-background hover:bg-muted transition-colors"
+          >
+            <Download className="h-3 w-3" />
+            PDF
           </a>
           <button
             onClick={(e) => {
