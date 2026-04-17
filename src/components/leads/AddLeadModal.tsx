@@ -1,8 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X, CalendarIcon } from 'lucide-react'
+import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import type { Lead } from '@/lib/lead-utils'
 import { inferCultureFromCouple } from '@/lib/cultureInference'
@@ -21,6 +26,7 @@ const SERVICE_OPTIONS = [
 
 export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps) {
   const [saving, setSaving] = useState(false)
+  const [weddingDate, setWeddingDate] = useState<Date | undefined>()
   const [form, setForm] = useState({
     bride_first_name: '',
     bride_last_name: '',
@@ -28,7 +34,6 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
     groom_last_name: '',
     email: '',
     cell_phone: '',
-    wedding_date: '',
     venue_name: '',
     service_needs: 'photo_video',
     referral_source: '',
@@ -66,7 +71,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
         groom_last_name: form.groom_last_name || null,
         email: form.email || null,
         cell_phone: form.cell_phone || null,
-        wedding_date: form.wedding_date || null,
+        wedding_date: weddingDate ? format(weddingDate, 'yyyy-MM-dd') : null,
         venue_name: form.venue_name || null,
         service_needs: form.service_needs,
         referral_source: form.referral_source || null,
@@ -89,10 +94,11 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
       if (data && data[0]) {
         onLeadAdded(data[0] as Lead)
         onClose()
+        setWeddingDate(undefined)
         setForm({
           bride_first_name: '', bride_last_name: '',
           groom_first_name: '', groom_last_name: '',
-          email: '', cell_phone: '', wedding_date: '',
+          email: '', cell_phone: '',
           venue_name: '', service_needs: 'photo_video', referral_source: '',
         })
       }
@@ -160,7 +166,28 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
           {/* Wedding Date */}
           <div>
             <label className={labelCls}>Wedding Date</label>
-            <input className={inputCls} type="text" value={form.wedding_date} onChange={set('wedding_date')} placeholder="YYYY-MM-DD" />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full h-9 justify-start text-left font-normal rounded-lg border-slate-300 dark:border-slate-600",
+                    !weddingDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {weddingDate ? format(weddingDate, "PPP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={weddingDate}
+                  onSelect={setWeddingDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Service Needs — full width */}
@@ -178,7 +205,30 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
 
           <div>
             <label className={labelCls}>Referral Source</label>
-            <input className={inputCls} value={form.referral_source} onChange={set('referral_source')} placeholder="e.g. Walk-in, Phone call, Instagram DM" />
+            <Select value={form.referral_source} onValueChange={(v) => setForm(prev => ({ ...prev, referral_source: v ?? '' }))}>
+              <SelectTrigger className="w-full h-9 rounded-lg border-slate-300 dark:border-slate-600">
+                <SelectValue placeholder="Select source..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>REFERRALS</SelectLabel>
+                  <SelectItem value="Past Client Referral">Past Client Referral</SelectItem>
+                  <SelectItem value="Planner Referral">Planner Referral</SelectItem>
+                  <SelectItem value="Referrals">Referrals</SelectItem>
+                  <SelectItem value="Venue Referral">Venue Referral</SelectItem>
+                  <SelectItem value="Word of Mouth">Word of Mouth</SelectItem>
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel>DIGITAL</SelectLabel>
+                  <SelectItem value="Facebook Message">Facebook Message</SelectItem>
+                  <SelectItem value="Google Ads">Google Ads</SelectItem>
+                  <SelectItem value="Google Search (Organic)">Google Search (Organic)</SelectItem>
+                  <SelectItem value="Instagram Discovery">Instagram Discovery</SelectItem>
+                  <SelectItem value="META/Instagram">META/Instagram</SelectItem>
+                  <SelectItem value="Website Contact Form">Website Contact Form</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
         </form>
 
