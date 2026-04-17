@@ -100,6 +100,47 @@ export default function LeadsPage() {
     doFetch()
   }, [])
 
+  // Realtime: listen for new ballots → play wedding march + refresh list
+  useEffect(() => {
+    const channel = supabase
+      .channel('ballot-inserts')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'ballots' },
+        (payload) => {
+          const newLead = payload.new as Lead
+          if (newLead) {
+            setAllLeads(prev => [newLead, ...prev])
+            setLeads(prev => newLead.hidden ? prev : [newLead, ...prev])
+            toast.success(`New lead: ${newLead.bride_first_name || 'Unknown'}`)
+          }
+          // Play wedding march
+          const audio = new Audio('/sounds/wedding_march.mp3')
+          audio.volume = 0.5
+          audio.play().catch(() => {})
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [])
+
+  // Auto-refresh leads every 15 seconds
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from('ballots')
+        .select('*')
+        .order('book_score', { ascending: false })
+      if (data) {
+        const all = (data as Lead[]) || []
+        setAllLeads(all)
+        setLeads(all.filter(l => !l.hidden))
+      }
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [])
+
   // Bucket helpers — each lead falls into exactly ONE bucket
   const isLost = (l: Lead) =>
     ['dead', 'lost'].includes(l.status) || l.has_photographer === true || l.has_videographer === true
