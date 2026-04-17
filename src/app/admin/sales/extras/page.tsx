@@ -480,9 +480,6 @@ export default function ExtrasSalesPage() {
   const rows2025 = useMemo(() => filteredRows.filter(r => r.wedding_year === 2025), [filteredRows])
 
   // Stats
-  const paidCount = useMemo(() => rows.filter(r => r.status === 'paid').length, [rows])
-  const pendingCount = useMemo(() => rows.filter(r => r.status === 'pending').length, [rows])
-  const sentCount = useMemo(() => rows.filter(r => r.status === 'sent').length, [rows])
   const rawVideoCount = useMemo(() => rows.filter(r => r.item_type === 'Raw Video').length, [rows])
   const extraHoursCount = useMemo(() => rows.filter(r => r.item_type === 'Hours').length, [rows])
   const revenue2026 = useMemo(() => rows2026.reduce((sum, r) => sum + (r.total || 0), 0), [rows2026])
@@ -526,20 +523,6 @@ export default function ExtrasSalesPage() {
       accessorKey: 'total',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Total" />,
       cell: ({ row }) => <span className="font-medium">{row.original.total != null ? fmtMoney(row.original.total) : '—'}</span>,
-    },
-    {
-      accessorKey: 'status',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-      cell: ({ row }) => {
-        const s = row.original.status
-        const colors = s === 'paid' ? 'bg-green-100 text-green-700'
-          : s === 'sent' ? 'bg-blue-100 text-blue-700'
-          : s === 'pending' ? 'bg-amber-100 text-amber-700'
-          : s === 'cancelled' ? 'bg-red-100 text-red-700 line-through'
-          : 'bg-gray-100 text-gray-700'
-        const label = s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
-        return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${colors}`}>{label}</span>
-      },
     },
   ], [router])
 
@@ -594,11 +577,6 @@ export default function ExtrasSalesPage() {
       />
       {/* TODO WO-318: Link + New Sale once new-sale page is built — don't forget! */}
 
-      <ProductionPills pills={[
-        { label: 'Paid', count: paidCount, color: 'green' },
-        { label: 'Pending', count: pendingCount, color: 'yellow' },
-        { label: 'Sent', count: sentCount, color: 'blue' },
-      ]} />
 
       {/* Content area: main panel + stats sidebar */}
       <div className="flex">
