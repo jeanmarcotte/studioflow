@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { RotateCcw } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -73,6 +74,7 @@ export default function BallotPage() {
   const [isWebsiteEmbed, setIsWebsiteEmbed] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
   const [showLabel, setShowLabel] = useState('')
+  const [countdown, setCountdown] = useState(10)
 
   useEffect(() => {
     const updateOnlineStatus = () => setIsOnline(navigator.onLine)
@@ -105,6 +107,35 @@ export default function BallotPage() {
     setShowLabel(show.label)
     if (method === 'website' || method === 'meta') setIsWebsiteEmbed(true)
   }, [])
+
+  // Auto-forward countdown on success
+  useEffect(() => {
+    if (!showSuccess) return
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          handleReset()
+          return 10
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSuccess])
+
+  const playWeddingMarch = () => {
+    const audio = new Audio('/sounds/wedding_march.mp3')
+    audio.volume = 0.5
+    audio.play().catch(() => {})
+  }
+
+  const handleReset = () => {
+    setShowSuccess(false)
+    setCountdown(10)
+    setFormData(initialFormData)
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -144,11 +175,8 @@ export default function BallotPage() {
         throw new Error(err.error || 'Submission failed')
       }
 
-      if (isWebsiteEmbed) {
-        setShowSuccess(true)
-      } else {
-        setShowSuccess(true)
-      }
+      setShowSuccess(true)
+      playWeddingMarch()
     } catch (error) {
       console.error('Error submitting ballot:', error)
       alert('Error saving entry. Please try again.')
@@ -167,10 +195,19 @@ export default function BallotPage() {
         transition={{ duration: 0.4 }}
         className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-500 to-green-600 text-white p-8"
       >
-        <div className="text-center">
-          <div className="text-8xl mb-6">🎉</div>
-          <h1 className="text-4xl font-bold mb-4">You&apos;re Entered!</h1>
+        <div className="text-center space-y-6">
+          <div className="text-8xl">🎉</div>
+          <h1 className="text-4xl font-bold">You&apos;re Entered!</h1>
           <p className="text-xl opacity-90">Good luck!</p>
+          <p className="text-sm opacity-75">Returning to form in {countdown}s</p>
+          <Button
+            variant="outline"
+            onClick={handleReset}
+            className="border-white/30 text-white hover:bg-white/10 hover:text-white"
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Enter Another
+          </Button>
         </div>
       </motion.div>
     ) : (
