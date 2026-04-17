@@ -18,10 +18,24 @@ const MARGIN = 18
 const CONTENT_W = PAGE_W - MARGIN * 2
 const COL_W = CONTENT_W / 3
 
+function stripEmojis(text: string): string {
+  // Strip emoji surrogate pairs, symbols, variation selectors, ZWJ,
+  // then keep only characters that jsPDF helvetica (WinAnsiEncoding) can render
+  return text
+    .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '')  // All surrogate pairs (emojis, supplementary planes)
+    .replace(/[\u2600-\u27BF]/g, '')        // Misc symbols, dingbats
+    .replace(/[\uFE00-\uFE0F]/g, '')        // Variation selectors
+    .replace(/\u200D/g, '')                  // Zero-width joiner
+    .replace(/\u20E3/g, '')                  // Combining enclosing keycap
+    .replace(/[^\x20-\x7E\xA0-\xFF\u0100-\u017F]/g, '')  // Keep only ASCII + Latin-1 Supplement + Latin Extended-A
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function val(v: string | number | boolean | null | undefined): string {
   if (v === null || v === undefined || v === '') return ''
   if (typeof v === 'boolean') return v ? 'Yes' : 'No'
-  return String(v)
+  return stripEmojis(String(v))
 }
 
 class PdfBuilder {
@@ -134,7 +148,7 @@ class PdfBuilder {
       this.doc.setFont('helvetica', 'bold')
       this.doc.setFontSize(9.5)
       this.doc.setTextColor(17, 24, 39)
-      this.doc.text(data.name, MARGIN, this.y)
+      this.doc.text(stripEmojis(data.name), MARGIN, this.y)
       this.y += 6
     }
     this.fieldRow([['Address', data.address], ['City', data.city], ['Nearest Intersection', data.intersection]])
@@ -164,7 +178,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ coup
     return NextResponse.json({ error: 'No wedding day form found for this couple' }, { status: 404 })
   }
 
-  const coupleName = couple?.couple_name ?? 'Unknown Couple'
+  const coupleName = stripEmojis(couple?.couple_name ?? 'Unknown Couple')
   const packageType = couple?.package_type ?? null
   const weddingDate = couple?.wedding_date
     ? format(new Date(couple.wedding_date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
@@ -189,12 +203,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ coup
     pdf.doc.text(weddingDate, MARGIN, pdf.y)
     pdf.y += 4
   }
-  const weddingCity = (form.reception_city || form.ceremony_city || form.bride_city || '').trim()
+  const weddingCity = stripEmojis(form.reception_city || form.ceremony_city || form.bride_city || '')
   if (weddingCity) {
     pdf.doc.setFont('helvetica', 'normal')
     pdf.doc.setFontSize(9)
     pdf.doc.setTextColor(156, 163, 175)
-    pdf.doc.text(`📍 ${weddingCity}`, MARGIN, pdf.y)
+    pdf.doc.text(weddingCity, MARGIN, pdf.y)
     pdf.y += 5
   }
   pdf.doc.setFont('helvetica', 'normal')
@@ -214,7 +228,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ coup
 
   const isPhotoOnly = packageType === 'photo_only'
   const packageLabel = isPhotoOnly ? 'PHOTO ONLY' : 'PHOTO & VIDEO'
-  const packageEmoji = isPhotoOnly ? '\u{1F4F7}' : '\u{1F4F7}\u{1F3A5}'
 
   // ─── Section A: CONTRACT ──────────────────────────────────────────────────
   if (contracted || packageType) {
@@ -232,17 +245,22 @@ export async function GET(request: Request, { params }: { params: Promise<{ coup
       pdf.doc.setFont('helvetica', 'bold')
       pdf.doc.setFontSize(9)
       pdf.doc.setTextColor(17, 24, 39)
-      const coverageLine = contractStartFmt && contractEndFmt
-        ? `Coverage: ${contractStartFmt} \u2192 ${contractEndFmt} (${contracted} hours)`
-        : `Coverage: ${contracted} hours`
-      pdf.doc.text(coverageLine, MARGIN + 4, pdf.y + 2)
+      if (contractStartFmt) {
+        pdf.doc.text(`Coverage Start: ${contractStartFmt}`, MARGIN + 4, pdf.y + 2)
+        pdf.y += 6
+      }
+      if (contractEndFmt) {
+        pdf.doc.text(`Coverage End: ${contractEndFmt}`, MARGIN + 4, pdf.y + 2)
+        pdf.y += 6
+      }
+      pdf.doc.text(`Total Hours: ${contracted} hours`, MARGIN + 4, pdf.y + 2)
       pdf.y += 6
     }
     if (packageType) {
       pdf.doc.setFont('helvetica', 'bold')
       pdf.doc.setFontSize(9)
       pdf.doc.setTextColor(17, 24, 39)
-      pdf.doc.text(`Package: ${packageEmoji} ${packageLabel}`, MARGIN + 4, pdf.y + 2)
+      pdf.doc.text(`Package: ${packageLabel}`, MARGIN + 4, pdf.y + 2)
       pdf.y += 6
     }
     pdf.gap(4)
@@ -253,22 +271,25 @@ export async function GET(request: Request, { params }: { params: Promise<{ coup
 
   const timelineRow = (label: string, time: string | null, location?: string | null) => {
     if (!time) return
+    const safeLabel = stripEmojis(label)
+    const safeTime = stripEmojis(time)
+    const safeLoc = location ? stripEmojis(location) : null
     pdf.checkPage(10)
     pdf.doc.setFillColor(96, 165, 250)
     pdf.doc.circle(MARGIN + 2, pdf.y + 1, 1.2, 'F')
     pdf.doc.setFont('helvetica', 'bold')
     pdf.doc.setFontSize(9)
     pdf.doc.setTextColor(17, 24, 39)
-    pdf.doc.text(label, MARGIN + 7, pdf.y + 2)
-    const labelW = pdf.doc.getTextWidth(label)
+    pdf.doc.text(safeLabel, MARGIN + 7, pdf.y + 2)
+    const labelW = pdf.doc.getTextWidth(safeLabel)
     pdf.doc.setFont('helvetica', 'normal')
     pdf.doc.setFontSize(9)
     pdf.doc.setTextColor(75, 85, 99)
-    pdf.doc.text(time, MARGIN + 7 + labelW + 3, pdf.y + 2)
-    if (location) {
+    pdf.doc.text(safeTime, MARGIN + 7 + labelW + 3, pdf.y + 2)
+    if (safeLoc) {
       pdf.doc.setFontSize(7.5)
       pdf.doc.setTextColor(156, 163, 175)
-      pdf.doc.text(location, MARGIN + 7, pdf.y + 6.5)
+      pdf.doc.text(safeLoc, MARGIN + 7, pdf.y + 6.5)
       pdf.y += 10
     } else {
       pdf.y += 7
