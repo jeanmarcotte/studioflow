@@ -334,10 +334,12 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
           <FieldGrid>
             <Field label="Contact 1" value={form.emergency_contact_1_name} />
             <Field label="Phone" value={form.emergency_contact_1_phone} />
+            <Field label="Relationship" value={form.contact1_relationship} />
           </FieldGrid>
           <FieldGrid>
             <Field label="Contact 2" value={form.emergency_contact_2_name} />
             <Field label="Phone" value={form.emergency_contact_2_phone} />
+            <Field label="Relationship" value={form.contact2_relationship} />
           </FieldGrid>
         </Section>
 
@@ -351,7 +353,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             startTime={formatTime(form.groom_start_time, 'prep')}
             finishTime={formatTime(form.groom_finish_time, 'prep')}
             directions={form.groom_directions}
-            extras={<Field label="Contact Phone" value={form.groom_phone} />}
+            extras={<><Field label="Contact Phone" value={form.groom_phone} /><Field label="Location Type" value={form.groom_prep_location_type === 'friends_house' ? "Friend's House" : form.groom_prep_location_type ? form.groom_prep_location_type.charAt(0).toUpperCase() + form.groom_prep_location_type.slice(1) : null} /></>}
             mapsQuery={[form.groom_address, form.groom_city]}
           />
         </Section>
@@ -366,7 +368,7 @@ export default async function WeddingDayFormViewPage({ params }: PageProps) {
             startTime={formatTime(form.bride_start_time, 'prep')}
             finishTime={formatTime(form.bride_finish_time, 'prep')}
             directions={form.bride_directions}
-            extras={<Field label="Contact Phone" value={form.bride_phone} />}
+            extras={<><Field label="Contact Phone" value={form.bride_phone} /><Field label="Location Type" value={form.bride_prep_location_type === 'friends_house' ? "Friend's House" : form.bride_prep_location_type ? form.bride_prep_location_type.charAt(0).toUpperCase() + form.bride_prep_location_type.slice(1) : null} /></>}
             mapsQuery={[form.bride_address, form.bride_city]}
           />
         </Section>

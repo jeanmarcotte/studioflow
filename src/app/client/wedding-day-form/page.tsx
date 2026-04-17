@@ -22,8 +22,10 @@ interface FormData {
   // Emergency Contacts
   emergency_contact_1_name: string
   emergency_contact_1_phone: string
+  contact1_relationship: string
   emergency_contact_2_name: string
   emergency_contact_2_phone: string
+  contact2_relationship: string
   // Groom Prep
   groom_start_time: string
   groom_finish_time: string
@@ -32,6 +34,7 @@ interface FormData {
   groom_postal_code: string
   groom_intersection: string
   groom_phone: string
+  groom_prep_location_type: string
   // Bride Prep
   bride_start_time: string
   bride_finish_time: string
@@ -40,6 +43,7 @@ interface FormData {
   bride_postal_code: string
   bride_intersection: string
   bride_phone: string
+  bride_prep_location_type: string
   // Ceremony
   ceremony_location_name: string
   ceremony_first_look: boolean
@@ -138,12 +142,12 @@ interface FormData {
 }
 
 const EMPTY_FORM: FormData = {
-  emergency_contact_1_name: '', emergency_contact_1_phone: '',
-  emergency_contact_2_name: '', emergency_contact_2_phone: '',
+  emergency_contact_1_name: '', emergency_contact_1_phone: '', contact1_relationship: '',
+  emergency_contact_2_name: '', emergency_contact_2_phone: '', contact2_relationship: '',
   groom_start_time: '', groom_finish_time: '', groom_address: '', groom_city: '',
-  groom_postal_code: '', groom_intersection: '', groom_phone: '',
+  groom_postal_code: '', groom_intersection: '', groom_phone: '', groom_prep_location_type: '',
   bride_start_time: '', bride_finish_time: '', bride_address: '', bride_city: '',
-  bride_postal_code: '', bride_intersection: '', bride_phone: '',
+  bride_postal_code: '', bride_intersection: '', bride_phone: '', bride_prep_location_type: '',
   ceremony_location_name: '', ceremony_first_look: false, ceremony_photo_arrival_time: '',
   ceremony_start_time: '', ceremony_finish_time: '', ceremony_address: '', ceremony_city: '',
   ceremony_postal_code: '', ceremony_intersection: '',
@@ -367,6 +371,7 @@ function WeddingDayFormPage() {
   // Data
   const [couple, setCouple] = useState<Couple | null>(null)
   const [form, setForm] = useState<FormData>(EMPTY_FORM)
+  const [contractedHours, setContractedHours] = useState<number | null>(null)
 
   // Auto-prefill when ?couple= param is present
   useEffect(() => {
@@ -448,8 +453,31 @@ function WeddingDayFormPage() {
     setError(null)
     setLoading(true)
     try {
-      const res = await fetch(`/api/client/wedding-day-form?couple_id=${couple.id}`)
+      // Fetch form data and contract hours in parallel
+      const [res, contractRes] = await Promise.all([
+        fetch(`/api/client/wedding-day-form?couple_id=${couple.id}`),
+        supabase.from('contracts').select('start_time, end_time').eq('couple_id', couple.id).limit(1),
+      ])
       const json = await res.json()
+
+      // Calculate contracted hours from contract
+      if (contractRes.data?.[0]?.start_time && contractRes.data?.[0]?.end_time) {
+        const ct = contractRes.data[0]
+        const startParts = ct.start_time.match(/(\d+):?(\d*)/)
+        const endParts = ct.end_time.match(/(\d+):?(\d*)/)
+        if (startParts && endParts) {
+          let sh = parseInt(startParts[1]), sm = parseInt(startParts[2] || '0')
+          let eh = parseInt(endParts[1]), em = parseInt(endParts[2] || '0')
+          // Handle AM/PM text formats like "10am", "11pm"
+          if (ct.start_time.toLowerCase().includes('pm') && sh < 12) sh += 12
+          if (ct.end_time.toLowerCase().includes('pm') && eh < 12) eh += 12
+          if (ct.start_time.toLowerCase().includes('am') && sh === 12) sh = 0
+          if (ct.end_time.toLowerCase().includes('am') && eh === 12) eh = 0
+          if (eh < sh) eh += 12
+          const hours = Math.round(((eh * 60 + em) - (sh * 60 + sm)) / 60 * 10) / 10
+          setContractedHours(hours > 0 ? hours : null)
+        }
+      }
 
       if (json.exists && json.data) {
         // Pre-fill form with existing data
@@ -457,8 +485,10 @@ function WeddingDayFormPage() {
         setForm({
           emergency_contact_1_name: d.emergency_contact_1_name || '',
           emergency_contact_1_phone: d.emergency_contact_1_phone || '',
+          contact1_relationship: d.contact1_relationship || '',
           emergency_contact_2_name: d.emergency_contact_2_name || '',
           emergency_contact_2_phone: d.emergency_contact_2_phone || '',
+          contact2_relationship: d.contact2_relationship || '',
           groom_start_time: d.groom_start_time || '',
           groom_finish_time: d.groom_finish_time || '',
           groom_address: d.groom_address || '',
@@ -466,6 +496,7 @@ function WeddingDayFormPage() {
           groom_postal_code: d.groom_postal_code || '',
           groom_intersection: d.groom_intersection || '',
           groom_phone: d.groom_phone || '',
+          groom_prep_location_type: d.groom_prep_location_type || '',
           bride_start_time: d.bride_start_time || '',
           bride_finish_time: d.bride_finish_time || '',
           bride_address: d.bride_address || '',
@@ -473,6 +504,7 @@ function WeddingDayFormPage() {
           bride_postal_code: d.bride_postal_code || '',
           bride_intersection: d.bride_intersection || '',
           bride_phone: d.bride_phone || '',
+          bride_prep_location_type: d.bride_prep_location_type || '',
           ceremony_location_name: d.ceremony_location_name || '',
           ceremony_first_look: d.ceremony_first_look ?? false,
           ceremony_photo_arrival_time: d.ceremony_photo_arrival_time || '',
@@ -571,6 +603,30 @@ function WeddingDayFormPage() {
 
   async function handleSubmit() {
     if (!couple) return
+    if (!form.contact1_relationship) {
+      setError('Please select the relationship for Emergency Contact 1.')
+      return
+    }
+    if (!form.contact2_relationship) {
+      setError('Please select the relationship for Emergency Contact 2.')
+      return
+    }
+    if (!form.groom_prep_location_type) {
+      setError('Please select the location type for Groom Prep.')
+      return
+    }
+    if (!form.bride_prep_location_type) {
+      setError('Please select the location type for Bride Prep.')
+      return
+    }
+    if (!form.venue_arrival_time) {
+      setError('Please select what time photographers should arrive.')
+      return
+    }
+    if (!form.photo_video_end_time) {
+      setError('Please select what time photographers will finish.')
+      return
+    }
     if (form.has_first_look === null) {
       setError('Please select whether you will have a First Look.')
       return
@@ -771,13 +827,37 @@ function WeddingDayFormPage() {
                 <span>🚨</span> Emergency Contacts
               </h2>
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <TextInput label="Contact 1 Name" value={form.emergency_contact_1_name} onChange={v => updateField('emergency_contact_1_name', v)} placeholder="Full name" />
                   <PhoneInput label="Contact 1 Phone" value={form.emergency_contact_1_phone} onChange={v => updateField('emergency_contact_1_phone', v)} />
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">Relationship <span className="text-red-500">*</span></label>
+                    <select value={form.contact1_relationship} onChange={e => updateField('contact1_relationship', e.target.value)} required>
+                      <option value="">Select...</option>
+                      <option value="Friend">Friend</option>
+                      <option value="Maid of Honor">Maid of Honor</option>
+                      <option value="Best Man">Best Man</option>
+                      <option value="Parent">Parent</option>
+                      <option value="Groomsman">Groomsman</option>
+                      <option value="Bridesmaid">Bridesmaid</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <TextInput label="Contact 2 Name" value={form.emergency_contact_2_name} onChange={v => updateField('emergency_contact_2_name', v)} placeholder="Full name" />
                   <PhoneInput label="Contact 2 Phone" value={form.emergency_contact_2_phone} onChange={v => updateField('emergency_contact_2_phone', v)} />
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">Relationship <span className="text-red-500">*</span></label>
+                    <select value={form.contact2_relationship} onChange={e => updateField('contact2_relationship', e.target.value)} required>
+                      <option value="">Select...</option>
+                      <option value="Friend">Friend</option>
+                      <option value="Maid of Honor">Maid of Honor</option>
+                      <option value="Best Man">Best Man</option>
+                      <option value="Parent">Parent</option>
+                      <option value="Groomsman">Groomsman</option>
+                      <option value="Bridesmaid">Bridesmaid</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -943,12 +1023,38 @@ function WeddingDayFormPage() {
               <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <span>📸</span> Photographer Times
               </h2>
+              {contractedHours && (
+                <p className="text-sm text-muted-foreground mb-4">
+                  <span className="font-semibold text-foreground">Contracted Hours:</span> {contractedHours} hours
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">What time should photographers arrive? <span className="text-red-500">*</span></label>
                   <select
                     value={form.venue_arrival_time}
-                    onChange={e => updateField('venue_arrival_time', e.target.value)}
+                    onChange={e => {
+                      const newStart = e.target.value
+                      updateField('venue_arrival_time', newStart)
+                      // Auto-calculate finish time when start changes
+                      if (newStart && contractedHours) {
+                        const match = newStart.match(/^(\d+):(\d+)\s*(AM|PM)$/i)
+                        if (match) {
+                          let h = parseInt(match[1])
+                          const m = parseInt(match[2])
+                          const period = match[3].toUpperCase()
+                          if (period === 'PM' && h < 12) h += 12
+                          if (period === 'AM' && h === 12) h = 0
+                          const endMin = (h * 60 + m) + (contractedHours * 60)
+                          const endH = Math.floor(endMin / 60) % 24
+                          const endM = endMin % 60
+                          const endPeriod = endH >= 12 ? 'PM' : 'AM'
+                          const endH12 = endH > 12 ? endH - 12 : endH === 0 ? 12 : endH
+                          const endLabel = `${endH12}:${endM.toString().padStart(2, '0')} ${endPeriod}`
+                          updateField('photo_video_end_time', endLabel)
+                        }
+                      }
+                    }}
                     required
                   >
                     <option value="">Select a time</option>
@@ -964,10 +1070,57 @@ function WeddingDayFormPage() {
                   </select>
                 </div>
                 <div>
-                  <TextInput label="What time will photographers finish? *" value={form.photo_video_end_time} onChange={v => updateField('photo_video_end_time', v)} placeholder="e.g. 11:00 PM" />
+                  <label className="block text-sm font-medium text-foreground mb-1">What time will photographers finish? <span className="text-red-500">*</span></label>
+                  <select
+                    value={form.photo_video_end_time}
+                    onChange={e => updateField('photo_video_end_time', e.target.value)}
+                    required
+                  >
+                    <option value="">Select a time</option>
+                    {Array.from({ length: 37 }, (_, i) => {
+                      const totalMin = 12 * 60 + i * 30 // 12:00 PM to 6:00 AM
+                      const h = Math.floor(totalMin / 60) % 24
+                      const m = totalMin % 60
+                      const period = h >= 12 ? 'PM' : 'AM'
+                      const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h
+                      const timeLabel = `${h12}:${m.toString().padStart(2, '0')} ${period}`
+                      return <option key={timeLabel} value={timeLabel}>{timeLabel}</option>
+                    })}
+                  </select>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-3">💡 If you need additional hours, please contact Marianna before the wedding day.</p>
+              {form.venue_arrival_time && form.photo_video_end_time && (
+                <p className="text-sm text-muted-foreground mt-3">
+                  💡 Your coverage: {form.venue_arrival_time} – {form.photo_video_end_time}
+                  {contractedHours ? ` (${contractedHours} hours contracted)` : ''}
+                </p>
+              )}
+              {(() => {
+                if (!form.venue_arrival_time || !form.photo_video_end_time || !contractedHours) return null
+                const parseTime = (t: string) => {
+                  const m = t.match(/^(\d+):(\d+)\s*(AM|PM)$/i)
+                  if (!m) return null
+                  let h = parseInt(m[1])
+                  const min = parseInt(m[2])
+                  if (m[3].toUpperCase() === 'PM' && h < 12) h += 12
+                  if (m[3].toUpperCase() === 'AM' && h === 12) h = 0
+                  return h * 60 + min
+                }
+                const startMin = parseTime(form.venue_arrival_time)
+                let endMin = parseTime(form.photo_video_end_time)
+                if (startMin === null || endMin === null) return null
+                if (endMin <= startMin) endMin += 24 * 60
+                const actualH = (endMin - startMin) / 60
+                const exceeds = actualH - contractedHours
+                if (exceeds <= 0) return null
+                return (
+                  <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                    <p className="text-sm font-semibold text-red-700">
+                      ⚠️ This exceeds your contracted {contractedHours} hours by {Math.round(exceeds * 10) / 10} hours. Additional coverage is charged per hour. Please contact Marianna before the wedding day.
+                    </p>
+                  </div>
+                )
+              })()}
             </div>
 
             {form.has_first_look !== null && (
@@ -981,6 +1134,22 @@ function WeddingDayFormPage() {
                     <TimeRow label="Time" startValue={form.groom_start_time} finishValue={form.groom_finish_time} onStartChange={v => updateField('groom_start_time', v)} onFinishChange={v => updateField('groom_finish_time', v)} />
                     <PhoneInput label="Phone (day-of contact)" value={form.groom_phone} onChange={v => updateField('groom_phone', v)} />
                     <LocationFields form={form} updateField={updateField} prefix="groom" />
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Location Type <span className="text-red-500">*</span></label>
+                      <div className="flex gap-4">
+                        {(['house', 'hotel', 'friends_house'] as const).map(opt => (
+                          <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="groom_prep_location_type" value={opt} checked={form.groom_prep_location_type === opt} onChange={e => updateField('groom_prep_location_type', e.target.value)} className="w-4 h-4 accent-teal-600" />
+                            <span className="text-sm text-foreground">{opt === 'house' ? 'House' : opt === 'hotel' ? 'Hotel' : "Friend's House"}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {form.groom_prep_location_type === 'hotel' && (
+                        <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                          📱 Please text Marianna the hotel room number when you check in.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -993,6 +1162,22 @@ function WeddingDayFormPage() {
                     <TimeRow label="Time" startValue={form.bride_start_time} finishValue={form.bride_finish_time} onStartChange={v => updateField('bride_start_time', v)} onFinishChange={v => updateField('bride_finish_time', v)} />
                     <PhoneInput label="Phone (day-of contact)" value={form.bride_phone} onChange={v => updateField('bride_phone', v)} />
                     <LocationFields form={form} updateField={updateField} prefix="bride" />
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Location Type <span className="text-red-500">*</span></label>
+                      <div className="flex gap-4">
+                        {(['house', 'hotel', 'friends_house'] as const).map(opt => (
+                          <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="bride_prep_location_type" value={opt} checked={form.bride_prep_location_type === opt} onChange={e => updateField('bride_prep_location_type', e.target.value)} className="w-4 h-4 accent-teal-600" />
+                            <span className="text-sm text-foreground">{opt === 'house' ? 'House' : opt === 'hotel' ? 'Hotel' : "Friend's House"}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {form.bride_prep_location_type === 'hotel' && (
+                        <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                          📱 Please text Marianna the hotel room number when you check in.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -1209,22 +1394,6 @@ function WeddingDayFormPage() {
                         </div>
                       </>
                     )}
-                  </div>
-                </div>
-
-                {/* ── Contract Details ─────────────────────────────────── */}
-                <div className="bg-card rounded-xl border p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <span>📋</span> Contract Details
-                  </h2>
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <TextInput label="Ceremony Begins At" value={form.ceremony_begins_at} onChange={v => updateField('ceremony_begins_at', v)} placeholder="e.g. 3:00 PM" />
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">Hours in Contract</label>
-                        <input type="number" value={form.hours_in_contract} onChange={e => updateField('hours_in_contract', e.target.value)} placeholder="e.g. 10" />
-                      </div>
-                    </div>
                   </div>
                 </div>
 

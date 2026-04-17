@@ -345,8 +345,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ coup
 
   // ─── Emergency Contacts ─────────────────────────────────────────────────────
   pdf.header('Emergency Contacts')
-  pdf.fieldRow([['Contact 1', form.emergency_contact_1_name], ['Phone', form.emergency_contact_1_phone]])
-  pdf.fieldRow([['Contact 2', form.emergency_contact_2_name], ['Phone', form.emergency_contact_2_phone]])
+  pdf.fieldRow([['Contact 1', form.emergency_contact_1_name], ['Phone', form.emergency_contact_1_phone], ['Relationship', form.contact1_relationship]])
+  pdf.fieldRow([['Contact 2', form.emergency_contact_2_name], ['Phone', form.emergency_contact_2_phone], ['Relationship', form.contact2_relationship]])
 
   // ─── Groom Prep ─────────────────────────────────────────────────────────────
   pdf.header('Groom Prep')

@@ -97,14 +97,14 @@ export default function WeddingDayFormPrintPage() {
           </div>
 
           {/* ── TIMELINE OVERVIEW ── */}
-          {(form.ceremony_begins_at || form.photo_video_end_time || form.venue_arrival_time) && (
+          {(form.groom_start_time || form.bride_start_time || form.venue_arrival_time) && (
             <div className="mb-8">
               <SectionTitle>Timeline Overview</SectionTitle>
               <div className="grid grid-cols-4 gap-3 mt-3">
-                <TimeBox label="Venue Arrival" time={form.venue_arrival_time} />
-                <TimeBox label="Ceremony" time={form.ceremony_begins_at} />
-                <TimeBox label="Photo/Video End" time={form.photo_video_end_time} />
-                <TimeBox label="Contract Hours" time={form.hours_in_contract ? `${form.hours_in_contract}h` : null} />
+                <TimeBox label="Groom Prep" time={form.groom_start_time && form.groom_finish_time ? `${form.groom_start_time} - ${form.groom_finish_time}` : form.groom_start_time} />
+                <TimeBox label="Bride Prep" time={form.bride_start_time && form.bride_finish_time ? `${form.bride_start_time} - ${form.bride_finish_time}` : form.bride_start_time} />
+                <TimeBox label={form.has_first_look ? 'First Look' : 'Ceremony Arrival'} time={form.has_first_look ? form.first_look_time : (form.ceremony_photo_arrival_time || form.ceremony_start_time)} />
+                <TimeBox label="Coverage End" time={form.photo_video_end_time} />
               </div>
             </div>
           )}
@@ -119,7 +119,7 @@ export default function WeddingDayFormPrintPage() {
               <div className="grid grid-cols-2 gap-6">
                 {form.emergency_contact_1_name && (
                   <div>
-                    <p className="text-sm text-slate-600 mb-1">{form.emergency_contact_1_name}</p>
+                    <p className="text-sm text-slate-600 mb-1">{form.emergency_contact_1_name}{form.contact1_relationship ? ` (${form.contact1_relationship})` : ''}</p>
                     <a href={`tel:${form.emergency_contact_1_phone}`} className="text-xl font-bold text-slate-900 tracking-wide">
                       {form.emergency_contact_1_phone}
                     </a>
@@ -127,7 +127,7 @@ export default function WeddingDayFormPrintPage() {
                 )}
                 {form.emergency_contact_2_name && (
                   <div>
-                    <p className="text-sm text-slate-600 mb-1">{form.emergency_contact_2_name}</p>
+                    <p className="text-sm text-slate-600 mb-1">{form.emergency_contact_2_name}{form.contact2_relationship ? ` (${form.contact2_relationship})` : ''}</p>
                     <a href={`tel:${form.emergency_contact_2_phone}`} className="text-xl font-bold text-slate-900 tracking-wide">
                       {form.emergency_contact_2_phone}
                     </a>
@@ -474,12 +474,12 @@ function MobileView({ form, couple, contract, venueName, weddingDate }: {
 
       <div className="px-4 py-4 space-y-4">
         {/* Timeline */}
-        {(form.ceremony_begins_at || form.photo_video_end_time) && (
+        {(form.venue_arrival_time || form.photo_video_end_time || form.groom_start_time) && (
           <MobileCard title="Timeline">
             <div className="grid grid-cols-3 gap-2">
-              <TimeBox label="Ceremony" time={form.ceremony_begins_at} />
-              <TimeBox label="End" time={form.photo_video_end_time} />
-              <TimeBox label="Hours" time={form.hours_in_contract ? `${form.hours_in_contract}h` : null} />
+              <TimeBox label="Groom Prep" time={form.groom_start_time} />
+              <TimeBox label="Bride Prep" time={form.bride_start_time} />
+              <TimeBox label="Coverage End" time={form.photo_video_end_time} />
             </div>
           </MobileCard>
         )}
