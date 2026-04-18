@@ -255,8 +255,8 @@ export default function CoupleDetailPage() {
   ].filter(Boolean).join(', ') || 'Not specified'
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {/* 1. Header */}
+    <div className="p-6 space-y-6">
+      {/* Q03 — Header */}
       <CoupleHeader
         coupleName={coupleName}
         packageType={packageType}
@@ -268,7 +268,7 @@ export default function CoupleDetailPage() {
         bookedDate={bookedDate}
       />
 
-      {/* 2. Info Grid — 3 columns */}
+      {/* Q03b — Info Grid */}
       <div className="grid grid-cols-3 gap-6 border rounded-lg p-6">
         <InfoGrid
           title="Couple"
@@ -297,7 +297,55 @@ export default function CoupleDetailPage() {
         />
       </div>
 
-      {/* 3. Contract Package (C1) */}
+      {/* Q04 — Team + Notes (2 col) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TeamCard assignment={assignment} />
+        <NotesCard
+          coupleNotes={couple.notes || null}
+          weddingDayNotes={weddingDayForm ? {
+            additional: weddingDayForm.additional_notes,
+            final: weddingDayForm.final_notes
+          } : null}
+        />
+      </div>
+
+      {/* Q05 — Client Journey */}
+      <ClientJourney
+        phases={journeyPhases}
+        totalMilestones={totalMilestones}
+        completedMilestones={completedMilestones}
+      />
+
+      {/* Q06 — Forms + Itinerary (2 col) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DocumentsCard
+          coupleId={coupleId}
+          formsStatus={{
+            weddingDayForm: {
+              submitted: !!weddingDayForm,
+              formId: weddingDayForm?.id
+            },
+            videoOrderForm: {
+              submitted: !!videoOrder?.submitted_at,
+              formId: videoOrder?.id
+            }
+          }}
+        />
+        <WeddingDayItinerary formData={weddingDayForm} />
+      </div>
+
+      {/* Q07 — Finance */}
+      <FinanceCard
+        lines={financeLines}
+        totalInvoiced={totalInvoiced}
+        totalReceived={totalReceived}
+        balanceDue={balanceDue}
+        coupleId={coupleId}
+        payments={payments}
+        installments={allInstallments}
+      />
+
+      {/* Q08 — C1 Contract Package */}
       {contract && (
         <ContractPackageCard
           signedDate={signedDate}
@@ -332,7 +380,7 @@ export default function CoupleDetailPage() {
         />
       )}
 
-      {/* 4. Frames & Albums (C2) */}
+      {/* Q09 — C2 Frames & Albums */}
       {extrasOrder && (
         <FramesAlbumsCard
           items={extrasItems}
@@ -345,58 +393,10 @@ export default function CoupleDetailPage() {
         />
       )}
 
-      {/* 5. Extras (C3) */}
+      {/* Q10 — C3 Extras */}
       {clientExtras && clientExtras.length > 0 && (
         <ExtrasCard extras={clientExtras} />
       )}
-
-      {/* 6. Two-column grid: Team/Notes left, Finance/Docs right */}
-      <div className="grid grid-cols-2 gap-6">
-        <div className="space-y-6">
-          <TeamCard assignment={assignment} />
-          <NotesCard
-            coupleNotes={couple.notes || null}
-            weddingDayNotes={weddingDayForm ? {
-              additional: weddingDayForm.additional_notes,
-              final: weddingDayForm.final_notes
-            } : null}
-          />
-        </div>
-        <div className="space-y-6">
-          <FinanceCard
-            lines={financeLines}
-            totalInvoiced={totalInvoiced}
-            totalReceived={totalReceived}
-            balanceDue={balanceDue}
-            coupleId={coupleId}
-            payments={payments}
-            installments={allInstallments}
-          />
-          <DocumentsCard
-            coupleId={coupleId}
-            formsStatus={{
-              weddingDayForm: {
-                submitted: !!weddingDayForm,
-                formId: weddingDayForm?.id
-              },
-              videoOrderForm: {
-                submitted: !!videoOrder?.submitted_at,
-                formId: videoOrder?.id
-              }
-            }}
-          />
-        </div>
-      </div>
-
-      {/* 7. Wedding Day Itinerary */}
-      <WeddingDayItinerary formData={weddingDayForm} />
-
-      {/* 8. Client Journey — DO NOT MODIFY */}
-      <ClientJourney
-        phases={journeyPhases}
-        totalMilestones={totalMilestones}
-        completedMilestones={completedMilestones}
-      />
     </div>
   )
 }
