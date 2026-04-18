@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { ExternalLink } from 'lucide-react'
+import Link from 'next/link'
 
 interface FinanceLine {
   label: string
@@ -42,6 +43,8 @@ interface FinanceCardProps {
   contractInstallments: Installment[]
   extrasInstallments: Installment[]
   hasExtrasOrder: boolean
+  contractId?: string | null
+  hasClientExtras?: boolean
 }
 
 export function FinanceCard({
@@ -53,7 +56,9 @@ export function FinanceCard({
   payments,
   contractInstallments,
   extrasInstallments,
-  hasExtrasOrder
+  hasExtrasOrder,
+  contractId,
+  hasClientExtras
 }: FinanceCardProps) {
   const [paymentsOpen, setPaymentsOpen] = useState(false)
   const [contractInstallmentsOpen, setContractInstallmentsOpen] = useState(false)
@@ -74,16 +79,30 @@ export function FinanceCard({
         </div>
 
         {/* Lines */}
-        {lines.map((line) => (
+        {lines.map((line) => {
+          const linkHref =
+            line.label === 'C1 Contract' && contractId ? `/admin/contracts/${contractId}/view` :
+            line.label === 'C2 Frames & Albums' && hasExtrasOrder ? `/admin/albums/${coupleId}/view` :
+            line.label === 'C3 Extras' && hasClientExtras ? `/admin/extras/${coupleId}/view` :
+            null
+
+          return (
           <div key={line.label} className="grid grid-cols-4 py-3 text-sm border-b">
-            <div className="text-gray-900">{line.label}</div>
+            <div>
+              {linkHref ? (
+                <Link href={linkHref} className="text-blue-600 hover:underline">{line.label}</Link>
+              ) : (
+                <span className="text-gray-900">{line.label}</span>
+              )}
+            </div>
             <div className="text-right text-gray-900">${line.invoiced.toLocaleString()}</div>
             <div className="text-right text-gray-900">${line.received.toLocaleString()}</div>
             <div className={`text-right font-medium ${line.balance > 0 ? 'text-red-600' : line.balance < 0 ? 'text-teal-600' : 'text-gray-500'}`}>
               {line.balance < 0 ? `-$${Math.abs(line.balance).toLocaleString()}` : `$${line.balance.toLocaleString()}`}
             </div>
           </div>
-        ))}
+          )
+        })}
 
         {/* Totals */}
         <div className="pt-4 space-y-2">

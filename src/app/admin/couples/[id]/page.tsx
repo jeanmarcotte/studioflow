@@ -374,6 +374,8 @@ export default function CoupleDetailPage() {
         contractInstallments={contractInstallments}
         extrasInstallments={extrasInstallments}
         hasExtrasOrder={!!extrasOrder}
+        contractId={contract?.id || null}
+        hasClientExtras={clientExtras.length > 0}
       />
 
       {/* 7. C1 Contract Package */}
