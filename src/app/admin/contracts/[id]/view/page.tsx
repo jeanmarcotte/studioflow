@@ -8,7 +8,9 @@ import { format, parseISO } from 'date-fns'
 import Image from 'next/image'
 
 function check(value: boolean | null | undefined): string {
-  return value ? '✓' : 'n/a'
+  if (value === true) return '✓'
+  if (value === false) return ''
+  return 'n/a'
 }
 
 function formatWeddingDate(dateStr: string, dayOfWeek?: string): string {
@@ -111,6 +113,25 @@ export default function ContractViewPage() {
   const signedDateStr = contract.signed_date ? format(parseISO(contract.signed_date), 'MMMM do, yyyy') : 'n/a'
   const coupleSummary = `${couple?.bride_first_name || ''} & ${couple?.groom_first_name || ''} — ${contract.day_of_week?.substring(0, 3)?.toUpperCase() || ''} ${weddingDate ? format(parseISO(weddingDate), 'MMMM do, yyyy') : ''}`
 
+  const hasVideo =
+    contract.video_hd ||
+    contract.video_sd ||
+    contract.video_baby_pictures ||
+    contract.video_dating_pictures ||
+    contract.video_music ||
+    contract.video_end_credits ||
+    contract.video_gopro ||
+    contract.video_drone ||
+    contract.video_led_lights ||
+    contract.video_proof ||
+    contract.video_usb ||
+    contract.video_single_camera ||
+    contract.video_multi_camera ||
+    contract.video_slideshow ||
+    contract.video_long_form ||
+    contract.video_instagram_facebook ||
+    (contract.video_highlights && contract.video_highlights > 0)
+
   return (
     <div className="min-h-screen bg-gray-100">
       <style jsx global>{`
@@ -160,11 +181,13 @@ export default function ContractViewPage() {
         }
         @media print {
           .no-print { display: none !important; }
-          @page { size: letter; margin: 0.5in; }
-          .page-break { page-break-after: always; }
-          body { background: white !important; }
-          .print-logo { max-height: 60px !important; width: auto !important; }
+          @page { size: letter; margin: 0.4in; }
+          body { background: white !important; line-height: 1.3 !important; }
+          .print-logo { max-height: 80px !important; width: auto !important; height: auto !important; object-fit: contain; }
           .print-hide-header { display: none !important; }
+          .print-section { margin-bottom: 0.5rem !important; }
+          .print-intro { margin: 0.75rem 0 !important; padding-bottom: 0.25rem !important; }
+          .contract-form { line-height: 1.3 !important; }
         }
       `}</style>
 
@@ -183,7 +206,7 @@ export default function ContractViewPage() {
         </div>
         <div className="divider" />
 
-        <div className="text-center my-6 pb-4 border-b border-black">
+        <div className="text-center my-6 pb-4 border-b border-black print-intro">
           This constitutes a contract for Wedding photography and videography by the undersigned parties.
         </div>
 
@@ -242,7 +265,7 @@ export default function ContractViewPage() {
           </p>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-4 print-section print:break-inside-avoid">
           <p className="font-bold">Albums:</p>
           <p>
             Parents Size: <span className="field-sm">{display(contract.parent_albums_size)}</span>{' '}
@@ -260,35 +283,37 @@ export default function ContractViewPage() {
           <p className="text-xs">*Omakase style if album purchased &amp; $500 print credit</p>
         </div>
 
-        <div className="mt-4">
-          <p className="font-bold">Video Included</p>
-          <p>
-            Baby Pictures <span className="field-sm">{check(contract.video_baby_pictures)}</span>{' '}
-            Dating Pictures <span className="field-sm">{check(contract.video_dating_pictures)}</span>{' '}
-            Music choice <span className="field-sm">{check(contract.video_music)}</span>{' '}
-            End Credits <span className="field-sm">{check(contract.video_end_credits)}</span>
-          </p>
-          <p>
-            HD Video <span className="field-sm">{check(contract.video_hd)}</span>{' '}
-            GoPro <span className="field-sm">{check(contract.video_gopro)}</span>{' '}
-            Drone <span className="field-sm">{check(contract.video_drone)}</span>{' '}
-            LED Lighting <span className="field-sm">{check(contract.video_led_lights)}</span>{' '}
-            Proof Video <span className="field-sm">{check(contract.video_proof)}</span>{' '}
-            USB Drive <span className="field-sm">{check(contract.video_usb)}</span>
-          </p>
-          <p>
-            Single Camera throughout <span className="field-sm">{check(contract.video_single_camera)}</span>{' '}
-            Multi-Camera (Ceremony &amp; Reception) <span className="field-sm">{check(contract.video_multi_camera)}</span>{' '}
-            Slideshow see site for details <span className="field-sm">{check(contract.video_slideshow)}</span>
-          </p>
-          <p>
-            Long version up to 2 hrs <span className="field-sm">{check(contract.video_long_form)}</span>{' '}
-            Instagram/Facebook Video <span className="field-sm">{check(contract.video_instagram_facebook)}</span>{' '}
-            highlight clips: <span className="field-sm">{display(contract.video_highlights)}</span>
-          </p>
-        </div>
+        {hasVideo && (
+          <div className="mt-4 print-section print:break-inside-avoid">
+            <p className="font-bold">Video Included</p>
+            <p>
+              Baby Pictures <span className="field-sm">{check(contract.video_baby_pictures)}</span>{' '}
+              Dating Pictures <span className="field-sm">{check(contract.video_dating_pictures)}</span>{' '}
+              Music choice <span className="field-sm">{check(contract.video_music)}</span>{' '}
+              End Credits <span className="field-sm">{check(contract.video_end_credits)}</span>
+            </p>
+            <p>
+              HD Video <span className="field-sm">{check(contract.video_hd)}</span>{' '}
+              GoPro <span className="field-sm">{check(contract.video_gopro)}</span>{' '}
+              Drone <span className="field-sm">{check(contract.video_drone)}</span>{' '}
+              LED Lighting <span className="field-sm">{check(contract.video_led_lights)}</span>{' '}
+              Proof Video <span className="field-sm">{check(contract.video_proof)}</span>{' '}
+              USB Drive <span className="field-sm">{check(contract.video_usb)}</span>
+            </p>
+            <p>
+              Single Camera throughout <span className="field-sm">{check(contract.video_single_camera)}</span>{' '}
+              Multi-Camera (Ceremony &amp; Reception) <span className="field-sm">{check(contract.video_multi_camera)}</span>{' '}
+              Slideshow see site for details <span className="field-sm">{check(contract.video_slideshow)}</span>
+            </p>
+            <p>
+              Long version up to 2 hrs <span className="field-sm">{check(contract.video_long_form)}</span>{' '}
+              Instagram/Facebook Video <span className="field-sm">{check(contract.video_instagram_facebook)}</span>{' '}
+              highlight clips: <span className="field-sm">{display(contract.video_highlights)}</span>
+            </p>
+          </div>
+        )}
 
-        <div className="mt-4">
+        <div className="mt-4 print-section print:break-inside-avoid">
           <p className="font-bold">Web:</p>
           <p>
             Personal Web Page <span className="field-sm">{check(contract.web_personal_page)}</span>{' '}
@@ -300,8 +325,7 @@ export default function ContractViewPage() {
       </div>
 
       {/* ==================== PAGE 2 ==================== */}
-      <div className="page-break" />
-      <div className="max-w-[8.5in] mx-auto bg-white shadow-md print:shadow-none p-10 mb-8 contract-form print:break-before-page">
+      <div className="max-w-[8.5in] mx-auto bg-white shadow-md print:shadow-none p-10 mb-8 contract-form">
         {/* Header — visible on screen, hidden in print to save space */}
         <div className="print-hide-header flex justify-between items-start mb-2">
           <div>
@@ -317,7 +341,7 @@ export default function ContractViewPage() {
           Signed Date: <span className="field-med">{signedDateStr}</span>
         </p>
 
-        <div className="mt-6">
+        <div className="mt-6 print-section print:break-inside-avoid">
           <p className="font-bold mb-2">Installment Schedule:</p>
           {installments.length > 0 ? (
             installments.map((inst, idx) => (
@@ -361,7 +385,7 @@ export default function ContractViewPage() {
           </p>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 print-section print:break-inside-avoid">
           <p className="font-bold mb-2">Approximate Timeline</p>
           <p>Groom: <span className="field-sm">{display(contract.groom_start_time)}</span> to <span className="field-sm">{display(contract.groom_end_time)}</span></p>
           <p>Bride: <span className="field-sm">{display(contract.bride_start_time)}</span> to <span className="field-sm">{display(contract.bride_end_time)}</span></p>
