@@ -37,15 +37,40 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // No session and not on a public route → redirect to /login
+  const pathname = request.nextUrl.pathname
+
+  // Portal routes: allow login and auth callback through, protect everything else
+  if (pathname.startsWith('/portal')) {
+    if (
+      pathname.startsWith('/portal/login') ||
+      pathname.startsWith('/portal/auth')
+    ) {
+      return supabaseResponse
+    }
+
+    // Protected portal routes — redirect to portal login if no session
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/portal/login'
+      const redirectResponse = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value)
+      })
+      return redirectResponse
+    }
+
+    return supabaseResponse
+  }
+
+  // Admin routes: no session and not on a public route → redirect to /login
   if (
     !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    !request.nextUrl.pathname.startsWith('/api') &&
-    !request.nextUrl.pathname.startsWith('/client') &&
-    !request.nextUrl.pathname.startsWith('/ballot') &&
-    !request.nextUrl.pathname.startsWith('/scanner')
+    !pathname.startsWith('/login') &&
+    !pathname.startsWith('/auth') &&
+    !pathname.startsWith('/api') &&
+    !pathname.startsWith('/client') &&
+    !pathname.startsWith('/ballot') &&
+    !pathname.startsWith('/scanner')
   ) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
