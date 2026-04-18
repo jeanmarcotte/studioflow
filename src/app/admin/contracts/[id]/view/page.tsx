@@ -103,11 +103,13 @@ export default function ContractViewPage() {
     )
   }
 
-  const brideName = [contract.bride_first_name, contract.bride_last_name].filter(Boolean).join(' ')
-  const groomName = [contract.groom_first_name, contract.groom_last_name].filter(Boolean).join(' ')
-  const weddingDateStr = contract.wedding_date ? formatWeddingDate(contract.wedding_date, contract.day_of_week) : 'n/a'
+  // Name fields from couples table (source of truth), NOT contracts
+  const brideName = [couple?.bride_first_name, couple?.bride_last_name].filter(Boolean).join(' ')
+  const groomName = [couple?.groom_first_name, couple?.groom_last_name].filter(Boolean).join(' ')
+  const weddingDate = couple?.wedding_date || contract.wedding_date
+  const weddingDateStr = weddingDate ? formatWeddingDate(weddingDate, contract.day_of_week) : 'n/a'
   const signedDateStr = contract.signed_date ? format(parseISO(contract.signed_date), 'MMMM do, yyyy') : 'n/a'
-  const coupleSummary = `${contract.bride_first_name || ''} & ${contract.groom_first_name || ''} ${contract.day_of_week?.substring(0, 3)?.toUpperCase() || ''} ${contract.wedding_date ? format(parseISO(contract.wedding_date), 'MMMM do, yyyy') : ''}`
+  const coupleSummary = `${couple?.bride_first_name || ''} & ${couple?.groom_first_name || ''} — ${contract.day_of_week?.substring(0, 3)?.toUpperCase() || ''} ${weddingDate ? format(parseISO(weddingDate), 'MMMM do, yyyy') : ''}`
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -158,9 +160,11 @@ export default function ContractViewPage() {
         }
         @media print {
           .no-print { display: none !important; }
-          @page { size: letter; margin: 0.75in; }
+          @page { size: letter; margin: 0.5in; }
           .page-break { page-break-after: always; }
           body { background: white !important; }
+          .print-logo { max-height: 60px !important; width: auto !important; }
+          .print-hide-header { display: none !important; }
         }
       `}</style>
 
@@ -168,7 +172,7 @@ export default function ContractViewPage() {
       <div className="max-w-[8.5in] mx-auto bg-white shadow-md print:shadow-none p-10 mb-8 contract-form">
         {/* Header */}
         <div className="relative mb-2">
-          <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} />
+          <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} className="print-logo" />
           <button
             type="button"
             onClick={() => window.print()}
@@ -297,18 +301,19 @@ export default function ContractViewPage() {
 
       {/* ==================== PAGE 2 ==================== */}
       <div className="page-break" />
-      <div className="max-w-[8.5in] mx-auto bg-white shadow-md print:shadow-none p-10 mb-8 contract-form">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-2">
+      <div className="max-w-[8.5in] mx-auto bg-white shadow-md print:shadow-none p-10 mb-8 contract-form print:break-before-page">
+        {/* Header — visible on screen, hidden in print to save space */}
+        <div className="print-hide-header flex justify-between items-start mb-2">
           <div>
             <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} />
           </div>
-          <div className="text-right text-sm">Page | 2</div>
         </div>
-        <div className="divider" />
+        <div className="print-hide-header divider" />
 
         <p className="mt-4">
-          Name &amp; Wedding Date: <span className="field-wide">{coupleSummary}</span>{' '}
+          Name &amp; Wedding Date: <span className="field-wide">{coupleSummary}</span>
+        </p>
+        <p className="mt-2">
           Signed Date: <span className="field-med">{signedDateStr}</span>
         </p>
 
