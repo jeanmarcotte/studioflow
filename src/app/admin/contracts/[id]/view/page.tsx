@@ -184,9 +184,9 @@ export default function ContractViewPage() {
         </div>
         <div className="divider" />
 
-        <p className="mt-4 mb-4">
+        <div className="text-center my-6 pb-4 border-b border-black">
           This constitutes a contract for Wedding photography and videography by the undersigned parties.
-        </p>
+        </div>
 
         <p>Wedding Date: <span className="field-wide">{weddingDateStr}</span></p>
 
@@ -314,7 +314,7 @@ export default function ContractViewPage() {
 
         <p className="mt-4">
           Name &amp; Wedding Date: <span className="field-wide">{coupleSummary}</span>{' '}
-          Today&apos;s Date: <span className="field-med">{signedDateStr}</span>
+          Signed Date: <span className="field-med">{signedDateStr}</span>
         </p>
 
         <div className="mt-6">
