@@ -16,6 +16,7 @@ import { ClientJourney } from '@/components/couples/ClientJourney'
 import { ContractPackageCard } from '@/components/couples/ContractPackageCard'
 import { FramesAlbumsCard } from '@/components/couples/FramesAlbumsCard'
 import { ExtrasCard } from '@/components/couples/ExtrasCard'
+import { PickupSlipCard } from '@/components/couples/PickupSlipCard'
 import { FinanceCard } from '@/components/couples/FinanceCard'
 import { CoupleResourcesCard } from '@/components/couples/CoupleResourcesCard'
 import { WeddingDayItinerary } from '@/components/couples/WeddingDayItinerary'
@@ -430,6 +431,9 @@ export default function CoupleDetailPage() {
       {clientExtras && clientExtras.length > 0 && (
         <ExtrasCard extras={clientExtras} />
       )}
+
+      {/* Pickup Slip - at the very bottom */}
+      <PickupSlipCard coupleId={couple.id} coupleName={couple.couple_name} />
     </div>
   )
 }
