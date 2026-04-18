@@ -415,10 +415,21 @@ export default function CouplesPage() {
               <Calendar className="h-4 w-4 text-blue-500" />
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Weddings by Year</h3>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
+              <div
+                onClick={() => setYearFilter('all')}
+                className={`flex items-center justify-between text-sm px-2 py-1 rounded cursor-pointer transition-colors ${yearFilter === 'all' ? 'bg-blue-50 text-blue-700 font-semibold' : 'hover:bg-gray-100 text-muted-foreground'}`}
+              >
+                <span>All</span>
+                <span className="font-semibold">{couples.length}</span>
+              </div>
               {YEARS.map(yr => (
-                <div key={yr} className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{yr}</span>
+                <div
+                  key={yr}
+                  onClick={() => setYearFilter(yearFilter === yr ? 'all' : yr)}
+                  className={`flex items-center justify-between text-sm px-2 py-1 rounded cursor-pointer transition-colors ${yearFilter === yr ? 'bg-blue-50 text-blue-700 font-semibold' : 'hover:bg-gray-100 text-muted-foreground'}`}
+                >
+                  <span>{yr}</span>
                   <span className="font-semibold">{stats.byYear[yr] || 0}</span>
                 </div>
               ))}
