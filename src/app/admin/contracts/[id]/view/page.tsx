@@ -8,14 +8,8 @@ import { Button } from '@/components/ui/button'
 import { format, parseISO } from 'date-fns'
 import Image from 'next/image'
 
-function field(value: string | number | null | undefined, width?: string): string {
-  const v = value != null && value !== '' ? String(value) : ''
-  const pad = width || '200px'
-  return v
-}
-
 function check(value: boolean | null | undefined): string {
-  return value ? '_✓_' : '___'
+  return value ? '✓' : 'n/a'
 }
 
 function formatWeddingDate(dateStr: string, dayOfWeek?: string): string {
@@ -25,8 +19,13 @@ function formatWeddingDate(dateStr: string, dayOfWeek?: string): string {
 }
 
 function printQty(qty: number | null | undefined): string {
-  if (!qty || qty === 0) return '___'
-  return `_${qty}_`
+  if (qty === null || qty === undefined || qty === 0) return 'n/a'
+  return String(qty)
+}
+
+function display(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return 'n/a'
+  return String(value)
 }
 
 export default function ContractViewPage() {
@@ -107,8 +106,8 @@ export default function ContractViewPage() {
 
   const brideName = [contract.bride_first_name, contract.bride_last_name].filter(Boolean).join(' ')
   const groomName = [contract.groom_first_name, contract.groom_last_name].filter(Boolean).join(' ')
-  const weddingDateStr = contract.wedding_date ? formatWeddingDate(contract.wedding_date, contract.day_of_week) : '___'
-  const signedDateStr = contract.signed_date ? format(parseISO(contract.signed_date), 'MMMM do, yyyy') : '___'
+  const weddingDateStr = contract.wedding_date ? formatWeddingDate(contract.wedding_date, contract.day_of_week) : 'n/a'
+  const signedDateStr = contract.signed_date ? format(parseISO(contract.signed_date), 'MMMM do, yyyy') : 'n/a'
   const coupleSummary = `${contract.bride_first_name || ''} & ${contract.groom_first_name || ''} ${contract.day_of_week?.substring(0, 3)?.toUpperCase() || ''} ${contract.wedding_date ? format(parseISO(contract.wedding_date), 'MMMM do, yyyy') : ''}`
 
   return (
@@ -179,8 +178,7 @@ export default function ContractViewPage() {
         {/* Header */}
         <div className="flex justify-between items-start mb-2">
           <div>
-            <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} className="mb-1" />
-            <div className="contract-header">SIGS Photography Ltd.</div>
+            <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} />
           </div>
           <div className="text-right text-sm">Page | 1</div>
         </div>
@@ -194,16 +192,10 @@ export default function ContractViewPage() {
 
         <div className="mt-4">
           <p>Bride&apos;s Name: <span className="field-wide">{brideName}</span></p>
-          <p>Address: <span className="field-full">{contract.bride_address || ''}</span></p>
-          <p>Email: <span className="field-wide">{contract.email || couple?.email || ''}</span></p>
-          <p>Cell: <span className="field-med">{contract.phone || couple?.phone || ''}</span></p>
         </div>
 
         <div className="mt-4">
           <p>Groom&apos;s Name: <span className="field-wide">{groomName}</span></p>
-          <p>Address: <span className="field-full">{contract.groom_address || ''}</span></p>
-          <p>Email: <span className="field-wide">{contract.groom_email || ''}</span></p>
-          <p>Cell: <span className="field-med">{contract.groom_phone || ''}</span></p>
         </div>
 
         <div className="mt-4">
@@ -229,7 +221,7 @@ export default function ContractViewPage() {
         </div>
 
         <div className="mt-4">
-          <p>Wedding Prints: Hours: <span className="field-sm">{contract.start_time || '___'}</span> to <span className="field-sm">{contract.end_time || '___'}</span></p>
+          <p>Wedding Prints: Hours: <span className="field-sm">{display(contract.start_time)}</span> to <span className="field-sm">{display(contract.end_time)}</span></p>
           <p className="text-xs">*All weddings on USB/Dropbox, ready to print. 300 DPI 4x6, no watermarks</p>
         </div>
 
@@ -254,17 +246,17 @@ export default function ContractViewPage() {
         <div className="mt-4">
           <p className="font-bold">Albums:</p>
           <p>
-            Parents Size: <span className="field-sm">{contract.parent_albums_size || '___'}</span>{' '}
-            quantity <span className="field-sm">{contract.parent_albums_qty || '___'}</span>{' '}
-            # of Spreads <span className="field-sm">{contract.parent_albums_spreads || '___'}</span>{' '}
-            # of images <span className="field-sm">{contract.parent_albums_images || '___'}</span>{' '}
-            Cover: <span className="field-sm">{contract.parent_albums_cover || '___'}</span>
+            Parents Size: <span className="field-sm">{display(contract.parent_albums_size)}</span>{' '}
+            quantity <span className="field-sm">{display(contract.parent_albums_qty)}</span>{' '}
+            # of Spreads <span className="field-sm">{display(contract.parent_albums_spreads)}</span>{' '}
+            # of images <span className="field-sm">{display(contract.parent_albums_images)}</span>{' '}
+            Cover: <span className="field-sm">{display(contract.parent_albums_cover)}</span>
           </p>
           <p>
-            Bride &amp; Groom ({contract.bride_groom_album_qty || 0}) Size: <span className="field-sm">{contract.bride_groom_album_size || 'n/a'}</span>{' '}
-            # of Spreads <span className="field-sm">{contract.bride_groom_album_spreads || 'n/a'}</span>{' '}
-            # of images <span className="field-sm">{contract.bride_groom_album_images || 'n/a'}</span>{' '}
-            Cover: <span className="field-sm">{contract.bride_groom_album_cover || 'n/a'}</span>
+            Bride &amp; Groom ({contract.bride_groom_album_qty ?? 0}) Size: <span className="field-sm">{display(contract.bride_groom_album_size)}</span>{' '}
+            # of Spreads <span className="field-sm">{display(contract.bride_groom_album_spreads)}</span>{' '}
+            # of images <span className="field-sm">{display(contract.bride_groom_album_images)}</span>{' '}
+            Cover: <span className="field-sm">{display(contract.bride_groom_album_cover)}</span>
           </p>
           <p className="text-xs">*Omakase style if album purchased &amp; $500 print credit</p>
         </div>
@@ -293,8 +285,7 @@ export default function ContractViewPage() {
           <p>
             Long version up to 2 hrs <span className="field-sm">{check(contract.video_long_form)}</span>{' '}
             Instagram/Facebook Video <span className="field-sm">{check(contract.video_instagram_facebook)}</span>{' '}
-            {contract.video_highlights ? `${contract.video_highlights} highlight clips` : '___highlight clips'}
-            <span className="field-sm">{contract.video_highlights ? `_${contract.video_highlights}_` : '___'}</span>
+            highlight clips: <span className="field-sm">{display(contract.video_highlights)}</span>
           </p>
         </div>
 
@@ -302,8 +293,8 @@ export default function ContractViewPage() {
           <p className="font-bold">Web:</p>
           <p>
             Personal Web Page <span className="field-sm">{check(contract.web_personal_page)}</span>{' '}
-            Engagement Upload ({contract.web_engagement_upload || '___'}pics) <span className="field-sm">{check(contract.web_engagement_upload > 0)}</span>{' '}
-            Wedding Photo gallery ({contract.web_wedding_upload || '___'}pics) <span className="field-sm">{check(contract.web_wedding_upload > 0)}</span>
+            Engagement Upload ({display(contract.web_engagement_upload)}pics) <span className="field-sm">{check(contract.web_engagement_upload > 0)}</span>{' '}
+            Wedding Photo gallery ({display(contract.web_wedding_upload)}pics) <span className="field-sm">{check(contract.web_wedding_upload > 0)}</span>
           </p>
           <p className="text-xs">*10 minutes per image enlarged</p>
         </div>
@@ -315,8 +306,7 @@ export default function ContractViewPage() {
         {/* Header */}
         <div className="flex justify-between items-start mb-2">
           <div>
-            <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} className="mb-1" />
-            <div className="contract-header">SIGS Photography Ltd.</div>
+            <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} />
           </div>
           <div className="text-right text-sm">Page | 2</div>
         </div>
@@ -333,7 +323,7 @@ export default function ContractViewPage() {
             installments.map((inst, idx) => (
               <div key={inst.id} className="flex justify-between mb-1">
                 <span>
-                  {idx + 1}{idx === 0 ? 'st' : idx === 1 ? 'nd' : idx === 2 ? 'rd' : 'th'} Installment: {inst.due_description || '___'}
+                  {idx + 1}{idx === 0 ? 'st' : idx === 1 ? 'nd' : idx === 2 ? 'rd' : 'th'} Installment: {display(inst.due_description)}
                 </span>
                 <span>$ <span className="field-med">{Number(inst.amount).toLocaleString()}</span></span>
               </div>
@@ -353,91 +343,37 @@ export default function ContractViewPage() {
 
         <div className="mt-6">
           <p>
-            Met at which Bridal Show or Referral? <span className="field-wide">{contract.lead_source || couple?.lead_source || '___'}</span>
+            Met at which Bridal Show or Referral? <span className="field-wide">{display(contract.lead_source || couple?.lead_source)}</span>
           </p>
           <p>
-            # of guests <span className="field-sm">{contract.num_guests || '___'}</span>{' '}
-            # of BP <span className="field-sm">{contract.num_bridal_party || '___'}</span>{' '}
-            Flower Girl <span className="field-sm">{contract.flower_girl || '___'}</span>{' '}
-            Ring Boy <span className="field-sm">{contract.ring_boy || '___'}</span>
+            # of guests <span className="field-sm">{display(contract.num_guests)}</span>{' '}
+            # of BP <span className="field-sm">{display(contract.num_bridal_party)}</span>{' '}
+            Flower Girl <span className="field-sm">{display(contract.flower_girl)}</span>{' '}
+            Ring Boy <span className="field-sm">{display(contract.ring_boy)}</span>
           </p>
         </div>
 
         <div className="mt-4">
           <p>
-            Venue Name: <span className="field-wide">{contract.reception_venue || '___'}</span>{' '}
-            DJ: <span className="field-sm">{contract.dj || '___'}</span>{' '}
-            Planner <span className="field-sm">{contract.planner || '___'}</span>
+            Venue Name: <span className="field-wide">{display(contract.reception_venue)}</span>{' '}
+            DJ: <span className="field-sm">{display(contract.dj)}</span>{' '}
+            Planner <span className="field-sm">{display(contract.planner)}</span>
           </p>
         </div>
 
         <div className="mt-6">
           <p className="font-bold mb-2">Approximate Timeline</p>
-          <p>Groom: <span className="field-sm">{contract.groom_start_time || '___'}</span> to <span className="field-sm">{contract.groom_end_time || '___'}</span></p>
-          <p>Bride: <span className="field-sm">{contract.bride_start_time || '___'}</span> to <span className="field-sm">{contract.bride_end_time || '___'}</span></p>
+          <p>Groom: <span className="field-sm">{display(contract.groom_start_time)}</span> to <span className="field-sm">{display(contract.groom_end_time)}</span></p>
+          <p>Bride: <span className="field-sm">{display(contract.bride_start_time)}</span> to <span className="field-sm">{display(contract.bride_end_time)}</span></p>
           <p>Drive 15</p>
-          <p>1st look: <span className="field-sm">{contract.first_look_start || '___'}</span> to <span className="field-sm">{contract.first_look_end || '___'}</span></p>
-          <p>Arrive at Ceremony: <span className="field-sm">{contract.ceremony_arrival || '___'}</span></p>
-          <p>Ceremony <span className="field-sm">{contract.ceremony_start || '___'}</span> to <span className="field-sm">{contract.ceremony_end || '___'}</span></p>
-          <p>Park ideas: <span className="field-sm">{contract.park_start || '___'}</span> to <span className="field-sm">{contract.park_end || '___'}</span></p>
-          <p>Venue: <span className="field-sm">{contract.venue_start || '___'}</span> to <span className="field-sm">{contract.venue_end || '___'}</span></p>
+          <p>1st look: <span className="field-sm">{display(contract.first_look_start)}</span> to <span className="field-sm">{display(contract.first_look_end)}</span></p>
+          <p>Arrive at Ceremony: <span className="field-sm">{display(contract.ceremony_arrival)}</span></p>
+          <p>Ceremony <span className="field-sm">{display(contract.ceremony_start)}</span> to <span className="field-sm">{display(contract.ceremony_end)}</span></p>
+          <p>Park ideas: <span className="field-sm">{display(contract.park_start)}</span> to <span className="field-sm">{display(contract.park_end)}</span></p>
+          <p>Venue: <span className="field-sm">{display(contract.venue_start)}</span> to <span className="field-sm">{display(contract.venue_end)}</span></p>
         </div>
       </div>
 
-      {/* ==================== PAGE 3 ==================== */}
-      <div className="page-break" />
-      <div className="max-w-[8.5in] mx-auto bg-white shadow-md print:shadow-none p-10 mb-8 contract-form">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} className="mb-1" />
-            <div className="contract-header">SIGS Photography Ltd.</div>
-          </div>
-          <div className="text-right text-sm">Page | 3</div>
-        </div>
-        <div className="divider" />
-
-        <p className="font-bold mt-4 mb-4">Terms &amp; Conditions</p>
-
-        <div className="space-y-3 text-[12px] leading-relaxed">
-          <p>1. The photographer/videographer will make every reasonable effort to capture the events of the day. However, we cannot guarantee specific shots as wedding events are often spontaneous and unpredictable.</p>
-
-          <p>2. The client agrees to cooperate with the photographer/videographer and provide adequate time for formal photographs as discussed.</p>
-
-          <p>3. In the unlikely event that the photographer/videographer is unable to attend due to illness or emergency, every effort will be made to arrange a suitable replacement. If no replacement is available, all monies paid will be refunded in full.</p>
-
-          <p>4. The photographer/videographer reserves the right to use images from the wedding for portfolio, advertising, and promotional purposes unless otherwise agreed upon in writing.</p>
-
-          <p>5. All digital files and prints are provided for personal use only. The client may not sell, publish, or use images for commercial purposes without written permission.</p>
-
-          <p>6. Payment is due as outlined in the installment schedule above. Late payments may result in delays to the delivery of final products.</p>
-
-          <p>7. In the event of cancellation by the client, all deposits are non-refundable. Cancellations within 30 days of the wedding date will require payment of the full contract amount.</p>
-
-          <p>8. The photographer/videographer is not responsible for any loss of images due to equipment failure, memory card corruption, or other technical issues beyond their control.</p>
-
-          <p>9. Delivery timelines: Engagement photos — 2-3 weeks. Wedding proof images — 4-6 weeks. Final edited video — 8-12 weeks. Albums — dependent on lab production times.</p>
-
-          <p>10. This contract represents the entire agreement between the parties. Any modifications must be agreed upon in writing by both parties.</p>
-        </div>
-
-        <div className="mt-16">
-          <p className="mb-12">All terms of this agreement are understood and agreed upon.</p>
-
-          <div className="flex justify-between mt-16">
-            <div>
-              <div className="border-b border-black w-64 mb-2" />
-              <p>Jean Marcotte</p>
-              <p className="text-xs text-gray-500">SIGS Photography Ltd.</p>
-            </div>
-            <div>
-              <div className="border-b border-black w-64 mb-2" />
-              <p>{brideName || 'Client Signature'}</p>
-              <p className="text-xs text-gray-500">{signedDateStr}</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
