@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Printer, X, Phone, MapPin, Clock, AlertTriangle } from 'lucide-react'
+import { Printer, X, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface FormData { [key: string]: any }
@@ -11,7 +11,10 @@ interface CoupleData {
   couple_name: string
   wedding_date: string | null
   bride_first_name: string | null
+  bride_last_name: string | null
   groom_first_name: string | null
+  groom_last_name: string | null
+  package_type: string | null
 }
 interface ContractData {
   reception_venue: string | null
@@ -28,6 +31,13 @@ function buildAddress(...parts: (string | null | undefined)[]): string {
 
 function mapsUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+}
+
+function formatPackage(pkg: string | null | undefined): string {
+  if (!pkg) return ''
+  return pkg
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
 }
 
 // ─── Stop Card (iPhone field document) ───────────────────────────────────────
@@ -100,7 +110,7 @@ export default function WeddingDayFormPrintPage() {
     async function fetchData() {
       const [formRes, coupleRes, contractRes] = await Promise.all([
         supabase.from('wedding_day_forms').select('*').eq('couple_id', coupleId).limit(1),
-        supabase.from('couples').select('couple_name, wedding_date, bride_first_name, groom_first_name').eq('id', coupleId).limit(1),
+        supabase.from('couples').select('couple_name, wedding_date, bride_first_name, bride_last_name, groom_first_name, groom_last_name, package_type').eq('id', coupleId).limit(1),
         supabase.from('contracts').select('reception_venue, ceremony_location, start_time, end_time').eq('couple_id', coupleId).limit(1),
       ])
       if (formRes.data?.[0]) setForm(formRes.data[0])
@@ -118,8 +128,27 @@ export default function WeddingDayFormPrintPage() {
     ? new Date(couple.wedding_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()
     : 'TBD'
 
+  const brideFull = [couple.bride_first_name, couple.bride_last_name].filter(Boolean).join(' ') || 'Bride'
+  const groomFull = [couple.groom_first_name, couple.groom_last_name].filter(Boolean).join(' ') || 'Groom'
+
   const coverageStart = form.groom_start_time || form.bride_start_time || ''
   const coverageEnd = form.photo_video_end_time || ''
+
+  // Calculate total hours
+  function calcHours(start: string, end: string): string {
+    if (!start || !end) return ''
+    const toMin = (t: string) => {
+      const [h, m] = t.split(':').map(Number)
+      return h * 60 + (m || 0)
+    }
+    const diff = toMin(end) - toMin(start)
+    if (diff <= 0) return ''
+    const hrs = Math.floor(diff / 60)
+    const mins = diff % 60
+    return mins > 0 ? `${hrs}h ${mins}m` : `${hrs} hours`
+  }
+
+  const totalHours = calcHours(coverageStart, coverageEnd)
 
   // ─── Build stops dynamically ─────────────────────────────────────────────
   const stops: { label: string; timeDisplay: string; name?: string | null; address: string; phone?: string | null }[] = []
@@ -201,6 +230,17 @@ export default function WeddingDayFormPrintPage() {
     })
   }
 
+  // Build timeline entries for the Day Timeline card
+  const timelineEntries: { label: string; time: string; address?: string }[] = []
+  timelineEntries.push({ label: 'Photography', time: [coverageStart, coverageEnd].filter(Boolean).join(' \u2013 ') })
+  for (const stop of stops) {
+    if (stop.timeDisplay) {
+      timelineEntries.push({ label: stop.label.charAt(0) + stop.label.slice(1).toLowerCase(), time: stop.timeDisplay, address: stop.address })
+    }
+  }
+
+  const inspirationLinks = [form.inspiration_link_1, form.inspiration_link_2, form.inspiration_link_3, form.inspiration_link_4, form.inspiration_link_5].filter(Boolean)
+
   return (
     <div className="min-h-screen bg-slate-50">
       <style>{`
@@ -225,16 +265,71 @@ export default function WeddingDayFormPrintPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-md mx-auto px-4 py-5">
+      <div className="max-w-[96%] mx-auto px-2 py-4">
 
-        {/* Header */}
+        {/* Header — Full Names */}
         <div className="text-center mb-5">
-          <h1 className="text-2xl font-bold text-slate-900">{couple.couple_name}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{brideFull} & {groomFull}</h1>
           <p className="text-muted-foreground text-sm">{weddingDate}</p>
           {(coverageStart || coverageEnd) && (
             <p className="text-sm font-medium mt-1">Coverage: {coverageStart}{coverageEnd ? ` \u2013 ${coverageEnd}` : ''}</p>
           )}
         </div>
+
+        {/* Contract Details Card */}
+        <Card className="mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm uppercase tracking-wider">CONTRACT DETAILS</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            {coverageStart && (
+              <div className="flex justify-between">
+                <span className="text-sm">Coverage Start:</span>
+                <span className="text-sm font-medium">{coverageStart}</span>
+              </div>
+            )}
+            {coverageEnd && (
+              <div className="flex justify-between">
+                <span className="text-sm">Coverage End:</span>
+                <span className="text-sm font-medium">{coverageEnd}</span>
+              </div>
+            )}
+            {totalHours && (
+              <div className="flex justify-between">
+                <span className="text-sm">Total:</span>
+                <span className="text-sm font-medium">{totalHours}</span>
+              </div>
+            )}
+            {couple.package_type && (
+              <div className="flex justify-between">
+                <span className="text-sm">Package:</span>
+                <span className="text-sm font-medium">{formatPackage(couple.package_type)}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Day Timeline Card */}
+        {timelineEntries.length > 0 && (
+          <Card className="mb-4">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm uppercase tracking-wider">DAY TIMELINE</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {timelineEntries.map((entry, i) => (
+                <div key={i}>
+                  <div className="flex justify-between">
+                    <span>{entry.label}</span>
+                    <span className="font-medium">{entry.time}</span>
+                  </div>
+                  {entry.address && (
+                    <div className="text-muted-foreground ml-4 text-xs">{entry.address}</div>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stops */}
         {stops.map((stop, index) => (
@@ -245,8 +340,30 @@ export default function WeddingDayFormPrintPage() {
           />
         ))}
 
+        {/* Inspiration Links */}
+        {inspirationLinks.length > 0 && (
+          <Card className="mb-4">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm uppercase tracking-wider">INSPIRATION</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {inspirationLinks.map((link: string, i: number) => (
+                <a
+                  key={i}
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-full h-9 rounded-md border border-input bg-background hover:bg-muted text-sm font-medium transition-colors truncate px-3"
+                >
+                  {link}
+                </a>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Emergency Contacts */}
-        {(form.emergency_contact_1_name || form.emergency_contact_2_name) && (
+        {(form.emergency_contact_1_name || form.emergency_contact_2_name || form.venue_contact_phone) && (
           <Card className="mt-6 border-red-200">
             <CardHeader className="pb-2 px-4 pt-4">
               <CardTitle className="text-red-600 flex items-center gap-2 text-base">
@@ -271,21 +388,12 @@ export default function WeddingDayFormPrintPage() {
                   {form.emergency_contact_2_name}{form.contact2_relationship ? ` (${form.contact2_relationship})` : ''} {form.emergency_contact_2_phone ? `\u2014 ${form.emergency_contact_2_phone}` : ''}
                 </a>
               )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Venue Contact */}
-        {(form.venue_contact_name || form.venue_contact_phone) && (
-          <Card className="mt-4">
-            <CardContent className="px-4 py-3 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{form.venue_contact_name || 'Venue Contact'}</span>
               {form.venue_contact_phone && (
                 <a
                   href={`tel:${form.venue_contact_phone.replace(/[^0-9+]/g, '')}`}
-                  className="inline-flex items-center h-8 px-3 rounded-md border border-border text-sm font-medium hover:bg-accent transition-colors"
+                  className="flex items-center justify-center w-full h-11 rounded-lg bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition-colors"
                 >
-                  {form.venue_contact_phone}
+                  {form.venue_contact_name || 'Venue'} ({form.venue_contact_phone})
                 </a>
               )}
             </CardContent>
@@ -296,12 +404,11 @@ export default function WeddingDayFormPrintPage() {
         {(form.additional_notes || form.final_notes) && (
           <Card className="mt-4">
             <CardHeader className="pb-2 px-4 pt-4">
-              <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">Notes</CardTitle>
+              <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">NOTES</CardTitle>
             </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                {form.additional_notes}{form.additional_notes && form.final_notes && '\n\n'}{form.final_notes}
-              </p>
+            <CardContent className="text-sm space-y-2 px-4 pb-4">
+              {form.additional_notes && <p className="whitespace-pre-wrap">{form.additional_notes}</p>}
+              {form.final_notes && <p className="whitespace-pre-wrap">{form.final_notes}</p>}
             </CardContent>
           </Card>
         )}

@@ -190,7 +190,7 @@ export default function WeddingDayFormsPage() {
             className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-input bg-background hover:bg-muted transition-colors"
           >
             <ExternalLink className="h-3 w-3" />
-            View
+            Mobile
           </a>
           <a
             href={`/api/wedding-form-pdf/${row.original.couple_id}`}
