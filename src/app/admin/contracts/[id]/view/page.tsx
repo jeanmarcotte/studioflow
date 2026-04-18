@@ -183,10 +183,11 @@ export default function ContractViewPage() {
           .no-print { display: none !important; }
           @page { size: letter; margin: 0.4in; }
           body { background: white !important; line-height: 1.3 !important; }
-          .print-logo { max-height: 80px !important; width: auto !important; height: auto !important; object-fit: contain; }
+          .print-logo { max-height: 50px !important; width: auto !important; height: auto !important; margin: 0 !important; padding: 0 !important; object-fit: contain; }
           .print-hide-header { display: none !important; }
           .print-section { margin-bottom: 0.5rem !important; }
-          .print-intro { margin: 0.75rem 0 !important; padding-bottom: 0.25rem !important; }
+          .print-intro { margin: 0.5rem 0 !important; padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+          .print-header-squeeze { padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; margin-bottom: 0.5rem !important; }
           .contract-form { line-height: 1.3 !important; }
         }
       `}</style>
@@ -194,7 +195,7 @@ export default function ContractViewPage() {
       {/* ==================== PAGE 1 ==================== */}
       <div className="max-w-[8.5in] mx-auto bg-white shadow-md print:shadow-none p-10 mb-8 contract-form">
         {/* Header */}
-        <div className="relative mb-2">
+        <div className="relative mb-2 print-header-squeeze">
           <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} className="print-logo" />
           <button
             type="button"
