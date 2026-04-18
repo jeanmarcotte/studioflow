@@ -80,6 +80,16 @@ export function formatWeddingDateShort(date: string | Date | null | undefined): 
   return `${dow} ${monthDay}`;
 }
 
+/** Package type — "Photo Only" or "Photo + Video" */
+export function formatPackage(pkg: string | null | undefined): string {
+  if (!pkg) return '—'
+  const map: Record<string, string> = {
+    photo_only: 'Photo Only',
+    photo_video: 'Photo + Video',
+  }
+  return map[pkg] ?? pkg
+}
+
 /** Currency — "$5,300" or "$5,300.00" */
 export function formatCurrency(amount: number | string | null | undefined): string {
   if (amount === null || amount === undefined || amount === '') return '$0';

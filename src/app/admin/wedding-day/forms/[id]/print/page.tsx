@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Printer, X, AlertTriangle } from 'lucide-react'
+import { formatPackage } from '@/lib/formatters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface FormData { [key: string]: any }
@@ -31,13 +32,6 @@ function buildAddress(...parts: (string | null | undefined)[]): string {
 
 function mapsUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-}
-
-function formatPackage(pkg: string | null | undefined): string {
-  if (!pkg) return ''
-  return pkg
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase())
 }
 
 // ─── Stop Card (iPhone field document) ───────────────────────────────────────

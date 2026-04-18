@@ -21,6 +21,7 @@ import { FinanceCard } from '@/components/couples/FinanceCard'
 import { CoupleResourcesCard } from '@/components/couples/CoupleResourcesCard'
 import { WeddingDayItinerary } from '@/components/couples/WeddingDayItinerary'
 import { buildPhases, countMilestones } from '@/lib/milestones'
+import { formatPackage } from '@/lib/formatters'
 
 export default function CoupleDetailPage() {
   const params = useParams()
@@ -184,8 +185,8 @@ export default function CoupleDetailPage() {
     : 'Onboarding'
 
   // Milestone phases for ClientJourney
-  const journeyPhases = buildPhases(ms)
-  const { total: totalMilestones, completed: completedMilestones } = countMilestones(ms)
+  const journeyPhases = buildPhases(ms, couple.package_type)
+  const { total: totalMilestones, completed: completedMilestones } = countMilestones(ms, couple.package_type)
 
   // Coverage hours
   const coverageHours = contract?.start_time && contract?.end_time
@@ -385,7 +386,7 @@ export default function CoupleDetailPage() {
           signedDate={signedDate}
           isActive={status === 'booked'}
           coverage={{
-            package: packageType,
+            package: formatPackage(couple.package_type),
             hours: coverageHours,
             day: contract.day_of_week || 'Saturday',
             locationFlags: {

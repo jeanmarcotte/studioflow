@@ -6,7 +6,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { supabase } from '@/lib/supabase'
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
 import { Users, Search, Calendar, AlertTriangle } from 'lucide-react'
-import { formatCurrency, formatWeddingDateShort } from '@/lib/formatters'
+import { formatCurrency, formatWeddingDateShort, formatPackage } from '@/lib/formatters'
 import Link from 'next/link'
 import { HistoricalCouplesArchive } from '@/components/couples/HistoricalCouplesArchive'
 
@@ -82,13 +82,6 @@ function engBadge(state: string) {
     default:
       return null
   }
-}
-
-function formatPackage(pkg: string | null): string {
-  if (!pkg) return '—'
-  if (pkg === 'photo_only') return 'Photo Only'
-  if (pkg === 'photo_video') return 'Photo + Video'
-  return pkg
 }
 
 function formatDateFull(dateStr: string | null): string {

@@ -58,18 +58,30 @@ export const MILESTONE_PHASES = [
   }
 ]
 
-export function buildPhases(milestoneData: Record<string, boolean>) {
+const VIDEO_MILESTONE_KEYS = new Set([
+  'm25_video_order_in',
+  'm27_video_long_form',
+  'm28_recap_edited',
+  'm31_video_on_usb',
+])
+
+export function buildPhases(milestoneData: Record<string, boolean>, packageType?: string | null) {
+  const isPhotoOnly = packageType === 'photo_only'
   return MILESTONE_PHASES.map(phase => ({
     ...phase,
-    milestones: phase.milestones.map(m => ({
-      ...m,
-      completed: milestoneData[m.key] ?? false
-    }))
+    milestones: phase.milestones
+      .filter(m => !(isPhotoOnly && VIDEO_MILESTONE_KEYS.has(m.key)))
+      .map(m => ({
+        ...m,
+        completed: milestoneData[m.key] ?? false
+      }))
   }))
 }
 
-export function countMilestones(milestoneData: Record<string, boolean>) {
+export function countMilestones(milestoneData: Record<string, boolean>, packageType?: string | null) {
+  const isPhotoOnly = packageType === 'photo_only'
   const allKeys = MILESTONE_PHASES.flatMap(phase => phase.milestones.map(m => m.key))
+    .filter(key => !(isPhotoOnly && VIDEO_MILESTONE_KEYS.has(key)))
   const total = allKeys.length
   const completed = allKeys.filter(key => milestoneData[key] === true).length
   return { total, completed }
