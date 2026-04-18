@@ -7,7 +7,13 @@ interface ContractPackageProps {
     package: string
     hours: string
     day: string
-    locations: string
+    locationFlags: {
+      groom: boolean
+      bride: boolean
+      ceremony: boolean
+      park: boolean
+      reception: boolean
+    }
     drone: boolean
     guests: number
   }
@@ -34,6 +40,13 @@ export function ContractPackageCard({
   team,
   financials
 }: ContractPackageProps) {
+  const locations = []
+  if (coverage.locationFlags.groom) locations.push('Groom Prep')
+  if (coverage.locationFlags.bride) locations.push('Bride Prep')
+  if (coverage.locationFlags.ceremony) locations.push('Ceremony')
+  if (coverage.locationFlags.park) locations.push('Park')
+  if (coverage.locationFlags.reception) locations.push('Reception')
+
   return (
     <div className="border rounded-lg overflow-hidden">
       {/* Header */}
@@ -63,9 +76,17 @@ export function ContractPackageCard({
               <dt className="text-gray-500">Day</dt>
               <dd className="text-gray-900">{coverage.day}</dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-500">Locations</dt>
-              <dd className="text-gray-900">{coverage.locations}</dd>
+            <div>
+              <dt className="text-gray-500 mb-1">Locations</dt>
+              <dd className="flex flex-wrap gap-1">
+                {locations.length > 0 ? locations.map(loc => (
+                  <span key={loc} className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-700">
+                    {loc}
+                  </span>
+                )) : (
+                  <span className="text-sm text-gray-400">No locations specified</span>
+                )}
+              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-500">Drone</dt>

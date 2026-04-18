@@ -104,35 +104,51 @@ export function FinanceCard({
             <DialogTrigger render={<Button variant="outline" size="sm" />}>
               View payments
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-3xl">
               <DialogHeader>
-                <DialogTitle>Payments</DialogTitle>
+                <DialogTitle>Payment History</DialogTitle>
               </DialogHeader>
               {payments.length === 0 ? (
-                <p className="text-gray-500 text-sm py-4">No payments recorded</p>
+                <p className="text-gray-500 py-8 text-center">No payments recorded</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase">Date</th>
-                      <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase">From</th>
-                      <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase">Method</th>
-                      <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase">Type</th>
-                      <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payments.map((p) => (
-                      <tr key={p.id} className="border-b last:border-0">
-                        <td className="py-2">{new Date(p.payment_date).toLocaleDateString()}</td>
-                        <td className="py-2">{p.from_name ?? '—'}</td>
-                        <td className="py-2">{p.method ?? '—'}</td>
-                        <td className="py-2">{p.payment_type ?? '—'}</td>
-                        <td className="py-2 text-right font-medium">${Number(p.amount).toLocaleString()}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                        <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">From</th>
+                        <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Method</th>
+                        <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
+                        <th className="text-right p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y">
+                      {payments.map((p) => (
+                        <tr key={p.id} className="hover:bg-gray-50">
+                          <td className="p-3 text-sm text-gray-900 whitespace-nowrap">
+                            {new Date(p.payment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </td>
+                          <td className="p-3 text-sm text-gray-900">{p.from_name || '—'}</td>
+                          <td className="p-3 text-sm text-gray-600">{p.method || '—'}</td>
+                          <td className="p-3 text-sm">
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                              {p.payment_type || '—'}
+                            </span>
+                          </td>
+                          <td className="p-3 text-sm text-right font-semibold text-gray-900">${Number(p.amount).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 bg-gray-50">
+                        <td colSpan={4} className="p-3 text-sm font-semibold text-gray-700">Total Received</td>
+                        <td className="p-3 text-right font-bold text-gray-900">
+                          ${payments.reduce((sum, p) => sum + Number(p.amount), 0).toLocaleString()}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               )}
             </DialogContent>
           </Dialog>
@@ -142,48 +158,58 @@ export function FinanceCard({
             <DialogTrigger render={<Button variant="outline" size="sm" />}>
               View installments
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-3xl">
               <DialogHeader>
-                <DialogTitle>Installments</DialogTitle>
+                <DialogTitle>Payment Schedule</DialogTitle>
               </DialogHeader>
               {installments.length === 0 ? (
-                <p className="text-gray-500 text-sm py-4">No installments scheduled</p>
+                <p className="text-gray-500 py-8 text-center">No installments scheduled</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase">#</th>
-                      <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase">Description</th>
-                      <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase">Due Date</th>
-                      <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase">Source</th>
-                      <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase">Amount</th>
-                      <th className="text-center py-2 text-xs font-medium text-gray-500 uppercase">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {installments.map((inst) => (
-                      <tr key={inst.id} className="border-b last:border-0">
-                        <td className="py-2">{inst.installment_number}</td>
-                        <td className="py-2">{inst.due_description}</td>
-                        <td className="py-2">{inst.due_date ? new Date(inst.due_date).toLocaleDateString() : '—'}</td>
-                        <td className="py-2 capitalize">{inst.source}</td>
-                        <td className="py-2 text-right font-medium">${Number(inst.amount).toLocaleString()}</td>
-                        <td className="py-2 text-center">
-                          {inst.paid ? (
-                            <span className="text-green-600">Paid</span>
-                          ) : (
-                            <span className="text-yellow-600">Pending</span>
-                          )}
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-center p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider w-12">#</th>
+                        <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Description</th>
+                        <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Due Date</th>
+                        <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Source</th>
+                        <th className="text-right p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
+                        <th className="text-center p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y">
+                      {installments.map((inst) => (
+                        <tr key={inst.id} className="hover:bg-gray-50">
+                          <td className="p-3 text-sm text-center text-gray-500">{inst.installment_number}</td>
+                          <td className="p-3 text-sm text-gray-900">{inst.due_description}</td>
+                          <td className="p-3 text-sm text-gray-600 whitespace-nowrap">
+                            {inst.due_date ? new Date(inst.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                          </td>
+                          <td className="p-3 text-sm">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              inst.source === 'contract' ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700'
+                            }`}>
+                              {inst.source === 'contract' ? 'C1' : 'C2'}
+                            </span>
+                          </td>
+                          <td className="p-3 text-sm text-right font-semibold text-gray-900">${Number(inst.amount).toLocaleString()}</td>
+                          <td className="p-3 text-center">
+                            {inst.paid ? (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Paid</span>
+                            ) : (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Pending</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </DialogContent>
           </Dialog>
 
-          {/* Reconcile Link - Opens in new tab */}
+          {/* Reconcile Link */}
           <a
             href={`/admin/finance/reconciliation?couple=${coupleId}`}
             target="_blank"

@@ -1,35 +1,60 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 
-interface TeamMember {
-  role: string
-  name: string
+interface TeamAssignment {
+  photo_1: string | null
+  photo_2: string | null
+  video_1: string | null
+  status: string
 }
 
 interface TeamCardProps {
-  members: TeamMember[]
-  confirmed: boolean
-  contractNote?: string
+  assignment: TeamAssignment | null
 }
 
-export function TeamCard({ members, confirmed, contractNote }: TeamCardProps) {
+export function TeamCard({ assignment }: TeamCardProps) {
+  const leadPhotographer = assignment?.photo_1 || 'TBD'
+  const secondPhotographer = assignment?.photo_2 || null
+  const videographer = assignment?.video_1 || null
+
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="pb-2">
         <CardTitle className="text-base font-medium">Team</CardTitle>
-        {confirmed && <Badge className="bg-green-100 text-green-700">Confirmed</Badge>}
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-4">
-          {members.map((member) => (
-            <div key={member.role} className="border rounded-lg p-3">
-              <p className="text-xs font-medium text-teal-600 uppercase">{member.role}</p>
-              <p className="text-sm text-gray-900">{member.name}</p>
-            </div>
-          ))}
+      <CardContent className="space-y-4">
+        {/* Lead Photographer - Always show */}
+        <div className="border rounded-lg p-4">
+          <p className="text-xs font-medium text-teal-600 uppercase tracking-wider mb-1">Lead Photographer</p>
+          <p className="text-lg font-medium text-gray-900">{leadPhotographer}</p>
         </div>
-        {contractNote && (
-          <p className="mt-3 text-xs text-blue-600">{contractNote}</p>
+
+        {/* Second Photographer - Only show if assigned */}
+        {secondPhotographer && (
+          <div className="border rounded-lg p-4">
+            <p className="text-xs font-medium text-teal-600 uppercase tracking-wider mb-1">Second Photographer</p>
+            <p className="text-lg font-medium text-gray-900">{secondPhotographer}</p>
+          </div>
+        )}
+
+        {/* Videographer - Only show if assigned */}
+        {videographer && (
+          <div className="border rounded-lg p-4">
+            <p className="text-xs font-medium text-teal-600 uppercase tracking-wider mb-1">Videographer</p>
+            <p className="text-lg font-medium text-gray-900">{videographer}</p>
+          </div>
+        )}
+
+        {/* Status badge */}
+        {assignment && (
+          <div className="pt-2">
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              assignment.status === 'confirmed'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-yellow-100 text-yellow-700'
+            }`}>
+              {assignment.status === 'confirmed' ? 'Confirmed' : 'Pending'}
+            </span>
+          </div>
         )}
       </CardContent>
     </Card>

@@ -18,6 +18,7 @@ import { ExtrasCard } from '@/components/couples/ExtrasCard'
 import { FormsCard } from '@/components/couples/FormsCard'
 import { FinanceCard } from '@/components/couples/FinanceCard'
 import { DocumentsCard } from '@/components/couples/DocumentsCard'
+import { WeddingDayItinerary } from '@/components/couples/WeddingDayItinerary'
 import { buildPhases, countMilestones } from '@/lib/milestones'
 
 export default function CoupleDetailPage() {
@@ -35,6 +36,7 @@ export default function CoupleDetailPage() {
   const [extrasOrders, setExtrasOrders] = useState<any[]>([])
   const [clientExtras, setClientExtras] = useState<any[]>([])
   const [weddingDayForm, setWeddingDayForm] = useState<any>(null)
+  const [videoOrder, setVideoOrder] = useState<any>(null)
 
   useEffect(() => {
     async function fetchData() {
@@ -70,7 +72,7 @@ export default function CoupleDetailPage() {
 
         const { data: assignmentData } = await supabase
           .from('wedding_assignments')
-          .select('*')
+          .select('photo_1, photo_2, video_1, status')
           .eq('couple_id', coupleId)
           .limit(1)
         setAssignment(assignmentData?.[0] ?? null)
@@ -107,10 +109,17 @@ export default function CoupleDetailPage() {
 
         const { data: formData } = await supabase
           .from('wedding_day_forms')
-          .select('id')
+          .select('id, reception_venue_name, groom_start_time, groom_finish_time, bride_start_time, bride_finish_time, ceremony_start_time, ceremony_finish_time, venue_arrival_time, park_start_time, park_finish_time, additional_notes, final_notes')
           .eq('couple_id', coupleId)
           .limit(1)
         setWeddingDayForm(formData?.[0] ?? null)
+
+        const { data: videoOrderData } = await supabase
+          .from('video_orders')
+          .select('id, status, submitted_at')
+          .eq('couple_id', coupleId)
+          .limit(1)
+        setVideoOrder(videoOrderData?.[0] ?? null)
 
       } catch (error) {
         console.error('Error fetching couple data:', error)
@@ -164,26 +173,10 @@ export default function CoupleDetailPage() {
   const journeyPhases = buildPhases(ms)
   const { total: totalMilestones, completed: completedMilestones } = countMilestones(ms)
 
-  // Contract coverage info
-  const locations = [
-    contract?.loc_groom && 'Groom Prep',
-    contract?.loc_bride && 'Bride Prep',
-    contract?.loc_ceremony && 'Ceremony',
-    contract?.loc_park && 'Park/Outdoor',
-    contract?.loc_reception && 'Reception'
-  ].filter(Boolean).join(', ') || 'Not specified'
-
+  // Coverage hours
   const coverageHours = contract?.start_time && contract?.end_time
     ? `${contract.start_time} – ${contract.end_time}`
     : 'N/A'
-
-  // Team members
-  const teamMembers = [
-    assignment?.lead_photographer && { role: 'Lead Photographer', name: assignment.lead_photographer },
-    assignment?.second_photographer && { role: '2nd Photographer', name: assignment.second_photographer },
-    assignment?.lead_videographer && { role: 'Lead Videographer', name: assignment.lead_videographer },
-    assignment?.second_videographer && { role: '2nd Videographer', name: assignment.second_videographer },
-  ].filter(Boolean) as { role: string; name: string }[]
 
   // Finance calculations
   const contractTotal = parseFloat(couple.contract_total || '0')
@@ -214,12 +207,12 @@ export default function CoupleDetailPage() {
     }
   ].filter(line => line.invoiced > 0)
 
-  // Combined installments for popup
+  // Combined installments
   const allInstallments = [
     ...installments.map((i: any) => ({ ...i, source: 'contract' as const })),
   ].sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? ''))
 
-  // Forms status
+  // Forms status (for FormsCard — kept for backwards compat)
   const forms = [
     {
       name: 'Wedding Day Form',
@@ -238,15 +231,11 @@ export default function CoupleDetailPage() {
 
   // Extras order (first one = frames & albums)
   const extrasOrder = extrasOrders[0]
-  const extrasItems: Record<string, string> = {}
+  const extrasItems: Record<string, string> = extrasOrder?.items && typeof extrasOrder.items === 'object'
+    ? extrasOrder.items
+    : {}
   const extrasSpecs: Record<string, string> = {}
   if (extrasOrder) {
-    if (extrasOrder.album_size) extrasItems['Album'] = extrasOrder.album_size
-    if (extrasOrder.parent_album_size) extrasItems['Parent Album'] = extrasOrder.parent_album_size
-    if (extrasOrder.frame_1) extrasItems['Frame 1'] = extrasOrder.frame_1
-    if (extrasOrder.frame_2) extrasItems['Frame 2'] = extrasOrder.frame_2
-    if (extrasOrder.frame_3) extrasItems['Frame 3'] = extrasOrder.frame_3
-    if (extrasOrder.canvas_1) extrasItems['Canvas'] = extrasOrder.canvas_1
     if (extrasOrder.album_cover) extrasSpecs['Album Cover'] = extrasOrder.album_cover
     if (extrasOrder.album_pages) extrasSpecs['Pages'] = extrasOrder.album_pages
     if (extrasOrder.parent_album_cover) extrasSpecs['Parent Cover'] = extrasOrder.parent_album_cover
@@ -256,31 +245,18 @@ export default function CoupleDetailPage() {
   const extrasSale = parseFloat(extrasOrder?.extras_sale_amount || '0')
   const extrasDiscount = extrasRetail - extrasSale
 
-  // Documents
-  const documents = [
-    {
-      name: 'Wedding Contract',
-      status: (contract ? 'available' : 'unavailable') as 'available' | 'generating' | 'unavailable',
-      printUrl: `/admin/contracts/${coupleId}/print`,
-      unavailableReason: 'No contract found'
-    },
-    {
-      name: 'Frames & Albums',
-      status: (extrasOrder ? 'available' : 'unavailable') as 'available' | 'generating' | 'unavailable',
-      printUrl: `/admin/extras/${coupleId}/print`,
-      unavailableReason: 'Nothing purchased yet'
-    },
-    {
-      name: 'Wedding Day Form',
-      status: (weddingDayForm ? 'available' : 'unavailable') as 'available' | 'generating' | 'unavailable',
-      printUrl: weddingDayForm ? `/admin/wedding-day/forms/${weddingDayForm.id}/print` : undefined,
-      unavailableReason: 'Form not submitted'
-    }
-  ]
+  // Locations for info grid
+  const locationsList = [
+    contract?.loc_groom && 'Groom Prep',
+    contract?.loc_bride && 'Bride Prep',
+    contract?.loc_ceremony && 'Ceremony',
+    contract?.loc_park && 'Park/Outdoor',
+    contract?.loc_reception && 'Reception'
+  ].filter(Boolean).join(', ') || 'Not specified'
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {/* Header */}
+      {/* 1. Header */}
       <CoupleHeader
         coupleName={coupleName}
         packageType={packageType}
@@ -292,7 +268,7 @@ export default function CoupleDetailPage() {
         bookedDate={bookedDate}
       />
 
-      {/* Info Grid — 3 columns */}
+      {/* 2. Info Grid — 3 columns */}
       <div className="grid grid-cols-3 gap-6 border rounded-lg p-6">
         <InfoGrid
           title="Couple"
@@ -315,44 +291,13 @@ export default function CoupleDetailPage() {
           items={[
             { label: 'Package', value: packageType },
             { label: 'Hours', value: coverageHours },
-            { label: 'Locations', value: locations },
+            { label: 'Locations', value: locationsList },
             { label: 'Guests', value: contract?.num_guests?.toString() || null },
           ]}
         />
       </div>
 
-      {/* Team + Notes — side by side */}
-      <div className="grid grid-cols-2 gap-6">
-        <TeamCard
-          members={teamMembers.length > 0 ? teamMembers : [{ role: 'Lead Photographer', name: 'TBD' }]}
-          confirmed={ms.m16_staff_confirmed || false}
-          contractNote={contract?.appointment_notes || undefined}
-        />
-        <NotesCard notes={couple.notes || null} />
-      </div>
-
-      {/* Client Journey */}
-      <ClientJourney
-        phases={journeyPhases}
-        totalMilestones={totalMilestones}
-        completedMilestones={completedMilestones}
-      />
-
-      {/* Forms */}
-      <FormsCard forms={forms} />
-
-      {/* Finance */}
-      <FinanceCard
-        lines={financeLines}
-        totalInvoiced={totalInvoiced}
-        totalReceived={totalReceived}
-        balanceDue={balanceDue}
-        coupleId={coupleId}
-        payments={payments}
-        installments={allInstallments}
-      />
-
-      {/* Contract Package */}
+      {/* 3. Contract Package (C1) */}
       {contract && (
         <ContractPackageCard
           signedDate={signedDate}
@@ -361,7 +306,13 @@ export default function CoupleDetailPage() {
             package: packageType,
             hours: coverageHours,
             day: contract.day_of_week || 'Saturday',
-            locations: locations,
+            locationFlags: {
+              groom: contract.loc_groom || false,
+              bride: contract.loc_bride || false,
+              ceremony: contract.loc_ceremony || false,
+              park: contract.loc_park || false,
+              reception: contract.loc_reception || false,
+            },
             drone: contract.drone_photography || false,
             guests: contract.num_guests || 0
           }}
@@ -381,7 +332,7 @@ export default function CoupleDetailPage() {
         />
       )}
 
-      {/* Frames & Albums */}
+      {/* 4. Frames & Albums (C2) */}
       {extrasOrder && (
         <FramesAlbumsCard
           items={extrasItems}
@@ -391,20 +342,61 @@ export default function CoupleDetailPage() {
             discount: extrasDiscount,
             salePrice: extrasSale
           }}
-          coupleName={coupleName}
         />
       )}
 
-      {/* C3 Extras */}
+      {/* 5. Extras (C3) */}
       {clientExtras && clientExtras.length > 0 && (
-        <ExtrasCard
-          extras={clientExtras}
-          coupleName={coupleName}
-        />
+        <ExtrasCard extras={clientExtras} />
       )}
 
-      {/* Documents */}
-      <DocumentsCard coupleId={coupleId} documents={documents} />
+      {/* 6. Two-column grid: Team/Notes left, Finance/Docs right */}
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <TeamCard assignment={assignment} />
+          <NotesCard
+            coupleNotes={couple.notes || null}
+            weddingDayNotes={weddingDayForm ? {
+              additional: weddingDayForm.additional_notes,
+              final: weddingDayForm.final_notes
+            } : null}
+          />
+        </div>
+        <div className="space-y-6">
+          <FinanceCard
+            lines={financeLines}
+            totalInvoiced={totalInvoiced}
+            totalReceived={totalReceived}
+            balanceDue={balanceDue}
+            coupleId={coupleId}
+            payments={payments}
+            installments={allInstallments}
+          />
+          <DocumentsCard
+            coupleId={coupleId}
+            formsStatus={{
+              weddingDayForm: {
+                submitted: !!weddingDayForm,
+                formId: weddingDayForm?.id
+              },
+              videoOrderForm: {
+                submitted: !!videoOrder?.submitted_at,
+                formId: videoOrder?.id
+              }
+            }}
+          />
+        </div>
+      </div>
+
+      {/* 7. Wedding Day Itinerary */}
+      <WeddingDayItinerary formData={weddingDayForm} />
+
+      {/* 8. Client Journey — DO NOT MODIFY */}
+      <ClientJourney
+        phases={journeyPhases}
+        totalMilestones={totalMilestones}
+        completedMilestones={completedMilestones}
+      />
     </div>
   )
 }

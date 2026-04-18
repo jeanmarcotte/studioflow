@@ -6,10 +6,9 @@ interface FramesAlbumsProps {
     discount: number
     salePrice: number
   }
-  coupleName: string
 }
 
-export function FramesAlbumsCard({ items, specs, financials, coupleName }: FramesAlbumsProps) {
+export function FramesAlbumsCard({ items, specs, financials }: FramesAlbumsProps) {
   return (
     <div className="border rounded-lg overflow-hidden">
       {/* Header */}
@@ -25,14 +24,18 @@ export function FramesAlbumsCard({ items, specs, financials, coupleName }: Frame
           <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 pb-2 border-b-2 border-amber-500">
             Items
           </h4>
-          <dl className="space-y-3 text-sm">
-            {Object.entries(items).map(([key, value]) => (
-              <div key={key} className="flex justify-between gap-2">
-                <dt className="text-gray-500 capitalize">{key.replace(/_/g, ' ')}</dt>
-                <dd className="text-gray-900 text-right">{value}</dd>
-              </div>
-            ))}
-          </dl>
+          {items && Object.keys(items).length > 0 ? (
+            <div className="space-y-2">
+              {Object.entries(items).map(([key, value]) => (
+                <div key={key} className="flex justify-between text-sm">
+                  <span className="text-gray-600 capitalize">{key.replace(/_/g, ' ')}</span>
+                  <span className="text-gray-900 text-right max-w-[60%]">{String(value)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400">No items</p>
+          )}
         </div>
 
         {/* Specs */}
@@ -40,14 +43,18 @@ export function FramesAlbumsCard({ items, specs, financials, coupleName }: Frame
           <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 pb-2 border-b-2 border-teal-500">
             Specs
           </h4>
-          <dl className="space-y-3 text-sm">
-            {Object.entries(specs).map(([key, value]) => (
-              <div key={key} className="flex justify-between">
-                <dt className="text-gray-500 capitalize">{key.replace(/_/g, ' ')}</dt>
-                <dd className="text-gray-900">{value}</dd>
-              </div>
-            ))}
-          </dl>
+          {specs && Object.keys(specs).length > 0 ? (
+            <dl className="space-y-3 text-sm">
+              {Object.entries(specs).map(([key, value]) => (
+                <div key={key} className="flex justify-between">
+                  <dt className="text-gray-500 capitalize">{key.replace(/_/g, ' ')}</dt>
+                  <dd className="text-gray-900">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="text-sm text-gray-400">No specs</p>
+          )}
         </div>
 
         {/* Financials */}
@@ -70,11 +77,6 @@ export function FramesAlbumsCard({ items, specs, financials, coupleName }: Frame
             </div>
           </dl>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="px-4 py-3 bg-gray-50 border-t">
-        <span className="text-sm text-gray-500">{coupleName}</span>
       </div>
     </div>
   )

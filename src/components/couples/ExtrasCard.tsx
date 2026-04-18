@@ -13,10 +13,9 @@ interface ExtraItem {
 
 interface ExtrasCardProps {
   extras: ExtraItem[]
-  coupleName: string
 }
 
-export function ExtrasCard({ extras, coupleName }: ExtrasCardProps) {
+export function ExtrasCard({ extras }: ExtrasCardProps) {
   if (!extras || extras.length === 0) return null
 
   const totalAmount = extras.reduce((sum, item) => sum + Number(item.total), 0)
@@ -53,11 +52,6 @@ export function ExtrasCard({ extras, coupleName }: ExtrasCardProps) {
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* Footer */}
-      <div className="px-4 py-3 bg-gray-50 border-t">
-        <span className="text-sm text-gray-500">{coupleName}</span>
       </div>
     </div>
   )
