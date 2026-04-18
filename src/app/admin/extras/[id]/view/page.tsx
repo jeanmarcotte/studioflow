@@ -127,18 +127,15 @@ export default function ExtrasViewPage() {
 
       <div className="max-w-[8.5in] mx-auto bg-white shadow-md print:shadow-none p-10 mb-8 contract-form">
         {/* Header */}
-        <div className="flex items-end justify-between mb-2">
+        <div className="relative mb-2">
           <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} />
-          <div className="flex items-end gap-4">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="print:hidden font-mono text-sm tracking-wider uppercase border border-black rounded-none px-3 py-1 hover:bg-black hover:text-white transition-colors cursor-pointer"
-            >
-              [ PRINT ]
-            </button>
-            <span className="text-sm">Page | 1</span>
-          </div>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="print:hidden absolute bottom-0 right-0 font-mono text-sm tracking-wider uppercase border border-black rounded-none px-3 py-1 hover:bg-black hover:text-white transition-colors cursor-pointer"
+          >
+            [ PRINT ]
+          </button>
         </div>
         <div className="divider" />
 
