@@ -8,40 +8,50 @@ import { Button } from '@/components/ui/button'
 import { format, parseISO } from 'date-fns'
 import Image from 'next/image'
 
-function formatWeddingDate(dateStr: string, dayOfWeek?: string): string {
-  const d = parseISO(dateStr)
-  const day = dayOfWeek?.toUpperCase() || format(d, 'EEEE').toUpperCase()
-  return `${day} ${format(d, 'MMMM do, yyyy')}`
-}
-
 export default function AlbumViewPage() {
   const params = useParams()
   const id = params.id as string
 
-  const [contract, setContract] = useState<any>(null)
+  const [order, setOrder] = useState<any>(null)
+  const [couple, setCouple] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchData() {
       if (!id) return
 
-      // Try as contract ID first, then as couple_id
-      let { data: contractData } = await supabase
-        .from('contracts')
+      // Try as extras_orders ID first, then as couple_id
+      let { data: orderData } = await supabase
+        .from('extras_orders')
         .select('*')
         .eq('id', id)
         .limit(1)
 
-      if (!contractData || contractData.length === 0) {
+      if (!orderData || orderData.length === 0) {
         const { data: byCoupleId } = await supabase
-          .from('contracts')
+          .from('extras_orders')
           .select('*')
           .eq('couple_id', id)
           .limit(1)
-        contractData = byCoupleId
+        orderData = byCoupleId
       }
 
-      setContract(contractData?.[0] ?? null)
+      if (!orderData || orderData.length === 0) {
+        setLoading(false)
+        return
+      }
+
+      const o = orderData[0]
+      setOrder(o)
+
+      // Fetch couple + contract for names and wedding date
+      const { data: coupleData } = await supabase
+        .from('couples')
+        .select('couple_name, wedding_date, contracts(day_of_week)')
+        .eq('id', o.couple_id)
+        .limit(1)
+      setCouple(coupleData?.[0] ?? null)
+
       setLoading(false)
     }
 
@@ -56,29 +66,31 @@ export default function AlbumViewPage() {
     )
   }
 
-  if (!contract) {
+  if (!order) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-500">Contract not found</p>
+        <p className="text-gray-500">Frames & Albums order not found</p>
       </div>
     )
   }
 
-  const brideName = [contract.bride_first_name, contract.bride_last_name].filter(Boolean).join(' ')
-  const groomName = [contract.groom_first_name, contract.groom_last_name].filter(Boolean).join(' ')
-  const weddingDateStr = contract.wedding_date ? formatWeddingDate(contract.wedding_date, contract.day_of_week) : '___'
+  const coupleName = couple?.couple_name || '___'
+  const contract = Array.isArray(couple?.contracts) ? couple.contracts[0] : couple?.contracts
+  const weddingDateStr = couple?.wedding_date
+    ? (() => {
+        const d = parseISO(couple.wedding_date)
+        const day = contract?.day_of_week?.toUpperCase() || format(d, 'EEEE').toUpperCase()
+        return `${day} ${format(d, 'MMMM do, yyyy')}`
+      })()
+    : '___'
 
-  const bg = contract.bride_groom_album_qty || 0
-  const bgSize = contract.bride_groom_album_size || 'n/a'
-  const bgSpreads = contract.bride_groom_album_spreads || 'n/a'
-  const bgImages = contract.bride_groom_album_images || 'n/a'
-  const bgCover = contract.bride_groom_album_cover || 'n/a'
+  // Items from JSONB
+  const items: Record<string, string> = order.items && typeof order.items === 'object' ? order.items : {}
 
-  const pQty = contract.parent_albums_qty || 0
-  const pSize = contract.parent_albums_size || '___'
-  const pSpreads = contract.parent_albums_spreads || '___'
-  const pImages = contract.parent_albums_images || '___'
-  const pCover = contract.parent_albums_cover || '___'
+  // Financials
+  const retailValue = parseFloat(order.total || '0')
+  const salePrice = parseFloat(order.extras_sale_amount || '0')
+  const discount = retailValue - salePrice
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -101,11 +113,6 @@ export default function AlbumViewPage() {
           font-family: 'Georgia', serif;
           font-size: 18px;
           font-weight: bold;
-        }
-        .field {
-          border-bottom: 1px solid #000;
-          display: inline;
-          padding: 0 4px;
         }
         .field-wide {
           border-bottom: 1px solid #000;
@@ -141,40 +148,47 @@ export default function AlbumViewPage() {
         </div>
         <div className="divider" />
 
-        <p className="font-bold text-base mt-4 mb-4">ALBUM AGREEMENT</p>
+        <p className="font-bold text-base mt-4 mb-4">FRAMES &amp; ALBUMS AGREEMENT</p>
 
+        <p>Couple: <span className="field-wide">{coupleName}</span></p>
         <p>Wedding Date: <span className="field-wide">{weddingDateStr}</span></p>
 
-        <div className="mt-4">
-          <p>Bride&apos;s Name: <span className="field-wide">{brideName}</span></p>
-          <p>Groom&apos;s Name: <span className="field-wide">{groomName}</span></p>
+        <div className="divider" />
+
+        {/* Items + Specs side by side */}
+        <div className="flex gap-16">
+          <div className="flex-1">
+            <p className="font-bold mb-2">ITEMS</p>
+            <div className="space-y-1">
+              {Object.keys(items).length > 0 ? (
+                Object.entries(items).map(([key, value]) => (
+                  <p key={key}>
+                    <span className="capitalize">{key.replace(/_/g, ' ')}</span>: <span className="field-med">{String(value)}</span>
+                  </p>
+                ))
+              ) : (
+                <p className="text-gray-400">No items</p>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="font-bold mb-2">SPECS</p>
+            <div className="space-y-1">
+              {order.album_cover && <p>Album Cover: <span className="field-med">{order.album_cover}</span></p>}
+              {order.album_pages && <p>Pages: <span className="field-med">{order.album_pages}</span></p>}
+              {order.parent_album_cover && <p>Parent Cover: <span className="field-med">{order.parent_album_cover}</span></p>}
+            </div>
+          </div>
         </div>
 
         <div className="divider" />
 
-        <p className="font-bold">BRIDE &amp; GROOM ALBUM</p>
-        <div className="mt-2 space-y-1">
-          <p>Quantity: <span className="field-med">{bg}</span></p>
-          <p>Size: <span className="field-med">{bgSize}</span></p>
-          <p># of Spreads: <span className="field-med">{bgSpreads}</span></p>
-          <p># of Images: <span className="field-med">{bgImages}</span></p>
-          <p>Cover Type: <span className="field-med">{bgCover}</span></p>
+        <p className="font-bold mb-2">FINANCIALS</p>
+        <div className="space-y-1">
+          <p>Retail Value: $<span className="field-med">{retailValue.toLocaleString()}</span></p>
+          <p>Discount: -$<span className="field-med">{discount.toLocaleString()}</span></p>
+          <p>Sale Price: $<span className="field-med">{salePrice.toLocaleString()}</span></p>
         </div>
-
-        <div className="divider" />
-
-        <p className="font-bold">PARENT ALBUMS</p>
-        <div className="mt-2 space-y-1">
-          <p>Quantity: <span className="field-med">{pQty}</span></p>
-          <p>Size: <span className="field-med">{pSize}</span></p>
-          <p># of Spreads: <span className="field-med">{pSpreads}</span></p>
-          <p># of Images: <span className="field-med">{pImages}</span></p>
-          <p>Cover Type: <span className="field-med">{pCover}</span></p>
-        </div>
-
-        <div className="divider" />
-
-        <p className="text-xs">*Omakase style if album purchased &amp; $500 print credit</p>
 
         <div className="divider" />
 
