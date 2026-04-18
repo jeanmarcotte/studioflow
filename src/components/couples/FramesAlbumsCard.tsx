@@ -62,20 +62,10 @@ export function FramesAlbumsCard({ items, specs, financials }: FramesAlbumsProps
           <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 pb-2 border-b-2 border-indigo-500">
             Financials
           </h4>
-          <dl className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-gray-500">Retail Value</dt>
-              <dd className="text-gray-900 font-medium">${financials.retailValue.toLocaleString()}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-500">Discount</dt>
-              <dd className="text-red-600 font-medium">-${financials.discount.toLocaleString()}</dd>
-            </div>
-            <div className="flex justify-between pt-3 border-t mt-3">
-              <dt className="text-gray-700 font-medium">Sale Price</dt>
-              <dd className="text-gray-900 font-medium">${financials.salePrice.toLocaleString()}</dd>
-            </div>
-          </dl>
+          <div className="text-center">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Package Price</p>
+            <p className="text-2xl font-semibold text-gray-900">${financials.salePrice.toLocaleString()}</p>
+          </div>
         </div>
       </div>
     </div>

@@ -15,9 +15,8 @@ import { ClientJourney } from '@/components/couples/ClientJourney'
 import { ContractPackageCard } from '@/components/couples/ContractPackageCard'
 import { FramesAlbumsCard } from '@/components/couples/FramesAlbumsCard'
 import { ExtrasCard } from '@/components/couples/ExtrasCard'
-import { FormsCard } from '@/components/couples/FormsCard'
 import { FinanceCard } from '@/components/couples/FinanceCard'
-import { DocumentsCard } from '@/components/couples/DocumentsCard'
+import { CoupleResourcesCard } from '@/components/couples/CoupleResourcesCard'
 import { WeddingDayItinerary } from '@/components/couples/WeddingDayItinerary'
 import { buildPhases, countMilestones } from '@/lib/milestones'
 
@@ -32,7 +31,8 @@ export default function CoupleDetailPage() {
   const [milestones, setMilestones] = useState<any>(null)
   const [assignment, setAssignment] = useState<any>(null)
   const [payments, setPayments] = useState<any[]>([])
-  const [installments, setInstallments] = useState<any[]>([])
+  const [contractInstallments, setContractInstallments] = useState<any[]>([])
+  const [extrasInstallments, setExtrasInstallments] = useState<any[]>([])
   const [extrasOrders, setExtrasOrders] = useState<any[]>([])
   const [clientExtras, setClientExtras] = useState<any[]>([])
   const [weddingDayForm, setWeddingDayForm] = useState<any>(null)
@@ -84,21 +84,33 @@ export default function CoupleDetailPage() {
           .order('payment_date')
         setPayments(paymentsData || [])
 
+        // Fetch contract installments (C1)
         if (contractData?.[0]?.id) {
-          const { data: installmentsData } = await supabase
+          const { data: contractInstData } = await supabase
             .from('contract_installments')
             .select('*')
             .eq('contract_id', contractData[0].id)
-            .order('installment_number')
-          setInstallments(installmentsData || [])
+            .order('installment_number', { ascending: true })
+          setContractInstallments(contractInstData || [])
         }
 
+        // Fetch extras orders
         const { data: extrasData } = await supabase
           .from('extras_orders')
           .select('*')
           .eq('couple_id', coupleId)
           .order('order_date')
         setExtrasOrders(extrasData || [])
+
+        // Fetch extras installments (C2)
+        if (extrasData?.[0]?.id) {
+          const { data: extrasInstData } = await supabase
+            .from('extras_installments')
+            .select('*')
+            .eq('extras_order_id', extrasData[0].id)
+            .order('installment_number', { ascending: true })
+          setExtrasInstallments(extrasInstData || [])
+        }
 
         const { data: clientExtrasData } = await supabase
           .from('client_extras')
@@ -207,28 +219,6 @@ export default function CoupleDetailPage() {
     }
   ].filter(line => line.invoiced > 0)
 
-  // Combined installments
-  const allInstallments = [
-    ...installments.map((i: any) => ({ ...i, source: 'contract' as const })),
-  ].sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? ''))
-
-  // Forms status (for FormsCard — kept for backwards compat)
-  const forms = [
-    {
-      name: 'Wedding Day Form',
-      status: (weddingDayForm ? 'complete' : 'awaiting') as 'complete' | 'awaiting' | 'na',
-      viewUrl: weddingDayForm ? `/admin/wedding-day/forms/${weddingDayForm.id}/print` : undefined
-    },
-    {
-      name: 'Photo Order Form',
-      status: (ms.m24_photo_order_in ? 'complete' : 'awaiting') as 'complete' | 'awaiting' | 'na',
-    },
-    {
-      name: 'Video Order Form',
-      status: (couple.package_type === 'photo_only' ? 'na' : ms.m25_video_order_in ? 'complete' : 'awaiting') as 'complete' | 'awaiting' | 'na',
-    }
-  ]
-
   // Extras order (first one = frames & albums)
   const extrasOrder = extrasOrders[0]
   const extrasItems: Record<string, string> = extrasOrder?.items && typeof extrasOrder.items === 'object'
@@ -254,9 +244,48 @@ export default function CoupleDetailPage() {
     contract?.loc_reception && 'Reception'
   ].filter(Boolean).join(', ') || 'Not specified'
 
+  // Build resources array
+  const resources = [
+    {
+      label: 'Contract (C1)',
+      href: contract?.id ? `/admin/contracts/${contract.id}/view` : null,
+      exists: !!contract
+    },
+    {
+      label: 'Frames & Albums (C2)',
+      href: extrasOrder ? `/admin/albums/${coupleId}/view` : null,
+      exists: !!extrasOrder
+    },
+    {
+      label: 'Extras (C3)',
+      href: clientExtras && clientExtras.length > 0 ? `/admin/extras/${coupleId}/view` : null,
+      exists: clientExtras && clientExtras.length > 0
+    },
+    {
+      label: 'Wedding Day Form',
+      href: weddingDayForm?.id ? `/admin/wedding-day/forms/${weddingDayForm.id}/print` : null,
+      exists: !!weddingDayForm
+    },
+    {
+      label: 'Photo Order',
+      href: null,
+      exists: false
+    },
+    {
+      label: 'Video Order',
+      href: videoOrder?.id ? `/admin/video-orders/${videoOrder.id}` : null,
+      exists: !!videoOrder?.submitted_at
+    },
+    {
+      label: 'Couple Portal',
+      href: null,
+      exists: false
+    }
+  ]
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Q03 — Header */}
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      {/* 1. Header */}
       <CoupleHeader
         coupleName={coupleName}
         packageType={packageType}
@@ -268,7 +297,7 @@ export default function CoupleDetailPage() {
         bookedDate={bookedDate}
       />
 
-      {/* Q03b — Info Grid */}
+      {/* 2. Info Grid */}
       <div className="grid grid-cols-3 gap-6 border rounded-lg p-6">
         <InfoGrid
           title="Couple"
@@ -297,7 +326,7 @@ export default function CoupleDetailPage() {
         />
       </div>
 
-      {/* Q04 — Team + Notes (2 col) */}
+      {/* 3. Team + Notes (2 col) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TeamCard assignment={assignment} />
         <NotesCard
@@ -309,32 +338,20 @@ export default function CoupleDetailPage() {
         />
       </div>
 
-      {/* Q05 — Client Journey */}
+      {/* 4. Client Journey */}
       <ClientJourney
         phases={journeyPhases}
         totalMilestones={totalMilestones}
         completedMilestones={completedMilestones}
       />
 
-      {/* Q06 — Forms + Itinerary (2 col) */}
+      {/* 5. Couple Resources + Itinerary (2 col) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DocumentsCard
-          coupleId={coupleId}
-          formsStatus={{
-            weddingDayForm: {
-              submitted: !!weddingDayForm,
-              formId: weddingDayForm?.id
-            },
-            videoOrderForm: {
-              submitted: !!videoOrder?.submitted_at,
-              formId: videoOrder?.id
-            }
-          }}
-        />
+        <CoupleResourcesCard resources={resources} />
         <WeddingDayItinerary formData={weddingDayForm} />
       </div>
 
-      {/* Q07 — Finance */}
+      {/* 6. Finance */}
       <FinanceCard
         lines={financeLines}
         totalInvoiced={totalInvoiced}
@@ -342,10 +359,12 @@ export default function CoupleDetailPage() {
         balanceDue={balanceDue}
         coupleId={coupleId}
         payments={payments}
-        installments={allInstallments}
+        contractInstallments={contractInstallments}
+        extrasInstallments={extrasInstallments}
+        hasExtrasOrder={!!extrasOrder}
       />
 
-      {/* Q08 — C1 Contract Package */}
+      {/* 7. C1 Contract Package */}
       {contract && (
         <ContractPackageCard
           signedDate={signedDate}
@@ -380,7 +399,7 @@ export default function CoupleDetailPage() {
         />
       )}
 
-      {/* Q09 — C2 Frames & Albums */}
+      {/* 8. C2 Frames & Albums */}
       {extrasOrder && (
         <FramesAlbumsCard
           items={extrasItems}
@@ -393,7 +412,7 @@ export default function CoupleDetailPage() {
         />
       )}
 
-      {/* Q10 — C3 Extras */}
+      {/* 9. C3 Extras */}
       {clientExtras && clientExtras.length > 0 && (
         <ExtrasCard extras={clientExtras} />
       )}

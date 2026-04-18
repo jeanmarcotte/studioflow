@@ -30,7 +30,6 @@ interface Installment {
   amount: number
   due_date: string
   paid?: boolean
-  source: 'contract' | 'extras'
 }
 
 interface FinanceCardProps {
@@ -40,7 +39,9 @@ interface FinanceCardProps {
   balanceDue: number
   coupleId: string
   payments: Payment[]
-  installments: Installment[]
+  contractInstallments: Installment[]
+  extrasInstallments: Installment[]
+  hasExtrasOrder: boolean
 }
 
 export function FinanceCard({
@@ -50,10 +51,13 @@ export function FinanceCard({
   balanceDue,
   coupleId,
   payments,
-  installments
+  contractInstallments,
+  extrasInstallments,
+  hasExtrasOrder
 }: FinanceCardProps) {
   const [paymentsOpen, setPaymentsOpen] = useState(false)
-  const [installmentsOpen, setInstallmentsOpen] = useState(false)
+  const [contractInstallmentsOpen, setContractInstallmentsOpen] = useState(false)
+  const [extrasInstallmentsOpen, setExtrasInstallmentsOpen] = useState(false)
 
   return (
     <Card>
@@ -104,7 +108,7 @@ export function FinanceCard({
             <DialogTrigger render={<Button variant="outline" size="sm" />}>
               View payments
             </DialogTrigger>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="w-[90vw] max-w-4xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Payment History</DialogTitle>
               </DialogHeader>
@@ -153,16 +157,16 @@ export function FinanceCard({
             </DialogContent>
           </Dialog>
 
-          {/* View Installments Popup */}
-          <Dialog open={installmentsOpen} onOpenChange={setInstallmentsOpen}>
+          {/* Original Installments (C1) */}
+          <Dialog open={contractInstallmentsOpen} onOpenChange={setContractInstallmentsOpen}>
             <DialogTrigger render={<Button variant="outline" size="sm" />}>
-              View installments
+              Original Installments
             </DialogTrigger>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="w-[90vw] max-w-4xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Payment Schedule</DialogTitle>
+                <DialogTitle>Original Installments (C1 Contract)</DialogTitle>
               </DialogHeader>
-              {installments.length === 0 ? (
+              {contractInstallments.length === 0 ? (
                 <p className="text-gray-500 py-8 text-center">No installments scheduled</p>
               ) : (
                 <div className="overflow-x-auto">
@@ -172,25 +176,72 @@ export function FinanceCard({
                         <th className="text-center p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider w-12">#</th>
                         <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Description</th>
                         <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Due Date</th>
-                        <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Source</th>
                         <th className="text-right p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
                         <th className="text-center p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {installments.map((inst) => (
+                      {contractInstallments.map((inst) => (
                         <tr key={inst.id} className="hover:bg-gray-50">
                           <td className="p-3 text-sm text-center text-gray-500">{inst.installment_number}</td>
                           <td className="p-3 text-sm text-gray-900">{inst.due_description}</td>
                           <td className="p-3 text-sm text-gray-600 whitespace-nowrap">
                             {inst.due_date ? new Date(inst.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                           </td>
-                          <td className="p-3 text-sm">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              inst.source === 'contract' ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700'
-                            }`}>
-                              {inst.source === 'contract' ? 'C1' : 'C2'}
-                            </span>
+                          <td className="p-3 text-sm text-right font-semibold text-gray-900">${Number(inst.amount).toLocaleString()}</td>
+                          <td className="p-3 text-center">
+                            {inst.paid ? (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Paid</span>
+                            ) : (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Pending</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* C2 Installments */}
+          <Dialog open={extrasInstallmentsOpen} onOpenChange={setExtrasInstallmentsOpen}>
+            <DialogTrigger render={
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!hasExtrasOrder}
+                className={!hasExtrasOrder ? 'opacity-50 cursor-not-allowed' : ''}
+              />
+            }>
+              C2 Installments
+            </DialogTrigger>
+            <DialogContent className="w-[90vw] max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>C2 Installments (Frames & Albums)</DialogTitle>
+              </DialogHeader>
+              {extrasInstallments.length === 0 ? (
+                <p className="text-gray-500 py-8 text-center">No C2 installments scheduled</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-center p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider w-12">#</th>
+                        <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Description</th>
+                        <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Due Date</th>
+                        <th className="text-right p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
+                        <th className="text-center p-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {extrasInstallments.map((inst) => (
+                        <tr key={inst.id} className="hover:bg-gray-50">
+                          <td className="p-3 text-sm text-center text-gray-500">{inst.installment_number}</td>
+                          <td className="p-3 text-sm text-gray-900">{inst.due_description}</td>
+                          <td className="p-3 text-sm text-gray-600 whitespace-nowrap">
+                            {inst.due_date ? new Date(inst.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                           </td>
                           <td className="p-3 text-sm text-right font-semibold text-gray-900">${Number(inst.amount).toLocaleString()}</td>
                           <td className="p-3 text-center">
