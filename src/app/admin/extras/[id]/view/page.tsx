@@ -8,6 +8,23 @@ import { Button } from '@/components/ui/button'
 import { format, parseISO } from 'date-fns'
 import Image from 'next/image'
 
+function display(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return 'n/a'
+  return String(value)
+}
+
+function currency(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === '') return 'n/a'
+  const num = typeof value === 'string' ? parseFloat(value) : value
+  if (isNaN(num)) return 'n/a'
+  return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return 'n/a'
+  return format(parseISO(value), 'MMMM do, yyyy')
+}
+
 export default function ExtrasViewPage() {
   const params = useParams()
   const id = params.id as string
@@ -64,7 +81,7 @@ export default function ExtrasViewPage() {
     )
   }
 
-  const coupleName = couple?.couple_name || '___'
+  const coupleName = display(couple?.couple_name)
   const contract = Array.isArray(couple?.contracts) ? couple.contracts[0] : couple?.contracts
   const weddingDateStr = couple?.wedding_date
     ? (() => {
@@ -72,7 +89,14 @@ export default function ExtrasViewPage() {
         const day = contract?.day_of_week?.toUpperCase() || format(d, 'EEEE').toUpperCase()
         return `${day} ${format(d, 'MMMM do, yyyy')}`
       })()
-    : '___'
+    : 'n/a'
+
+  // Earliest invoice_date across all rows
+  const earliestInvoiceDate = extras
+    .map(e => e.invoice_date)
+    .filter(Boolean)
+    .sort()[0]
+  const signedDateStr = formatDate(earliestInvoiceDate)
 
   const grandTotal = extras.reduce((sum, item) => sum + Number(item.total || 0), 0)
 
@@ -82,7 +106,7 @@ export default function ExtrasViewPage() {
       <div className="no-print fixed top-4 right-4 z-50">
         <Button onClick={() => window.print()} className="bg-teal-600 hover:bg-teal-700">
           <Printer className="w-4 h-4 mr-2" />
-          Print
+          Print Page
         </Button>
       </div>
 
@@ -92,11 +116,6 @@ export default function ExtrasViewPage() {
           font-size: 13px;
           line-height: 1.7;
           color: #000;
-        }
-        .contract-header {
-          font-family: 'Georgia', serif;
-          font-size: 18px;
-          font-weight: bold;
         }
         .field-wide {
           border-bottom: 1px solid #000;
@@ -119,17 +138,19 @@ export default function ExtrasViewPage() {
         {/* Header */}
         <div className="flex justify-between items-start mb-2">
           <div>
-            <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} className="mb-1" />
-            <div className="contract-header">SIGS Photography Ltd.</div>
+            <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} />
           </div>
           <div className="text-right text-sm">Page | 1</div>
         </div>
         <div className="divider" />
 
-        <p className="font-bold text-base mt-4 mb-4">EXTRAS ORDER</p>
+        <div className="text-center my-6 pb-4 border-b border-black">
+          EXTRAS ORDER
+        </div>
 
         <p>Couple: <span className="field-wide">{coupleName}</span></p>
         <p>Wedding Date: <span className="field-wide">{weddingDateStr}</span></p>
+        <p>Signed Date: <span className="field-wide">{signedDateStr}</span></p>
 
         <div className="divider" />
 
@@ -149,37 +170,21 @@ export default function ExtrasViewPage() {
           <tbody>
             {extras.map((item) => (
               <tr key={item.id} className="border-b border-gray-300">
-                <td className="py-1 pr-4">{item.item_type || '—'}</td>
-                <td className="py-1 pr-4">{item.description || '—'}</td>
-                <td className="py-1 pr-4 text-center">{item.quantity ?? '—'}</td>
-                <td className="py-1 pr-4 text-right">${Number(item.unit_price || 0).toLocaleString()}</td>
-                <td className="py-1 text-right">${Number(item.total || 0).toLocaleString()}</td>
+                <td className="py-1 pr-4">{display(item.item_type)}</td>
+                <td className="py-1 pr-4">{display(item.description)}</td>
+                <td className="py-1 pr-4 text-center">{item.quantity === null || item.quantity === undefined ? 'n/a' : item.quantity}</td>
+                <td className="py-1 pr-4 text-right">{currency(item.unit_price)}</td>
+                <td className="py-1 text-right">{currency(item.total)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="border-t-2 border-black">
               <td colSpan={4} className="py-2 text-right font-bold pr-4">TOTAL:</td>
-              <td className="py-2 text-right font-bold">${grandTotal.toLocaleString()}</td>
+              <td className="py-2 text-right font-bold">{currency(grandTotal)}</td>
             </tr>
           </tfoot>
         </table>
-
-        <div className="divider" />
-
-        <p className="mt-12 mb-12">All terms of this agreement are understood and agreed upon.</p>
-
-        <div className="flex justify-between mt-16">
-          <div>
-            <div className="border-b border-black w-64 mb-2" />
-            <p>Jean Marcotte</p>
-            <p className="text-xs text-gray-500">SIGS Photography Ltd.</p>
-          </div>
-          <div>
-            <div className="border-b border-black w-64 mb-2" />
-            <p>Client Signature</p>
-          </div>
-        </div>
       </div>
     </div>
   )
