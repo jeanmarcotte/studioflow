@@ -1,69 +1,64 @@
-'use client';
-
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-
-interface ClientExtra {
-  id: string;
-  item_type: string | null;
-  description: string | null;
-  quantity: number | null;
-  total: string | number | null;
-  status: string | null;
+interface ExtraItem {
+  id: string
+  item_type: string
+  description: string
+  quantity: number
+  unit_price: number
+  subtotal: number
+  hst: number
+  total: number
+  invoice_date: string
+  status: string
 }
 
 interface ExtrasCardProps {
-  clientExtras: ClientExtra[];
+  extras: ExtraItem[]
+  coupleName: string
 }
 
-const fmt = (amount: number) =>
-  new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(amount);
+export function ExtrasCard({ extras, coupleName }: ExtrasCardProps) {
+  if (!extras || extras.length === 0) return null
 
-export function ExtrasCard({ clientExtras }: ExtrasCardProps) {
-  if (clientExtras.length === 0) return null;
-
-  const total = clientExtras.reduce((sum, e) => sum + (parseFloat(String(e.total || '0')) || 0), 0);
+  const totalAmount = extras.reduce((sum, item) => sum + Number(item.total), 0)
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-4">
-      {/* Green banner header — matches Contract Package and Frames & Albums */}
-      <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white px-5 py-4 flex justify-between items-center">
-        <h3 className="font-semibold">C3 — Client Extras</h3>
-        <span className="font-mono font-bold text-lg">{fmt(total)}</span>
+    <div className="border rounded-lg overflow-hidden">
+      {/* Header */}
+      <div className="bg-teal-600 px-5 py-4 flex justify-between items-center">
+        <span className="text-white font-medium">Extras (C3)</span>
+        <span className="text-white font-medium text-lg">${totalAmount.toLocaleString()}</span>
       </div>
 
-      <div className="p-5">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Type</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="text-center">Qty</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {clientExtras.map((ext) => (
-              <TableRow key={ext.id}>
-                <TableCell className="font-medium">{ext.item_type || '—'}</TableCell>
-                <TableCell>{ext.description || '—'}</TableCell>
-                <TableCell className="text-center">{ext.quantity ?? '—'}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {fmt(parseFloat(String(ext.total || '0')) || 0)}
-                </TableCell>
-                <TableCell>
-                  {ext.status ? (
-                    <Badge variant="secondary">{ext.status}</Badge>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">—</span>
-                  )}
-                </TableCell>
-              </TableRow>
+      {/* Items Table */}
+      <div className="p-4">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase">Item</th>
+              <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase">Description</th>
+              <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase">Qty</th>
+              <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase">Unit Price</th>
+              <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {extras.map((item) => (
+              <tr key={item.id} className="border-b last:border-0">
+                <td className="py-3 text-gray-900">{item.item_type}</td>
+                <td className="py-3 text-gray-600">{item.description}</td>
+                <td className="py-3 text-right text-gray-900">{item.quantity}</td>
+                <td className="py-3 text-right text-gray-900">${Number(item.unit_price).toLocaleString()}</td>
+                <td className="py-3 text-right text-gray-900 font-medium">${Number(item.total).toLocaleString()}</td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer */}
+      <div className="px-4 py-3 bg-gray-50 border-t">
+        <span className="text-sm text-gray-500">{coupleName}</span>
       </div>
     </div>
-  );
+  )
 }

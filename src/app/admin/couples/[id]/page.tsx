@@ -14,6 +14,7 @@ import { NotesCard } from '@/components/couples/NotesCard'
 import { ClientJourney } from '@/components/couples/ClientJourney'
 import { ContractPackageCard } from '@/components/couples/ContractPackageCard'
 import { FramesAlbumsCard } from '@/components/couples/FramesAlbumsCard'
+import { ExtrasCard } from '@/components/couples/ExtrasCard'
 import { FormsCard } from '@/components/couples/FormsCard'
 import { FinanceCard } from '@/components/couples/FinanceCard'
 import { DocumentsCard } from '@/components/couples/DocumentsCard'
@@ -32,6 +33,7 @@ export default function CoupleDetailPage() {
   const [payments, setPayments] = useState<any[]>([])
   const [installments, setInstallments] = useState<any[]>([])
   const [extrasOrders, setExtrasOrders] = useState<any[]>([])
+  const [clientExtras, setClientExtras] = useState<any[]>([])
   const [weddingDayForm, setWeddingDayForm] = useState<any>(null)
 
   useEffect(() => {
@@ -95,6 +97,13 @@ export default function CoupleDetailPage() {
           .eq('couple_id', coupleId)
           .order('order_date')
         setExtrasOrders(extrasData || [])
+
+        const { data: clientExtrasData } = await supabase
+          .from('client_extras')
+          .select('*')
+          .eq('couple_id', coupleId)
+          .order('invoice_date')
+        setClientExtras(clientExtrasData || [])
 
         const { data: formData } = await supabase
           .from('wedding_day_forms')
@@ -179,7 +188,8 @@ export default function CoupleDetailPage() {
   // Finance calculations
   const contractTotal = parseFloat(couple.contract_total || '0')
   const c2Total = extrasOrders.reduce((sum: number, o: any) => sum + parseFloat(o.extras_sale_amount || '0'), 0)
-  const totalInvoiced = contractTotal + c2Total
+  const c3Total = clientExtras.reduce((sum: number, e: any) => sum + parseFloat(String(e.total || '0')), 0)
+  const totalInvoiced = contractTotal + c2Total + c3Total
   const totalReceived = payments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || '0'), 0)
   const balanceDue = totalInvoiced - totalReceived
 
@@ -193,10 +203,21 @@ export default function CoupleDetailPage() {
     {
       label: 'C2 Frames & Albums',
       invoiced: c2Total,
-      received: Math.max(totalReceived - contractTotal, 0),
-      balance: c2Total - Math.max(totalReceived - contractTotal, 0)
+      received: Math.max(Math.min(totalReceived - contractTotal, c2Total), 0),
+      balance: c2Total - Math.max(Math.min(totalReceived - contractTotal, c2Total), 0)
+    },
+    {
+      label: 'C3 Extras',
+      invoiced: c3Total,
+      received: 0,
+      balance: c3Total
     }
-  ]
+  ].filter(line => line.invoiced > 0)
+
+  // Combined installments for popup
+  const allInstallments = [
+    ...installments.map((i: any) => ({ ...i, source: 'contract' as const })),
+  ].sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? ''))
 
   // Forms status
   const forms = [
@@ -238,20 +259,22 @@ export default function CoupleDetailPage() {
   // Documents
   const documents = [
     {
-      name: 'Wedding Day Form PDF',
-      status: (weddingDayForm ? 'available' : 'unavailable') as 'available' | 'generating' | 'unavailable',
-      generateAction: weddingDayForm ? () => {
-        window.open(`/api/wedding-form-pdf/${coupleId}`, '_blank')
-      } : undefined,
-      unavailableReason: 'No form submitted'
+      name: 'Wedding Contract',
+      status: (contract ? 'available' : 'unavailable') as 'available' | 'generating' | 'unavailable',
+      printUrl: `/admin/contracts/${coupleId}/print`,
+      unavailableReason: 'No contract found'
     },
     {
-      name: 'Contract PDF',
-      status: (contract ? 'available' : 'unavailable') as 'available' | 'generating' | 'unavailable',
-      generateAction: contract ? () => {
-        window.open(`/api/contract-pdf/${coupleId}`, '_blank')
-      } : undefined,
-      unavailableReason: 'No contract'
+      name: 'Frames & Albums',
+      status: (extrasOrder ? 'available' : 'unavailable') as 'available' | 'generating' | 'unavailable',
+      printUrl: `/admin/extras/${coupleId}/print`,
+      unavailableReason: 'Nothing purchased yet'
+    },
+    {
+      name: 'Wedding Day Form',
+      status: (weddingDayForm ? 'available' : 'unavailable') as 'available' | 'generating' | 'unavailable',
+      printUrl: weddingDayForm ? `/admin/wedding-day/forms/${weddingDayForm.id}/print` : undefined,
+      unavailableReason: 'Form not submitted'
     }
   ]
 
@@ -325,6 +348,8 @@ export default function CoupleDetailPage() {
         totalReceived={totalReceived}
         balanceDue={balanceDue}
         coupleId={coupleId}
+        payments={payments}
+        installments={allInstallments}
       />
 
       {/* Contract Package */}
@@ -370,8 +395,16 @@ export default function CoupleDetailPage() {
         />
       )}
 
+      {/* C3 Extras */}
+      {clientExtras && clientExtras.length > 0 && (
+        <ExtrasCard
+          extras={clientExtras}
+          coupleName={coupleName}
+        />
+      )}
+
       {/* Documents */}
-      <DocumentsCard documents={documents} />
+      <DocumentsCard coupleId={coupleId} documents={documents} />
     </div>
   )
 }
