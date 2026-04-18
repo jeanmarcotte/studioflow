@@ -71,6 +71,15 @@ export function formatTimelineDate(date: string | Date | null | undefined): stri
   return format(parsed, 'MMM d');
 }
 
+/** Short wedding date with DOW — "FRI Apr 24": for widget displays */
+export function formatWeddingDateShort(date: string | Date | null | undefined): string {
+  const parsed = parseDateSafe(date);
+  if (!parsed) return '—';
+  const dow = format(parsed, 'EEE').toUpperCase();
+  const monthDay = format(parsed, 'MMM d');
+  return `${dow} ${monthDay}`;
+}
+
 /** Currency — "$5,300" or "$5,300.00" */
 export function formatCurrency(amount: number | string | null | undefined): string {
   if (amount === null || amount === undefined || amount === '') return '$0';

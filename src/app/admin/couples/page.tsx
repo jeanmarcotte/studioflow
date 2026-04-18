@@ -6,7 +6,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { supabase } from '@/lib/supabase'
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
 import { Users, Search, Calendar, AlertTriangle } from 'lucide-react'
-import { formatCurrency } from '@/lib/formatters'
+import { formatCurrency, formatWeddingDateShort } from '@/lib/formatters'
 import Link from 'next/link'
 import { HistoricalCouplesArchive } from '@/components/couples/HistoricalCouplesArchive'
 
@@ -106,6 +106,8 @@ function daysBetween(from: Date, to: Date): number {
 export default function CouplesPage() {
   const router = useRouter()
   const [couples, setCouples] = useState<CoupleRow[]>([])
+  const [upcomingWeddings, setUpcomingWeddings] = useState<{ bride_first_name: string; groom_first_name: string; wedding_date: string }[]>([])
+  const [pendingEngCount, setPendingEngCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [yearFilter, setYearFilter] = useState<number | 'all'>(2026)
@@ -113,10 +115,13 @@ export default function CouplesPage() {
 
   useEffect(() => {
     const fetchCouples = async () => {
-      const [couplesRes, financialsRes, paymentCountsRes, milestonesRes] = await Promise.all([
+      const today = new Date().toISOString().split('T')[0]
+      const in14 = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+      const [couplesRes, financialsRes, paymentCountsRes, milestonesRes, upcomingRes] = await Promise.all([
         supabase
           .from('couples')
-          .select('id, couple_name, wedding_date, wedding_year, package_type, contracts(reception_venue)')
+          .select('id, couple_name, wedding_date, wedding_year, package_type, status, contracts(reception_venue)')
           .order('wedding_date', { ascending: true }),
         supabase
           .from('couple_financial_summary')
@@ -127,6 +132,12 @@ export default function CouplesPage() {
         supabase
           .from('couple_milestones')
           .select('couple_id, m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_sale_results_pdf, m11_no_sale, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in'),
+        supabase
+          .from('couples')
+          .select('bride_first_name, groom_first_name, wedding_date')
+          .gte('wedding_date', today)
+          .lte('wedding_date', in14)
+          .order('wedding_date', { ascending: true }),
       ])
 
       // Map financials from VIEW
@@ -153,7 +164,25 @@ export default function CouplesPage() {
         }
       }
 
+      // Set upcoming weddings for Next 14 Days widget
+      setUpcomingWeddings((upcomingRes.data || []).map((r: any) => ({
+        bride_first_name: r.bride_first_name || '',
+        groom_first_name: r.groom_first_name || '',
+        wedding_date: r.wedding_date,
+      })))
+
       if (!couplesRes.error && couplesRes.data) {
+        // Compute pending eng count: booked couples without m06_eng_session_shot and not declined
+        const bookedCouples = couplesRes.data.filter((r: any) => r.status === 'booked')
+        let pendingCount = 0
+        bookedCouples.forEach((r: any) => {
+          const ms = milestonesMap[r.id]
+          if (!(ms?.m06_eng_session_shot ?? false) && !(ms?.m06_declined ?? false)) {
+            pendingCount++
+          }
+        })
+        setPendingEngCount(pendingCount)
+
         setCouples(couplesRes.data.map((row: any) => {
           const contract = Array.isArray(row.contracts) ? row.contracts[0] : row.contracts
           const ms = milestonesMap[row.id]
@@ -442,8 +471,18 @@ export default function CouplesPage() {
               <Calendar className="h-4 w-4 text-amber-500" />
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Next 14 Days</h3>
             </div>
-            <div className="text-3xl font-bold text-amber-600">{stats.next14}</div>
-            <div className="text-xs text-muted-foreground mt-1">upcoming weddings</div>
+            <div className="text-xs text-muted-foreground mb-2">{upcomingWeddings.length} upcoming</div>
+            {upcomingWeddings.length === 0 ? (
+              <div className="text-xs text-muted-foreground">No weddings in next 14 days</div>
+            ) : (
+              <div className="space-y-0.5">
+                {upcomingWeddings.map((w, i) => (
+                  <div key={i} className="text-sm">
+                    {formatWeddingDateShort(w.wedding_date)} — {w.bride_first_name} & {w.groom_first_name}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Pending Engagements */}
@@ -452,7 +491,7 @@ export default function CouplesPage() {
               <Users className="h-4 w-4 text-indigo-500" />
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pending Eng.</h3>
             </div>
-            <div className="text-3xl font-bold text-indigo-600">{stats.pendingEng}</div>
+            <div className="text-3xl font-bold text-indigo-600">{pendingEngCount}</div>
             <div className="text-xs text-muted-foreground mt-1">not yet shot</div>
           </div>
 
