@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Loader2 } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
 import { format, differenceInDays, parseISO } from 'date-fns'
 
@@ -348,7 +349,18 @@ export default function CoupleDetailPage() {
       {/* 5. Couple Resources + Itinerary (2 col) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CoupleResourcesCard resources={resources} />
-        <WeddingDayItinerary formData={weddingDayForm} />
+        {weddingDayForm ? (
+          <WeddingDayItinerary formData={weddingDayForm} />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Wedding Day Itinerary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-500 italic">No wedding day form submitted yet</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* 6. Finance */}

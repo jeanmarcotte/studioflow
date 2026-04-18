@@ -116,7 +116,7 @@ export default function ContractViewPage() {
       <div className="no-print fixed top-4 right-4 z-50">
         <Button onClick={() => window.print()} className="bg-teal-600 hover:bg-teal-700">
           <Printer className="w-4 h-4 mr-2" />
-          Print Contract
+          Print Page
         </Button>
       </div>
 
