@@ -69,7 +69,8 @@ export function buildPhases(milestoneData: Record<string, boolean>) {
 }
 
 export function countMilestones(milestoneData: Record<string, boolean>) {
-  const total = MILESTONE_PHASES.reduce((acc, phase) => acc + phase.milestones.length, 0)
-  const completed = Object.values(milestoneData).filter(Boolean).length
+  const allKeys = MILESTONE_PHASES.flatMap(phase => phase.milestones.map(m => m.key))
+  const total = allKeys.length
+  const completed = allKeys.filter(key => milestoneData[key] === true).length
   return { total, completed }
 }
