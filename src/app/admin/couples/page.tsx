@@ -303,9 +303,9 @@ export default function CouplesPage() {
       accessorKey: "couple_name",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
       cell: ({ row }) => (
-        <span className={`font-medium ${row.original.is_shot ? '' : ''}`}>
+        <Link href={`/admin/couples/${row.original.id}`} className="text-blue-600 hover:underline font-medium">
           {row.original.couple_name}
-        </span>
+        </Link>
       ),
     },
     {
@@ -513,7 +513,6 @@ export default function CouplesPage() {
           <DataTable
             columns={columns}
             data={filtered}
-            onRowClick={(row) => router.push(`/admin/couples/${row.id}`)}
             emptyMessage="No couples found matching your filters."
             pageSize={50}
             rowClassName={(row) => row.is_shot ? 'bg-gray-50/80 text-gray-400 [&_span]:text-gray-400' : ''}
