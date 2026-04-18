@@ -61,9 +61,9 @@ export function PickupSlipCard({ coupleId, coupleName }: PickupSlipCardProps) {
 
   return (
     <Card>
-      <CardHeader className="bg-gray-800 text-white rounded-t-lg">
-        <CardTitle className="flex items-center gap-2">
-          <Printer className="h-5 w-5" />
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-medium flex items-center gap-2">
+          <Printer className="h-5 w-5 text-teal-600" />
           Client Pickup Slip
         </CardTitle>
       </CardHeader>
@@ -98,6 +98,7 @@ export function PickupSlipCard({ coupleId, coupleName }: PickupSlipCardProps) {
             <Plus className="h-4 w-4" /> Add Item
           </Button>
           <Button
+            variant="outline"
             onClick={generatePickupSlip}
             disabled={isGenerating}
             className="gap-1"
