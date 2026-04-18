@@ -265,7 +265,7 @@ export default function WeddingDayFormPrintPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-[96%] mx-auto px-2 py-4">
+      <div className="max-w-[66%] mx-auto py-6">
 
         {/* Header — Full Names */}
         <div className="text-center mb-5">
