@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
 import { Users, Search, Calendar, AlertTriangle } from 'lucide-react'
 import { formatCurrency } from '@/lib/formatters'
+import Link from 'next/link'
 import { HistoricalCouplesArchive } from '@/components/couples/HistoricalCouplesArchive'
 
 interface CoupleRow {
@@ -338,21 +339,21 @@ export default function CouplesPage() {
       accessorKey: "c1_contract",
       header: ({ column }) => <DataTableColumnHeader column={column} title="C1 Contract" />,
       cell: ({ row }) => row.original.c1_contract > 0
-        ? <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.c1_contract))}</span>
+        ? <Link href={`/admin/contracts/${row.original.id}/view`} className="text-blue-600 hover:underline" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.c1_contract))}</Link>
         : <span className="text-muted-foreground/40" style={{ textAlign: 'right', display: 'block' }}>—</span>,
     },
     {
       accessorKey: "c2_frames_albums",
       header: ({ column }) => <DataTableColumnHeader column={column} title="C2 Frames" />,
       cell: ({ row }) => row.original.c2_frames_albums > 0
-        ? <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.c2_frames_albums))}</span>
+        ? <Link href={`/admin/albums/${row.original.id}/view`} className="text-blue-600 hover:underline" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.c2_frames_albums))}</Link>
         : <span className="text-muted-foreground/40" style={{ textAlign: 'right', display: 'block' }}>—</span>,
     },
     {
       accessorKey: "c3_extras",
       header: ({ column }) => <DataTableColumnHeader column={column} title="C3 Extras" />,
       cell: ({ row }) => row.original.c3_extras > 0
-        ? <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.c3_extras))}</span>
+        ? <Link href={`/admin/extras/${row.original.id}/view`} className="text-blue-600 hover:underline" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.c3_extras))}</Link>
         : <span className="text-muted-foreground/40" style={{ textAlign: 'right', display: 'block' }}>—</span>,
     },
     {
