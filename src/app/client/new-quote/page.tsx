@@ -1334,26 +1334,7 @@ function QuoteBuilderInner() {
   // RENDER
   // ============================================================
 
-  // Guard: require ballot_id, couple_id, or id
-  if (!ballotIdParam && !editCoupleId && !clientQuoteId) {
-    return (
-      <Layout sidebarConfig={studioflowClientConfig}>
-        <div className="min-h-screen bg-muted flex items-center justify-center">
-          <div className="bg-background rounded-lg border border-border p-8 max-w-md text-center shadow-sm">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-foreground mb-2">No Lead Selected</h2>
-            <p className="text-muted-foreground mb-6">Please start a quote from BridalFlow.</p>
-            <a
-              href="https://bridalflow.vercel.app/admin"
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded font-medium hover:bg-primary/90 transition-colors"
-            >
-              Go to BridalFlow <ArrowRight className="h-4 w-4" />
-            </a>
-          </div>
-        </div>
-      </Layout>
-    )
-  }
+  // No guard — allow blank quote for walk-in clients
 
   // Ballot fetch error
   if (ballotError) {
