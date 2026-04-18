@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Loader2, Printer } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Loader2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import Image from 'next/image'
 
@@ -110,14 +109,6 @@ export default function AlbumViewPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Print Button */}
-      <div className="no-print fixed top-4 right-4 z-50">
-        <Button onClick={() => window.print()} className="bg-teal-600 hover:bg-teal-700">
-          <Printer className="w-4 h-4 mr-2" />
-          Print Page
-        </Button>
-      </div>
-
       <style jsx global>{`
         .contract-form {
           font-family: 'Courier New', Courier, monospace;
@@ -150,11 +141,18 @@ export default function AlbumViewPage() {
 
       <div className="max-w-[8.5in] mx-auto bg-white shadow-md print:shadow-none p-10 mb-8 contract-form">
         {/* Header */}
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} />
+        <div className="flex items-end justify-between mb-2">
+          <Image src="/images/sigslogo.png" alt="SIGS Photography" width={180} height={60} />
+          <div className="flex items-end gap-4">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="print:hidden font-mono text-sm tracking-wider uppercase border border-black rounded-none px-3 py-1 hover:bg-black hover:text-white transition-colors cursor-pointer"
+            >
+              [ PRINT ]
+            </button>
+            <span className="text-sm">Page | 1</span>
           </div>
-          <div className="text-right text-sm">Page | 1</div>
         </div>
         <div className="divider" />
 
