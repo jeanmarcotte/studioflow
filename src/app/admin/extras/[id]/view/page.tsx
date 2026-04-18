@@ -8,15 +8,11 @@ import { Button } from '@/components/ui/button'
 import { format, parseISO } from 'date-fns'
 import Image from 'next/image'
 
-function check(value: boolean | null | undefined): string {
-  return value ? '_✓_' : '___'
-}
-
 export default function ExtrasViewPage() {
   const params = useParams()
   const id = params.id as string
 
-  const [order, setOrder] = useState<any>(null)
+  const [extras, setExtras] = useState<any[]>([])
   const [couple, setCouple] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -24,36 +20,25 @@ export default function ExtrasViewPage() {
     async function fetchData() {
       if (!id) return
 
-      // Try as extras_orders ID first
-      let { data: orderData } = await supabase
-        .from('extras_orders')
+      // id is always a couple_id
+      const { data: extrasData } = await supabase
+        .from('client_extras')
         .select('*')
-        .eq('id', id)
-        .limit(1)
+        .eq('couple_id', id)
+        .order('invoice_date')
 
-      // If not found, try as couple_id
-      if (!orderData || orderData.length === 0) {
-        const { data: byCoupleId } = await supabase
-          .from('extras_orders')
-          .select('*')
-          .eq('couple_id', id)
-          .limit(1)
-        orderData = byCoupleId
-      }
-
-      if (!orderData || orderData.length === 0) {
+      if (!extrasData || extrasData.length === 0) {
         setLoading(false)
         return
       }
 
-      const o = orderData[0]
-      setOrder(o)
+      setExtras(extrasData)
 
       // Fetch couple info
       const { data: coupleData } = await supabase
         .from('couples')
-        .select('bride_first_name, bride_last_name, groom_first_name, groom_last_name, couple_name')
-        .eq('id', o.couple_id)
+        .select('couple_name, wedding_date, contracts(day_of_week)')
+        .eq('id', id)
         .limit(1)
       setCouple(coupleData?.[0] ?? null)
 
@@ -71,17 +56,25 @@ export default function ExtrasViewPage() {
     )
   }
 
-  if (!order) {
+  if (extras.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-500">Extras order not found</p>
+        <p className="text-gray-500">No extras found</p>
       </div>
     )
   }
 
-  const brideName = couple ? [couple.bride_first_name, couple.bride_last_name].filter(Boolean).join(' ') : '___'
-  const groomName = couple ? [couple.groom_first_name, couple.groom_last_name].filter(Boolean).join(' ') : '___'
-  const orderDateStr = order.order_date ? format(parseISO(order.order_date), 'MMMM do, yyyy') : '___'
+  const coupleName = couple?.couple_name || '___'
+  const contract = Array.isArray(couple?.contracts) ? couple.contracts[0] : couple?.contracts
+  const weddingDateStr = couple?.wedding_date
+    ? (() => {
+        const d = parseISO(couple.wedding_date)
+        const day = contract?.day_of_week?.toUpperCase() || format(d, 'EEEE').toUpperCase()
+        return `${day} ${format(d, 'MMMM do, yyyy')}`
+      })()
+    : '___'
+
+  const grandTotal = extras.reduce((sum, item) => sum + Number(item.total || 0), 0)
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -105,22 +98,10 @@ export default function ExtrasViewPage() {
           font-size: 18px;
           font-weight: bold;
         }
-        .field-med {
-          border-bottom: 1px solid #000;
-          display: inline;
-          min-width: 150px;
-          padding: 0 4px;
-        }
         .field-wide {
           border-bottom: 1px solid #000;
           display: inline-block;
           min-width: 300px;
-          padding: 0 4px;
-        }
-        .field-sm {
-          border-bottom: 1px solid #000;
-          display: inline;
-          min-width: 80px;
           padding: 0 4px;
         }
         .divider {
@@ -147,49 +128,42 @@ export default function ExtrasViewPage() {
 
         <p className="font-bold text-base mt-4 mb-4">EXTRAS ORDER</p>
 
-        <p>Order Date: <span className="field-wide">{orderDateStr}</span></p>
-        <p>Status: <span className="field-med">{order.status || '___'}</span></p>
-
-        <div className="mt-4">
-          <p>Bride&apos;s Name: <span className="field-wide">{brideName}</span></p>
-          <p>Groom&apos;s Name: <span className="field-wide">{groomName}</span></p>
-        </div>
+        <p>Couple: <span className="field-wide">{coupleName}</span></p>
+        <p>Wedding Date: <span className="field-wide">{weddingDateStr}</span></p>
 
         <div className="divider" />
 
-        <p className="font-bold">ITEMS ORDERED</p>
-        <div className="mt-2 space-y-1">
-          <p>Collage Type: <span className="field-med">{order.collage_type || '___'}</span></p>
-          <p>Collage Size: <span className="field-med">{order.collage_size || '___'}</span></p>
-          <p>Frame Color: <span className="field-med">{order.collage_frame_color || '___'}</span></p>
-          <p />
-          <p>Album Qty: <span className="field-med">{order.album_qty || '___'}</span></p>
-          <p>Album Cover: <span className="field-med">{order.album_cover || '___'}</span></p>
-          <p />
-          <p>Wedding Frame Size: <span className="field-med">{order.wedding_frame_size || '___'}</span></p>
-          <p>Wedding Frame Style: <span className="field-med">{order.wedding_frame_style || '___'}</span></p>
-          <p />
-          <p>Engagement Portrait Size: <span className="field-med">{order.eng_portrait_size || '___'}</span></p>
-          <p />
-          <p>Signing Book: <span className="field-sm">{check(order.signing_book)}</span></p>
-          <p />
-          <p>5x5 Prints (engagement): <span className="field-sm">{check(order.printed_5x5)}</span></p>
-        </div>
+        <p className="font-bold mb-3">ITEMS ORDERED</p>
 
-        <div className="divider" />
-
-        <p className="font-bold">FINANCIAL SUMMARY</p>
-        <div className="mt-2 space-y-1">
-          <p>Contract Balance Remaining: $<span className="field-med">{Number(order.contract_balance_remaining || 0).toLocaleString()}</span></p>
-          <p>Extras Sale Amount: $<span className="field-med">{Number(order.extras_sale_amount || 0).toLocaleString()}</span></p>
-          <p />
-          <p>Downpayment: $<span className="field-med">{Number(order.downpayment || 0).toLocaleString()}</span></p>
-          <p>New Balance: $<span className="field-med">{Number(order.new_balance || 0).toLocaleString()}</span></p>
-          <p />
-          <p>Number of Installments: <span className="field-med">{order.num_installments || '___'}</span></p>
-          <p>Payment Per Installment: $<span className="field-med">{Number(order.payment_per_installment || 0).toLocaleString()}</span></p>
-          <p>Last Installment Amount: $<span className="field-med">{Number(order.last_installment_amount || 0).toLocaleString()}</span></p>
-        </div>
+        {/* Table */}
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b-2 border-black">
+              <th className="text-left py-1 pr-4">Item Type</th>
+              <th className="text-left py-1 pr-4">Description</th>
+              <th className="text-center py-1 pr-4">Qty</th>
+              <th className="text-right py-1 pr-4">Unit Price</th>
+              <th className="text-right py-1">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {extras.map((item) => (
+              <tr key={item.id} className="border-b border-gray-300">
+                <td className="py-1 pr-4">{item.item_type || '—'}</td>
+                <td className="py-1 pr-4">{item.description || '—'}</td>
+                <td className="py-1 pr-4 text-center">{item.quantity ?? '—'}</td>
+                <td className="py-1 pr-4 text-right">${Number(item.unit_price || 0).toLocaleString()}</td>
+                <td className="py-1 text-right">${Number(item.total || 0).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-black">
+              <td colSpan={4} className="py-2 text-right font-bold pr-4">TOTAL:</td>
+              <td className="py-2 text-right font-bold">${grandTotal.toLocaleString()}</td>
+            </tr>
+          </tfoot>
+        </table>
 
         <div className="divider" />
 
