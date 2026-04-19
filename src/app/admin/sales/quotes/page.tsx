@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronDown, ChevronRight, FileText, Eye, Search } from 'lucide-react'
+import { ChevronDown, ChevronRight, FileText, Eye, Search, Clock } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
@@ -651,6 +652,59 @@ export default function CoupleQuotesPage() {
     },
   ], [handleStatusChange, router])
 
+  // Days pending helper
+  const getDaysPending = (apptDate: string | null) => {
+    if (!apptDate) return 0
+    return Math.floor((Date.now() - new Date(apptDate).getTime()) / (1000 * 60 * 60 * 24))
+  }
+
+  // Pending-specific columns with Days Pending badge
+  const pendingColumns: ColumnDef<SalesMeeting>[] = useMemo(() => {
+    // Insert Days Pending column before Actions (last column)
+    const cols = [...meetingColumns]
+    const actionsIdx = cols.findIndex(c => c.id === 'actions')
+    const daysPendingCol: ColumnDef<SalesMeeting> = {
+      id: 'days_pending',
+      accessorFn: (row) => getDaysPending(row.appt_date),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Days Pending" />,
+      cell: ({ row }) => {
+        const days = getDaysPending(row.original.appt_date)
+        const badgeClass = days >= 15
+          ? 'bg-red-100 text-red-700 font-semibold'
+          : days >= 8
+            ? 'bg-amber-100 text-amber-700'
+            : 'bg-green-100 text-green-700'
+        return (
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${badgeClass}`}>
+            {days}d
+          </span>
+        )
+      },
+    }
+    if (actionsIdx >= 0) {
+      cols.splice(actionsIdx, 0, daysPendingCol)
+    } else {
+      cols.push(daysPendingCol)
+    }
+    return cols
+  }, [meetingColumns])
+
+  // Pending hero card data
+  const oldestPendingDays = useMemo(() => {
+    if (pendingMeetings.length === 0) return 0
+    return Math.max(...pendingMeetings.map(m => getDaysPending(m.appt_date)))
+  }, [pendingMeetings])
+
+  const pendingHeroLabel = useMemo(() => {
+    if (pendingMeetings.length === 0) return ''
+    if (pendingMeetings.length === 1) {
+      const m = pendingMeetings[0]
+      const couple = m.groom_name ? `${m.bride_name} & ${m.groom_name}` : m.bride_name
+      return `${couple} needs a decision — ${getDaysPending(m.appt_date)}d waiting`
+    }
+    return `${pendingMeetings.length} couples waiting`
+  }, [pendingMeetings])
+
   // Collapsible section helper
   const renderSection = (id: string, label: string, data: SalesMeeting[], badgeClass: string) => {
     const isCollapsed = collapsedLanes.has(id)
@@ -730,7 +784,54 @@ export default function CoupleQuotesPage() {
             <BridalShowHistoryChart seasons={seasonData} />
           )}
 
-          {renderSection('section-pending', 'PENDING', pendingMeetings, 'bg-amber-100 text-amber-700')}
+          {/* Pending Hero Card */}
+          {pendingMeetings.length > 0 && (
+            <motion.div
+              animate={{ scale: [1, 1.015, 1] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+              className="mb-6 rounded-xl border-2 border-amber-400 bg-amber-50 p-5"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Clock className="h-6 w-6 text-amber-600" />
+                  <div>
+                    <h3 className="text-lg font-bold text-amber-900">PENDING SALES</h3>
+                    <p className="text-sm text-amber-700">{pendingHeroLabel}</p>
+                  </div>
+                </div>
+                <span className="text-2xl font-bold text-amber-900">
+                  {pendingMeetings.length} meeting{pendingMeetings.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Pending Table */}
+          <div id="section-pending" className="mb-6">
+            <button
+              onClick={() => toggleLane('section-pending')}
+              className="flex items-center gap-3 py-3 hover:opacity-80"
+            >
+              {collapsedLanes.has('section-pending')
+                ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              }
+              <span className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold bg-amber-100 text-amber-700">
+                PENDING
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {pendingMeetings.length} meeting{pendingMeetings.length !== 1 ? 's' : ''}
+              </span>
+            </button>
+            {!collapsedLanes.has('section-pending') && (
+              <DataTable
+                columns={pendingColumns}
+                data={pendingMeetings}
+                showPagination={false}
+                emptyMessage="No meetings"
+              />
+            )}
+          </div>
           {renderSection('section-all', 'ALL MEETINGS', filteredMeetings, 'bg-gray-100 text-gray-700')}
           {renderSection('section-booked', 'BOOKED', bookedMeetings, 'bg-green-100 text-green-700')}
           {renderSection('section-failed', 'FAILED', failedMeetings, 'bg-red-100 text-red-700')}
