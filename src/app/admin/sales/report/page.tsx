@@ -28,6 +28,9 @@ interface ExtrasOrder {
   extras_sale_amount: number | null
   status: string | null
   couple_name?: string
+  bride_first_name?: string | null
+  groom_first_name?: string | null
+  wedding_date?: string | null
 }
 
 interface ClientExtra {
@@ -89,7 +92,7 @@ export default function SalesReportPage() {
     async function fetchData() {
       const [meetingsRes, extrasRes, clientExtrasRes] = await Promise.all([
         supabase.from('sales_meetings').select('id, bride_name, groom_name, appt_date, wedding_date, quoted_amount, status, lead_source').order('appt_date', { ascending: false }),
-        supabase.from('extras_orders').select('id, couple_id, order_date, extras_sale_amount, status, couples(couple_name)').order('order_date', { ascending: false }),
+        supabase.from('extras_orders').select('id, couple_id, order_date, extras_sale_amount, status, couples(couple_name, bride_first_name, groom_first_name, wedding_date)').order('order_date', { ascending: false }),
         supabase.from('client_extras').select('id, couple_id, item_type, total, invoice_date, status').not('invoice_date', 'is', null).order('invoice_date', { ascending: false }),
       ])
 
@@ -97,6 +100,9 @@ export default function SalesReportPage() {
       setExtras((extrasRes.data || []).map((o: any) => ({
         ...o,
         couple_name: o.couples?.couple_name || 'Unknown',
+        bride_first_name: o.couples?.bride_first_name || null,
+        groom_first_name: o.couples?.groom_first_name || null,
+        wedding_date: o.couples?.wedding_date || null,
       })))
       setClientExtras(clientExtrasRes.data || [])
       setLoading(false)
@@ -121,6 +127,11 @@ export default function SalesReportPage() {
 
   // C2 pending
   const c2Pending = useMemo(() => extras.filter(o => o.status === 'pending'), [extras])
+  const c2Declined = useMemo(() => extras.filter(o => o.status === 'declined').sort((a, b) => {
+    if (!a.wedding_date) return 1
+    if (!b.wedding_date) return -1
+    return new Date(a.wedding_date).getTime() - new Date(b.wedding_date).getTime()
+  }), [extras])
 
   // Monthly chart data
   const monthlyData = useMemo(() => {
@@ -281,30 +292,25 @@ export default function SalesReportPage() {
                   <Clock className="h-5 w-5 text-amber-600" />
                   <h3 className="font-bold text-amber-900">C1 — Pending Quotes</h3>
                 </div>
-                {c1Pending.length === 1 ? (
-                  <p className="text-sm text-amber-800">
-                    {c1Pending[0].groom_name ? `${c1Pending[0].bride_name} & ${c1Pending[0].groom_name}` : c1Pending[0].bride_name} needs a decision — {getDaysPending(c1Pending[0].appt_date)}d waiting
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {c1Pending.map(m => {
-                      const days = getDaysPending(m.appt_date)
-                      const couple = m.groom_name ? `${m.bride_name} & ${m.groom_name}` : m.bride_name
-                      return (
-                        <div key={m.id} className="flex items-center justify-between text-sm">
-                          <div>
-                            <span className="font-medium text-amber-900">{couple}</span>
-                            {m.wedding_date && <span className="text-amber-700 ml-2">({new Date(m.wedding_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})</span>}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {m.quoted_amount ? <span className="text-amber-800">{formatCurrency(m.quoted_amount)}</span> : null}
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${daysBadgeClass(days)}`}>{days}d</span>
-                          </div>
+                <div className="space-y-2">
+                  {c1Pending.map(m => {
+                    const days = getDaysPending(m.appt_date)
+                    const couple = m.groom_name ? `${m.bride_name} & ${m.groom_name}` : m.bride_name
+                    return (
+                      <div key={m.id} className="flex items-center justify-between text-sm">
+                        <div>
+                          <span className="font-medium text-amber-900">{couple}</span>
+                          {m.wedding_date && <span className="text-amber-700 ml-2">({new Date(m.wedding_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})</span>}
                         </div>
-                      )
-                    })}
-                  </div>
-                )}
+                        <div className="flex items-center gap-2">
+                          {m.quoted_amount ? <span className="text-amber-800">{formatCurrency(m.quoted_amount)}</span> : null}
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${daysBadgeClass(days)}`}>{days}d</span>
+                          {days >= 15 && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">CALL TODAY</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </motion.div>
             )}
 
@@ -471,6 +477,45 @@ export default function SalesReportPage() {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* C2 — WHO SAID NO */}
+      {c2Declined.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold mb-2">C2 — Who Said No</h2>
+          <p className="text-sm text-muted-foreground mb-4">Couples who declined frame & album orders</p>
+          <div className="bg-white border rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left p-3 font-medium">Couple</th>
+                  <th className="text-left p-3 font-medium">Wedding Date</th>
+                  <th className="text-left p-3 font-medium">Year</th>
+                  <th className="text-left p-3 font-medium">Note</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {c2Declined.map(o => {
+                  const weddingDate = o.wedding_date ? new Date(o.wedding_date) : null
+                  const daysUntilWedding = weddingDate ? Math.floor((weddingDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null
+                  const isSoon = daysUntilWedding !== null && daysUntilWedding > 0 && daysUntilWedding <= 90
+                  const coupleName = o.bride_first_name && o.groom_first_name
+                    ? `${o.bride_first_name} & ${o.groom_first_name}`
+                    : o.couple_name || 'Unknown'
+                  const year = weddingDate ? weddingDate.getFullYear() : '—'
+                  return (
+                    <tr key={o.id} className={isSoon ? 'bg-amber-50' : 'hover:bg-accent/50 transition-colors'}>
+                      <td className="p-3 font-medium">{coupleName}</td>
+                      <td className="p-3">{weddingDate ? weddingDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</td>
+                      <td className="p-3">{year}</td>
+                      <td className="p-3">{isSoon ? <span className="text-amber-700 font-medium">Wedding soon — re-engage?</span> : '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* SECTION 4 — C3 MARIANNA'S EXTRAS */}
       <div>
