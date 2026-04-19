@@ -3,93 +3,89 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { ColumnDef } from '@tanstack/react-table'
-import { format } from 'date-fns'
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
 import { supabase } from '@/lib/supabase'
-import { Search, ChevronDown, ChevronRight } from 'lucide-react'
-import { ProductionPageHeader, ProductionPills, ProductionSidebar } from '@/components/shared'
+import { ChevronDown, ChevronRight, Eye } from 'lucide-react'
+import { ProductionPageHeader, ProductionPills } from '@/components/shared'
+import { formatCurrency, formatDateCompact } from '@/lib/formatters'
+import { motion } from 'framer-motion'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
-// Types
 interface ExtrasOrder {
   id: string
   couple_id: string
-  order_date: string
+  order_date: string | null
   status: string
   extras_sale_amount: number | null
+  collage_type: string | null
   collage_size: string | null
   album_qty: number | null
   signing_book: boolean | null
   wedding_frame_size: string | null
   printed_5x5: boolean | null
+  bride_first_name?: string | null
+  groom_first_name?: string | null
   couple_name?: string
-  wedding_date?: string
+  wedding_date?: string | null
 }
 
-// Fetch all orders with couple data (no year filter — show all)
-async function fetchOrders(): Promise<ExtrasOrder[]> {
-  const { data, error } = await supabase
-    .from('extras_orders')
-    .select(`
-      id,
-      couple_id,
-      order_date,
-      status,
-      extras_sale_amount,
-      collage_size,
-      album_qty,
-      signing_book,
-      wedding_frame_size,
-      printed_5x5,
-      couples (
-        couple_name,
-        wedding_date
-      )
-    `)
-    .order('order_date', { ascending: false })
-
-  if (error) throw error
-
-  return (data || []).map((order: any) => ({
-    ...order,
-    couple_name: order.couples?.couple_name || 'Unknown',
-    wedding_date: order.couples?.wedding_date || null,
-  }))
+function getDaysPending(dateStr: string | null): number {
+  if (!dateStr) return 0
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24))
 }
 
-// Item icons
-function ItemIcons({ order }: { order: ExtrasOrder }) {
-  const items = []
-  if (order.collage_size) items.push('🖼️')
-  if (order.album_qty && order.album_qty > 0) items.push('📖')
-  if (order.signing_book) items.push('✍️')
-  if (order.wedding_frame_size) items.push('🎨')
-  if (order.printed_5x5) items.push('📸')
-  return <span className="text-lg">{items.join(' ') || '—'}</span>
+function daysBadgeClass(days: number): string {
+  if (days >= 15) return 'bg-red-100 text-red-700 font-semibold'
+  if (days >= 8) return 'bg-amber-100 text-amber-700'
+  return 'bg-green-100 text-green-700'
 }
 
-function formatCurrency(amount: number | null): string {
-  if (amount === null || amount === undefined) return '—'
-  return new Intl.NumberFormat('en-CA', {
-    style: 'currency',
-    currency: 'CAD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
+function check(val: any): string {
+  return val ? '✓' : '—'
 }
 
 export default function FrameSalesPage() {
   const router = useRouter()
   const [orders, setOrders] = useState<ExtrasOrder[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
+  const [declinedOpen, setDeclinedOpen] = useState(false)
 
   useEffect(() => {
     async function load() {
       setIsLoading(true)
       try {
-        const data = await fetchOrders()
-        setOrders(data)
+        const { data, error } = await supabase
+          .from('extras_orders')
+          .select(`
+            id,
+            couple_id,
+            order_date,
+            status,
+            extras_sale_amount,
+            collage_type,
+            collage_size,
+            album_qty,
+            signing_book,
+            wedding_frame_size,
+            printed_5x5,
+            couples (
+              couple_name,
+              wedding_date,
+              bride_first_name,
+              groom_first_name
+            )
+          `)
+          .order('order_date', { ascending: false })
+
+        if (error) throw error
+
+        setOrders((data || []).map((o: any) => ({
+          ...o,
+          couple_name: o.couples?.couple_name || 'Unknown',
+          wedding_date: o.couples?.wedding_date || null,
+          bride_first_name: o.couples?.bride_first_name || null,
+          groom_first_name: o.couples?.groom_first_name || null,
+        })))
       } catch (err) {
         console.error('[fetchOrders] Failed:', err)
       } finally {
@@ -99,112 +95,140 @@ export default function FrameSalesPage() {
     load()
   }, [])
 
-  const toggleLane = (key: string) => {
-    setCollapsedLanes(prev => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
+  // ── Derived data ──
+
+  const currentYear = new Date().getFullYear()
+
+  const signedOrders = useMemo(() => orders.filter(o => o.status === 'signed'), [orders])
+  const pendingOrders = useMemo(() => orders.filter(o => o.status === 'pending'), [orders])
+  const declinedOrders = useMemo(() => orders.filter(o => o.status === 'declined'), [orders])
+
+  const orders2026 = useMemo(() => orders.filter(o => o.order_date && new Date(o.order_date).getFullYear() === currentYear), [orders, currentYear])
+  const signed2026 = useMemo(() => orders2026.filter(o => o.status === 'signed'), [orders2026])
+  const revenue2026 = useMemo(() => signed2026.reduce((s, o) => s + (Number(o.extras_sale_amount) || 0), 0), [signed2026])
+  const avgSale2026 = signed2026.length > 0 ? Math.round(revenue2026 / signed2026.length) : 0
+  const convRate2026 = orders2026.length > 0 ? Math.round((signed2026.length / orders2026.length) * 100) : 0
+
+  // Product mix (all-time signed)
+  const productMix = useMemo(() => {
+    const counts = { Albums: 0, 'Wedding Frames': 0, Collages: 0, 'Signing Books': 0 }
+    signedOrders.forEach(o => {
+      if (o.album_qty && o.album_qty > 0) counts.Albums++
+      if (o.wedding_frame_size) counts['Wedding Frames']++
+      if (o.collage_type) counts.Collages++
+      if (o.signing_book) counts['Signing Books']++
     })
+    return Object.entries(counts)
+      .map(([product, count]) => ({ product, count }))
+      .sort((a, b) => b.count - a.count)
+  }, [signedOrders])
+
+  // Couple display name
+  const coupleName = (o: ExtrasOrder) => {
+    if (o.bride_first_name && o.groom_first_name) return `${o.bride_first_name} & ${o.groom_first_name}`
+    return o.couple_name || 'Unknown'
   }
 
-  // Filter by search
-  const filteredOrders = useMemo(() => {
-    if (!searchQuery) return orders
-    const q = searchQuery.toLowerCase()
-    return orders.filter(o => (o.couple_name || '').toLowerCase().includes(q))
-  }, [orders, searchQuery])
-
-  // Group by status
-  const signedOrders = useMemo(() => filteredOrders.filter(o => o.status === 'signed'), [filteredOrders])
-  const completedOrders = useMemo(() => filteredOrders.filter(o => o.status === 'completed'), [filteredOrders])
-  const declinedOrders = useMemo(() => filteredOrders.filter(o => o.status === 'declined'), [filteredOrders])
-  const pendingOrders = useMemo(() => filteredOrders.filter(o => o.status === 'pending'), [filteredOrders])
-
-  // Stats
-  const signedRevenue = useMemo(() => signedOrders.reduce((sum, o) => sum + (o.extras_sale_amount || 0), 0), [signedOrders])
-
-  // Column definitions
-  const columns: ColumnDef<ExtrasOrder>[] = useMemo(() => [
+  // Signed table columns
+  const signedColumns: ColumnDef<ExtrasOrder>[] = useMemo(() => [
     {
-      accessorKey: 'couple_name',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
-      cell: ({ row }) => (
-        <button
-          onClick={() => row.original.couple_id && router.push(`/admin/couples/${row.original.couple_id}`)}
-          className="text-left font-medium hover:underline"
-        >
-          {row.original.couple_name || 'Unknown Couple'}
-        </button>
-      ),
-    },
-    {
-      accessorKey: 'wedding_date',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Wedding Date" />,
-      cell: ({ row }) => {
-        const date = row.original.wedding_date
-        return date ? <span className="whitespace-nowrap">{format(new Date(date), 'EEE MMM d, yyyy')}</span> : '—'
-      },
-    },
-    {
-      accessorKey: 'extras_sale_amount',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Sale Amount" />,
-      cell: ({ row }) => (
-        <span className="font-medium">{formatCurrency(row.original.extras_sale_amount)}</span>
-      ),
-    },
-    {
-      id: 'items',
-      header: 'Items',
-      cell: ({ row }) => <ItemIcons order={row.original} />,
+      id: 'row_num',
+      header: '#',
+      cell: ({ row }) => <span className="text-muted-foreground">{row.index + 1}</span>,
       enableSorting: false,
     },
     {
-      accessorKey: 'status',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-      cell: ({ row }) => {
-        const s = row.original.status
-        const colors = s === 'signed' ? 'bg-green-100 text-green-700'
-          : s === 'completed' ? 'bg-blue-100 text-blue-700'
-          : s === 'declined' ? 'bg-red-100 text-red-700'
-          : 'bg-amber-100 text-amber-700'
-        const label = s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Unknown'
-        return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${colors}`}>{label}</span>
-      },
+      id: 'couple',
+      accessorFn: (row) => coupleName(row),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+      cell: ({ row }) => <span className="font-medium">{coupleName(row.original)}</span>,
+    },
+    {
+      id: 'wedding_date',
+      accessorKey: 'wedding_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Wedding Date" />,
+      cell: ({ row }) => <span className="whitespace-nowrap">{formatDateCompact(row.original.wedding_date)}</span>,
+    },
+    {
+      id: 'order_date',
+      accessorKey: 'order_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Order Date" />,
+      cell: ({ row }) => <span className="whitespace-nowrap">{formatDateCompact(row.original.order_date)}</span>,
+    },
+    {
+      id: 'sale_amount',
+      accessorFn: (row) => Number(row.extras_sale_amount) || 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Sale Amount" />,
+      cell: ({ row }) => <span className="font-medium">{formatCurrency(row.original.extras_sale_amount)}</span>,
+    },
+    {
+      id: 'collage',
+      header: 'Collage',
+      cell: ({ row }) => check(row.original.collage_type),
+      enableSorting: false,
+    },
+    {
+      id: 'album',
+      header: 'Album',
+      cell: ({ row }) => check(row.original.album_qty && row.original.album_qty > 0),
+      enableSorting: false,
+    },
+    {
+      id: 'frame',
+      header: 'Frame',
+      cell: ({ row }) => check(row.original.wedding_frame_size),
+      enableSorting: false,
+    },
+    {
+      id: 'signing_book',
+      header: 'Signing Book',
+      cell: ({ row }) => check(row.original.signing_book),
+      enableSorting: false,
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => (
+        <button
+          onClick={() => router.push(`/admin/albums/${row.original.id}/view`)}
+          className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+          title="View"
+        >
+          <Eye className="h-3 w-3" />
+          View
+        </button>
+      ),
+      enableSorting: false,
     },
   ], [router])
 
-  // Section renderer
-  const renderSection = (id: string, label: string, data: ExtrasOrder[], badgeClass: string) => {
-    const isCollapsed = collapsedLanes.has(id)
-    return (
-      <div id={id} className="mb-6">
-        <button
-          onClick={() => toggleLane(id)}
-          className="flex items-center gap-3 py-3 hover:opacity-80"
-        >
-          {isCollapsed
-            ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            : <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          }
-          <span className={`inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold ${badgeClass}`}>
-            {label}
-          </span>
-          <span className="text-sm text-muted-foreground">
-            {data.length} order{data.length !== 1 ? 's' : ''}
-          </span>
-        </button>
-        {!isCollapsed && (
-          <DataTable
-            columns={columns}
-            data={data}
-            showPagination={false}
-            emptyMessage="No orders"
-          />
-        )}
-      </div>
-    )
-  }
+  // Declined table columns
+  const declinedColumns: ColumnDef<ExtrasOrder>[] = useMemo(() => [
+    {
+      id: 'row_num',
+      header: '#',
+      cell: ({ row }) => <span className="text-muted-foreground">{row.index + 1}</span>,
+      enableSorting: false,
+    },
+    {
+      id: 'couple',
+      accessorFn: (row) => coupleName(row),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+      cell: ({ row }) => <span className="font-medium">{coupleName(row.original)}</span>,
+    },
+    {
+      id: 'wedding_date',
+      accessorKey: 'wedding_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Wedding Date" />,
+      cell: ({ row }) => <span className="whitespace-nowrap">{formatDateCompact(row.original.wedding_date)}</span>,
+    },
+    {
+      id: 'sale_amount',
+      accessorFn: (row) => Number(row.extras_sale_amount) || 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Sale Amount" />,
+      cell: ({ row }) => <span className="font-medium">{formatCurrency(row.original.extras_sale_amount)}</span>,
+    },
+  ], [])
 
   if (isLoading) {
     return (
@@ -216,53 +240,123 @@ export default function FrameSalesPage() {
 
   return (
     <div className="space-y-0">
+      {/* SECTION 1 — HEADER */}
       <ProductionPageHeader
-        title="Frames & Albums"
-        subtitle="Extras orders by status"
-        reportHref="/admin/production/report"
+        title="Frame Sales"
+        subtitle="2026 frame & album orders"
+        reportHref="/admin/sales/report"
         actionLabel="New Sale"
         actionHref="/admin/sales/frames/new"
       />
 
       <ProductionPills pills={[
         { label: 'Signed', count: signedOrders.length, color: 'green' },
-        { label: 'Completed', count: completedOrders.length, color: 'blue' },
-        { label: 'Declined', count: declinedOrders.length, color: 'red' },
         { label: 'Pending', count: pendingOrders.length, color: 'yellow' },
+        { label: 'Declined', count: declinedOrders.length, color: 'red' },
       ]} />
 
-      {/* Content area: main panel + stats sidebar */}
-      <div className="flex">
-        {/* Main Panel */}
-        <div className="flex-1 overflow-y-auto p-6 border-r border-border">
-          {/* Search */}
-          <div className="flex flex-wrap gap-3 mb-6">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search couples..."
-                className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
-                style={{ paddingLeft: '2.25rem' }}
-              />
+      <div className="p-6 space-y-6">
+        {/* SECTION 2 — PENDING ORDERS */}
+        {pendingOrders.length > 0 && (
+          <motion.div
+            animate={{ scale: [1, 1.015, 1] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            className="border-2 border-amber-400 bg-amber-50 rounded-xl p-5"
+          >
+            <h2 className="font-semibold text-amber-800 mb-3">Pending Frame Orders</h2>
+            <div className="space-y-2">
+              {pendingOrders.map(o => {
+                const days = getDaysPending(o.order_date)
+                return (
+                  <div key={o.id} className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-amber-900">{coupleName(o)}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-amber-700">{formatDateCompact(o.order_date)}</span>
+                      {o.extras_sale_amount ? <span className="text-amber-800">{formatCurrency(o.extras_sale_amount)}</span> : null}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${daysBadgeClass(days)}`}>{days}d</span>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          </div>
+          </motion.div>
+        )}
 
-          {renderSection('section-signed', 'SIGNED', signedOrders, 'bg-green-100 text-green-700')}
-          {renderSection('section-completed', 'COMPLETED', completedOrders, 'bg-blue-100 text-blue-700')}
-          {renderSection('section-declined', 'DECLINED', declinedOrders, 'bg-red-100 text-red-700')}
-          {renderSection('section-pending', 'PENDING', pendingOrders, 'bg-amber-100 text-amber-700')}
+        {/* SECTION 3 — KPI CARDS */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[
+            { label: 'Total Orders (2026)', value: String(orders2026.length) },
+            { label: 'Signed (2026)', value: String(signed2026.length) },
+            { label: 'Conversion Rate', value: `${convRate2026}%` },
+            { label: 'Revenue (2026)', value: formatCurrency(revenue2026) },
+            { label: 'Avg Sale', value: formatCurrency(avgSale2026) },
+            { label: 'Declined (all time)', value: String(declinedOrders.length) },
+          ].map(kpi => (
+            <div key={kpi.label} className="bg-white border rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold">{kpi.value}</div>
+              <div className="text-xs text-muted-foreground mt-1">{kpi.label}</div>
+            </div>
+          ))}
         </div>
 
-        <ProductionSidebar boxes={[
-          { label: 'TOTAL ORDERS', value: orders.length, scrollToId: 'section-signed', color: 'default' },
-          { label: 'SIGNED', value: signedOrders.length, scrollToId: 'section-signed', color: 'green' },
-          { label: 'COMPLETED', value: completedOrders.length, scrollToId: 'section-completed', color: 'blue' },
-          { label: 'DECLINED', value: declinedOrders.length, scrollToId: 'section-declined', color: 'red' },
-          { label: 'REVENUE', value: formatCurrency(signedRevenue), scrollToId: 'section-signed', color: 'teal' },
-        ]} />
+        {/* SECTION 4 — PRODUCT MIX CHART */}
+        <div className="bg-white border rounded-xl p-4">
+          <h3 className="text-sm font-semibold mb-3">What Couples Buy</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={productMix} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" allowDecimals={false} />
+              <YAxis dataKey="product" type="category" width={120} />
+              <Tooltip />
+              <Bar dataKey="count" fill="#6366f1" name="Orders" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* SECTION 5 — SIGNED ORDERS TABLE */}
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <h3 className="text-lg font-semibold">Signed Orders</h3>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+              {signedOrders.length}
+            </span>
+          </div>
+          <DataTable
+            columns={signedColumns}
+            data={signedOrders}
+            showPagination={false}
+            emptyMessage="No signed orders"
+          />
+        </div>
+
+        {/* SECTION 6 — DECLINED ORDERS (collapsed by default) */}
+        {declinedOrders.length > 0 && (
+          <div>
+            <button
+              onClick={() => setDeclinedOpen(!declinedOpen)}
+              className="flex items-center gap-3 py-3 hover:opacity-80"
+            >
+              {declinedOpen
+                ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              }
+              <span className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-sm font-semibold bg-red-100 text-red-700">
+                DECLINED
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {declinedOrders.length} order{declinedOrders.length !== 1 ? 's' : ''}
+              </span>
+            </button>
+            {declinedOpen && (
+              <DataTable
+                columns={declinedColumns}
+                data={declinedOrders}
+                showPagination={false}
+                emptyMessage="No declined orders"
+              />
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
