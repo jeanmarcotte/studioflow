@@ -258,21 +258,6 @@ export default function FrameSalePresentation() {
             padding: '56px 64px',
           }}
         >
-          {/* Progress dots */}
-          <div className="flex justify-center gap-3" style={{ marginBottom: 40 }}>
-            {[1, 2, 3].map((p) => (
-              <div
-                key={p}
-                className="rounded-full transition-all"
-                style={{
-                  width: p === page ? 10 : 7,
-                  height: p === page ? 10 : 7,
-                  backgroundColor: p === page ? GOLD : '#D9D9D4',
-                }}
-              />
-            ))}
-          </div>
-
           {/* Header */}
           <div className="flex items-start justify-between" style={{ marginBottom: 48 }}>
             <div>
@@ -350,7 +335,7 @@ export default function FrameSalePresentation() {
                     <LedgerLine label="Engagement Sign Book" amount="$200.00" />
                     <LedgerLine label="Wedding Frame" amount="$400.00" />
                     <LedgerLine label="24×30 Canvas" amount="$200.00" />
-                    <LedgerLine label="Engagement and Wedding High-Resolution files" amount="$0.00" />
+                    <LedgerLine label="Engagement and Wedding High-Resolution files *" amount="$0.00" />
                   </div>
 
                   <div style={{ margin: '32px 0', height: 1, backgroundColor: GOLD }} />
@@ -384,7 +369,7 @@ export default function FrameSalePresentation() {
                       borderTop: `1px solid ${BORDER}`,
                     }}
                   >
-                    The cost for the Engagement and Wedding High-Resolution files is listed as $0.00 CAD, however, the retail price is $2,250 plus tax. When purchasing the above package there is no additional charge for these files. SIGS Customer Discount (25%) applies only when purchasing the package.
+* The cost for the Engagement and Wedding High-Resolution files is listed as $0.00 CAD, however, the retail price is $2,250 plus tax. When purchasing the above package there is no additional charge for these files. SIGS Customer Discount (25%) applies only when purchasing the package.
                   </p>
                 </div>
               )}

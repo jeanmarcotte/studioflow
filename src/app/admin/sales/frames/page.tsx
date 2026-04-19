@@ -9,7 +9,6 @@ import { ChevronDown, ChevronRight, Eye } from 'lucide-react'
 import { ProductionPageHeader, ProductionPills } from '@/components/shared'
 import { formatCurrency, formatDateCompact } from '@/lib/formatters'
 import { motion } from 'framer-motion'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 interface ExtrasOrder {
   id: string
@@ -108,20 +107,6 @@ export default function FrameSalesPage() {
   const revenue2026 = useMemo(() => signed2026.reduce((s, o) => s + (Number(o.extras_sale_amount) || 0), 0), [signed2026])
   const avgSale2026 = signed2026.length > 0 ? Math.round(revenue2026 / signed2026.length) : 0
   const convRate2026 = orders2026.length > 0 ? Math.round((signed2026.length / orders2026.length) * 100) : 0
-
-  // Product mix (all-time signed)
-  const productMix = useMemo(() => {
-    const counts = { Albums: 0, 'Wedding Frames': 0, Collages: 0, 'Signing Books': 0 }
-    signedOrders.forEach(o => {
-      if (o.album_qty && o.album_qty > 0) counts.Albums++
-      if (o.wedding_frame_size) counts['Wedding Frames']++
-      if (o.collage_type) counts.Collages++
-      if (o.signing_book) counts['Signing Books']++
-    })
-    return Object.entries(counts)
-      .map(([product, count]) => ({ product, count }))
-      .sort((a, b) => b.count - a.count)
-  }, [signedOrders])
 
   // Couple display name
   const coupleName = (o: ExtrasOrder) => {
@@ -256,32 +241,6 @@ export default function FrameSalesPage() {
       ]} />
 
       <div className="p-6 space-y-6">
-        {/* SECTION 2 — PENDING ORDERS */}
-        {pendingOrders.length > 0 && (
-          <motion.div
-            animate={{ scale: [1, 1.015, 1] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-            className="border-2 border-amber-400 bg-amber-50 rounded-xl p-5"
-          >
-            <h2 className="font-semibold text-amber-800 mb-3">Pending Frame Orders</h2>
-            <div className="space-y-2">
-              {pendingOrders.map(o => {
-                const days = getDaysPending(o.order_date)
-                return (
-                  <div key={o.id} className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-amber-900">{coupleName(o)}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-amber-700">{formatDateCompact(o.order_date)}</span>
-                      {o.extras_sale_amount ? <span className="text-amber-800">{formatCurrency(o.extras_sale_amount)}</span> : null}
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${daysBadgeClass(days)}`}>{days}d</span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </motion.div>
-        )}
-
         {/* SECTION 3 — KPI CARDS */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
@@ -299,21 +258,69 @@ export default function FrameSalesPage() {
           ))}
         </div>
 
-        {/* SECTION 4 — PRODUCT MIX CHART */}
-        <div className="bg-white border rounded-xl p-4">
-          <h3 className="text-sm font-semibold mb-3">What Couples Buy</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={productMix} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" allowDecimals={false} />
-              <YAxis dataKey="product" type="category" width={120} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#6366f1" name="Orders" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {/* PENDING HERO BANNER */}
+        {pendingOrders.length > 0 && (
+          <motion.div
+            animate={{ scale: [1, 1.015, 1] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            className="border-2 border-amber-400 bg-amber-50 rounded-xl p-5 mb-4"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-amber-800 text-lg">Pending Frame Orders</h2>
+                <p className="text-amber-700 mt-1">
+                  {pendingOrders.length === 1
+                    ? `${coupleName(pendingOrders[0])} needs a decision — ${getDaysPending(pendingOrders[0].order_date)}d waiting`
+                    : `${pendingOrders.length} couples waiting`}
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-amber-800">{pendingOrders.length}</div>
+                <div className="text-sm text-amber-600">{pendingOrders.length === 1 ? 'order' : 'orders'}</div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
-        {/* SECTION 5 — SIGNED ORDERS TABLE */}
+        {/* PENDING TABLE */}
+        {pendingOrders.length > 0 && (
+          <div className="mb-6">
+            <h3 className="font-semibold text-gray-700 mb-2">
+              Pending Orders <span className="text-amber-600">({pendingOrders.length})</span>
+            </h3>
+            <table className="w-full text-sm border rounded-lg overflow-hidden">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left p-3">#</th>
+                  <th className="text-left p-3">Couple</th>
+                  <th className="text-left p-3">Wedding Date</th>
+                  <th className="text-left p-3">Order Date</th>
+                  <th className="text-left p-3">Sale Amount</th>
+                  <th className="text-left p-3">Days Pending</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingOrders.map((order, i) => {
+                  const days = getDaysPending(order.order_date)
+                  return (
+                    <tr key={order.id} className="border-t">
+                      <td className="p-3">{i + 1}</td>
+                      <td className="p-3">{coupleName(order)}</td>
+                      <td className="p-3">{formatDateCompact(order.wedding_date)}</td>
+                      <td className="p-3">{order.order_date ? formatDateCompact(order.order_date) : '—'}</td>
+                      <td className="p-3">{formatCurrency(order.extras_sale_amount)}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded text-xs ${daysBadgeClass(days)}`}>{days}d</span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* SIGNED ORDERS TABLE */}
         <div>
           <div className="flex items-center gap-3 mb-3">
             <h3 className="text-lg font-semibold">Signed Orders</h3>
