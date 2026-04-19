@@ -730,10 +730,10 @@ export default function CoupleQuotesPage() {
             <BridalShowHistoryChart seasons={seasonData} />
           )}
 
+          {renderSection('section-pending', 'PENDING', pendingMeetings, 'bg-amber-100 text-amber-700')}
           {renderSection('section-all', 'ALL MEETINGS', filteredMeetings, 'bg-gray-100 text-gray-700')}
           {renderSection('section-booked', 'BOOKED', bookedMeetings, 'bg-green-100 text-green-700')}
           {renderSection('section-failed', 'FAILED', failedMeetings, 'bg-red-100 text-red-700')}
-          {renderSection('section-pending', 'PENDING', pendingMeetings, 'bg-amber-100 text-amber-700')}
 
           {/* Lead Source Breakdown */}
           <div id="section-lead-sources" className="mb-6">
