@@ -207,42 +207,27 @@ export default function FrameSalePresentation() {
   return (
     <div className={dmSans.className} style={{ position: 'fixed', inset: 0, zIndex: 50, backgroundColor: BG, color: TEXT, overflow: 'auto' }}>
 
-      {/* Left arrow */}
-      {page > 1 && (
-        <button
-          onClick={goBack}
-          className="fixed z-50 transition-colors"
-          style={{ left: 24, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = GOLD)}
-          onMouseLeave={(e) => (e.currentTarget.style.color = '#9CA3AF')}
-        >
-          <ChevronLeft style={{ width: 44, height: 44 }} />
-        </button>
-      )}
+      {/* Left arrow (all pages — page 1 goes back to selector) */}
+      <button
+        onClick={goBack}
+        className="fixed z-50 transition-all rounded-full"
+        style={{ left: 16, top: '50%', transform: 'translateY(-50%)', padding: 18, background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = GOLD; e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = '#9CA3AF'; e.currentTarget.style.backgroundColor = 'transparent' }}
+      >
+        <ChevronLeft style={{ width: 44, height: 44 }} />
+      </button>
 
       {/* Right arrow */}
       {page < 3 && (
         <button
           onClick={goNext}
-          className="fixed z-50 transition-colors"
-          style={{ right: 24, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = GOLD)}
-          onMouseLeave={(e) => (e.currentTarget.style.color = '#9CA3AF')}
+          className="fixed z-50 transition-all rounded-full"
+          style={{ right: 16, top: '50%', transform: 'translateY(-50%)', padding: 18, background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = GOLD; e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#9CA3AF'; e.currentTarget.style.backgroundColor = 'transparent' }}
         >
           <ChevronRight style={{ width: 44, height: 44 }} />
-        </button>
-      )}
-
-      {/* Back to selector (page 1 only) */}
-      {page === 1 && (
-        <button
-          onClick={goBack}
-          className="fixed z-50 transition-colors"
-          style={{ left: 24, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = GOLD)}
-          onMouseLeave={(e) => (e.currentTarget.style.color = '#9CA3AF')}
-        >
-          <ChevronLeft style={{ width: 44, height: 44 }} />
         </button>
       )}
 
@@ -379,13 +364,10 @@ export default function FrameSalePresentation() {
                 <div>
                   <h2
                     className={playfair.className}
-                    style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}
+                    style={{ fontSize: 22, fontWeight: 700, marginBottom: 40 }}
                   >
                     Payment Schedule
                   </h2>
-                  <p style={{ fontSize: 15, color: MUTED, marginBottom: 40 }}>
-                    Including the balance remaining from Photo/Video agreement
-                  </p>
 
                   <div style={{ marginBottom: 40 }}>
                     <FinanceRow
@@ -399,18 +381,10 @@ export default function FrameSalePresentation() {
 
                     <div style={{ height: 1, backgroundColor: GOLD, margin: '20px 0' }} />
 
-                    <div className="flex items-baseline justify-between" style={{ padding: '16px 0' }}>
-                      <p
-                        className={playfair.className}
-                        style={{ fontSize: 30, fontWeight: 700 }}
-                      >
-                        {formatCurrency(newBalance)}
-                      </p>
-                      <p style={{ fontSize: 15, color: MUTED }}>
-                        divided into 8 equal payments of{' '}
-                        <span style={{ fontWeight: 600, color: TEXT }}>{formatCurrency(perInstallment)}</span>
-                      </p>
-                    </div>
+                    <FinanceRow
+                      amount={formatCurrency(newBalance)}
+                      label={`divided into 8 equal payments of ${formatCurrency(perInstallment)} including tax`}
+                    />
                   </div>
 
                   <div style={{ marginBottom: 48 }}>
@@ -491,6 +465,31 @@ export default function FrameSalePresentation() {
 
             </motion.div>
           </AnimatePresence>
+
+          {/* Page numbers — bottom right */}
+          <div className="flex justify-end gap-1" style={{ marginTop: 40 }}>
+            {[1, 2, 3].map((p) => (
+              <button
+                key={p}
+                onClick={() => {
+                  setDirection(p > page ? 'forward' : 'backward')
+                  setPage(p)
+                }}
+                className={`${dmSans.className} transition-colors rounded-lg`}
+                style={{
+                  padding: '16px 20px',
+                  fontSize: 16,
+                  fontWeight: p === page ? 700 : 400,
+                  color: p === page ? GOLD : '#9CA3AF',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -545,14 +544,14 @@ function LedgerLine({ label, amount, bold, green }: { label: string; amount: str
 
 function FinanceRow({ amount, label }: { amount: string; label: string }) {
   return (
-    <div className="flex items-baseline justify-between" style={{ padding: '12px 0' }}>
-      <p style={{ fontSize: 15, color: '#888888' }}>{label}</p>
+    <div className="flex items-baseline gap-5" style={{ padding: '12px 0' }}>
       <p
-        className={`${playfair.className} tabular-nums`}
-        style={{ fontSize: 24, fontWeight: 700 }}
+        className="tabular-nums"
+        style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums', minWidth: 120 }}
       >
         {amount}
       </p>
+      <p style={{ fontSize: 16, color: '#888888' }}>{label}</p>
     </div>
   )
 }
