@@ -485,6 +485,17 @@ export default function ExtrasSalesPage() {
   const revenue2026 = useMemo(() => rows2026.reduce((sum, r) => sum + (r.total || 0), 0), [rows2026])
   const revenue2025 = useMemo(() => rows2025.reduce((sum, r) => sum + (r.total || 0), 0), [rows2025])
 
+  // KPI cards — derived from invoice_date year
+  const kpiExtras2026 = useMemo(() => rows.filter(r => r.invoice_date && new Date(r.invoice_date).getFullYear() === 2026), [rows])
+  const kpiExtras2025 = useMemo(() => rows.filter(r => r.invoice_date && new Date(r.invoice_date).getFullYear() === 2025), [rows])
+  const kpiCouples2026 = useMemo(() => new Set(kpiExtras2026.map(r => r.couple_id)).size, [kpiExtras2026])
+  const kpiLineItems2026 = kpiExtras2026.length
+  const kpiRevenue2026 = useMemo(() => kpiExtras2026.reduce((s, r) => s + (Number(r.total) || 0), 0), [kpiExtras2026])
+  const kpiAvgPerItem = kpiLineItems2026 > 0 ? Math.round(kpiRevenue2026 / kpiLineItems2026) : 0
+  const kpiItemTypes2026 = useMemo(() => new Set(kpiExtras2026.map(r => r.item_type)).size, [kpiExtras2026])
+  const kpiRevenue2025 = useMemo(() => kpiExtras2025.reduce((s, r) => s + (Number(r.total) || 0), 0), [kpiExtras2025])
+  const kpiGrowthMultiple = kpiRevenue2025 > 0 ? Math.round(kpiRevenue2026 / kpiRevenue2025) : 0
+
   // Column definitions
   const columns: ColumnDef<ExtrasRow>[] = useMemo(() => [
     {
@@ -577,6 +588,22 @@ export default function ExtrasSalesPage() {
       />
       {/* TODO WO-318: Link + New Sale once new-sale page is built — don't forget! */}
 
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 px-6 pt-4">
+        {[
+          { label: 'Couples (2026)', value: String(kpiCouples2026) },
+          { label: 'Line Items', value: String(kpiLineItems2026) },
+          { label: 'Revenue (2026)', value: formatCurrency(kpiRevenue2026) },
+          { label: 'Avg Per Item', value: formatCurrency(kpiAvgPerItem) },
+          { label: 'Item Types', value: String(kpiItemTypes2026) },
+          { label: 'vs 2025', value: `${kpiGrowthMultiple}×`, highlight: true },
+        ].map((card: { label: string; value: string; highlight?: boolean }) => (
+          <div key={card.label} className="bg-white border rounded-xl p-4 text-center">
+            <div className={`text-2xl font-bold ${card.highlight ? 'text-amber-600' : ''}`}>{card.value}</div>
+            <div className="text-xs text-muted-foreground mt-1">{card.label}</div>
+          </div>
+        ))}
+      </div>
 
       {/* Content area: main panel + stats sidebar */}
       <div className="flex">
