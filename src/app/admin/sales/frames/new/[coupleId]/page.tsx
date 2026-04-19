@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Loader2, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react'
+import { Loader2, ChevronLeft, ChevronRight, X, Plus, Equal, Download } from 'lucide-react'
 import { formatWeddingDate, formatCurrency } from '@/lib/formatters'
 import { Playfair_Display, DM_Sans } from 'next/font/google'
 import { toast } from 'sonner'
@@ -75,6 +75,9 @@ export default function FrameSalePresentation() {
   const [contract, setContract] = useState<ContractData | null>(null)
   const [products, setProducts] = useState<any[]>([])
   const [editMilestones, setEditMilestones] = useState<string[]>([])
+  const [editAmounts, setEditAmounts] = useState<number[]>([])
+  const [saleAmount, setSaleAmount] = useState(ALBUM_COLLAGE_TOTAL)
+  const [depositAmount, setDepositAmount] = useState(0)
   const [extraItems, setExtraItems] = useState<{ desc: string; code: string }[]>([])
   const [showProductPicker, setShowProductPicker] = useState(false)
 
@@ -98,7 +101,15 @@ export default function FrameSalePresentation() {
         const ct = contractData?.[0] ?? null
         setContract(ct)
         const vid = !!(ct?.num_videographers && ct.num_videographers > 0) || !!ct?.video_highlights || !!ct?.video_long_form
-        setEditMilestones(vid ? [...PV_MILESTONES] : [...PO_MILESTONES])
+        const ms = vid ? [...PV_MILESTONES] : [...PO_MILESTONES]
+        setEditMilestones(ms)
+        const bal = c.balance_owing ?? 0
+        const dep = Math.round((bal + ALBUM_COLLAGE_TOTAL - (ms.length * Math.floor((bal + ALBUM_COLLAGE_TOTAL) / ms.length))) * 100) / 100
+        setDepositAmount(dep)
+        const totalAfter = bal + ALBUM_COLLAGE_TOTAL - dep
+        const perInst = Math.floor(totalAfter / ms.length * 100) / 100
+        const lastInst = Math.round((totalAfter - perInst * (ms.length - 1)) * 100) / 100
+        setEditAmounts(ms.map((_, i) => i === ms.length - 1 ? lastInst : perInst))
       }
       // Fetch product catalog
       const { data: productData } = await supabase
