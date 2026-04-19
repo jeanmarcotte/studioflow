@@ -144,7 +144,7 @@ export async function GET() {
   ${pendingHtml}
 
   <div style="margin-bottom: 20px;">
-    <h2 style="font-size: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px;">C1 — Season 2026</h2>
+    <h2 style="font-size: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px;">New Couple Quotes (Sales Meetings) — 2026</h2>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
         <td style="padding: 6px 0; color: #666;">Meetings</td><td style="font-weight: bold;">${meetings2026.length}</td>

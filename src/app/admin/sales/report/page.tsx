@@ -346,7 +346,7 @@ export default function SalesReportPage() {
 
       {/* SECTION 2 — C1 SEASON SNAPSHOT */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">C1 Season Snapshot — {currentYear}</h2>
+        <h2 className="text-lg font-semibold mb-4">New Couple Quotes (Sales Meetings) — {currentYear}</h2>
 
         {/* 2a — KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
