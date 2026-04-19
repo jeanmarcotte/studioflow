@@ -102,14 +102,14 @@ export default function FrameSaleCoupleSelector() {
       <div className="flex items-center justify-center min-h-full px-4 py-12">
         <div style={{ width: '100%', maxWidth: 560 }}>
           {/* Branding */}
-          <p className="text-center text-xs tracking-[0.2em] uppercase mb-8" style={{ color: '#BBBBBB' }}>
+          <p className="text-xs tracking-[0.2em] uppercase mb-2" style={{ color: '#BBBBBB' }}>
             SIGS Photography Ltd.
           </p>
 
           {/* Title */}
           <h1
-            className={`${playfair.className} text-center mb-10`}
-            style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-0.01em' }}
+            className={playfair.className}
+            style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 32 }}
           >
             Frame & Album Sale
           </h1>
@@ -117,7 +117,7 @@ export default function FrameSaleCoupleSelector() {
           {/* Search input */}
           <div className="relative mb-2">
             <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+              className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none"
               style={{ width: 18, height: 18, color: '#CCCCCC' }}
             />
             <input
@@ -128,8 +128,9 @@ export default function FrameSaleCoupleSelector() {
                 setSearch(e.target.value)
                 if (selected) { setSelected(null); setContract(null) }
               }}
-              className={`${dmSans.className} w-full pl-12 pr-4 py-4 rounded-xl text-base outline-none transition-shadow`}
+              className={`${dmSans.className} w-full pr-4 py-4 rounded-xl text-base outline-none transition-shadow`}
               style={{
+                paddingLeft: 52,
                 backgroundColor: '#FFFFFF',
                 border: '1px solid #E8E8E3',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.04)',

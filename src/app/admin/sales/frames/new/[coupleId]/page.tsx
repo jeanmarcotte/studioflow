@@ -47,7 +47,7 @@ const PV_MILESTONES = [
   'November 1st, 2026',
   'January 15th 2027',
   '2 Weeks before wedding',
-  'Wedding Proof Download (1\u20132 weeks after wedding)',
+  'Wedding Proof Download (1–2 weeks after wedding)',
   'Pick up the final wedding album & prints',
 ]
 
@@ -59,7 +59,7 @@ const PO_MILESTONES = [
   'January 15th 2027',
   'March 1st, 2027',
   '2 Weeks before wedding',
-  'Wedding Proof Download (1\u20132 weeks after wedding)',
+  'Wedding Proof Download (1–2 weeks after wedding)',
 ]
 
 export default function FrameSalePresentation() {
@@ -251,7 +251,7 @@ export default function FrameSalePresentation() {
         <div
           style={{
             width: '100%',
-            maxWidth: 800,
+            maxWidth: 880,
             backgroundColor: PAGE_BG,
             borderRadius: 12,
             boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
@@ -310,26 +310,26 @@ export default function FrameSalePresentation() {
               {page === 1 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 56 }}>
                   <MenuSection title="Collage" items={[
-                    '3 \u00d7 16\u00d716 custom-edited prints with editing',
+                    '3 × 16×16 custom-edited prints with editing',
                     'All 3 mounted on canvas stretcher',
                     'All 3 framed with black float-frame',
                   ]} />
                   <MenuSection title="Albums" items={[
-                    '1 \u00d7 28\u00d711 digital album with leather cover or acrylic cover, matt pages',
+                    '1 × 28×11 digital album with leather cover or acrylic cover, matt pages',
                     'Choice of 80 selected photographs or Omakase style',
                     '15 spreads',
-                    '8\u00d710 Engagement signing book, black linen, 6 spreads, 22 images',
+                    '8×10 Engagement signing book, black linen, 6 spreads, 22 images',
                   ]} />
                   <MenuSection title="Wedding Frame" items={[
                     'Black floating frame same style as engagement portraits',
-                    '24\u00d730 photo (in wedding package) mounted on canvas stretcher',
+                    '24×30 photo (in wedding package) mounted on canvas stretcher',
                     'Assembly including D rings and wire',
                   ]} />
                   <MenuSection title="Extras Included" items={[
                     'Download link of all Engagement Proof files Dropbox without watermark',
                     'Online proofing and download share and customer gallery',
-                    'High-resolution digital files for Wedding images 16\u00d724 300 dpi',
-                    'High-resolution digital files for Engagement images 16\u00d716 300 dpi',
+                    'High-resolution digital files for Wedding images 16×24 300 dpi',
+                    'High-resolution digital files for Engagement images 16×16 300 dpi',
                   ]} />
                 </div>
               )}
@@ -339,17 +339,17 @@ export default function FrameSalePresentation() {
                 <div>
                   <h2
                     className={playfair.className}
-                    style={{ fontSize: 28, fontWeight: 700, marginBottom: 40 }}
+                    style={{ fontSize: 22, fontWeight: 700, marginBottom: 40 }}
                   >
                     Expense Breakdown
                   </h2>
 
                   <div>
                     <LedgerLine label="Engagement Photo Collage" amount="$1,500.00" />
-                    <LedgerLine label="Wedding Album ($1,750 \u2013 $500 print credit)" amount="$1,250.00" />
+                    <LedgerLine label="Wedding Album ($1,750 – $500 print credit)" amount="$1,250.00" />
                     <LedgerLine label="Engagement Sign Book" amount="$200.00" />
                     <LedgerLine label="Wedding Frame" amount="$400.00" />
-                    <LedgerLine label="24\u00d730 Canvas" amount="$200.00" />
+                    <LedgerLine label="24×30 Canvas" amount="$200.00" />
                     <LedgerLine label="Engagement and Wedding High-Resolution files" amount="$0.00" />
                   </div>
 
@@ -359,29 +359,29 @@ export default function FrameSalePresentation() {
                     <LedgerLine label="Subtotal" amount="$3,550.00" bold />
                     <LedgerLine label="Tax (13%)" amount="$461.50" />
                     <LedgerLine label="Subtotal including Tax" amount="$4,011.50" bold />
-                    <LedgerLine label="SIGS Customer Discount (25%)" amount="\u2013$1,002.88" green />
+                    <LedgerLine label="SIGS Customer Discount (25%)" amount="–$1,002.88" green />
                   </div>
 
                   <div
                     className="flex items-center justify-between"
                     style={{ marginTop: 32, paddingTop: 24, borderTop: `2px solid ${TEXT}` }}
                   >
-                    <p className={playfair.className} style={{ fontSize: 22, fontWeight: 700 }}>
+                    <p className={playfair.className} style={{ fontSize: 20, fontWeight: 700 }}>
                       Total Cost after Discount
                     </p>
-                    <p className={playfair.className} style={{ fontSize: 34, fontWeight: 700 }}>
+                    <p className={playfair.className} style={{ fontSize: 28, fontWeight: 700 }}>
                       $3,008.63
                     </p>
                   </div>
 
                   <p
                     style={{
-                      fontSize: 12,
-                      fontStyle: 'italic',
-                      color: '#9CA3AF',
+                      fontSize: 14,
+                      color: '#4B5563',
                       lineHeight: 1.7,
-                      maxWidth: 600,
                       marginTop: 40,
+                      paddingTop: 24,
+                      borderTop: `1px solid ${BORDER}`,
                     }}
                   >
                     The cost for the Engagement and Wedding High-Resolution files is listed as $0.00 CAD, however, the retail price is $2,250 plus tax. When purchasing the above package there is no additional charge for these files. SIGS Customer Discount (25%) applies only when purchasing the package.
@@ -394,7 +394,7 @@ export default function FrameSalePresentation() {
                 <div>
                   <h2
                     className={playfair.className}
-                    style={{ fontSize: 28, fontWeight: 700, marginBottom: 6 }}
+                    style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}
                   >
                     Payment Schedule
                   </h2>
@@ -431,7 +431,7 @@ export default function FrameSalePresentation() {
                   <div style={{ marginBottom: 48 }}>
                     <h3
                       className={playfair.className}
-                      style={{ fontSize: 20, fontWeight: 700, marginBottom: 28 }}
+                      style={{ fontSize: 16, fontWeight: 700, marginBottom: 28 }}
                     >
                       {hasVideo ? 'Photo & Video Schedule' : 'Photo Only Schedule'}
                     </h3>
@@ -519,7 +519,7 @@ function MenuSection({ title, items }: { title: string; items: string[] }) {
     <div>
       <h2
         className={playfair.className}
-        style={{ fontSize: 28, fontWeight: 700, marginBottom: 4, color: TEXT }}
+        style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}
       >
         {title}
       </h2>
