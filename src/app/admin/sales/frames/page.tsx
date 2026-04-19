@@ -220,10 +220,9 @@ export default function FrameSalesPage() {
         title="Frames & Albums"
         subtitle="Extras orders by status"
         reportHref="/admin/production/report"
-        actionLabel="+ New Sale"
-        actionDisabled={true}
+        actionLabel="New Sale"
+        actionHref="/admin/sales/frames/new"
       />
-      {/* TODO WO-317: Link + New Sale once new-sale page is built — don't forget! */}
 
       <ProductionPills pills={[
         { label: 'Signed', count: signedOrders.length, color: 'green' },
