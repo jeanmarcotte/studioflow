@@ -37,7 +37,8 @@ function statusColor(status: string | null) {
   }
 }
 
-export default async function PortalDisplayPage({ params }: { params: { slug: string } }) {
+export default async function PortalDisplayPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -54,7 +55,7 @@ export default async function PortalDisplayPage({ params }: { params: { slug: st
   const { data: couples } = await supabase
     .from('couples')
     .select('*')
-    .eq('portal_slug', params.slug)
+    .eq('portal_slug', slug)
     .limit(1)
   const couple = couples?.[0]
   if (!couple) return notFound()
