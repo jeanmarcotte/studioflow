@@ -99,7 +99,7 @@ export default function FrameSaleCoupleSelector() {
       </div>
 
       {/* Centered content */}
-      <div className="flex items-start justify-center min-h-full px-4" style={{ paddingTop: '18vh' }}>
+      <div className="flex items-start justify-center min-h-full px-4" style={{ paddingTop: '23vh' }}>
         <div style={{ width: '100%', maxWidth: 560 }}>
           {/* Branding */}
           <p className="text-xs tracking-[0.2em] uppercase mb-2" style={{ color: '#BBBBBB' }}>

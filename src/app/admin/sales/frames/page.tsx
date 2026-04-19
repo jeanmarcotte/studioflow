@@ -9,6 +9,7 @@ import { ChevronDown, ChevronRight, Eye } from 'lucide-react'
 import { ProductionPageHeader, ProductionPills } from '@/components/shared'
 import { formatCurrency, formatDateCompact } from '@/lib/formatters'
 import { motion } from 'framer-motion'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface ExtrasOrder {
   id: string
@@ -107,6 +108,14 @@ export default function FrameSalesPage() {
   const revenue2026 = useMemo(() => signed2026.reduce((s, o) => s + (Number(o.extras_sale_amount) || 0), 0), [signed2026])
   const avgSale2026 = signed2026.length > 0 ? Math.round(revenue2026 / signed2026.length) : 0
   const convRate2026 = orders2026.length > 0 ? Math.round((signed2026.length / orders2026.length) * 100) : 0
+
+  // Product mix (all-time signed)
+  const productMix = useMemo(() => [
+    { product: 'Albums', count: signedOrders.filter(o => o.album_qty && o.album_qty > 0).length },
+    { product: 'Wedding Frames', count: signedOrders.filter(o => o.wedding_frame_size).length },
+    { product: 'Collages', count: signedOrders.filter(o => o.collage_type).length },
+    { product: 'Signing Books', count: signedOrders.filter(o => o.signing_book === true).length },
+  ].sort((a, b) => b.count - a.count), [signedOrders])
 
   // Couple display name
   const coupleName = (o: ExtrasOrder) => {
@@ -319,6 +328,20 @@ export default function FrameSalesPage() {
             </table>
           </div>
         )}
+
+        {/* PRODUCT MIX CHART */}
+        <div className="mb-6">
+          <h3 className="font-semibold text-gray-700 mb-3">What Couples Buy</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={productMix} layout="vertical" margin={{ left: 20, right: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" allowDecimals={false} />
+              <YAxis type="category" dataKey="product" width={120} />
+              <Tooltip />
+              <Bar dataKey="count" fill="#6366f1" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
 
         {/* SIGNED ORDERS TABLE */}
         <div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Loader2, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react'
 import { formatWeddingDate, formatCurrency } from '@/lib/formatters'
 import { Playfair_Display, DM_Sans } from 'next/font/google'
 import { toast } from 'sonner'
@@ -74,6 +74,9 @@ export default function FrameSalePresentation() {
   const [couple, setCouple] = useState<CoupleData | null>(null)
   const [contract, setContract] = useState<ContractData | null>(null)
   const [products, setProducts] = useState<any[]>([])
+  const [editMilestones, setEditMilestones] = useState<string[]>([])
+  const [extraItems, setExtraItems] = useState<{ desc: string; code: string }[]>([])
+  const [showProductPicker, setShowProductPicker] = useState(false)
 
   useEffect(() => {
     async function fetch() {
@@ -92,7 +95,10 @@ export default function FrameSalePresentation() {
           .select('id, total, reception_venue, num_videographers, video_highlights, video_long_form')
           .eq('couple_id', c.id)
           .limit(1)
-        setContract(contractData?.[0] ?? null)
+        const ct = contractData?.[0] ?? null
+        setContract(ct)
+        const vid = !!(ct?.num_videographers && ct.num_videographers > 0) || !!ct?.video_highlights || !!ct?.video_long_form
+        setEditMilestones(vid ? [...PV_MILESTONES] : [...PO_MILESTONES])
       }
       // Fetch product catalog
       const { data: productData } = await supabase
@@ -121,13 +127,12 @@ export default function FrameSalePresentation() {
     setSaving(true)
 
     const balanceOwing = couple.balance_owing ?? 0
+    const numInstallments = editMilestones.length
+    const deposit = balanceOwing + ALBUM_COLLAGE_TOTAL - (numInstallments * Math.floor((balanceOwing + ALBUM_COLLAGE_TOTAL) / numInstallments))
+    const totalAfterDeposit = balanceOwing + ALBUM_COLLAGE_TOTAL - deposit
+    const perInstallment = Math.floor(totalAfterDeposit / numInstallments * 100) / 100
+    const lastInstallment = Math.round((totalAfterDeposit - perInstallment * (numInstallments - 1)) * 100) / 100
     const newBalance = balanceOwing + EXTRAS_SALE_AMOUNT
-    const numInstallments = 8
-    const perInstallment = Math.floor(newBalance / numInstallments * 100) / 100
-    const lastInstallment = Math.round((newBalance - perInstallment * (numInstallments - 1)) * 100) / 100
-
-    const hasVideo = !!(contract?.num_videographers && contract.num_videographers > 0) || !!contract?.video_highlights || !!contract?.video_long_form
-    const milestones = hasVideo ? PV_MILESTONES : PO_MILESTONES
 
     const { data: orderData, error: orderError } = await supabase
       .from('extras_orders')
@@ -165,7 +170,7 @@ export default function FrameSalePresentation() {
       return
     }
 
-    const installments = milestones.map((desc, i) => ({
+    const installments = editMilestones.map((desc, i) => ({
       extras_order_id: orderId,
       installment_number: i + 1,
       due_description: desc,
@@ -201,11 +206,7 @@ export default function FrameSalePresentation() {
   }
 
   const hasVideo = !!(contract?.num_videographers && contract.num_videographers > 0) || !!contract?.video_highlights || !!contract?.video_long_form
-  const milestones = hasVideo ? PV_MILESTONES : PO_MILESTONES
   const balanceOwing = couple.balance_owing ?? 0
-  const newBalance = balanceOwing + EXTRAS_SALE_AMOUNT
-  const perInstallment = Math.floor(newBalance / 8 * 100) / 100
-  const lastInstallment = Math.round((newBalance - perInstallment * 7) * 100) / 100
 
   const slideVariants = {
     enter: (dir: string) => ({ opacity: 0, x: dir === 'forward' ? 50 : -50 }),
@@ -369,7 +370,13 @@ export default function FrameSalePresentation() {
               )}
 
               {/* ─── PAGE 3: Payment Schedule ─── */}
-              {page === 3 && (
+              {page === 3 && (() => {
+                const n = editMilestones.length
+                const dep = balanceOwing + ALBUM_COLLAGE_TOTAL - (n * Math.floor((balanceOwing + ALBUM_COLLAGE_TOTAL) / n))
+                const totalAfterDep = balanceOwing + ALBUM_COLLAGE_TOTAL - dep
+                const perInst = Math.floor(totalAfterDep / n * 100) / 100
+                const lastInst = Math.round((totalAfterDep - perInst * (n - 1)) * 100) / 100
+                return (
                 <div>
                   <h2
                     className={playfair.className}
@@ -384,15 +391,19 @@ export default function FrameSalePresentation() {
                       label="Remaining in wedding agreement"
                     />
                     <FinanceRow
-                      amount={`+${formatCurrency(ALBUM_COLLAGE_TOTAL)}`}
+                      amount={formatCurrency(ALBUM_COLLAGE_TOTAL)}
                       label="Album & Collage including tax"
+                    />
+                    <FinanceRow
+                      amount={`–${formatCurrency(dep)}`}
+                      label="Deposit by E-transfer"
                     />
 
                     <div style={{ height: 1, backgroundColor: GOLD, margin: '20px 0' }} />
 
                     <FinanceRow
-                      amount={formatCurrency(newBalance)}
-                      label={`divided into 8 equal payments of ${formatCurrency(perInstallment)} including tax`}
+                      amount={formatCurrency(totalAfterDep)}
+                      label={`divided into ${n} equal payments of ${formatCurrency(perInst)} including tax`}
                     />
                   </div>
 
@@ -417,11 +428,11 @@ export default function FrameSalePresentation() {
                         }}
                       />
 
-                      {milestones.map((milestone, i) => (
+                      {editMilestones.map((milestone, i) => (
                         <div
                           key={i}
-                          className="relative flex items-center"
-                          style={{ minHeight: 48, marginBottom: i < milestones.length - 1 ? 4 : 0 }}
+                          className="relative flex items-center group"
+                          style={{ minHeight: 48, marginBottom: i < editMilestones.length - 1 ? 4 : 0 }}
                         >
                           <div
                             className="absolute flex items-center justify-center rounded-full"
@@ -439,64 +450,50 @@ export default function FrameSalePresentation() {
                             {i + 1}
                           </div>
 
-                          <div className="flex-1 flex items-center justify-between">
-                            <p style={{ fontSize: 15, lineHeight: 1.6 }}>{milestone}</p>
+                          <div className="flex-1 flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={milestone}
+                              onChange={(e) => {
+                                const next = [...editMilestones]
+                                next[i] = e.target.value
+                                setEditMilestones(next)
+                              }}
+                              className="flex-1 bg-transparent outline-none border border-transparent rounded px-2 py-1 transition-colors focus:border-amber-300 focus:bg-amber-50/30"
+                              style={{ fontSize: 15, lineHeight: 1.6 }}
+                            />
                             <p
                               className="tabular-nums"
-                              style={{ fontSize: 14, fontWeight: 500, color: MUTED, marginLeft: 16 }}
+                              style={{ fontSize: 14, fontWeight: 500, color: MUTED, whiteSpace: 'nowrap' }}
                             >
-                              {i === milestones.length - 1 ? formatCurrency(lastInstallment) : formatCurrency(perInstallment)}
+                              {i === editMilestones.length - 1 ? formatCurrency(lastInst) : formatCurrency(perInst)}
                             </p>
+                            {i > 0 && (
+                              <button
+                                onClick={() => setEditMilestones(editMilestones.filter((_, j) => j !== i))}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50"
+                                style={{ color: '#D97706' }}
+                              >
+                                <X style={{ width: 14, height: 14 }} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
+
+                      {/* Add installment */}
+                      <button
+                        onClick={() => setEditMilestones([...editMilestones, ''])}
+                        className="flex items-center gap-2 mt-4 ml-2 text-sm transition-colors"
+                        style={{ color: GOLD, background: 'none', border: 'none', cursor: 'pointer' }}
+                      >
+                        <Plus style={{ width: 16, height: 16 }} /> Add Installment
+                      </button>
                     </div>
                   </div>
 
-                </div>
-              )}
-
-              {/* ─── PAGE 4: Calculations ─── */}
-              {page === 4 && (
-                <div>
-                  <h2
-                    className={playfair.className}
-                    style={{ fontSize: 22, fontWeight: 700, marginBottom: 40 }}
-                  >
-                    Calculations
-                  </h2>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
-                    <InvoiceSection title="Collage" items={[
-                      { desc: '3 × 16×16 custom-edited prints with editing', code: 'COL-TRIO-CANV' },
-                      { desc: 'All 3 mounted on canvas stretcher', code: 'CNV-16X16' },
-                      { desc: 'All 3 framed with black float-frame', code: 'FRM-FLOAT-BLK' },
-                    ]} />
-                    <InvoiceSection title="Albums" items={[
-                      { desc: '28×11 digital album, leather/acrylic, 15 spreads', code: 'ALB-PREM-2811' },
-                      { desc: '8×10 Engagement signing book, black linen', code: 'ALB-SIGN-08' },
-                    ]} />
-                    <InvoiceSection title="Wedding Frame" items={[
-                      { desc: '24×30 photo mounted on canvas stretcher', code: 'CNV-24X30' },
-                      { desc: 'Black floating frame, D-rings and wire', code: 'FRM-FLOAT-BLK' },
-                    ]} />
-                    <InvoiceSection title="Extras Included" items={[
-                      { desc: 'Engagement Proof files — Dropbox, no watermark', code: 'DIG-PROOF-DL' },
-                      { desc: 'Online proofing, download share, gallery', code: 'DIG-GALLERY' },
-                      { desc: 'High-res Wedding files — 16×24, 300 dpi', code: 'DIG-HR-WED' },
-                      { desc: 'High-res Engagement files — 16×16, 300 dpi', code: 'DIG-HR-ENG' },
-                    ]} />
-                  </div>
-
-                  {/* Summary */}
-                  <div style={{ marginTop: 40, height: 1, backgroundColor: GOLD }} />
-                  <div className="flex items-center justify-between" style={{ paddingTop: 20 }}>
-                    <p style={{ fontSize: 16, color: '#444444' }}>Selected Items Total (before tax & discount):</p>
-                    <p className="tabular-nums" style={{ fontSize: 16, fontWeight: 600 }}>$—</p>
-                  </div>
-
                   {/* Save & Close */}
-                  <div className="flex justify-center" style={{ paddingTop: 40 }}>
+                  <div className="flex justify-center" style={{ paddingTop: 16 }}>
                     <button
                       onClick={handleSave}
                       disabled={saving}
@@ -511,6 +508,102 @@ export default function FrameSalePresentation() {
                       {saving ? <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> : null}
                       Save & Close
                     </button>
+                  </div>
+                </div>
+                )
+              })()}
+
+              {/* ─── PAGE 4: Calculations ─── */}
+              {page === 4 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
+                  <InvoiceSection title="Collage" items={[
+                    { desc: '3 × 16×16 custom-edited prints with editing', code: 'COL-TRIO-CANV' },
+                  ]} />
+                  <InvoiceSection title="Albums" items={[
+                    { desc: '28×11 digital album, leather/acrylic, 15 spreads', code: 'ALB-PREM-2811' },
+                    { desc: '8×10 Engagement signing book, black linen', code: 'ALB-SIGN-08' },
+                  ]} />
+                  <InvoiceSection title="Wedding Frame" items={[
+                    { desc: '24×30 photo mounted on canvas stretcher', code: 'CNV-24X30' },
+                    { desc: 'Black floating frame, D-rings and wire', code: 'FRM-FLOAT-BLK' },
+                  ]} />
+                  <div>
+                    <InvoiceSection title="Extras Included" items={[
+                      { desc: 'Engagement Proof files — Dropbox, no watermark', code: 'DIG-PROOF-DL' },
+                      { desc: 'Online proofing, download share, gallery', code: 'DIG-GALLERY' },
+                      { desc: 'High-res Wedding files — 16×24, 300 dpi', code: 'DIG-HR-WED' },
+                      { desc: 'High-res Engagement files — 16×16, 300 dpi', code: 'DIG-HR-ENG' },
+                      ...extraItems,
+                    ]} />
+                    {/* Remove buttons for added extras */}
+                    {extraItems.length > 0 && (
+                      <div style={{ marginTop: -4 }}>
+                        {extraItems.map((item, i) => (
+                          <div key={i} className="flex items-center justify-end" style={{ padding: '2px 0' }}>
+                            <button
+                              onClick={() => setExtraItems(extraItems.filter((_, j) => j !== i))}
+                              className="flex items-center gap-1 text-xs transition-colors"
+                              style={{ color: '#D97706', background: 'none', border: 'none', cursor: 'pointer' }}
+                            >
+                              <X style={{ width: 12, height: 12 }} /> Remove {item.code}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Add item picker */}
+                    <div className="relative" style={{ marginTop: 12 }}>
+                      <button
+                        onClick={() => setShowProductPicker(!showProductPicker)}
+                        className="flex items-center gap-2 text-sm transition-colors"
+                        style={{ color: GOLD, background: 'none', border: 'none', cursor: 'pointer' }}
+                      >
+                        <Plus style={{ width: 16, height: 16 }} /> Add Item
+                      </button>
+                      {showProductPicker && (
+                        <div
+                          className="absolute left-0 top-8 z-10 rounded-xl overflow-hidden"
+                          style={{
+                            backgroundColor: '#FFFFFF',
+                            border: '1px solid #E8E8E3',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                            maxHeight: 300,
+                            overflowY: 'auto',
+                            width: 420,
+                          }}
+                        >
+                          {(() => {
+                            const grouped: Record<string, any[]> = {}
+                            products.forEach((p: any) => {
+                              const cat = p.category ?? 'Other'
+                              if (!grouped[cat]) grouped[cat] = []
+                              grouped[cat].push(p)
+                            })
+                            return Object.entries(grouped).map(([cat, items]) => (
+                              <div key={cat}>
+                                <p className="px-4 py-2 text-xs uppercase tracking-wider" style={{ color: '#BBBBBB', backgroundColor: '#FAFAF5' }}>{cat}</p>
+                                {items.map((p: any) => (
+                                  <button
+                                    key={p.product_code}
+                                    onClick={() => {
+                                      setExtraItems([...extraItems, { desc: p.item_name ?? p.description, code: p.product_code }])
+                                      setShowProductPicker(false)
+                                    }}
+                                    className="w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors"
+                                    style={{ borderBottom: '1px solid #F3F3EE' }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FAFAF5')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
+                                  >
+                                    <span style={{ fontSize: 14 }}>{p.item_name ?? p.description}</span>
+                                    <span style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'monospace' }}>{p.product_code}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            ))
+                          })()}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
