@@ -280,9 +280,9 @@ export default function CoupleDetailPage() {
       exists: !!videoOrder?.submitted_at
     },
     {
-      label: 'Couple Portal',
-      href: null,
-      exists: false
+      label: 'Portal Editor',
+      href: couple.portal_slug ? `/admin/portal/${couple.id}` : null,
+      exists: !!couple.portal_slug
     }
   ]
 

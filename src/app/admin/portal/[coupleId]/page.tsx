@@ -1,0 +1,349 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Loader2, Upload, Trash2, ExternalLink, Image as ImageIcon, Video, LayoutGrid, Type, Eye, Share2 } from 'lucide-react'
+import { formatWeddingDate } from '@/lib/formatters'
+import { toast } from 'sonner'
+import Image from 'next/image'
+
+interface CouplePortalData {
+  id: string
+  bride_first_name: string
+  groom_first_name: string
+  wedding_date: string | null
+  portal_slug: string | null
+  hero_image_url: string | null
+  portal_video_url: string | null
+  portal_video_type: string | null
+  collage_img_left: string | null
+  collage_img_center: string | null
+  collage_img_right: string | null
+  collage_caption: string | null
+  share_enabled: boolean | null
+  share_token: string | null
+}
+
+function extractYouTubeId(url: string): string | null {
+  const patterns = [
+    /youtu\.be\/([^?&]+)/,
+    /youtube\.com\/watch\?v=([^&]+)/,
+    /youtube\.com\/embed\/([^?&]+)/,
+  ]
+  for (const p of patterns) {
+    const match = url.match(p)
+    if (match) return match[1]
+  }
+  return null
+}
+
+export default function PortalEditorPage() {
+  const params = useParams()
+  const coupleId = params.coupleId as string
+
+  const [loading, setLoading] = useState(true)
+  const [couple, setCouple] = useState<CouplePortalData | null>(null)
+  const [uploading, setUploading] = useState<Record<string, boolean>>({})
+  const [videoUrl, setVideoUrl] = useState('')
+  const [caption, setCaption] = useState('')
+
+  useEffect(() => {
+    fetchCouple()
+  }, [coupleId])
+
+  async function fetchCouple() {
+    const { data } = await supabase
+      .from('couples')
+      .select('id, bride_first_name, groom_first_name, wedding_date, portal_slug, hero_image_url, portal_video_url, portal_video_type, collage_img_left, collage_img_center, collage_img_right, collage_caption, share_enabled, share_token')
+      .eq('id', coupleId)
+      .limit(1)
+
+    const c = data?.[0] ?? null
+    setCouple(c)
+    if (c) {
+      setVideoUrl(c.portal_video_url ?? '')
+      setCaption(c.collage_caption ?? '')
+    }
+    setLoading(false)
+  }
+
+  async function uploadImage(file: File, filePath: string, column: string) {
+    setUploading(prev => ({ ...prev, [column]: true }))
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('portal-assets')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) {
+        toast.error(`Upload failed: ${uploadError.message}`)
+        return
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('portal-assets')
+        .getPublicUrl(filePath)
+
+      const { error: updateError } = await supabase
+        .from('couples')
+        .update({ [column]: publicUrl })
+        .eq('id', coupleId)
+
+      if (updateError) {
+        toast.error(`Save failed: ${updateError.message}`)
+        return
+      }
+
+      toast.success('Image uploaded')
+      fetchCouple()
+    } finally {
+      setUploading(prev => ({ ...prev, [column]: false }))
+    }
+  }
+
+  async function removeImage(filePath: string, column: string) {
+    await supabase.storage.from('portal-assets').remove([filePath])
+    await supabase.from('couples').update({ [column]: null }).eq('id', coupleId)
+    toast.success('Image removed')
+    fetchCouple()
+  }
+
+  async function saveVideoUrl() {
+    if (!videoUrl.trim()) {
+      toast.error('Enter a YouTube URL')
+      return
+    }
+    const videoId = extractYouTubeId(videoUrl.trim())
+    if (!videoId) {
+      toast.error('Invalid YouTube URL')
+      return
+    }
+    const embedUrl = `https://www.youtube.com/embed/${videoId}`
+    await supabase.from('couples').update({ portal_video_url: embedUrl, portal_video_type: 'youtube' }).eq('id', coupleId)
+    toast.success('Video saved')
+    fetchCouple()
+  }
+
+  async function removeVideo() {
+    await supabase.from('couples').update({ portal_video_url: null, portal_video_type: null }).eq('id', coupleId)
+    setVideoUrl('')
+    toast.success('Video removed')
+    fetchCouple()
+  }
+
+  async function saveCaption() {
+    await supabase.from('couples').update({ collage_caption: caption }).eq('id', coupleId)
+    toast.success('Caption saved')
+  }
+
+  async function toggleShare() {
+    const newVal = !couple?.share_enabled
+    await supabase.from('couples').update({ share_enabled: newVal }).eq('id', coupleId)
+    toast.success(newVal ? 'Sharing enabled' : 'Sharing disabled')
+    fetchCouple()
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!couple) {
+    return <div className="p-6 text-center text-muted-foreground">Couple not found</div>
+  }
+
+  const coupleName = `${couple.bride_first_name} & ${couple.groom_first_name}`
+
+  // Extract video ID for thumbnail preview
+  const currentVideoId = couple.portal_video_url ? extractYouTubeId(couple.portal_video_url) : null
+
+  return (
+    <div className="p-6 space-y-6 max-w-4xl mx-auto">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold">{coupleName} — Portal Editor</h1>
+        <p className="text-sm text-muted-foreground">{formatWeddingDate(couple.wedding_date)}</p>
+      </div>
+
+      {/* 3A: Hero Photo */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <ImageIcon className="w-4 h-4" /> Hero Photo
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {couple.hero_image_url && (
+            <div className="relative w-full max-w-md">
+              <Image src={couple.hero_image_url} alt="Hero" width={480} height={270} className="rounded-lg object-cover" />
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) uploadImage(file, `${coupleId}/hero.jpg`, 'hero_image_url')
+                }}
+              />
+              <span className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent/50 transition-colors">
+                {uploading.hero_image_url ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                Upload Hero
+              </span>
+            </label>
+            {couple.hero_image_url && (
+              <Button variant="outline" size="sm" onClick={() => removeImage(`${coupleId}/hero.jpg`, 'hero_image_url')}>
+                <Trash2 className="w-4 h-4 mr-1" /> Remove
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 3B: YouTube Video URL */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <Video className="w-4 h-4" /> YouTube Video
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              placeholder="https://youtu.be/VIDEO_ID"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              className="flex-1"
+            />
+            <Button onClick={saveVideoUrl}>Save</Button>
+            {couple.portal_video_url && (
+              <Button variant="outline" onClick={removeVideo}>
+                <Trash2 className="w-4 h-4 mr-1" /> Remove
+              </Button>
+            )}
+          </div>
+          {currentVideoId && (
+            <div className="max-w-md">
+              <Image
+                src={`https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg`}
+                alt="Video thumbnail"
+                width={480}
+                height={270}
+                className="rounded-lg"
+                unoptimized
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 3C: Collage Photos */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <LayoutGrid className="w-4 h-4" /> Collage Photos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-4">
+            {(['left', 'center', 'right'] as const).map((pos) => {
+              const column = `collage_img_${pos}` as keyof CouplePortalData
+              const url = couple[column] as string | null
+              return (
+                <div key={pos} className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground capitalize">{pos}</p>
+                  {url && (
+                    <Image src={url} alt={`Collage ${pos}`} width={200} height={200} className="rounded-lg object-cover w-full aspect-square" />
+                  )}
+                  <div className="flex gap-1">
+                    <label className="cursor-pointer flex-1">
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) uploadImage(file, `${coupleId}/collage-${pos}.jpg`, `collage_img_${pos}`)
+                        }}
+                      />
+                      <span className="inline-flex items-center justify-center gap-1 w-full px-2 py-1.5 text-xs font-medium rounded-md border border-input bg-background hover:bg-accent/50 transition-colors">
+                        {uploading[`collage_img_${pos}`] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                        Upload
+                      </span>
+                    </label>
+                    {url && (
+                      <Button variant="outline" size="sm" className="text-xs px-2" onClick={() => removeImage(`${coupleId}/collage-${pos}.jpg`, `collage_img_${pos}`)}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 3D: Collage Caption */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <Type className="w-4 h-4" /> Collage Caption
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <Input
+              placeholder="A caption for the collage..."
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              className="flex-1"
+            />
+            <Button onClick={saveCaption}>Save</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 3E: Share Toggle */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <Share2 className="w-4 h-4" /> Sharing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={!!couple.share_enabled} onChange={toggleShare} className="w-4 h-4 rounded" />
+            <span className="text-sm">{couple.share_enabled ? 'Sharing enabled' : 'Sharing disabled'}</span>
+          </label>
+          {couple.share_enabled && couple.share_token && (
+            <p className="text-xs text-muted-foreground break-all">
+              Share URL: https://studioflow-zeta.vercel.app/portal/share/{couple.share_token}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 3F: Live Preview Link */}
+      {couple.portal_slug && (
+        <a
+          href={`/portal/${couple.portal_slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent/50 transition-colors"
+        >
+          <Eye className="w-4 h-4" /> Preview Portal <ExternalLink className="w-3 h-3" />
+        </a>
+      )}
+    </div>
+  )
+}

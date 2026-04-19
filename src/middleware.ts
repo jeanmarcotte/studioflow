@@ -39,26 +39,8 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // Portal routes: allow login and auth callback through, protect everything else
+  // Portal routes: all portal pages are publicly accessible
   if (pathname.startsWith('/portal')) {
-    if (
-      pathname.startsWith('/portal/login') ||
-      pathname.startsWith('/portal/auth')
-    ) {
-      return supabaseResponse
-    }
-
-    // Protected portal routes — redirect to portal login if no session
-    if (!user) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/portal/login'
-      const redirectResponse = NextResponse.redirect(url)
-      supabaseResponse.cookies.getAll().forEach((cookie) => {
-        redirectResponse.cookies.set(cookie.name, cookie.value)
-      })
-      return redirectResponse
-    }
-
     return supabaseResponse
   }
 
