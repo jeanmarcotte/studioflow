@@ -73,6 +73,7 @@ export default function FrameSalePresentation() {
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward')
   const [couple, setCouple] = useState<CoupleData | null>(null)
   const [contract, setContract] = useState<ContractData | null>(null)
+  const [products, setProducts] = useState<any[]>([])
 
   useEffect(() => {
     async function fetch() {
@@ -93,13 +94,21 @@ export default function FrameSalePresentation() {
           .limit(1)
         setContract(contractData?.[0] ?? null)
       }
+      // Fetch product catalog
+      const { data: productData } = await supabase
+        .from('product_catalog')
+        .select('product_code, category, item_name, description, retail_price, unit, sort_order')
+        .eq('active', true)
+        .order('sort_order')
+      setProducts(productData ?? [])
+
       setLoading(false)
     }
     fetch()
   }, [coupleId])
 
   function goNext() {
-    if (page < 3) { setDirection('forward'); setPage(page + 1) }
+    if (page < 4) { setDirection('forward'); setPage(page + 1) }
   }
 
   function goBack() {
@@ -219,7 +228,7 @@ export default function FrameSalePresentation() {
       </button>
 
       {/* Right arrow */}
-      {page < 3 && (
+      {page < 4 && (
         <button
           onClick={goNext}
           className="fixed z-50 transition-all rounded-full"
@@ -444,7 +453,50 @@ export default function FrameSalePresentation() {
                     </div>
                   </div>
 
-                  <div className="flex justify-center" style={{ paddingTop: 16 }}>
+                </div>
+              )}
+
+              {/* ─── PAGE 4: Calculations ─── */}
+              {page === 4 && (
+                <div>
+                  <h2
+                    className={playfair.className}
+                    style={{ fontSize: 22, fontWeight: 700, marginBottom: 40 }}
+                  >
+                    Calculations
+                  </h2>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
+                    <InvoiceSection title="Collage" items={[
+                      { desc: '3 × 16×16 custom-edited prints with editing', code: 'COL-TRIO-CANV' },
+                      { desc: 'All 3 mounted on canvas stretcher', code: 'CNV-16X16' },
+                      { desc: 'All 3 framed with black float-frame', code: 'FRM-FLOAT-BLK' },
+                    ]} />
+                    <InvoiceSection title="Albums" items={[
+                      { desc: '28×11 digital album, leather/acrylic, 15 spreads', code: 'ALB-PREM-2811' },
+                      { desc: '8×10 Engagement signing book, black linen', code: 'ALB-SIGN-08' },
+                    ]} />
+                    <InvoiceSection title="Wedding Frame" items={[
+                      { desc: '24×30 photo mounted on canvas stretcher', code: 'CNV-24X30' },
+                      { desc: 'Black floating frame, D-rings and wire', code: 'FRM-FLOAT-BLK' },
+                    ]} />
+                    <InvoiceSection title="Extras Included" items={[
+                      { desc: 'Engagement Proof files — Dropbox, no watermark', code: 'DIG-PROOF-DL' },
+                      { desc: 'Online proofing, download share, gallery', code: 'DIG-GALLERY' },
+                      { desc: 'High-res Wedding files — 16×24, 300 dpi', code: 'DIG-HR-WED' },
+                      { desc: 'High-res Engagement files — 16×16, 300 dpi', code: 'DIG-HR-ENG' },
+                    ]} />
+                  </div>
+
+                  {/* Summary */}
+                  <div style={{ marginTop: 40, height: 1, backgroundColor: GOLD }} />
+                  <div className="flex items-center justify-between" style={{ paddingTop: 20 }}>
+                    <p style={{ fontSize: 16, color: '#444444' }}>Selected Items Total (before tax & discount):</p>
+                    <p className="tabular-nums" style={{ fontSize: 16, fontWeight: 600 }}>$—</p>
+                  </div>
+
+                  {/* Save & Close */}
+                  <div className="flex justify-center" style={{ paddingTop: 40 }}>
                     <button
                       onClick={handleSave}
                       disabled={saving}
@@ -468,7 +520,7 @@ export default function FrameSalePresentation() {
 
           {/* Page numbers — bottom right */}
           <div className="flex justify-end gap-1" style={{ marginTop: 40 }}>
-            {[1, 2, 3].map((p) => (
+            {[1, 2, 3, 4].map((p) => (
               <button
                 key={p}
                 onClick={() => {
@@ -538,6 +590,32 @@ function LedgerLine({ label, amount, bold, green }: { label: string; amount: str
       >
         {amount}
       </p>
+    </div>
+  )
+}
+
+function InvoiceSection({ title, items }: { title: string; items: { desc: string; code: string }[] }) {
+  return (
+    <div>
+      <h3
+        className={playfair.className}
+        style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}
+      >
+        {title}
+      </h3>
+      <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
+      <div>
+        {items.map((item, i) => (
+          <div
+            key={i}
+            className="flex items-center justify-between"
+            style={{ padding: '10px 0', borderBottom: `1px dashed ${BORDER}` }}
+          >
+            <p style={{ fontSize: 16, color: '#444444', lineHeight: 1.6 }}>{item.desc}</p>
+            <p style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'monospace', whiteSpace: 'nowrap', marginLeft: 16 }}>{item.code}</p>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
