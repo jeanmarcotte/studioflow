@@ -137,13 +137,10 @@ export default function FrameSalePresentation() {
     if (!couple) return
     setSaving(true)
 
-    const balanceOwing = couple.balance_owing ?? 0
+    const bal = couple.balance_owing ?? 0
     const numInstallments = editMilestones.length
-    const deposit = balanceOwing + ALBUM_COLLAGE_TOTAL - (numInstallments * Math.floor((balanceOwing + ALBUM_COLLAGE_TOTAL) / numInstallments))
-    const totalAfterDeposit = balanceOwing + ALBUM_COLLAGE_TOTAL - deposit
-    const perInstallment = Math.floor(totalAfterDeposit / numInstallments * 100) / 100
-    const lastInstallment = Math.round((totalAfterDeposit - perInstallment * (numInstallments - 1)) * 100) / 100
-    const newBalance = balanceOwing + EXTRAS_SALE_AMOUNT
+    const totalInstallments = editAmounts.reduce((s, a) => s + a, 0)
+    const newBalance = bal + EXTRAS_SALE_AMOUNT
 
     const { data: orderData, error: orderError } = await supabase
       .from('extras_orders')
@@ -152,12 +149,13 @@ export default function FrameSalePresentation() {
         order_type: 'frames_albums',
         order_date: new Date().toISOString().split('T')[0],
         status: 'pending',
-        extras_sale_amount: EXTRAS_SALE_AMOUNT,
-        contract_balance_remaining: balanceOwing,
+        extras_sale_amount: saleAmount,
+        contract_balance_remaining: bal,
         new_balance: newBalance,
         num_installments: numInstallments,
-        payment_per_installment: perInstallment,
-        last_installment_amount: lastInstallment,
+        payment_per_installment: editAmounts[0] ?? 0,
+        last_installment_amount: editAmounts[editAmounts.length - 1] ?? 0,
+        downpayment: depositAmount,
         collage_type: 'canvas_float',
         collage_size: '16x16',
         collage_frame_color: 'black',
@@ -185,7 +183,7 @@ export default function FrameSalePresentation() {
       extras_order_id: orderId,
       installment_number: i + 1,
       due_description: desc,
-      amount: i === numInstallments - 1 ? lastInstallment : perInstallment,
+      amount: editAmounts[i] ?? 0,
       paid: false,
     }))
 
@@ -201,10 +199,10 @@ export default function FrameSalePresentation() {
 
     await supabase
       .from('couples')
-      .update({ c2_amount: EXTRAS_SALE_AMOUNT })
+      .update({ c2_amount: saleAmount })
       .eq('id', coupleId)
 
-    toast.success(`C2 Frame & Album sale created for ${couple.bride_first_name} & ${couple.groom_first_name}`)
+    toast.success(`C2 saved as Pending for ${couple.bride_first_name} & ${couple.groom_first_name}`)
     router.push('/admin/sales/frames')
   }
 
@@ -357,10 +355,10 @@ export default function FrameSalePresentation() {
                     className="flex items-center justify-between"
                     style={{ marginTop: 32, paddingTop: 24, borderTop: `2px solid ${TEXT}` }}
                   >
-                    <p className={playfair.className} style={{ fontSize: 20, fontWeight: 700 }}>
+                    <p className={playfair.className} style={{ fontSize: 18, fontWeight: 700 }}>
                       Total Cost after Discount
                     </p>
-                    <p className={playfair.className} style={{ fontSize: 28, fontWeight: 700 }}>
+                    <p className={playfair.className} style={{ fontSize: 22, fontWeight: 700 }}>
                       $3,008.63
                     </p>
                   </div>
@@ -382,11 +380,7 @@ export default function FrameSalePresentation() {
 
               {/* ─── PAGE 3: Payment Schedule ─── */}
               {page === 3 && (() => {
-                const n = editMilestones.length
-                const dep = balanceOwing + ALBUM_COLLAGE_TOTAL - (n * Math.floor((balanceOwing + ALBUM_COLLAGE_TOTAL) / n))
-                const totalAfterDep = balanceOwing + ALBUM_COLLAGE_TOTAL - dep
-                const perInst = Math.floor(totalAfterDep / n * 100) / 100
-                const lastInst = Math.round((totalAfterDep - perInst * (n - 1)) * 100) / 100
+                const totalFromInstallments = editAmounts.reduce((s, a) => s + a, 0)
                 return (
                 <div>
                   <h2
@@ -401,20 +395,23 @@ export default function FrameSalePresentation() {
                       amount={formatCurrency(balanceOwing)}
                       label="Remaining in wedding agreement"
                     />
-                    <FinanceRow
-                      amount={formatCurrency(ALBUM_COLLAGE_TOTAL)}
+                    <EditableFinanceRow
+                      value={saleAmount}
+                      onChange={(v) => setSaleAmount(v)}
                       label="Album & Collage including tax"
                     />
-                    <FinanceRow
-                      amount={`–${formatCurrency(dep)}`}
-                      label="Deposit by E-transfer"
+                    <EditableFinanceRow
+                      value={depositAmount}
+                      onChange={(v) => setDepositAmount(v)}
+                      label="Deposit"
+                      prefix="–"
                     />
 
                     <div style={{ height: 1, backgroundColor: GOLD, margin: '20px 0' }} />
 
                     <FinanceRow
-                      amount={formatCurrency(totalAfterDep)}
-                      label={`divided into ${n} equal payments of ${formatCurrency(perInst)} including tax`}
+                      amount={formatCurrency(totalFromInstallments)}
+                      label={`divided into ${editMilestones.length} payments of ${formatCurrency(editAmounts[0] ?? 0)} including tax`}
                     />
                   </div>
 
@@ -473,15 +470,24 @@ export default function FrameSalePresentation() {
                               className="flex-1 bg-transparent outline-none border border-transparent rounded px-2 py-1 transition-colors focus:border-amber-300 focus:bg-amber-50/30"
                               style={{ fontSize: 15, lineHeight: 1.6 }}
                             />
-                            <p
-                              className="tabular-nums"
-                              style={{ fontSize: 14, fontWeight: 500, color: MUTED, whiteSpace: 'nowrap' }}
-                            >
-                              {i === editMilestones.length - 1 ? formatCurrency(lastInst) : formatCurrency(perInst)}
-                            </p>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={editAmounts[i] ?? 0}
+                              onChange={(e) => {
+                                const next = [...editAmounts]
+                                next[i] = parseFloat(e.target.value) || 0
+                                setEditAmounts(next)
+                              }}
+                              className="tabular-nums bg-transparent outline-none border border-transparent rounded px-2 py-1 text-right transition-colors hover:border-dashed hover:border-amber-400 focus:border-amber-300 focus:bg-amber-50/30"
+                              style={{ fontSize: 14, fontWeight: 500, color: MUTED, width: 90, cursor: 'text' }}
+                            />
                             {i > 0 && (
                               <button
-                                onClick={() => setEditMilestones(editMilestones.filter((_, j) => j !== i))}
+                                onClick={() => {
+                                  setEditMilestones(editMilestones.filter((_, j) => j !== i))
+                                  setEditAmounts(editAmounts.filter((_, j) => j !== i))
+                                }}
                                 className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50"
                                 style={{ color: '#D97706' }}
                               >
@@ -492,23 +498,45 @@ export default function FrameSalePresentation() {
                         </div>
                       ))}
 
-                      {/* Add installment */}
-                      <button
-                        onClick={() => setEditMilestones([...editMilestones, ''])}
-                        className="flex items-center gap-2 mt-4 ml-2 text-sm transition-colors"
-                        style={{ color: GOLD, background: 'none', border: 'none', cursor: 'pointer' }}
-                      >
-                        <Plus style={{ width: 16, height: 16 }} /> Add Installment
-                      </button>
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-4 mt-4 ml-2">
+                        <button
+                          onClick={() => {
+                            setEditMilestones([...editMilestones, ''])
+                            const total = balanceOwing + saleAmount - depositAmount
+                            const n = editMilestones.length + 1
+                            const per = Math.floor(total / n * 100) / 100
+                            const last = Math.round((total - per * (n - 1)) * 100) / 100
+                            setEditAmounts([...Array(n - 1).fill(per), last])
+                          }}
+                          className="flex items-center gap-2 text-sm transition-colors"
+                          style={{ color: GOLD, background: 'none', border: 'none', cursor: 'pointer' }}
+                        >
+                          <Plus style={{ width: 16, height: 16 }} /> Add Installment
+                        </button>
+                        <button
+                          onClick={() => {
+                            const total = balanceOwing + saleAmount - depositAmount
+                            const n = editMilestones.length
+                            const per = Math.floor(total / n * 100) / 100
+                            const last = Math.round((total - per * (n - 1)) * 100) / 100
+                            setEditAmounts(editMilestones.map((_, i) => i === n - 1 ? last : per))
+                          }}
+                          className="flex items-center gap-2 text-sm transition-colors"
+                          style={{ color: GOLD, background: 'none', border: 'none', cursor: 'pointer' }}
+                        >
+                          <Equal style={{ width: 16, height: 16 }} /> Redistribute Evenly
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Save & Close */}
-                  <div className="flex justify-center" style={{ paddingTop: 16 }}>
+                  {/* Save + Download */}
+                  <div className="flex justify-center gap-4" style={{ paddingTop: 16 }}>
                     <button
                       onClick={handleSave}
                       disabled={saving}
-                      className="px-10 py-4 rounded-xl text-base font-semibold tracking-wide transition-all disabled:opacity-50"
+                      className="px-8 py-3.5 rounded-xl text-base font-semibold tracking-wide transition-all disabled:opacity-50"
                       style={{
                         backgroundColor: GOLD,
                         color: '#FFFFFF',
@@ -517,7 +545,19 @@ export default function FrameSalePresentation() {
                       }}
                     >
                       {saving ? <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> : null}
-                      Save & Close
+                      Save
+                    </button>
+                    <button
+                      onClick={() => toast.info('PDF download coming soon')}
+                      className="px-8 py-3.5 rounded-xl text-base font-semibold tracking-wide transition-all flex items-center gap-2"
+                      style={{
+                        border: `1.5px solid ${GOLD}`,
+                        color: GOLD,
+                        backgroundColor: 'transparent',
+                        letterSpacing: '0.02em',
+                      }}
+                    >
+                      <Download style={{ width: 16, height: 16 }} /> Download
                     </button>
                   </div>
                 </div>
@@ -729,10 +769,29 @@ function FinanceRow({ amount, label }: { amount: string; label: string }) {
     <div className="flex items-baseline gap-5" style={{ padding: '12px 0' }}>
       <p
         className="tabular-nums"
-        style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums', minWidth: 120 }}
+        style={{ fontSize: 16, fontWeight: 700, fontVariantNumeric: 'tabular-nums', minWidth: 120 }}
       >
         {amount}
       </p>
+      <p style={{ fontSize: 16, color: '#888888' }}>{label}</p>
+    </div>
+  )
+}
+
+function EditableFinanceRow({ value, onChange, label, prefix }: { value: number; onChange: (v: number) => void; label: string; prefix?: string }) {
+  return (
+    <div className="flex items-baseline gap-5" style={{ padding: '12px 0' }}>
+      <div className="flex items-baseline" style={{ minWidth: 120 }}>
+        {prefix && <span className="tabular-nums" style={{ fontSize: 16, fontWeight: 700 }}>{prefix}</span>}
+        <input
+          type="number"
+          step="0.01"
+          value={value}
+          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          className="tabular-nums bg-transparent outline-none border border-transparent rounded px-1 py-0.5 transition-colors hover:border-dashed hover:border-amber-400 focus:border-amber-300 focus:bg-amber-50/30"
+          style={{ fontSize: 16, fontWeight: 700, width: 100, cursor: 'text' }}
+        />
+      </div>
       <p style={{ fontSize: 16, color: '#888888' }}>{label}</p>
     </div>
   )
