@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -50,6 +50,16 @@ export default function PortalEditorPage() {
   const [uploading, setUploading] = useState<Record<string, boolean>>({})
   const [videoUrl, setVideoUrl] = useState('')
   const [caption, setCaption] = useState('')
+  const [cacheBust, setCacheBust] = useState<Record<string, number>>({})
+  const heroInputRef = useRef<HTMLInputElement>(null)
+  const collageLeftRef = useRef<HTMLInputElement>(null)
+  const collageCenterRef = useRef<HTMLInputElement>(null)
+  const collageRightRef = useRef<HTMLInputElement>(null)
+  const collageRefs: Record<string, React.RefObject<HTMLInputElement | null>> = {
+    left: collageLeftRef,
+    center: collageCenterRef,
+    right: collageRightRef,
+  }
 
   useEffect(() => {
     fetchCouple()
@@ -98,15 +108,18 @@ export default function PortalEditorPage() {
       }
 
       toast.success('Image uploaded')
+      setCacheBust(prev => ({ ...prev, [column]: Date.now() }))
       fetchCouple()
     } finally {
       setUploading(prev => ({ ...prev, [column]: false }))
     }
   }
 
-  async function removeImage(filePath: string, column: string) {
+  async function removeImage(filePath: string, column: string, inputRef?: React.RefObject<HTMLInputElement | null>) {
     await supabase.storage.from('portal-assets').remove([filePath])
     await supabase.from('couples').update({ [column]: null }).eq('id', coupleId)
+    if (inputRef?.current) inputRef.current.value = ''
+    setCacheBust(prev => { const next = { ...prev }; delete next[column]; return next })
     toast.success('Image removed')
     fetchCouple()
   }
@@ -181,12 +194,13 @@ export default function PortalEditorPage() {
         <CardContent className="space-y-3">
           {couple.hero_image_url && (
             <div className="relative w-full max-w-md">
-              <Image src={couple.hero_image_url} alt="Hero" width={480} height={270} className="rounded-lg object-cover" />
+              <Image src={`${couple.hero_image_url}${cacheBust.hero_image_url ? `?t=${cacheBust.hero_image_url}` : ''}`} alt="Hero" width={480} height={270} className="rounded-lg object-cover" />
             </div>
           )}
           <div className="flex items-center gap-3">
             <label className="cursor-pointer">
               <input
+                ref={heroInputRef}
                 type="file"
                 accept=".jpg,.jpeg,.png,.webp"
                 className="hidden"
@@ -201,7 +215,7 @@ export default function PortalEditorPage() {
               </span>
             </label>
             {couple.hero_image_url && (
-              <Button variant="outline" size="sm" onClick={() => removeImage(`${coupleId}/hero.jpg`, 'hero_image_url')}>
+              <Button variant="outline" size="sm" onClick={() => removeImage(`${coupleId}/hero.jpg`, 'hero_image_url', heroInputRef)}>
                 <Trash2 className="w-4 h-4 mr-1" /> Remove
               </Button>
             )}
@@ -256,32 +270,35 @@ export default function PortalEditorPage() {
         <CardContent>
           <div className="grid grid-cols-3 gap-4">
             {(['left', 'center', 'right'] as const).map((pos) => {
-              const column = `collage_img_${pos}` as keyof CouplePortalData
-              const url = couple[column] as string | null
+              const column = `collage_img_${pos}`
+              const url = couple[column as keyof CouplePortalData] as string | null
+              const ref = collageRefs[pos]
+              const previewUrl = url ? `${url}${cacheBust[column] ? `?t=${cacheBust[column]}` : ''}` : null
               return (
                 <div key={pos} className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground capitalize">{pos}</p>
-                  {url && (
-                    <Image src={url} alt={`Collage ${pos}`} width={200} height={200} className="rounded-lg object-cover w-full aspect-square" />
+                  {previewUrl && (
+                    <Image src={previewUrl} alt={`Collage ${pos}`} width={200} height={200} className="rounded-lg object-cover w-full aspect-square" />
                   )}
                   <div className="flex gap-1">
                     <label className="cursor-pointer flex-1">
                       <input
+                        ref={ref}
                         type="file"
                         accept=".jpg,.jpeg,.png,.webp"
                         className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0]
-                          if (file) uploadImage(file, `${coupleId}/collage-${pos}.jpg`, `collage_img_${pos}`)
+                          if (file) uploadImage(file, `${coupleId}/collage-${pos}.jpg`, column)
                         }}
                       />
                       <span className="inline-flex items-center justify-center gap-1 w-full px-2 py-1.5 text-xs font-medium rounded-md border border-input bg-background hover:bg-accent/50 transition-colors">
-                        {uploading[`collage_img_${pos}`] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                        {uploading[column] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
                         Upload
                       </span>
                     </label>
                     {url && (
-                      <Button variant="outline" size="sm" className="text-xs px-2" onClick={() => removeImage(`${coupleId}/collage-${pos}.jpg`, `collage_img_${pos}`)}>
+                      <Button variant="outline" size="sm" className="text-xs px-2" onClick={() => removeImage(`${coupleId}/collage-${pos}.jpg`, column, ref)}>
                         <Trash2 className="w-3 h-3" />
                       </Button>
                     )}
