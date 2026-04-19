@@ -78,16 +78,16 @@ export default function FrameSaleCoupleSelector() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: BG }}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: BG }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: GOLD }} />
       </div>
     )
   }
 
   return (
-    <div className={dmSans.className} style={{ backgroundColor: BG, color: TEXT, minHeight: '100vh' }}>
+    <div className={dmSans.className} style={{ position: 'fixed', inset: 0, zIndex: 50, backgroundColor: BG, color: TEXT, overflow: 'auto' }}>
       {/* Back arrow */}
-      <div className="fixed top-6 left-6 z-10">
+      <div className="fixed top-6 left-6 z-50">
         <Link
           href="/admin/sales/frames"
           className="flex items-center gap-1.5 text-sm transition-colors"
@@ -99,7 +99,7 @@ export default function FrameSaleCoupleSelector() {
       </div>
 
       {/* Centered content */}
-      <div className="flex items-center justify-center min-h-screen px-4">
+      <div className="flex items-center justify-center min-h-full px-4 py-12">
         <div style={{ width: '100%', maxWidth: 560 }}>
           {/* Branding */}
           <p className="text-center text-xs tracking-[0.2em] uppercase mb-8" style={{ color: '#BBBBBB' }}>
