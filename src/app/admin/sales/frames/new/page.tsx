@@ -3,9 +3,17 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Loader2, ChevronRight, Search } from 'lucide-react'
+import { ArrowLeft, Loader2, Search } from 'lucide-react'
 import { formatWeddingDate, formatCurrency } from '@/lib/formatters'
 import Link from 'next/link'
+import { Playfair_Display, DM_Sans } from 'next/font/google'
+
+const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700'] })
+const dmSans = DM_Sans({ subsets: ['latin'], weight: ['400', '500', '600'] })
+
+const GOLD = '#C9A84C'
+const BG = '#FAFAF5'
+const TEXT = '#1A1A1A'
 
 interface CoupleOption {
   id: string
@@ -31,14 +39,12 @@ export default function FrameSaleCoupleSelector() {
 
   useEffect(() => {
     async function fetch() {
-      // Get all booked couples
       const { data: allCouples } = await supabase
         .from('couples')
         .select('id, bride_first_name, groom_first_name, wedding_date, total_paid, balance_owing')
         .eq('status', 'booked')
         .order('wedding_date', { ascending: false })
 
-      // Get couple IDs that already have extras_orders
       const { data: existingOrders } = await supabase
         .from('extras_orders')
         .select('couple_id')
@@ -54,6 +60,7 @@ export default function FrameSaleCoupleSelector() {
 
   async function selectCouple(couple: CoupleOption) {
     setSelected(couple)
+    setSearch(`${couple.bride_first_name} & ${couple.groom_first_name}`)
     const { data } = await supabase
       .from('contracts')
       .select('reception_venue, total')
@@ -62,110 +69,197 @@ export default function FrameSaleCoupleSelector() {
     setContract(data?.[0] ?? null)
   }
 
-  const filtered = couples.filter((c) => {
-    const name = `${c.bride_first_name} ${c.groom_first_name}`.toLowerCase()
-    return name.includes(search.toLowerCase())
-  })
+  const filtered = search.trim().length > 0 && !selected
+    ? couples.filter((c) => {
+        const name = `${c.bride_first_name} ${c.groom_first_name}`.toLowerCase()
+        return name.includes(search.toLowerCase())
+      }).slice(0, 5)
+    : []
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: BG }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: GOLD }} />
       </div>
     )
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/admin/sales/frames" className="p-2 rounded-md hover:bg-accent/50 transition-colors">
-          <ArrowLeft className="w-5 h-5" />
+    <div className={dmSans.className} style={{ backgroundColor: BG, color: TEXT, minHeight: '100vh' }}>
+      {/* Back arrow */}
+      <div className="fixed top-6 left-6 z-10">
+        <Link
+          href="/admin/sales/frames"
+          className="flex items-center gap-1.5 text-sm transition-colors"
+          style={{ color: '#999' }}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back</span>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold">Frame & Album Sale</h1>
-          <p className="text-sm text-muted-foreground">Select a couple to begin</p>
-        </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-        <input
-          type="text"
-          placeholder="Search couples..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
+      {/* Centered content */}
+      <div className="flex items-center justify-center min-h-screen px-4">
+        <div style={{ width: '100%', maxWidth: 560 }}>
+          {/* Branding */}
+          <p className="text-center text-xs tracking-[0.2em] uppercase mb-8" style={{ color: '#BBBBBB' }}>
+            SIGS Photography Ltd.
+          </p>
 
-      {/* Couple list */}
-      {!selected && (
-        <div className="border rounded-lg divide-y">
-          {filtered.length === 0 && (
-            <p className="p-4 text-sm text-muted-foreground text-center">No eligible couples found</p>
-          )}
-          {filtered.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => selectCouple(c)}
-              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-accent/50 transition-colors"
-            >
-              <div>
-                <p className="font-medium">{c.bride_first_name} & {c.groom_first_name}</p>
-                <p className="text-sm text-muted-foreground">{formatWeddingDate(c.wedding_date)}</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
-          ))}
-        </div>
-      )}
+          {/* Title */}
+          <h1
+            className={`${playfair.className} text-center mb-10`}
+            style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-0.01em' }}
+          >
+            Frame & Album Sale
+          </h1>
 
-      {/* Selected couple summary */}
-      {selected && (
-        <div className="space-y-4">
-          <div className="border rounded-lg p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold">{selected.bride_first_name} & {selected.groom_first_name}</h2>
-                <p className="text-sm text-muted-foreground">{formatWeddingDate(selected.wedding_date)}</p>
-                {contract?.reception_venue && (
-                  <p className="text-sm text-muted-foreground">{contract.reception_venue}</p>
-                )}
-              </div>
-              <button
-                onClick={() => { setSelected(null); setContract(null) }}
-                className="text-sm text-muted-foreground hover:underline"
-              >
-                Change
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-              <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Contract Total</p>
-                <p className="text-lg font-semibold">{formatCurrency(contract?.total)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Total Paid</p>
-                <p className="text-lg font-semibold">{formatCurrency(selected.total_paid)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Balance Owing</p>
-                <p className="text-lg font-semibold">{formatCurrency(selected.balance_owing)}</p>
-              </div>
-            </div>
+          {/* Search input */}
+          <div className="relative mb-2">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ width: 18, height: 18, color: '#CCCCCC' }}
+            />
+            <input
+              type="text"
+              placeholder="Search by couple name..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                if (selected) { setSelected(null); setContract(null) }
+              }}
+              className={`${dmSans.className} w-full pl-12 pr-4 py-4 rounded-xl text-base outline-none transition-shadow`}
+              style={{
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #E8E8E3',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                fontSize: 16,
+                color: TEXT,
+              }}
+            />
           </div>
 
-          <button
-            onClick={() => router.push(`/admin/sales/frames/new/${selected.id}`)}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
-          >
-            Continue <ChevronRight className="w-4 h-4" />
-          </button>
+          {/* Search results dropdown */}
+          {filtered.length > 0 && (
+            <div
+              className="rounded-xl overflow-hidden mb-6"
+              style={{
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #E8E8E3',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+              }}
+            >
+              {filtered.map((c, i) => (
+                <button
+                  key={c.id}
+                  onClick={() => selectCouple(c)}
+                  className="w-full flex items-center justify-between px-5 py-3.5 text-left transition-colors"
+                  style={{
+                    borderBottom: i < filtered.length - 1 ? '1px solid #F3F3EE' : 'none',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FAFAF5')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
+                >
+                  <span className="font-medium" style={{ fontSize: 15 }}>
+                    {c.bride_first_name} & {c.groom_first_name}
+                  </span>
+                  <span style={{ fontSize: 13, color: '#999' }}>
+                    {formatWeddingDate(c.wedding_date)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* No results */}
+          {search.trim().length > 0 && !selected && filtered.length === 0 && (
+            <p className="text-center text-sm mt-4" style={{ color: '#BBBBBB' }}>
+              No eligible couples found
+            </p>
+          )}
+
+          {/* Selected couple card */}
+          {selected && (
+            <div className="mt-8">
+              <div
+                className="rounded-2xl overflow-hidden"
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #E8E8E3',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+                }}
+              >
+                <div className="px-7 pt-7 pb-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2
+                        className={playfair.className}
+                        style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.2 }}
+                      >
+                        {selected.bride_first_name} & {selected.groom_first_name}
+                      </h2>
+                      <p className="mt-1.5" style={{ fontSize: 14, color: '#888' }}>
+                        {formatWeddingDate(selected.wedding_date)}
+                      </p>
+                      {contract?.reception_venue && (
+                        <p style={{ fontSize: 14, color: '#AAAAAA', marginTop: 2 }}>
+                          {contract.reception_venue}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => { setSelected(null); setContract(null); setSearch('') }}
+                      className="text-xs transition-colors"
+                      style={{ color: '#CCCCCC', marginTop: 4 }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = '#888')}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = '#CCCCCC')}
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px solid #F3F3EE' }}>
+                  <div className="grid grid-cols-3">
+                    {[
+                      { label: 'Contract', value: formatCurrency(contract?.total) },
+                      { label: 'Paid', value: formatCurrency(selected.total_paid) },
+                      { label: 'Balance', value: formatCurrency(selected.balance_owing) },
+                    ].map((stat, i) => (
+                      <div
+                        key={stat.label}
+                        className="text-center py-5"
+                        style={{ borderRight: i < 2 ? '1px solid #F3F3EE' : 'none' }}
+                      >
+                        <p className="text-xs uppercase tracking-wider mb-1.5" style={{ color: '#BBBBBB' }}>
+                          {stat.label}
+                        </p>
+                        <p className="text-lg font-semibold tabular-nums">{stat.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <button
+                onClick={() => router.push(`/admin/sales/frames/new/${selected.id}`)}
+                className="w-full mt-6 py-4 rounded-xl text-base font-semibold tracking-wide transition-all"
+                style={{
+                  backgroundColor: GOLD,
+                  color: '#FFFFFF',
+                  boxShadow: '0 2px 12px rgba(201,168,76,0.3)',
+                  letterSpacing: '0.02em',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '0 4px 20px rgba(201,168,76,0.4)')}
+                onMouseLeave={(e) => (e.currentTarget.style.boxShadow = '0 2px 12px rgba(201,168,76,0.3)')}
+              >
+                Begin Presentation &rarr;
+              </button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

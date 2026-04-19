@@ -500,7 +500,7 @@ export default function SalesReportPage() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="year" />
               <YAxis />
-              <Tooltip formatter={(value: any) => formatCurrency(value)} />
+              <Tooltip formatter={(value: any) => formatCurrency(value as number)} />
               <Legend />
               {c3ByYear.types.map(type => (
                 <Bar key={type} dataKey={type} stackId="a" fill={ITEM_TYPE_COLORS[type] || '#94a3b8'} name={type} />

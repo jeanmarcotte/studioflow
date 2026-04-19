@@ -131,7 +131,6 @@ export const studioflowAdminConfig: SidebarConfig = {
             { title: 'Reconciliation', href: '/admin/finance/reconciliation', icon: ArrowLeftRight },
           ],
         },
-        { title: 'Couples Portal', href: '/admin/couples', icon: Globe },
         { title: 'Settings', href: '/admin/settings', icon: Settings },
       ],
     },

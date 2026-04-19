@@ -14,8 +14,9 @@ const dmSans = DM_Sans({ subsets: ['latin'], weight: ['400', '500', '600'] })
 const GOLD = '#C9A84C'
 const BG = '#FAFAF5'
 const TEXT = '#1A1A1A'
+const MUTED = '#999999'
+const BORDER = '#E8E8E3'
 
-// Hardcoded sale amounts (v1.0)
 const EXTRAS_SALE_AMOUNT = 3008.63
 const ALBUM_COLLAGE_TOTAL = 3000
 
@@ -37,7 +38,6 @@ interface ContractData {
   video_long_form: boolean | null
 }
 
-// Photo & Video schedule
 const PV_MILESTONES = [
   'Pick Up Portraits',
   'June 1st, 2026',
@@ -45,11 +45,10 @@ const PV_MILESTONES = [
   'November 1st, 2026',
   'January 15th 2027',
   '2 Weeks before wedding',
-  'Wedding Proof Download (1-2 weeks after wedding)',
+  'Wedding Proof Download (1\u20132 weeks after wedding)',
   'Pick up the final wedding album & prints',
 ]
 
-// Photo Only schedule
 const PO_MILESTONES = [
   'Pick Up Portraits',
   'June 1st, 2026',
@@ -58,7 +57,7 @@ const PO_MILESTONES = [
   'January 15th 2027',
   'March 1st, 2027',
   '2 Weeks before wedding',
-  'Wedding Proof Download (1-2 weeks after wedding)',
+  'Wedding Proof Download (1\u20132 weeks after wedding)',
 ]
 
 export default function FrameSalePresentation() {
@@ -103,17 +102,12 @@ export default function FrameSalePresentation() {
     const balanceOwing = couple.balance_owing ?? 0
     const newBalance = balanceOwing + EXTRAS_SALE_AMOUNT
     const numInstallments = 8
-    const deposit = balanceOwing + ALBUM_COLLAGE_TOTAL - (numInstallments * Math.floor((balanceOwing + ALBUM_COLLAGE_TOTAL) / numInstallments))
-    const installmentAmount = Math.floor((newBalance - deposit) / numInstallments * 100) / 100
-    // Recalculate: use even split
     const perInstallment = Math.floor(newBalance / numInstallments * 100) / 100
     const lastInstallment = Math.round((newBalance - perInstallment * (numInstallments - 1)) * 100) / 100
 
-    // Determine milestones based on video
     const hasVideo = !!(contract?.num_videographers && contract.num_videographers > 0) || !!contract?.video_highlights || !!contract?.video_long_form
     const milestones = hasVideo ? PV_MILESTONES : PO_MILESTONES
 
-    // Insert extras_order
     const { data: orderData, error: orderError } = await supabase
       .from('extras_orders')
       .insert({
@@ -150,7 +144,6 @@ export default function FrameSalePresentation() {
       return
     }
 
-    // Insert installments
     const installments = milestones.map((desc, i) => ({
       extras_order_id: orderId,
       installment_number: i + 1,
@@ -169,7 +162,6 @@ export default function FrameSalePresentation() {
       return
     }
 
-    // Update couples.c2_amount
     await supabase
       .from('couples')
       .update({ c2_amount: EXTRAS_SALE_AMOUNT })
@@ -192,38 +184,52 @@ export default function FrameSalePresentation() {
   const balanceOwing = couple.balance_owing ?? 0
   const newBalance = balanceOwing + EXTRAS_SALE_AMOUNT
   const perInstallment = Math.floor(newBalance / 8 * 100) / 100
+  const lastInstallment = Math.round((newBalance - perInstallment * 7) * 100) / 100
+  const deposit = balanceOwing + ALBUM_COLLAGE_TOTAL - (8 * perInstallment)
 
   return (
     <div className={dmSans.className} style={{ backgroundColor: BG, color: TEXT, minHeight: '100vh' }}>
-      <div className="mx-auto px-6 py-8" style={{ maxWidth: 880 }}>
+      <div className="mx-auto px-6" style={{ maxWidth: 800, paddingTop: 48, paddingBottom: 64 }}>
 
         {/* Progress dots */}
-        <div className="flex justify-center gap-2 mb-8">
+        <div className="flex justify-center gap-3 mb-12">
           {[1, 2, 3].map((p) => (
             <div
               key={p}
-              className="w-2.5 h-2.5 rounded-full transition-colors"
-              style={{ backgroundColor: p === page ? GOLD : '#D9D9D9' }}
+              className="rounded-full transition-all"
+              style={{
+                width: p === page ? 10 : 7,
+                height: p === page ? 10 : 7,
+                backgroundColor: p === page ? GOLD : '#D9D9D4',
+              }}
             />
           ))}
         </div>
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-10">
+        <div className="flex items-start justify-between" style={{ marginBottom: 56 }}>
           <div>
-            <h1 className={`${playfair.className} text-3xl`} style={{ fontWeight: 700 }}>
+            <h1
+              className={playfair.className}
+              style={{ fontSize: 36, fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.01em' }}
+            >
               {couple.bride_first_name} & {couple.groom_first_name}
             </h1>
-            <p className="text-sm mt-1" style={{ color: '#888' }}>
+            <p style={{ fontSize: 14, color: MUTED, marginTop: 6 }}>
               {formatWeddingDate(couple.wedding_date)}
             </p>
           </div>
-          <p className="text-sm" style={{ color: '#999' }}>SIGS Photography Ltd.</p>
+          <p
+            className="text-right"
+            style={{ fontSize: 12, color: '#BBBBBB', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 8 }}
+          >
+            SIGS Photography Ltd.
+          </p>
         </div>
 
-        {/* PAGE 1 — The Package */}
+        {/* ─── PAGE 1: The Package ─── */}
         {page === 1 && (
-          <div className="space-y-10">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 56 }}>
             <MenuSection title="Collage" items={[
               '3 \u00d7 16\u00d716 custom-edited prints with editing',
               'All 3 mounted on canvas stretcher',
@@ -249,141 +255,214 @@ export default function FrameSalePresentation() {
           </div>
         )}
 
-        {/* PAGE 2 — The Scare Page */}
+        {/* ─── PAGE 2: Expense Breakdown ─── */}
         {page === 2 && (
-          <div className="space-y-8">
-            <h2 className={`${playfair.className} text-2xl`} style={{ fontWeight: 700 }}>
+          <div>
+            <h2
+              className={playfair.className}
+              style={{ fontSize: 28, fontWeight: 700, marginBottom: 40 }}
+            >
               Expense Breakdown
             </h2>
 
-            <div className="space-y-0">
-              <LedgerRow label="Engagement Photo Collage" amount="$1,500.00" />
-              <LedgerRow label="Wedding Album ($1,750 - $500 print credit)" amount="$1,250.00" />
-              <LedgerRow label="Engagement Sign Book" amount="$200.00" />
-              <LedgerRow label="Wedding Frame" amount="$400.00" />
-              <LedgerRow label="24\u00d730 Canvas" amount="$200.00" />
-              <LedgerRow label="Engagement and Wedding High-Resolution files" amount="$0.00" />
+            {/* Line items */}
+            <div>
+              <LedgerLine label="Engagement Photo Collage" amount="$1,500.00" />
+              <LedgerLine label="Wedding Album ($1,750 \u2013 $500 print credit)" amount="$1,250.00" />
+              <LedgerLine label="Engagement Sign Book" amount="$200.00" />
+              <LedgerLine label="Wedding Frame" amount="$400.00" />
+              <LedgerLine label="24\u00d730 Canvas" amount="$200.00" />
+              <LedgerLine label="Engagement and Wedding High-Resolution files" amount="$0.00" />
             </div>
 
-            {/* Divider */}
-            <div className="flex justify-center">
-              <hr style={{ width: '100%', border: 'none', borderTop: `1px solid ${GOLD}` }} />
+            {/* Gold rule */}
+            <div style={{ margin: '32px 0', height: 1, backgroundColor: GOLD }} />
+
+            {/* Totals */}
+            <div>
+              <LedgerLine label="Subtotal" amount="$3,550.00" bold />
+              <LedgerLine label="Tax (13%)" amount="$461.50" />
+              <LedgerLine label="Subtotal including Tax" amount="$4,011.50" bold />
+              <LedgerLine label="SIGS Customer Discount (25%)" amount="\u2013$1,002.88" green />
             </div>
 
-            <div className="space-y-0">
-              <LedgerRow label="Subtotal" amount="$3,550.00" />
-              <LedgerRow label="Tax (13%)" amount="$461.50" />
-              <LedgerRow label="Subtotal including Tax" amount="$4,011.50" />
-              <LedgerRow label="SIGS Customer Discount (25%)" amount="-$1,002.88" green />
-              <div className="flex items-center justify-between py-4">
-                <p className={`${playfair.className} text-xl font-bold`}>Total Cost after Discount</p>
-                <p className={`${playfair.className} text-2xl font-bold`}>$3,008.63</p>
-              </div>
+            {/* Total */}
+            <div
+              className="flex items-center justify-between"
+              style={{ marginTop: 32, paddingTop: 24, borderTop: `2px solid ${TEXT}` }}
+            >
+              <p className={playfair.className} style={{ fontSize: 22, fontWeight: 700 }}>
+                Total Cost after Discount
+              </p>
+              <p className={playfair.className} style={{ fontSize: 34, fontWeight: 700 }}>
+                $3,008.63
+              </p>
             </div>
 
-            <p className="text-xs italic leading-relaxed" style={{ color: '#999' }}>
+            {/* Fine print */}
+            <p
+              style={{
+                fontSize: 12,
+                fontStyle: 'italic',
+                color: '#9CA3AF',
+                lineHeight: 1.7,
+                maxWidth: 600,
+                marginTop: 40,
+              }}
+            >
               The cost for the Engagement and Wedding High-Resolution files is listed as $0.00 CAD, however, the retail price is $2,250 plus tax. When purchasing the above package there is no additional charge for these files. SIGS Customer Discount (25%) applies only when purchasing the package.
             </p>
           </div>
         )}
 
-        {/* PAGE 3 — The Money */}
+        {/* ─── PAGE 3: Payment Schedule ─── */}
         {page === 3 && (
-          <div className="space-y-8">
-            <div>
-              <h2 className={`${playfair.className} text-2xl mb-1`} style={{ fontWeight: 700 }}>
-                Payment Schedule
-              </h2>
-              <p className="text-sm" style={{ color: '#888' }}>
-                Including the balance remaining from Photo/Video agreement
-              </p>
-            </div>
+          <div>
+            <h2
+              className={playfair.className}
+              style={{ fontSize: 28, fontWeight: 700, marginBottom: 6 }}
+            >
+              Payment Schedule
+            </h2>
+            <p style={{ fontSize: 15, color: MUTED, marginBottom: 40 }}>
+              Including the balance remaining from Photo/Video agreement
+            </p>
 
-            {/* Key numbers */}
-            <div className="space-y-4">
-              <MoneyRow label="Remaining in wedding agreement" amount={formatCurrency(balanceOwing)} />
-              <MoneyRow label="Album & Collage including tax" amount="+$3,000" prefix="+" />
-              <div className="flex justify-center">
-                <hr style={{ width: '100%', border: 'none', borderTop: `1px solid ${GOLD}` }} />
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <p className={`${playfair.className} text-xl font-bold`}>
+            {/* Key financial rows */}
+            <div style={{ marginBottom: 40 }}>
+              <FinanceRow
+                amount={formatCurrency(balanceOwing)}
+                label="Remaining in wedding agreement"
+              />
+              <FinanceRow
+                amount={`+${formatCurrency(ALBUM_COLLAGE_TOTAL)}`}
+                label="Album & Collage including tax"
+              />
+
+              <div style={{ height: 1, backgroundColor: GOLD, margin: '20px 0' }} />
+
+              <div className="flex items-baseline justify-between" style={{ padding: '16px 0' }}>
+                <p
+                  className={playfair.className}
+                  style={{ fontSize: 30, fontWeight: 700 }}
+                >
                   {formatCurrency(newBalance)}
                 </p>
-                <p className="text-base" style={{ color: '#888' }}>
-                  divided into 8 equal payments of <span className="font-semibold" style={{ color: TEXT }}>{formatCurrency(perInstallment)}</span>
+                <p style={{ fontSize: 15, color: MUTED }}>
+                  divided into 8 equal payments of{' '}
+                  <span style={{ fontWeight: 600, color: TEXT }}>{formatCurrency(perInstallment)}</span>
                 </p>
               </div>
             </div>
 
             {/* Timeline */}
-            <div className="pt-4">
-              <h3 className={`${playfair.className} text-lg mb-6`} style={{ fontWeight: 700 }}>
+            <div style={{ marginBottom: 48 }}>
+              <h3
+                className={playfair.className}
+                style={{ fontSize: 20, fontWeight: 700, marginBottom: 28 }}
+              >
                 {hasVideo ? 'Photo & Video Schedule' : 'Photo Only Schedule'}
               </h3>
-              <div className="relative pl-8">
-                {/* Vertical line */}
+
+              <div className="relative" style={{ paddingLeft: 44 }}>
+                {/* Gold vertical line */}
                 <div
-                  className="absolute left-[11px] top-2 bottom-2"
-                  style={{ width: 1, backgroundColor: '#E0E0E0' }}
+                  className="absolute"
+                  style={{
+                    left: 15,
+                    top: 16,
+                    bottom: 16,
+                    width: 2,
+                    backgroundColor: GOLD,
+                    opacity: 0.3,
+                  }}
                 />
+
                 {milestones.map((milestone, i) => (
-                  <div key={i} className="relative flex items-start gap-4 mb-5 last:mb-0">
-                    {/* Dot */}
+                  <div
+                    key={i}
+                    className="relative flex items-center"
+                    style={{ minHeight: 48, marginBottom: i < milestones.length - 1 ? 4 : 0 }}
+                  >
+                    {/* Numbered circle */}
                     <div
-                      className="absolute -left-8 top-1 w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center"
+                      className="absolute flex items-center justify-center rounded-full"
                       style={{
-                        borderColor: GOLD,
+                        left: -44,
+                        width: 32,
+                        height: 32,
                         backgroundColor: i === 0 ? GOLD : BG,
+                        border: `2px solid ${GOLD}`,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: i === 0 ? '#FFFFFF' : GOLD,
                       }}
                     >
-                      {i === 0 && (
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#fff' }} />
-                      )}
+                      {i + 1}
                     </div>
+
+                    {/* Content */}
                     <div className="flex-1 flex items-center justify-between">
-                      <p className="text-base">{milestone}</p>
-                      <p className="text-sm font-medium" style={{ color: '#888' }}>
-                        {i === milestones.length - 1 ? formatCurrency(Math.round((newBalance - perInstallment * (milestones.length - 1)) * 100) / 100) : formatCurrency(perInstallment)}
+                      <p style={{ fontSize: 15, lineHeight: 1.6 }}>{milestone}</p>
+                      <p
+                        className="tabular-nums"
+                        style={{ fontSize: 14, fontWeight: 500, color: MUTED, marginLeft: 16 }}
+                      >
+                        {i === milestones.length - 1 ? formatCurrency(lastInstallment) : formatCurrency(perInstallment)}
                       </p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Save button */}
+            <div className="flex justify-center">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-10 py-4 rounded-xl text-base font-semibold tracking-wide transition-all disabled:opacity-50"
+                style={{
+                  backgroundColor: GOLD,
+                  color: '#FFFFFF',
+                  boxShadow: '0 2px 12px rgba(201,168,76,0.3)',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {saving ? <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> : null}
+                Save & Close
+              </button>
+            </div>
           </div>
         )}
 
         {/* Navigation */}
-        <div className="flex items-center justify-between mt-12 pt-6" style={{ borderTop: '1px solid #E8E8E4' }}>
+        <div
+          className="flex items-center justify-between"
+          style={{ marginTop: 56, paddingTop: 24, borderTop: `1px solid ${BORDER}` }}
+        >
           <button
             onClick={() => {
               if (page === 1) router.push('/admin/sales/frames/new')
               else setPage(page - 1)
             }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
-            style={{ border: `1px solid #D9D9D9`, color: '#666' }}
+            className="transition-colors"
+            style={{ fontSize: 14, color: MUTED, background: 'none', border: 'none', cursor: 'pointer' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = TEXT)}
+            onMouseLeave={(e) => (e.currentTarget.style.color = MUTED)}
           >
             &larr; Back
           </button>
 
-          {page < 3 ? (
+          {page < 3 && (
             <button
               onClick={() => setPage(page + 1)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
-              style={{ backgroundColor: GOLD, color: '#fff' }}
+              className="transition-colors"
+              style={{ fontSize: 14, color: GOLD, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
             >
               Next &rarr;
-            </button>
-          ) : (
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
-              style={{ backgroundColor: GOLD, color: '#fff' }}
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              Save & Close
             </button>
           )}
         </div>
@@ -392,18 +471,22 @@ export default function FrameSalePresentation() {
   )
 }
 
-/* ─── Sub-components ────────────────────────────────────────────── */
+/* ─── Sub-components ─────────────────────────────────────────────────── */
 
 function MenuSection({ title, items }: { title: string; items: string[] }) {
   return (
     <div>
-      <h2 className={`${playfair.className} text-xl mb-3`} style={{ fontWeight: 700, color: TEXT }}>
+      <h2
+        className={playfair.className}
+        style={{ fontSize: 28, fontWeight: 700, marginBottom: 4, color: TEXT }}
+      >
         {title}
       </h2>
-      <div className="space-y-2 pl-1">
+      <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 20 }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingLeft: 2 }}>
         {items.map((item, i) => (
-          <p key={i} className="text-base leading-relaxed" style={{ color: '#444' }}>
-            <span style={{ color: GOLD, marginRight: 10 }}>&mdash;</span>
+          <p key={i} style={{ fontSize: 16, lineHeight: 1.8, color: '#444444' }}>
+            <span style={{ color: GOLD, marginRight: 12 }}>&mdash;</span>
             {item}
           </p>
         ))}
@@ -412,22 +495,41 @@ function MenuSection({ title, items }: { title: string; items: string[] }) {
   )
 }
 
-function LedgerRow({ label, amount, green }: { label: string; amount: string; green?: boolean }) {
+function LedgerLine({ label, amount, bold, green }: { label: string; amount: string; bold?: boolean; green?: boolean }) {
   return (
-    <div className="flex items-center justify-between py-3" style={{ borderBottom: '1px solid #ECECEC' }}>
-      <p className="text-base" style={{ color: '#444' }}>{label}</p>
-      <p className="text-base font-medium tabular-nums" style={{ color: green ? '#2E7D32' : TEXT }}>
+    <div
+      className="flex items-center justify-between"
+      style={{
+        padding: '14px 0',
+        borderBottom: `1px solid ${BORDER}`,
+      }}
+    >
+      <p style={{ fontSize: 16, color: '#444444', fontWeight: bold ? 600 : 400 }}>{label}</p>
+      <p
+        className="tabular-nums"
+        style={{
+          fontSize: 16,
+          fontWeight: bold ? 600 : 500,
+          color: green ? '#059669' : TEXT,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
         {amount}
       </p>
     </div>
   )
 }
 
-function MoneyRow({ label, amount, prefix }: { label: string; amount: string; prefix?: string }) {
+function FinanceRow({ amount, label }: { amount: string; label: string }) {
   return (
-    <div className="flex items-center justify-between py-3">
-      <p className="text-lg" style={{ color: '#666' }}>{label}</p>
-      <p className={`${playfair.className} text-xl font-bold`}>{amount}</p>
+    <div className="flex items-baseline justify-between" style={{ padding: '12px 0' }}>
+      <p style={{ fontSize: 15, color: '#888888' }}>{label}</p>
+      <p
+        className={`${playfair.className} tabular-nums`}
+        style={{ fontSize: 24, fontWeight: 700 }}
+      >
+        {amount}
+      </p>
     </div>
   )
 }
