@@ -551,6 +551,15 @@ export default function CoupleQuotesPage() {
   const failedMeetings = useMemo(() => filteredMeetings.filter(m => m.status === 'Failed'), [filteredMeetings])
   const pendingMeetings = useMemo(() => filteredMeetings.filter(m => m.status === 'Pending'), [filteredMeetings])
 
+  // KPI cards — 2026 only
+  const currentYear = new Date().getFullYear()
+  const meetings2026 = useMemo(() => meetings.filter(m => m.appt_date && new Date(m.appt_date).getFullYear() === currentYear), [meetings, currentYear])
+  const booked2026 = useMemo(() => meetings2026.filter(m => m.status === 'Booked'), [meetings2026])
+  const failed2026 = useMemo(() => meetings2026.filter(m => m.status === 'Failed'), [meetings2026])
+  const revenue2026 = useMemo(() => booked2026.reduce((s, m) => s + (Number(m.quoted_amount) || 0), 0), [booked2026])
+  const convRate2026 = booked2026.length + failed2026.length > 0 ? Math.round((booked2026.length / (booked2026.length + failed2026.length)) * 100) : 0
+  const avgDeal2026 = booked2026.length > 0 ? Math.round(revenue2026 / booked2026.length) : 0
+
   // DataTable column definitions
   const meetingColumns: ColumnDef<SalesMeeting>[] = useMemo(() => [
     {
@@ -783,6 +792,23 @@ export default function CoupleQuotesPage() {
           {seasonData.length > 0 && (
             <BridalShowHistoryChart seasons={seasonData} />
           )}
+
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            {[
+              { label: 'Meetings (2026)', value: String(meetings2026.length) },
+              { label: 'Booked', value: String(booked2026.length) },
+              { label: 'Conversion Rate', value: `${convRate2026}%` },
+              { label: 'Revenue Booked', value: formatCurrency(revenue2026) },
+              { label: 'Avg Deal', value: formatCurrency(avgDeal2026) },
+              { label: 'Failed', value: String(failed2026.length) },
+            ].map(card => (
+              <div key={card.label} className="bg-white border rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold">{card.value}</div>
+                <div className="text-xs text-muted-foreground mt-1">{card.label}</div>
+              </div>
+            ))}
+          </div>
 
           {/* Pending Hero Card */}
           {pendingMeetings.length > 0 && (
