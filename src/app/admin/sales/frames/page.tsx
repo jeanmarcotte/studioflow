@@ -6,10 +6,9 @@ import { ColumnDef } from '@tanstack/react-table'
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
 import { supabase } from '@/lib/supabase'
 import { ChevronDown, ChevronRight, Eye } from 'lucide-react'
-import { ProductionPageHeader, ProductionPills } from '@/components/shared'
+import { ProductionPageHeader, ProductionPills, ProductionSidebar } from '@/components/shared'
 import { formatCurrency, formatDateCompact } from '@/lib/formatters'
 import { motion } from 'framer-motion'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface ExtrasOrder {
   id: string
@@ -109,13 +108,11 @@ export default function FrameSalesPage() {
   const avgSale2026 = signed2026.length > 0 ? Math.round(revenue2026 / signed2026.length) : 0
   const convRate2026 = orders2026.length > 0 ? Math.round((signed2026.length / orders2026.length) * 100) : 0
 
-  // Product mix (all-time signed)
-  const productMix = useMemo(() => [
-    { product: 'Albums', count: signedOrders.filter(o => o.album_qty && o.album_qty > 0).length },
-    { product: 'Wedding Frames', count: signedOrders.filter(o => o.wedding_frame_size).length },
-    { product: 'Collages', count: signedOrders.filter(o => o.collage_type).length },
-    { product: 'Signing Books', count: signedOrders.filter(o => o.signing_book === true).length },
-  ].sort((a, b) => b.count - a.count), [signedOrders])
+  // Sidebar stats
+  const orders2025 = useMemo(() => orders.filter(o => o.order_date && new Date(o.order_date).getFullYear() === currentYear - 1), [orders, currentYear])
+  const revenue2025 = useMemo(() => orders2025.filter(o => o.status === 'signed').reduce((s, o) => s + (Number(o.extras_sale_amount) || 0), 0), [orders2025])
+  const collagesCount = useMemo(() => signedOrders.filter(o => o.collage_type).length, [signedOrders])
+  const signingBooksCount = useMemo(() => signedOrders.filter(o => o.signing_book === true).length, [signedOrders])
 
   // Couple display name
   const coupleName = (o: ExtrasOrder) => {
@@ -249,7 +246,8 @@ export default function FrameSalesPage() {
         { label: 'Declined', count: declinedOrders.length, color: 'red' },
       ]} />
 
-      <div className="p-6 space-y-6">
+      <div className="flex">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 border-r border-border">
         {/* SECTION 3 — KPI CARDS */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
@@ -329,20 +327,6 @@ export default function FrameSalesPage() {
           </div>
         )}
 
-        {/* PRODUCT MIX CHART */}
-        <div className="mb-6">
-          <h3 className="font-semibold text-gray-700 mb-3">What Couples Buy</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={productMix} layout="vertical" margin={{ left: 20, right: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" allowDecimals={false} />
-              <YAxis type="category" dataKey="product" width={120} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#6366f1" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
         {/* SIGNED ORDERS TABLE */}
         <div>
           <div className="flex items-center gap-3 mb-3">
@@ -387,6 +371,16 @@ export default function FrameSalesPage() {
             )}
           </div>
         )}
+        </div>
+
+        <ProductionSidebar boxes={[
+          { label: '2026 ORDERS', value: orders2026.length, scrollToId: 'section-pending', color: 'teal' },
+          { label: '2026 REVENUE', value: formatCurrency(revenue2026), scrollToId: 'section-pending', color: 'teal' },
+          { label: '2025 ORDERS', value: orders2025.length, scrollToId: 'section-pending', color: 'default' },
+          { label: '2025 REVENUE', value: formatCurrency(revenue2025), scrollToId: 'section-pending', color: 'default' },
+          { label: 'COLLAGES', value: collagesCount, scrollToId: 'section-pending', color: 'blue' },
+          { label: 'SIGNING BOOKS', value: signingBooksCount, scrollToId: 'section-pending', color: 'yellow' },
+        ]} />
       </div>
     </div>
   )
