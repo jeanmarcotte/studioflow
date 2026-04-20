@@ -569,7 +569,7 @@ export default function FrameSalePresentation() {
                     }}
                   >
 {discountApplies
-  ? `* The cost for the Engagement and Wedding High-Resolution files is listed as $0.00 CAD, however, the retail price is ${formatCurrency(digTotal)} plus tax. When purchasing the above package there is no additional charge for these files. SIGS Customer Discount (25%) applies only when purchasing the package.`
+  ? `* The cost for the Engagement and Wedding High-Resolution files is listed as $0.00 CAD, however, the retail price is $2,250 plus tax. When purchasing the above package there is no additional charge for these files. SIGS Customer Discount (25%) applies only when purchasing the package.`
   : '* SIGS Customer Discount (25%) applies only when purchasing the complete package. Items have been removed from this quote.'}
                   </p>
                 </div>
