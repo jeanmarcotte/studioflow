@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Loader2, ChevronLeft, ChevronRight, X, Plus, Equal, Download, Check } from 'lucide-react'
+import { Loader2, ChevronLeft, ChevronRight, X, Plus, Equal, Download, Check, RotateCcw } from 'lucide-react'
 import { formatWeddingDate, formatCurrency } from '@/lib/formatters'
 import { Playfair_Display, DM_Sans } from 'next/font/google'
 import { toast } from 'sonner'
@@ -114,7 +114,8 @@ export default function FrameSalePresentation() {
   const [saleAmount, setSaleAmount] = useState(0)
   const [depositAmount, setDepositAmount] = useState(0)
   const [extraItems, setExtraItems] = useState<{ desc: string; code: string }[]>([])
-  const [showProductPicker, setShowProductPicker] = useState(false)
+  const [showProductPicker, setShowProductPicker] = useState<string | null>(null)
+  const [originalSelected, setOriginalSelected] = useState<SelectedProducts | null>(null)
   const [selected, setSelected] = useState<SelectedProducts>({ collage: null, album: null, signingBook: null, weddingCanvas: null, weddingFrame: null, extras: [] })
   const [swapOpen, setSwapOpen] = useState<string | null>(null)
   const [saleAmountManuallyEdited, setSaleAmountManuallyEdited] = useState(false)
@@ -163,14 +164,16 @@ export default function FrameSalePresentation() {
       const prods = productData ?? []
       setProducts(prods)
       const find = (code: string) => prods.find((p: any) => p.product_code === code)
-      setSelected({
+      const defaultSelected: SelectedProducts = {
         collage: find(DEFAULT_CODES.collage) ?? null,
         album: find(DEFAULT_CODES.album) ?? null,
         signingBook: find(DEFAULT_CODES.signingBook) ?? null,
         weddingCanvas: find(DEFAULT_CODES.weddingCanvas) ?? null,
         weddingFrame: find(DEFAULT_CODES.weddingFrame) ?? null,
         extras: DEFAULT_EXTRA_CODES.map(code => find(code)).filter(Boolean) as ProductItem[],
-      })
+      }
+      setSelected(defaultSelected)
+      setOriginalSelected(defaultSelected)
 
       setLoading(false)
     }
@@ -857,11 +860,13 @@ export default function FrameSalePresentation() {
 
               {/* ─── PAGE 4: Calculations ─── */}
               {page === 4 && (() => {
-                const slotItems: { slot: keyof Omit<SelectedProducts, 'extras'>; title: string }[] = [
-                  { slot: 'collage', title: 'Collage' },
-                ]
-                const albumItems: (keyof Omit<SelectedProducts, 'extras'>)[] = ['album', 'signingBook']
-                const frameItems: (keyof Omit<SelectedProducts, 'extras'>)[] = ['weddingCanvas', 'weddingFrame']
+                const SECTION_CATEGORIES: Record<string, string[]> = {
+                  collage: ['Collage'],
+                  albums: ['Album'],
+                  frame: ['Mounting', 'Frame', 'Glass'],
+                  digital: ['Digital'],
+                  extras: ['Print', 'Canvas', 'Portrait', 'Service', 'Stationery'],
+                }
 
                 function swapProduct(slot: keyof Omit<SelectedProducts, 'extras'>, product: ProductItem) {
                   setSelected(prev => ({ ...prev, [slot]: product }))
@@ -876,6 +881,70 @@ export default function FrameSalePresentation() {
                 function removeExtra(i: number) {
                   setSelected(prev => ({ ...prev, extras: prev.extras.filter((_, j) => j !== i) }))
                   setDiscountApplies(false)
+                }
+
+                function handleReset() {
+                  if (!originalSelected) return
+                  setSelected(originalSelected)
+                  setDiscountApplies(true)
+                  setDiscountManuallyToggled(false)
+                  setSaleAmountManuallyEdited(false)
+                }
+
+                function addItemToSection(section: string, product: ProductItem) {
+                  const allCodes = [
+                    selected.collage?.product_code,
+                    selected.album?.product_code,
+                    selected.signingBook?.product_code,
+                    selected.weddingCanvas?.product_code,
+                    selected.weddingFrame?.product_code,
+                    ...selected.extras.map(e => e.product_code),
+                  ].filter(Boolean)
+                  if (allCodes.includes(product.product_code)) {
+                    toast.error('This item is already included')
+                    setShowProductPicker(null)
+                    return
+                  }
+                  setSelected(prev => ({ ...prev, extras: [...prev.extras, product] }))
+                  setShowProductPicker(null)
+                }
+
+                function renderSectionAddButton(section: string) {
+                  const categories = SECTION_CATEGORIES[section] ?? []
+                  const filtered = products.filter((p: any) => categories.includes(p.category))
+                  return (
+                    <div className="relative" style={{ marginTop: 8 }}>
+                      <button
+                        onClick={() => setShowProductPicker(showProductPicker === section ? null : section)}
+                        className="flex items-center gap-1 transition-colors"
+                        style={{ fontSize: 13, color: GOLD, background: 'none', border: 'none', cursor: 'pointer', opacity: 0.8 }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8' }}
+                      >
+                        <Plus style={{ width: 13, height: 13 }} /> Add
+                      </button>
+                      {showProductPicker === section && (
+                        <div
+                          className="absolute left-0 top-7 z-20 rounded-xl overflow-hidden"
+                          style={{ backgroundColor: '#FFFFFF', border: '1px solid #E8E8E3', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 280, overflowY: 'auto', width: 380 }}
+                        >
+                          {filtered.map((p: any) => (
+                            <button
+                              key={p.product_code}
+                              onClick={() => addItemToSection(section, p)}
+                              className="w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors"
+                              style={{ borderBottom: '1px solid #F3F3EE' }}
+                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FAFAF5')}
+                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
+                            >
+                              <span style={{ fontSize: 14 }}>{p.item_name ?? p.description}</span>
+                              <span style={{ fontSize: 12, color: MUTED, fontFamily: 'monospace' }}>{formatCurrency(p.retail_price)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
                 }
 
                 function renderSwappableLine(product: ProductItem | null, slot: string, onSwap: (p: ProductItem) => void, onRemove: () => void) {
@@ -951,108 +1020,92 @@ export default function FrameSalePresentation() {
                 return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
                   {/* Collage */}
-                  {selected.collage && (
-                    <div>
-                      <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Collage</h3>
-                      <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
-                      {renderSwappableLine(selected.collage, 'collage', (p) => swapProduct('collage', p), () => removeSlot('collage'))}
-                    </div>
-                  )}
+                  <div>
+                    <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Collage</h3>
+                    <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
+                    {selected.collage && renderSwappableLine(selected.collage, 'collage', (p) => swapProduct('collage', p), () => removeSlot('collage'))}
+                    {renderSectionAddButton('collage')}
+                  </div>
 
                   {/* Albums */}
-                  {(selected.album ?? selected.signingBook) && (
-                    <div>
-                      <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Albums</h3>
-                      <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
-                      {renderSwappableLine(selected.album, 'album', (p) => swapProduct('album', p), () => removeSlot('album'))}
-                      {renderSwappableLine(selected.signingBook, 'signingBook', (p) => swapProduct('signingBook', p), () => removeSlot('signingBook'))}
-                    </div>
-                  )}
+                  <div>
+                    <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Albums</h3>
+                    <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
+                    {renderSwappableLine(selected.album, 'album', (p) => swapProduct('album', p), () => removeSlot('album'))}
+                    {renderSwappableLine(selected.signingBook, 'signingBook', (p) => swapProduct('signingBook', p), () => removeSlot('signingBook'))}
+                    {renderSectionAddButton('albums')}
+                  </div>
 
                   {/* Wedding Frame */}
-                  {(selected.weddingCanvas ?? selected.weddingFrame) && (
-                    <div>
-                      <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Wedding Frame</h3>
-                      <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
-                      {renderSwappableLine(selected.weddingCanvas, 'weddingCanvas', (p) => swapProduct('weddingCanvas', p), () => removeSlot('weddingCanvas'))}
-                      {renderSwappableLine(selected.weddingFrame, 'weddingFrame', (p) => swapProduct('weddingFrame', p), () => removeSlot('weddingFrame'))}
-                    </div>
-                  )}
+                  <div>
+                    <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Wedding Frame</h3>
+                    <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
+                    {renderSwappableLine(selected.weddingCanvas, 'weddingCanvas', (p) => swapProduct('weddingCanvas', p), () => removeSlot('weddingCanvas'))}
+                    {renderSwappableLine(selected.weddingFrame, 'weddingFrame', (p) => swapProduct('weddingFrame', p), () => removeSlot('weddingFrame'))}
+                    {renderSectionAddButton('frame')}
+                  </div>
 
-                  {/* Extras */}
+                  {/* Digital Files */}
+                  <div>
+                    <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Digital Files</h3>
+                    <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
+                    {selected.extras.filter(e => e.category === 'Digital').map((ext, i) => {
+                      const realIndex = selected.extras.findIndex(e => e === ext)
+                      return (
+                        <div key={`${ext.product_code}-${i}`} className="flex items-center justify-between group" style={{ padding: '10px 0', borderBottom: `1px dashed ${BORDER}` }}>
+                          <p style={{ fontSize: 16, color: '#444444', lineHeight: 1.6 }}>{ext.description}</p>
+                          <div className="flex items-center gap-2">
+                            <span style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'monospace' }}>{ext.product_code}</span>
+                            <button
+                              onClick={() => removeExtra(realIndex)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50"
+                              style={{ color: '#D97706', background: 'none', border: 'none', cursor: 'pointer' }}
+                            >
+                              <X style={{ width: 14, height: 14 }} />
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {renderSectionAddButton('digital')}
+                  </div>
+
+                  {/* Extras Included */}
                   <div>
                     <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Extras Included</h3>
                     <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
-                    {selected.extras.map((ext, i) => (
-                      <div key={`${ext.product_code}-${i}`} className="flex items-center justify-between group" style={{ padding: '10px 0', borderBottom: `1px dashed ${BORDER}` }}>
-                        <p style={{ fontSize: 16, color: '#444444', lineHeight: 1.6 }}>{ext.description}</p>
-                        <div className="flex items-center gap-2">
-                          <span style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'monospace' }}>{ext.product_code}</span>
-                          <button
-                            onClick={() => removeExtra(i)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50"
-                            style={{ color: '#D97706', background: 'none', border: 'none', cursor: 'pointer' }}
-                          >
-                            <X style={{ width: 14, height: 14 }} />
-                          </button>
+                    {selected.extras.filter(e => e.category !== 'Digital').map((ext, i) => {
+                      const realIndex = selected.extras.findIndex(e => e === ext)
+                      return (
+                        <div key={`${ext.product_code}-${i}`} className="flex items-center justify-between group" style={{ padding: '10px 0', borderBottom: `1px dashed ${BORDER}` }}>
+                          <p style={{ fontSize: 16, color: '#444444', lineHeight: 1.6 }}>{ext.description}</p>
+                          <div className="flex items-center gap-2">
+                            <span style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'monospace' }}>{ext.product_code}</span>
+                            <button
+                              onClick={() => removeExtra(realIndex)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50"
+                              style={{ color: '#D97706', background: 'none', border: 'none', cursor: 'pointer' }}
+                            >
+                              <X style={{ width: 14, height: 14 }} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    {/* Add item */}
-                    <div className="relative" style={{ marginTop: 12 }}>
-                      <button
-                        onClick={() => setShowProductPicker(!showProductPicker)}
-                        className="flex items-center gap-2 text-sm transition-colors"
-                        style={{ color: GOLD, background: 'none', border: 'none', cursor: 'pointer' }}
-                      >
-                        <Plus style={{ width: 16, height: 16 }} /> Add Item
-                      </button>
-                      {showProductPicker && (
-                        <div
-                          className="absolute left-0 top-8 z-10 rounded-xl overflow-hidden"
-                          style={{ backgroundColor: '#FFFFFF', border: '1px solid #E8E8E3', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 300, overflowY: 'auto', width: 420 }}
-                        >
-                          {(() => {
-                            const grouped: Record<string, any[]> = {}
-                            products.forEach((p: any) => { const cat = p.category ?? 'Other'; if (!grouped[cat]) grouped[cat] = []; grouped[cat].push(p) })
-                            return Object.entries(grouped).map(([cat, items]) => (
-                              <div key={cat}>
-                                <p className="px-4 py-2 text-xs uppercase tracking-wider" style={{ color: '#BBBBBB', backgroundColor: '#FAFAF5' }}>{cat}</p>
-                                {items.map((p: any) => (
-                                  <button
-                                    key={p.product_code}
-                                    onClick={() => {
-                                      const allCodes = [
-                                        selected.collage?.product_code,
-                                        selected.album?.product_code,
-                                        selected.signingBook?.product_code,
-                                        selected.weddingCanvas?.product_code,
-                                        selected.weddingFrame?.product_code,
-                                        ...selected.extras.map(e => e.product_code),
-                                      ].filter(Boolean)
-                                      if (allCodes.includes(p.product_code)) {
-                                        toast.error('This item is already included')
-                                        setShowProductPicker(false)
-                                        return
-                                      }
-                                      setSelected(prev => ({ ...prev, extras: [...prev.extras, p] }))
-                                      setShowProductPicker(false)
-                                    }}
-                                    className="w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors"
-                                    style={{ borderBottom: '1px solid #F3F3EE' }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FAFAF5')}
-                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
-                                  >
-                                    <span style={{ fontSize: 14 }}>{p.item_name ?? p.description}</span>
-                                    <span style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'monospace' }}>{p.product_code}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            ))
-                          })()}
-                        </div>
-                      )}
-                    </div>
+                      )
+                    })}
+                    {renderSectionAddButton('extras')}
+                  </div>
+
+                  {/* Reset button — bottom right */}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleReset}
+                      className="flex items-center gap-1.5 transition-colors"
+                      style={{ fontSize: 12, color: MUTED, background: 'none', border: 'none', cursor: 'pointer' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = GOLD }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = MUTED }}
+                    >
+                      <RotateCcw style={{ width: 12, height: 12 }} /> Reset
+                    </button>
                   </div>
                 </div>
                 )
