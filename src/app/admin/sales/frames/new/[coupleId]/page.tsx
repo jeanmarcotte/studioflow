@@ -119,6 +119,7 @@ export default function FrameSalePresentation() {
   const [swapOpen, setSwapOpen] = useState<string | null>(null)
   const [saleAmountManuallyEdited, setSaleAmountManuallyEdited] = useState(false)
   const [discountApplies, setDiscountApplies] = useState(true)
+  const [discountManuallyToggled, setDiscountManuallyToggled] = useState(false)
 
   // Redistribute installments evenly based on current total
   const redistribute = useCallback((total: number, count: number) => {
@@ -574,29 +575,127 @@ export default function FrameSalePresentation() {
                     Payment Schedule
                   </h2>
 
+                  {/* Financial summary card */}
                   <div style={{ marginBottom: 40 }}>
-                    <FinanceRow
-                      amount={formatCurrency(balanceOwing)}
-                      label="Remaining in wedding agreement"
-                    />
-                    <EditableFinanceRow
-                      value={saleAmount}
-                      onChange={(v) => { setSaleAmount(v); setSaleAmountManuallyEdited(true) }}
-                      label="Album & Collage including tax"
-                    />
-                    <EditableFinanceRow
-                      value={depositAmount}
-                      onChange={(v) => setDepositAmount(v)}
-                      label="Deposit"
-                      prefix="–"
-                    />
+                    {/* Remaining in wedding agreement */}
+                    <div className="flex items-center justify-between" style={{ padding: '14px 0' }}>
+                      <p className={dmSans.className} style={{ fontSize: 15, color: '#555555' }}>
+                        Remaining in Wedding Agreement
+                      </p>
+                      <p className={dmSans.className + ' tabular-nums'} style={{ fontSize: 15, fontWeight: 700, color: TEXT }}>
+                        {formatCurrency(balanceOwing)}
+                      </p>
+                    </div>
 
-                    <div style={{ height: 1, backgroundColor: GOLD, margin: '20px 0' }} />
+                    <div style={{ height: 1, background: `linear-gradient(to right, ${GOLD}40, ${GOLD}, ${GOLD}40)` }} />
 
-                    <FinanceRow
-                      amount={formatCurrency(derivedTotal)}
-                      label={`divided into ${editMilestones.length} payments of ${formatCurrency(editAmounts[0] ?? 0)} including tax`}
-                    />
+                    {/* Album & Collage — editable */}
+                    <div className="flex items-center justify-between" style={{ padding: '14px 0' }}>
+                      <p className={dmSans.className} style={{ fontSize: 15, color: '#555555' }}>
+                        Album & Collage including tax
+                      </p>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={saleAmount}
+                        onChange={(e) => { setSaleAmount(parseFloat(e.target.value) || 0); setSaleAmountManuallyEdited(true) }}
+                        onFocus={(e) => e.target.select()}
+                        className="tabular-nums bg-transparent outline-none rounded px-3 py-1 text-right transition-all"
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 700,
+                          color: TEXT,
+                          width: 140,
+                          cursor: 'text',
+                          border: `1px solid ${BORDER}`,
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = GOLD }}
+                        onMouseLeave={(e) => { if (document.activeElement !== e.currentTarget) e.currentTarget.style.borderColor = BORDER }}
+                      />
+                    </div>
+
+                    {/* Deposit — editable */}
+                    <div className="flex items-center justify-between" style={{ padding: '14px 0' }}>
+                      <p className={dmSans.className} style={{ fontSize: 15, color: '#555555' }}>
+                        Deposit
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <span style={{ fontSize: 15, fontWeight: 700, color: TEXT }}>–</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={depositAmount}
+                          onChange={(e) => setDepositAmount(parseFloat(e.target.value) || 0)}
+                          onFocus={(e) => e.target.select()}
+                          className="tabular-nums bg-transparent outline-none rounded px-3 py-1 text-right transition-all"
+                          style={{
+                            fontSize: 15,
+                            fontWeight: 700,
+                            color: TEXT,
+                            width: 140,
+                            cursor: 'text',
+                            border: `1px solid ${BORDER}`,
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = GOLD }}
+                          onMouseLeave={(e) => { if (document.activeElement !== e.currentTarget) e.currentTarget.style.borderColor = BORDER }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ height: 1, background: `linear-gradient(to right, ${GOLD}40, ${GOLD}, ${GOLD}40)` }} />
+
+                    {/* Discount toggle */}
+                    <div className="flex items-center justify-between" style={{ padding: '14px 0' }}>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={discountApplies}
+                          onClick={() => { setDiscountApplies(!discountApplies); setDiscountManuallyToggled(true) }}
+                          className="relative inline-flex shrink-0 cursor-pointer rounded-full transition-colors duration-200"
+                          style={{
+                            width: 40,
+                            height: 22,
+                            backgroundColor: discountApplies ? GOLD : '#D1D5DB',
+                          }}
+                        >
+                          <span
+                            className="pointer-events-none block rounded-full bg-white shadow-md transition-transform duration-200"
+                            style={{
+                              width: 18,
+                              height: 18,
+                              marginTop: 2,
+                              marginLeft: discountApplies ? 20 : 2,
+                            }}
+                          />
+                        </button>
+                        <p className={dmSans.className} style={{ fontSize: 15, color: '#555555' }}>
+                          25% SIGS Discount
+                        </p>
+                      </div>
+                      <p className={dmSans.className} style={{ fontSize: 13, color: discountApplies ? '#16a34a' : MUTED, fontWeight: 500 }}>
+                        {discountApplies ? 'Applied' : 'Not Applied'}
+                      </p>
+                    </div>
+
+                    <div style={{ height: 1, background: `linear-gradient(to right, ${GOLD}40, ${GOLD}, ${GOLD}40)` }} />
+
+                    {/* Total */}
+                    <div className="flex items-center justify-between" style={{ padding: '18px 0 6px' }}>
+                      <p className={playfair.className} style={{ fontSize: 18, fontWeight: 700, color: TEXT, letterSpacing: '-0.01em' }}>
+                        TOTAL
+                      </p>
+                      <p className={playfair.className + ' tabular-nums'} style={{ fontSize: 20, fontWeight: 700, color: TEXT }}>
+                        {formatCurrency(derivedTotal)}
+                      </p>
+                    </div>
+
+                    {/* Payments summary */}
+                    <p className={dmSans.className} style={{ fontSize: 13, color: MUTED, textAlign: 'right', paddingBottom: 4 }}>
+                      {editMilestones.length} payments of {formatCurrency(editAmounts[0] ?? 0)} each
+                    </p>
                   </div>
 
                   <div style={{ marginBottom: 48 }}>
