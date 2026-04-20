@@ -412,7 +412,7 @@ export default function FrameSalePresentation() {
                 const subtotal = collagePrice + albumNet + bookPrice + framePrice + canvasPrice
                 const tax = Math.round(subtotal * 0.13 * 100) / 100
                 const subtotalWithTax = subtotal + tax
-                const discount = Math.round(subtotalWithTax * 0.25 * 100) / 100
+                const discount = discountApplies ? Math.round(subtotalWithTax * 0.25 * 100) / 100 : 0
                 const totalAfterDiscount = Math.round((subtotalWithTax - discount) * 100) / 100
                 return (
                 <div>
@@ -438,7 +438,7 @@ export default function FrameSalePresentation() {
                     <LedgerLine label="Subtotal" amount={formatCurrency(subtotal)} bold />
                     <LedgerLine label="Tax (13%)" amount={formatCurrency(tax)} />
                     <LedgerLine label="Subtotal including Tax" amount={formatCurrency(subtotalWithTax)} bold />
-                    <LedgerLine label="SIGS Customer Discount (25%)" amount={`–${formatCurrency(discount)}`} green />
+                    {discountApplies && <LedgerLine label="SIGS Customer Discount (25%)" amount={`–${formatCurrency(discount)}`} green />}
                   </div>
 
                   <div
@@ -463,7 +463,9 @@ export default function FrameSalePresentation() {
                       borderTop: `1px solid ${BORDER}`,
                     }}
                   >
-* The cost for the Engagement and Wedding High-Resolution files is listed as $0.00 CAD, however, the retail price is ${formatCurrency(digTotal)} plus tax. When purchasing the above package there is no additional charge for these files. SIGS Customer Discount (25%) applies only when purchasing the package.
+{discountApplies
+  ? `* The cost for the Engagement and Wedding High-Resolution files is listed as $0.00 CAD, however, the retail price is ${formatCurrency(digTotal)} plus tax. When purchasing the above package there is no additional charge for these files. SIGS Customer Discount (25%) applies only when purchasing the package.`
+  : '* SIGS Customer Discount (25%) applies only when purchasing the complete package. Items have been removed from this quote.'}
                   </p>
                 </div>
                 )
@@ -664,10 +666,12 @@ export default function FrameSalePresentation() {
 
                 function removeSlot(slot: keyof Omit<SelectedProducts, 'extras'>) {
                   setSelected(prev => ({ ...prev, [slot]: null }))
+                  setDiscountApplies(false)
                 }
 
                 function removeExtra(i: number) {
                   setSelected(prev => ({ ...prev, extras: prev.extras.filter((_, j) => j !== i) }))
+                  setDiscountApplies(false)
                 }
 
                 function renderSwappableLine(product: ProductItem | null, slot: string, onSwap: (p: ProductItem) => void, onRemove: () => void) {
