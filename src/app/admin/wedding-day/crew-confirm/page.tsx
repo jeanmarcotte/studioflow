@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Send, X, ChevronDown, ChevronRight, Plus, Eye, Check, Clock, Mail, Upload, FileText, Trash2, Download, ExternalLink, ChevronUp } from 'lucide-react'
 import { Playfair_Display, Nunito } from 'next/font/google'
 import { format } from 'date-fns'
+import { formatPackage } from '@/lib/formatters'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })

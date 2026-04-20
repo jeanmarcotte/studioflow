@@ -25,6 +25,7 @@
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { DM_Serif_Display } from 'next/font/google';
 import { T, card, sectionLabel, fieldLabel, pillBase, badge } from './designTokens';
+import { formatPackage } from '@/lib/formatters';
 
 const display = DM_Serif_Display({ weight: '400', subsets: ['latin'], display: 'swap' });
 
@@ -102,9 +103,7 @@ export function Q03ClientCard({ couple, contract, extrasOrders }: Q03ClientCardP
     }
   }
 
-  const pkgLabel = couple.package_type
-    ? couple.package_type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
-    : null;
+  const pkgLabel = couple.package_type ? formatPackage(couple.package_type) : null;
 
   const status = (couple.status || 'booked').toLowerCase();
 

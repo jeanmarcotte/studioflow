@@ -496,6 +496,12 @@ export default function ExtrasSalesPage() {
   const kpiRevenue2025 = useMemo(() => kpiExtras2025.reduce((s, r) => s + (Number(r.total) || 0), 0), [kpiExtras2025])
   const kpiGrowthMultiple = kpiRevenue2025 > 0 ? Math.round(kpiRevenue2026 / kpiRevenue2025) : 0
 
+  // Sidebar stats (2026 by invoice_date)
+  const sidebarHiRes = useMemo(() => kpiExtras2026.filter(r => r.item_type === 'Hi Res Files').length, [kpiExtras2026])
+  const sidebarRawVideos = useMemo(() => kpiExtras2026.filter(r => r.item_type === 'Raw Video').length, [kpiExtras2026])
+  const sidebarExtraHours = useMemo(() => kpiExtras2026.filter(r => r.item_type === 'Hours').length, [kpiExtras2026])
+  const sidebarParentAlbums = useMemo(() => kpiExtras2026.filter(r => r.item_type === 'Parent Album').length, [kpiExtras2026])
+
   // Column definitions
   const columns: ColumnDef<ExtrasRow>[] = useMemo(() => [
     {
@@ -636,12 +642,12 @@ export default function ExtrasSalesPage() {
         </div>
 
         <ProductionSidebar boxes={[
-          { label: '2026 SALES', value: rows2026.length, scrollToId: 'section-2026', color: 'teal' },
-          { label: '2026 REVENUE', value: fmtMoney(revenue2026), scrollToId: 'section-2026', color: 'teal' },
-          { label: '2025 SALES', value: rows2025.length, scrollToId: 'section-2025', color: 'default' },
-          { label: '2025 REVENUE', value: fmtMoney(revenue2025), scrollToId: 'section-2025', color: 'default' },
-          { label: 'RAW VIDEOS', value: rawVideoCount, scrollToId: 'section-2025', color: 'blue' },
-          { label: 'EXTRA HOURS', value: extraHoursCount, scrollToId: 'section-2026', color: 'yellow' },
+          { label: 'HI-RES FILES', value: sidebarHiRes, scrollToId: 'section-2026', color: 'teal' },
+          { label: 'RAW VIDEOS', value: sidebarRawVideos, scrollToId: 'section-2026', color: 'blue' },
+          { label: 'EXTRA HOURS', value: sidebarExtraHours, scrollToId: 'section-2026', color: 'yellow' },
+          { label: 'PARENT ALBUMS', value: sidebarParentAlbums, scrollToId: 'section-2026', color: 'default' },
+          { label: 'AVG ITEM VALUE', value: fmtMoney(kpiAvgPerItem), scrollToId: 'section-2026', color: 'teal' },
+          { label: 'TOTAL COUPLES', value: kpiCouples2026, scrollToId: 'section-2026', color: 'green' },
         ]} />
       </div>
 
