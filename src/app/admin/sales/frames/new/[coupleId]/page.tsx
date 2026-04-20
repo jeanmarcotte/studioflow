@@ -207,10 +207,10 @@ export default function FrameSalePresentation() {
     return Math.round((subtotalWithTax - discount) * 100) / 100
   }, [selected, discountApplies])
 
-  // Sync Page 2 total → Page 3 sale amount (unless manually edited)
+  // Sync Page 2 total → Page 3 sale amount (unless manually edited), rounded down to nearest $50
   useEffect(() => {
     if (!saleAmountManuallyEdited && calculatedTotal > 0) {
-      setSaleAmount(calculatedTotal)
+      setSaleAmount(Math.floor(calculatedTotal / 50) * 50)
     }
   }, [calculatedTotal, saleAmountManuallyEdited])
 
