@@ -174,10 +174,12 @@ export default function SalesReportPage() {
 
   // C2 year-over-year
   const c2ByYear = useMemo(() => {
+    const excludeStatuses = ['declined', 'no_sale']
     const years = new Map<number, { couples: Set<string>; revenue: number; signed: number }>()
     extras.forEach(o => {
       const yr = getYear(o.order_date)
       if (!yr) return
+      if (excludeStatuses.includes(o.status || '')) return
       const cur = years.get(yr) || { couples: new Set<string>(), revenue: 0, signed: 0 }
       cur.couples.add(o.couple_id)
       cur.revenue += Number(o.extras_sale_amount) || 0
