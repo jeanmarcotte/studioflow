@@ -6,7 +6,6 @@ import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
   flexRender,
   SortingState,
 } from '@tanstack/react-table'
@@ -35,19 +34,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu'
-import { MoreVertical, Eye, Printer, Mail } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
+import { MoreVertical, FileText, Check, Minus, Eye, Printer, Mail } from 'lucide-react'
+import { parseISO, format } from 'date-fns'
 import type { CoupleDocRow } from './page'
 
 function formatWeddingDateWithDow(date: string): string {
-  if (!date) return '\u2014'
+  if (!date) return '—'
   try {
     const parsed = parseISO(date)
     const dow = format(parsed, 'EEE').toUpperCase()
     const rest = format(parsed, 'MMM d, yyyy')
     return `${dow} ${rest}`
   } catch {
-    return '\u2014'
+    return '—'
   }
 }
 
@@ -59,98 +58,145 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-700',
 }
 
-function DocIcon({ href, title }: { href: string; title: string }) {
+function DocLink({ href, title }: { href: string; title: string }) {
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={title}
-      className="text-blue-600 hover:text-blue-800 cursor-pointer"
-    >
-      📄
+    <a href={href} target="_blank" rel="noopener noreferrer" title={title} className="text-blue-600 hover:text-blue-800">
+      <FileText size={16} />
     </a>
   )
 }
 
-function StatusCheck({ exists }: { exists: boolean }) {
+function DocStatus({ ids, baseUrl, title }: { ids: string[]; baseUrl: string; title: string }) {
+  if (ids.length === 0) return <Minus size={16} className="text-gray-300 mx-auto" />
+  return (
+    <span className="flex gap-1 justify-center">
+      {ids.map(id => <DocLink key={id} href={`${baseUrl}/${id}`} title={title} />)}
+    </span>
+  )
+}
+
+function BoolDoc({ exists }: { exists: boolean }) {
   return exists
-    ? <span className="text-green-600 font-medium">✓</span>
-    : <span className="text-gray-300">—</span>
+    ? <Check size={16} className="text-green-600 mx-auto" />
+    : <Minus size={16} className="text-gray-300 mx-auto" />
 }
 
 function ActionsCell({ row }: { row: CoupleDocRow }) {
   const hasC1 = row.contract_ids.length > 0
   const hasC2 = row.extras_order_ids.length > 0
   const hasC3 = row.has_extras
+  const hasWdf = row.wdf_ids.length > 0
+  const hasPof = row.pof_ids.length > 0
+  const hasVof = row.vof_ids.length > 0
   const hasEmail = !!row.email
   const coupleName = `${row.bride_first_name} %26 ${row.groom_first_name}`
 
-  const noActions = !hasC1 && !hasC2 && !hasC3
-  if (noActions) return <span className="text-gray-300">—</span>
+  const noActions = !hasC1 && !hasC2 && !hasC3 && !hasWdf && !hasPof && !hasVof
+  if (noActions) return <Minus size={16} className="text-gray-300" />
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent">
-        <MoreVertical className="h-4 w-4" />
+      <DropdownMenuTrigger className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent">
+        <MoreVertical size={16} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {/* View section */}
         <DropdownMenuLabel>View</DropdownMenuLabel>
         {hasC1 && (
           <DropdownMenuItem onClick={() => window.open(`/admin/contracts/${row.contract_ids[0]}/view`, '_blank')}>
-            <Eye className="h-4 w-4 mr-2" /> View C1 Contract
+            <Eye className="h-4 w-4 mr-2" /> Contract
           </DropdownMenuItem>
         )}
         {hasC2 && (
           <DropdownMenuItem onClick={() => window.open(`/admin/albums/${row.extras_order_ids[0]}/view`, '_blank')}>
-            <Eye className="h-4 w-4 mr-2" /> View C2 Frames & Albums
+            <Eye className="h-4 w-4 mr-2" /> Frames & Albums
           </DropdownMenuItem>
         )}
         {hasC3 && (
           <DropdownMenuItem onClick={() => window.open(`/admin/extras/${row.id}/view`, '_blank')}>
-            <Eye className="h-4 w-4 mr-2" /> View C3 Extras
+            <Eye className="h-4 w-4 mr-2" /> Extras
+          </DropdownMenuItem>
+        )}
+        {hasWdf && (
+          <DropdownMenuItem onClick={() => window.open(`/admin/documents/wedding-day-form/${row.wdf_ids[0]}`, '_blank')}>
+            <Eye className="h-4 w-4 mr-2" /> Day Form
+          </DropdownMenuItem>
+        )}
+        {hasPof && (
+          <DropdownMenuItem onClick={() => window.open(`/admin/documents/photo-order/${row.pof_ids[0]}`, '_blank')}>
+            <Eye className="h-4 w-4 mr-2" /> Photo Order
+          </DropdownMenuItem>
+        )}
+        {hasVof && (
+          <DropdownMenuItem onClick={() => window.open(`/admin/documents/video-order/${row.vof_ids[0]}`, '_blank')}>
+            <Eye className="h-4 w-4 mr-2" /> Video Order
           </DropdownMenuItem>
         )}
 
         <DropdownMenuSeparator />
-
-        {/* Print section */}
         <DropdownMenuLabel>Print</DropdownMenuLabel>
         {hasC1 && (
           <DropdownMenuItem onClick={() => window.open(`/admin/contracts/${row.contract_ids[0]}/view?print=true`, '_blank')}>
-            <Printer className="h-4 w-4 mr-2" /> Print C1 Contract
+            <Printer className="h-4 w-4 mr-2" /> Contract
           </DropdownMenuItem>
         )}
         {hasC2 && (
           <DropdownMenuItem onClick={() => window.open(`/admin/albums/${row.extras_order_ids[0]}/view?print=true`, '_blank')}>
-            <Printer className="h-4 w-4 mr-2" /> Print C2 Frames & Albums
+            <Printer className="h-4 w-4 mr-2" /> Frames & Albums
           </DropdownMenuItem>
         )}
         {hasC3 && (
           <DropdownMenuItem onClick={() => window.open(`/admin/extras/${row.id}/view?print=true`, '_blank')}>
-            <Printer className="h-4 w-4 mr-2" /> Print C3 Extras
+            <Printer className="h-4 w-4 mr-2" /> Extras
+          </DropdownMenuItem>
+        )}
+        {hasWdf && (
+          <DropdownMenuItem onClick={() => window.open(`/admin/documents/wedding-day-form/${row.wdf_ids[0]}?print=true`, '_blank')}>
+            <Printer className="h-4 w-4 mr-2" /> Day Form
+          </DropdownMenuItem>
+        )}
+        {hasPof && (
+          <DropdownMenuItem onClick={() => window.open(`/admin/documents/photo-order/${row.pof_ids[0]}?print=true`, '_blank')}>
+            <Printer className="h-4 w-4 mr-2" /> Photo Order
+          </DropdownMenuItem>
+        )}
+        {hasVof && (
+          <DropdownMenuItem onClick={() => window.open(`/admin/documents/video-order/${row.vof_ids[0]}?print=true`, '_blank')}>
+            <Printer className="h-4 w-4 mr-2" /> Video Order
           </DropdownMenuItem>
         )}
 
-        {/* Email section */}
         {hasEmail && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Email</DropdownMenuLabel>
             {hasC1 && (
               <DropdownMenuItem onClick={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Contract — ${coupleName}`)}>
-                <Mail className="h-4 w-4 mr-2" /> Email C1 to Couple
+                <Mail className="h-4 w-4 mr-2" /> Contract
               </DropdownMenuItem>
             )}
             {hasC2 && (
               <DropdownMenuItem onClick={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Frames %26 Albums — ${coupleName}`)}>
-                <Mail className="h-4 w-4 mr-2" /> Email C2 to Couple
+                <Mail className="h-4 w-4 mr-2" /> Frames & Albums
               </DropdownMenuItem>
             )}
             {hasC3 && (
               <DropdownMenuItem onClick={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Extras — ${coupleName}`)}>
-                <Mail className="h-4 w-4 mr-2" /> Email C3 to Couple
+                <Mail className="h-4 w-4 mr-2" /> Extras
+              </DropdownMenuItem>
+            )}
+            {hasWdf && (
+              <DropdownMenuItem onClick={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Day Form — ${coupleName}`)}>
+                <Mail className="h-4 w-4 mr-2" /> Day Form
+              </DropdownMenuItem>
+            )}
+            {hasPof && (
+              <DropdownMenuItem onClick={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Photo Order — ${coupleName}`)}>
+                <Mail className="h-4 w-4 mr-2" /> Photo Order
+              </DropdownMenuItem>
+            )}
+            {hasVof && (
+              <DropdownMenuItem onClick={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Video Order — ${coupleName}`)}>
+                <Mail className="h-4 w-4 mr-2" /> Video Order
               </DropdownMenuItem>
             )}
           </>
@@ -165,11 +211,10 @@ interface DocumentsTableProps {
 }
 
 export function DocumentsTable({ data }: DocumentsTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [yearFilter, setYearFilter] = useState('2026')
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'weddingDate', desc: false }])
+  const [yearFilter, setYearFilter] = useState('all')
   const [nameSearch, setNameSearch] = useState('')
 
-  // Filter data by year + name
   const filteredData = useMemo(() => {
     let result = data
 
@@ -195,20 +240,22 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
     return result
   }, [data, yearFilter, nameSearch])
 
-  // Metrics
   const metrics = useMemo(() => ({
-    total: filteredData.length,
-    c1: filteredData.filter(r => r.contract_ids.length > 0).length,
-    c2: filteredData.filter(r => r.extras_order_ids.length > 0).length,
-    c3: filteredData.filter(r => r.has_extras).length,
+    contracts: filteredData.filter(r => r.contract_ids.length > 0).length,
+    frames: filteredData.filter(r => r.extras_order_ids.length > 0).length,
+    extras: filteredData.filter(r => r.has_extras).length,
+    dayForms: filteredData.filter(r => r.wdf_ids.length > 0).length,
+    photoOrders: filteredData.filter(r => r.pof_ids.length > 0).length,
+    videoOrders: filteredData.filter(r => r.vof_ids.length > 0).length,
   }), [filteredData])
 
   const columns: ColumnDef<CoupleDocRow>[] = useMemo(() => [
     {
       id: 'rowNumber',
       header: '#',
-      cell: ({ row }) => <span className="text-muted-foreground">{row.index + 1}</span>,
+      cell: ({ row }) => <span className="text-muted-foreground text-xs">{row.index + 1}</span>,
       enableSorting: false,
+      size: 40,
     },
     {
       id: 'couple',
@@ -225,8 +272,9 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
       accessorKey: 'wedding_date',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Wedding Date" />,
       cell: ({ row }) => (
-        <span className="whitespace-nowrap">{formatWeddingDateWithDow(row.original.wedding_date)}</span>
+        <span className="whitespace-nowrap text-sm">{formatWeddingDateWithDow(row.original.wedding_date)}</span>
       ),
+      size: 160,
     },
     {
       id: 'status',
@@ -240,73 +288,59 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
           </span>
         )
       },
+      size: 100,
     },
     {
-      id: 'c1',
-      header: 'C1',
+      id: 'contract',
+      header: 'Contract',
+      cell: ({ row }) => <DocStatus ids={row.original.contract_ids} baseUrl="/admin/contracts" title="View Contract" />,
+      enableSorting: false,
+      size: 50,
+    },
+    {
+      id: 'frames',
+      header: 'Frames',
+      cell: ({ row }) => <DocStatus ids={row.original.extras_order_ids} baseUrl="/admin/albums" title="View Frames & Albums" />,
+      enableSorting: false,
+      size: 50,
+    },
+    {
+      id: 'extras',
+      header: 'Extras',
       cell: ({ row }) => {
-        const ids = row.original.contract_ids
-        if (ids.length === 0) return <span className="text-gray-300">—</span>
-        return (
-          <span className="flex gap-1">
-            {ids.map(id => <DocIcon key={id} href={`/admin/contracts/${id}/view`} title="View C1 Contract" />)}
-          </span>
-        )
+        if (!row.original.has_extras) return <Minus size={16} className="text-gray-300 mx-auto" />
+        return <DocLink href={`/admin/extras/${row.original.id}/view`} title="View Extras" />
       },
       enableSorting: false,
+      size: 50,
     },
     {
-      id: 'c2',
-      header: 'C2',
-      cell: ({ row }) => {
-        const ids = row.original.extras_order_ids
-        if (ids.length === 0) return <span className="text-gray-300">—</span>
-        return (
-          <span className="flex gap-1">
-            {ids.map(id => <DocIcon key={id} href={`/admin/albums/${id}/view`} title="View C2 Frames & Albums" />)}
-          </span>
-        )
-      },
+      id: 'dayForm',
+      header: 'Day Form',
+      cell: ({ row }) => <DocStatus ids={row.original.wdf_ids} baseUrl="/admin/documents/wedding-day-form" title="View Day Form" />,
       enableSorting: false,
+      size: 50,
     },
     {
-      id: 'c3',
-      header: 'C3',
-      cell: ({ row }) => {
-        if (!row.original.has_extras) return <span className="text-gray-300">—</span>
-        return <DocIcon href={`/admin/extras/${row.original.id}/view`} title="View C3 Extras" />
-      },
+      id: 'photoOrder',
+      header: 'Photo Order',
+      cell: ({ row }) => <DocStatus ids={row.original.pof_ids} baseUrl="/admin/documents/photo-order" title="View Photo Order" />,
       enableSorting: false,
+      size: 50,
     },
     {
-      id: 'qt',
-      header: 'QT',
-      cell: ({ row }) => <StatusCheck exists={row.original.has_quote} />,
+      id: 'videoOrder',
+      header: 'Video Order',
+      cell: ({ row }) => <DocStatus ids={row.original.vof_ids} baseUrl="/admin/documents/video-order" title="View Video Order" />,
       enableSorting: false,
-    },
-    {
-      id: 'wdf',
-      header: 'WDF',
-      cell: ({ row }) => <StatusCheck exists={row.original.has_wedding_day_form} />,
-      enableSorting: false,
-    },
-    {
-      id: 'pof',
-      header: 'POF',
-      cell: ({ row }) => <StatusCheck exists={row.original.has_photo_order} />,
-      enableSorting: false,
-    },
-    {
-      id: 'vof',
-      header: 'VOF',
-      cell: ({ row }) => <StatusCheck exists={row.original.has_video_order} />,
-      enableSorting: false,
+      size: 50,
     },
     {
       id: 'actions',
       header: '',
       cell: ({ row }) => <ActionsCell row={row.original} />,
       enableSorting: false,
+      size: 40,
     },
   ], [])
 
@@ -348,29 +382,38 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
         </span>
       </div>
 
-      {/* Metrics row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Metrics row — 6 document types as legend */}
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
         {[
-          { label: 'Total Couples', value: metrics.total },
-          { label: 'Contracts (C1)', value: metrics.c1 },
-          { label: 'Frames (C2)', value: metrics.c2 },
-          { label: 'Extras (C3)', value: metrics.c3 },
+          { label: 'Contracts', value: metrics.contracts, icon: <FileText size={14} className="text-blue-600" /> },
+          { label: 'Frames', value: metrics.frames, icon: <FileText size={14} className="text-blue-600" /> },
+          { label: 'Extras', value: metrics.extras, icon: <FileText size={14} className="text-blue-600" /> },
+          { label: 'Day Forms', value: metrics.dayForms, icon: <FileText size={14} className="text-blue-600" /> },
+          { label: 'Photo Orders', value: metrics.photoOrders, icon: <FileText size={14} className="text-blue-600" /> },
+          { label: 'Video Orders', value: metrics.videoOrders, icon: <FileText size={14} className="text-blue-600" /> },
         ].map(m => (
-          <div key={m.label} className="bg-white border rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold">{m.value}</div>
-            <div className="text-xs text-muted-foreground mt-1">{m.label}</div>
+          <div key={m.label} className="bg-white border rounded-lg p-3 text-center">
+            <div className="flex items-center justify-center gap-1.5">
+              {m.icon}
+              <span className="text-xl font-bold">{m.value}</span>
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">{m.label}</div>
           </div>
         ))}
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 bg-gray-50 z-10">
             {table.getHeaderGroups().map(hg => (
               <TableRow key={hg.id}>
                 {hg.headers.map(header => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className="text-center text-xs"
+                    style={{ width: header.column.getSize() !== 150 ? header.column.getSize() : undefined }}
+                  >
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
@@ -379,10 +422,10 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map(row => (
-                <TableRow key={row.id}>
+              table.getRowModel().rows.map((row, i) => (
+                <TableRow key={row.id} className={`${i % 2 === 1 ? 'bg-gray-50' : ''} h-9`}>
                   {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="py-1.5 px-2 text-center">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
