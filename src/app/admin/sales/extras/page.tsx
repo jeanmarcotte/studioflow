@@ -588,11 +588,10 @@ export default function ExtrasSalesPage() {
       <ProductionPageHeader
         title="Extras Sales"
         subtitle="Additional sales by year"
-        reportHref="/admin/production/report"
-        actionLabel="+ New Sale"
-        actionDisabled={true}
+        reportHref="/admin/sales/report"
+        actionLabel="New Sale"
+        actionHref="/admin/sales/extras"
       />
-      {/* TODO WO-318: Link + New Sale once new-sale page is built — don't forget! */}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 px-6 pt-4">

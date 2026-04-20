@@ -60,6 +60,19 @@ interface YearRow {
   couples: number
 }
 
+interface CoupleRow {
+  bride: string
+  groom: string
+  wedding_date: string | null
+  wedding_year: number
+}
+
+interface ArchiveDriveEntry {
+  bride: string
+  groom: string
+  drive_number: number
+}
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -71,12 +84,15 @@ export default function ArchivePage() {
   const [coupleCount, setCoupleCount] = useState(0)
   const [drives, setDrives] = useState<DriveRow[]>([])
   const [years, setYears] = useState<YearRow[]>([])
+  const [allCouples, setAllCouples] = useState<CoupleRow[]>([])
+  const [allArchiveDrives, setAllArchiveDrives] = useState<ArchiveDriveEntry[]>([])
+  const [selectedYear, setSelectedYear] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
       // Fetch header stats + raw data in parallel
-      const [drivesRes, foldersRes, couplesRes] = await Promise.all([
+      const [drivesRes, foldersRes, couplesRes, allCouplesRes, archiveDrivesRes] = await Promise.all([
         supabase
           .from('vault_drives')
           .select('id, drive_number, drive_name, capacity_bytes, used_bytes, free_bytes, scanned_at')
@@ -87,6 +103,15 @@ export default function ArchivePage() {
         supabase
           .from('vault_historical_couples')
           .select('id, wedding_year', { count: 'exact' }),
+        supabase
+          .from('vault_historical_couples')
+          .select('bride, groom, wedding_date, wedding_year')
+          .order('wedding_date', { ascending: true, nullsFirst: false })
+          .order('bride', { ascending: true }),
+        supabase
+          .from('vault_archive')
+          .select('bride, groom, drive_id, vault_drives(drive_number)')
+          .order('bride'),
       ])
 
       // Header stats

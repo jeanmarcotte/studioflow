@@ -61,7 +61,7 @@ const DEFAULT_CODES: Record<keyof Omit<SelectedProducts, 'extras'>, string> = {
   collage: 'COL-TRIO-CANV',
   album: 'ALB-PREM-2811',
   signingBook: 'ALB-SIGN-08',
-  weddingCanvas: 'CNV-24X30',
+  weddingCanvas: 'MNT-CNV-24X30',
   weddingFrame: 'FRM-FLOAT-BLK',
 }
 const DEFAULT_EXTRA_CODES = ['DIG-PROOF-DL', 'DIG-GALLERY', 'DIG-HR-WED', 'DIG-HR-ENG']
@@ -69,8 +69,8 @@ const DEFAULT_EXTRA_CODES = ['DIG-PROOF-DL', 'DIG-GALLERY', 'DIG-HR-WED', 'DIG-H
 // Page 1 descriptions keyed by slot
 const PAGE1_DESCRIPTIONS: Record<string, (p: ProductItem) => string[]> = {
   collage: (p) => [p.description, 'Custom-edited prints with professional retouching'],
-  album: (p) => [p.description, 'Choice of 80 selected photographs or Omakase style', '15 spreads'],
-  signingBook: (p) => [p.description],
+  album: (p) => [`Bride & Groom Album — ${p.description}`, 'Choice of 80 selected photographs or Omakase style'],
+  signingBook: (p) => [`Engagement Signing Book — ${p.description}`],
   weddingCanvas: (p) => [p.description],
   weddingFrame: (p) => [p.description, 'Assembly including D rings and wire'],
 }
@@ -853,14 +853,14 @@ function MenuSection({ title, items }: { title: string; items: string[] }) {
     <div>
       <h2
         className={playfair.className}
-        style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}
+        style={{ fontSize: 20, fontWeight: 700, marginBottom: 4, color: TEXT }}
       >
         {title}
       </h2>
       <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 20 }} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingLeft: 2 }}>
         {items.map((item, i) => (
-          <p key={i} style={{ fontSize: 16, lineHeight: 1.8, color: '#444444' }}>
+          <p key={i} style={{ fontSize: 14, lineHeight: 1.8, color: '#444444' }}>
             <span style={{ color: GOLD, marginRight: 12 }}>&mdash;</span>
             {item}
           </p>
