@@ -1,34 +1,32 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
-  getFilteredRowModel,
   getSortedRowModel,
   flexRender,
   createColumnHelper,
   SortingState,
 } from '@tanstack/react-table';
-import { ChevronDown, ChevronRight, Search } from 'lucide-react';
-import historicalData from '@/data/historical_couples.json';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
-interface HistoricalCouple {
+interface MasterCouple {
+  id: string;
   bride: string;
   groom: string;
   wedding_date: string;
-  year: number;
-  company: 'SIGS' | 'Excellence';
-  raw: string;
+  wedding_year: number;
+  company: string;
 }
 
-const columnHelper = createColumnHelper<HistoricalCouple>();
+const columnHelper = createColumnHelper<MasterCouple & { rowNum: number }>();
 
 const columns = [
-  columnHelper.display({
-    id: 'index',
+  columnHelper.accessor('rowNum', {
     header: '#',
-    cell: (info) => info.row.index + 1,
+    cell: (info) => info.getValue(),
     size: 50,
   }),
   columnHelper.accessor('bride', {
@@ -42,7 +40,9 @@ const columns = [
   columnHelper.accessor('wedding_date', {
     header: 'Wedding Date',
     cell: (info) => {
-      const date = new Date(info.getValue());
+      const val = info.getValue();
+      if (!val) return '—';
+      const date = new Date(val);
       const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       return `${days[date.getUTCDay()]} ${months[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
@@ -54,7 +54,7 @@ const columns = [
       const company = info.getValue();
       const badgeClass = company === 'SIGS'
         ? 'bg-green-100 text-green-700'
-        : 'bg-gray-100 text-gray-700';
+        : 'bg-blue-100 text-blue-700';
       return (
         <span className={`px-2 py-1 rounded text-xs font-medium ${badgeClass}`}>
           {company}
@@ -64,63 +64,116 @@ const columns = [
   }),
 ];
 
-export function HistoricalCouplesArchive() {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all');
-  const [globalFilter, setGlobalFilter] = useState('');
+function YearGroup({ year, couples, company, defaultExpanded }: { year: number; couples: MasterCouple[]; company: string; defaultExpanded: boolean }) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  const couples = historicalData.couples as HistoricalCouple[];
-
-  // Get unique years sorted descending
-  const years = useMemo(() => {
-    const uniqueYears = Array.from(new Set(couples.map((c) => c.year)));
-    return uniqueYears.sort((a, b) => b - a);
-  }, [couples]);
-
-  // Count by year
-  const yearCounts = useMemo(() => {
-    const counts: Record<number, number> = {};
-    couples.forEach((c) => {
-      counts[c.year] = (counts[c.year] || 0) + 1;
-    });
-    return counts;
-  }, [couples]);
-
-  // Filter by selected year
-  const filteredByYear = useMemo(() => {
-    if (selectedYear === 'all') return couples;
-    return couples.filter((c) => c.year === selectedYear);
-  }, [couples, selectedYear]);
+  const numbered = useMemo(() => couples.map((c, i) => ({ ...c, rowNum: i + 1 })), [couples]);
 
   const table = useReactTable({
-    data: filteredByYear,
+    data: numbered,
     columns,
-    state: {
-      globalFilter,
-      sorting,
-    },
-    onGlobalFilterChange: setGlobalFilter,
+    state: { sorting },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    globalFilterFn: (row, columnId, filterValue) => {
-      const search = filterValue.toLowerCase();
-      const bride = row.original.bride.toLowerCase();
-      const groom = row.original.groom.toLowerCase();
-      const date = row.original.wedding_date.toLowerCase();
-      return bride.includes(search) || groom.includes(search) || date.includes(search);
-    },
   });
 
-  // Stats
-  const sigsCount = couples.filter((c) => c.company === 'SIGS').length;
-  const excellenceCount = couples.filter((c) => c.company === 'Excellence').length;
+  return (
+    <div className="border-b last:border-b-0">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors text-sm"
+      >
+        <div className="flex items-center gap-2">
+          {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          <span className="font-semibold">{year}</span>
+          <span className="text-gray-500">({couples.length} couple{couples.length !== 1 ? 's' : ''})</span>
+        </div>
+        <span className={`px-2 py-0.5 rounded text-xs font-medium ${company === 'SIGS' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+          {company}
+        </span>
+      </button>
+      {expanded && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-200"
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
+                      <div className="flex items-center gap-1">
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {{
+                          asc: ' ↑',
+                          desc: ' ↓',
+                        }[header.column.getIsSorted() as string] ?? null}
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {table.getRowModel().rows.map((row, i) => (
+                <tr key={row.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-4 py-2">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function HistoricalCouplesArchive() {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [couples, setCouples] = useState<MasterCouple[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isExpanded || couples.length > 0) return;
+    setLoading(true);
+    supabase
+      .from('master_couples')
+      .select('id, bride, groom, wedding_date, wedding_year, company')
+      .order('wedding_year', { ascending: false })
+      .order('wedding_date', { ascending: true })
+      .then(({ data }) => {
+        setCouples(data || []);
+        setLoading(false);
+      });
+  }, [isExpanded, couples.length]);
+
+  const sigsCount = useMemo(() => couples.filter((c) => c.company === 'SIGS').length, [couples]);
+  const excellenceCount = useMemo(() => couples.filter((c) => c.company === 'Excellence').length, [couples]);
+
+  const yearGroups = useMemo(() => {
+    const groups = new Map<number, MasterCouple[]>();
+    couples.forEach((c) => {
+      const yr = c.wedding_year;
+      if (!groups.has(yr)) groups.set(yr, []);
+      groups.get(yr)!.push(c);
+    });
+    return Array.from(groups.entries()).sort(([a], [b]) => b - a);
+  }, [couples]);
+
+  const yearRange = yearGroups.length > 0
+    ? `${yearGroups[yearGroups.length - 1][0]}-${yearGroups[0][0]}`
+    : '';
 
   return (
     <div className="mt-8 border rounded-lg bg-white">
-      {/* Header - Collapsible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
@@ -128,106 +181,38 @@ export function HistoricalCouplesArchive() {
         <div className="flex items-center gap-2">
           {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
           <h2 className="text-lg font-semibold">Historical Archive</h2>
-          <span className="text-sm text-gray-500">({couples.length} couples, 2001-2027)</span>
+          {couples.length > 0 && (
+            <span className="text-sm text-gray-500">({couples.length} couples, {yearRange})</span>
+          )}
         </div>
-        <div className="flex items-center gap-4 text-sm">
-          <span className="px-2 py-1 rounded bg-green-100 text-green-700">SIGS: {sigsCount}</span>
-          <span className="px-2 py-1 rounded bg-gray-100 text-gray-700">Excellence: {excellenceCount}</span>
-        </div>
+        {couples.length > 0 && (
+          <div className="flex items-center gap-4 text-sm">
+            <span className="px-2 py-1 rounded bg-green-100 text-green-700">SIGS: {sigsCount}</span>
+            <span className="px-2 py-1 rounded bg-blue-100 text-blue-700">Excellence: {excellenceCount}</span>
+          </div>
+        )}
       </button>
 
       {isExpanded && (
         <div className="border-t">
-          {/* Cutoff Banner */}
-          <div className="px-4 py-2 bg-amber-50 border-b text-sm text-amber-800">
-            📅 Excellence Photography ceased April 30, 2016. SIGS Photography: May 1, 2016 → present.
-          </div>
-
-          {/* Controls */}
-          <div className="px-4 py-3 flex flex-wrap items-center gap-4 border-b bg-gray-50">
-            {/* Search */}
-            <div className="relative flex-1 min-w-[200px] max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search bride, groom, or date..."
-                value={globalFilter}
-                onChange={(e) => setGlobalFilter(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
             </div>
-
-            {/* Year Tabs */}
-            <div className="flex flex-wrap gap-1">
-              <button
-                onClick={() => setSelectedYear('all')}
-                className={`px-3 py-1 text-sm rounded ${
-                  selectedYear === 'all'
-                    ? 'bg-teal-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                All ({couples.length})
-              </button>
-              {years.map((year) => (
-                <button
+          ) : (
+            yearGroups.map(([year, groupCouples]) => {
+              const company = groupCouples[0]?.company || 'SIGS';
+              return (
+                <YearGroup
                   key={year}
-                  onClick={() => setSelectedYear(year)}
-                  className={`px-3 py-1 text-sm rounded ${
-                    selectedYear === year
-                      ? 'bg-teal-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  {year} ({yearCounts[year]})
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-200"
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        <div className="flex items-center gap-1">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {{
-                            asc: ' ↑',
-                            desc: ' ↓',
-                          }[header.column.getIsSorted() as string] ?? null}
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody>
-                {table.getRowModel().rows.map((row, i) => (
-                  <tr key={row.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-2">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Footer */}
-          <div className="px-4 py-2 border-t bg-gray-50 text-sm text-gray-600">
-            Showing {table.getRowModel().rows.length} of {filteredByYear.length} couples
-            {globalFilter && ` (filtered from ${filteredByYear.length})`}
-          </div>
+                  year={year}
+                  couples={groupCouples}
+                  company={company}
+                  defaultExpanded={year >= 2026}
+                />
+              );
+            })
+          )}
         </div>
       )}
     </div>
