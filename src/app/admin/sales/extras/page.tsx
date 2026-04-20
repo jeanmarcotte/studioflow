@@ -590,32 +590,29 @@ export default function ExtrasSalesPage() {
         subtitle="Additional sales by year"
         reportHref="/admin/sales/report"
         actionLabel="New Sale"
-        actionHref="/admin/sales/extras"
       />
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 px-6 pt-4">
-        {[
-          { label: 'Couples (2026)', value: String(kpiCouples2026) },
-          { label: 'Line Items', value: String(kpiLineItems2026) },
-          { label: 'Revenue (2026)', value: formatCurrency(kpiRevenue2026) },
-          { label: 'Avg Per Item', value: formatCurrency(kpiAvgPerItem) },
-          { label: 'Item Types', value: String(kpiItemTypes2026) },
-          { label: 'vs 2025', value: `${kpiGrowthMultiple}×`, highlight: true },
-        ].map((card: { label: string; value: string; highlight?: boolean }) => (
-          <div key={card.label} className="bg-white border rounded-xl p-4 text-center">
-            <div className={`text-2xl font-bold ${card.highlight ? 'text-amber-600' : ''}`}>{card.value}</div>
-            <div className="text-xs text-muted-foreground mt-1">{card.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Content area: main panel + stats sidebar */}
       <div className="flex">
-        {/* Main Panel */}
-        <div className="flex-1 overflow-y-auto p-6 border-r border-border">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 border-r border-border">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[
+              { label: 'Couples (2026)', value: String(kpiCouples2026) },
+              { label: 'Line Items', value: String(kpiLineItems2026) },
+              { label: 'Revenue (2026)', value: formatCurrency(kpiRevenue2026) },
+              { label: 'Avg Per Item', value: formatCurrency(kpiAvgPerItem) },
+              { label: 'Item Types', value: String(kpiItemTypes2026) },
+              { label: 'vs 2025', value: `${kpiGrowthMultiple}×`, highlight: true },
+            ].map((card: { label: string; value: string; highlight?: boolean }) => (
+              <div key={card.label} className="bg-white border rounded-xl p-4 text-center">
+                <div className={`text-2xl font-bold ${card.highlight ? 'text-amber-600' : ''}`}>{card.value}</div>
+                <div className="text-xs text-muted-foreground mt-1">{card.label}</div>
+              </div>
+            ))}
+          </div>
+
           {/* Search */}
-          <div className="flex flex-wrap gap-3 mb-6">
+          <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <input

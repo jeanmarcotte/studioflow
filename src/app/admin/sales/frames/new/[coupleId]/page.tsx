@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Loader2, ChevronLeft, ChevronRight, X, Plus, Equal, Download } from 'lucide-react'
@@ -69,8 +69,8 @@ const DEFAULT_EXTRA_CODES = ['DIG-PROOF-DL', 'DIG-GALLERY', 'DIG-HR-WED', 'DIG-H
 // Page 1 descriptions keyed by slot
 const PAGE1_DESCRIPTIONS: Record<string, (p: ProductItem) => string[]> = {
   collage: (p) => [p.description, 'Custom-edited prints with professional retouching'],
-  album: (p) => [`Bride & Groom Album — ${p.description}`, 'Choice of 80 selected photographs or Omakase style'],
-  signingBook: (p) => [`Engagement Signing Book — ${p.description}`],
+  album: (p) => ['Bride & Groom Album — 28×11 layflat, leather or acrylic cover, matt pages, choice of 80 selected photographs or Omakase style, 15 spreads'],
+  signingBook: (p) => ['Engagement Signing Book — 8×10 black linen, 6 spreads, 22 images'],
   weddingCanvas: (p) => [p.description],
   weddingFrame: (p) => [p.description, 'Assembly including D rings and wire'],
 }
@@ -111,12 +111,14 @@ export default function FrameSalePresentation() {
   const [products, setProducts] = useState<any[]>([])
   const [editMilestones, setEditMilestones] = useState<string[]>([])
   const [editAmounts, setEditAmounts] = useState<number[]>([])
-  const [saleAmount, setSaleAmount] = useState(ALBUM_COLLAGE_TOTAL)
+  const [saleAmount, setSaleAmount] = useState(0)
   const [depositAmount, setDepositAmount] = useState(0)
   const [extraItems, setExtraItems] = useState<{ desc: string; code: string }[]>([])
   const [showProductPicker, setShowProductPicker] = useState(false)
   const [selected, setSelected] = useState<SelectedProducts>({ collage: null, album: null, signingBook: null, weddingCanvas: null, weddingFrame: null, extras: [] })
   const [swapOpen, setSwapOpen] = useState<string | null>(null)
+  const [saleAmountManuallyEdited, setSaleAmountManuallyEdited] = useState(false)
+  const [discountApplies, setDiscountApplies] = useState(true)
 
   // Redistribute installments evenly based on current total
   const redistribute = useCallback((total: number, count: number) => {
@@ -148,9 +150,7 @@ export default function FrameSalePresentation() {
         const vid = !!(ct?.num_videographers && ct.num_videographers > 0) || !!ct?.video_highlights || !!ct?.video_long_form
         const ms = vid ? [...PV_MILESTONES] : [...PO_MILESTONES]
         setEditMilestones(ms)
-        const bal = c.balance_owing ?? 0
-        const total = bal + ALBUM_COLLAGE_TOTAL - 0 // deposit starts at 0
-        redistribute(total, ms.length)
+        // redistribute will be triggered by the saleAmount useEffect after calculatedTotal is computed
       }
       // Fetch product catalog
       const { data: productData } = await supabase
@@ -174,6 +174,30 @@ export default function FrameSalePresentation() {
     }
     fetch()
   }, [coupleId, redistribute])
+
+  // Calculate Page 2 total from selected products
+  const calculatedTotal = useMemo(() => {
+    const collagePrice = selected.collage?.retail_price ?? 0
+    const albumPrice = selected.album?.retail_price ?? 0
+    const printCredit = 500
+    const albumNet = albumPrice - printCredit
+    const bookPrice = selected.signingBook?.retail_price ?? 0
+    const framePrice = selected.weddingFrame?.retail_price ?? 0
+    const canvasPrice = selected.weddingCanvas?.retail_price ?? 0
+    const subtotal = collagePrice + albumNet + bookPrice + framePrice + canvasPrice
+    const tax = Math.round(subtotal * 0.13 * 100) / 100
+    const subtotalWithTax = subtotal + tax
+    if (!discountApplies) return Math.round(subtotalWithTax * 100) / 100
+    const discount = Math.round(subtotalWithTax * 0.25 * 100) / 100
+    return Math.round((subtotalWithTax - discount) * 100) / 100
+  }, [selected, discountApplies])
+
+  // Sync Page 2 total → Page 3 sale amount (unless manually edited)
+  useEffect(() => {
+    if (!saleAmountManuallyEdited && calculatedTotal > 0) {
+      setSaleAmount(calculatedTotal)
+    }
+  }, [calculatedTotal, saleAmountManuallyEdited])
 
   // Auto-redistribute when saleAmount or deposit changes
   useEffect(() => {
@@ -464,7 +488,7 @@ export default function FrameSalePresentation() {
                     />
                     <EditableFinanceRow
                       value={saleAmount}
-                      onChange={(v) => setSaleAmount(v)}
+                      onChange={(v) => { setSaleAmount(v); setSaleAmountManuallyEdited(true) }}
                       label="Album & Collage including tax"
                     />
                     <EditableFinanceRow
