@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Loader2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -26,6 +26,15 @@ export default function AlbumViewPage() {
   const [order, setOrder] = useState<any>(null)
   const [couple, setCouple] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const searchParams = useSearchParams()
+
+  // Auto-print when ?print=true
+  useEffect(() => {
+    if (!loading && searchParams.get('print') === 'true') {
+      const timer = setTimeout(() => window.print(), 800)
+      return () => clearTimeout(timer)
+    }
+  }, [loading, searchParams])
 
   useEffect(() => {
     async function fetchData() {
