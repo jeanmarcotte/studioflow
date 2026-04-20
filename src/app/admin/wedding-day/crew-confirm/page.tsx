@@ -825,7 +825,7 @@ export default function CrewCallSheetPage() {
 
               {selectedCouple.package_type && <>
                 <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Package</span>
-                <span style={{ color: 'var(--foreground)' }}>{selectedCouple.package_type === 'photo_only' ? 'Photo Only' : 'Photo & Video'}</span>
+                <span style={{ color: 'var(--foreground)' }}>{formatPackage(selectedCouple.package_type)}</span>
               </>}
 
               <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Team Required</span>
