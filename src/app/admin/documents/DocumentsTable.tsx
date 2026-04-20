@@ -26,14 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { MoreVertical, FileText, Check, Minus } from 'lucide-react'
 import { parseISO, format } from 'date-fns'
 import type { CoupleDocRow } from './page'
@@ -81,111 +74,86 @@ function BoolDoc({ exists }: { exists: boolean }) {
     : <Minus size={16} className="text-gray-300 mx-auto" />
 }
 
-function ActionsCell({ row }: { row: CoupleDocRow }) {
-  const hasC1 = row.contract_ids.length > 0
-  const hasC2 = row.extras_order_ids.length > 0
-  const hasC3 = row.has_extras
-  const hasWdf = row.wdf_ids.length > 0
-  const hasPof = row.pof_ids.length > 0
-  const hasVof = row.vof_ids.length > 0
-  const hasEmail = !!row.email
-  const coupleName = `${row.bride_first_name} %26 ${row.groom_first_name}`
+function ActionsPopover({ couple }: { couple: CoupleDocRow }) {
+  const links: { label: string; href: string; section: string }[] = []
 
-  const hasAnyDoc = hasC1 || hasC2 || hasC3 || hasWdf || hasPof || hasVof
-  if (!hasAnyDoc) return <span className="text-gray-300">—</span>
+  if (couple.contract_ids && couple.contract_ids.length > 0) {
+    links.push({ label: 'View Contract', href: `/admin/contracts/${couple.contract_ids[0]}/view`, section: 'view' })
+  }
+  if (couple.extras_order_ids && couple.extras_order_ids.length > 0) {
+    links.push({ label: 'View Frames', href: `/admin/albums/${couple.extras_order_ids[0]}/view`, section: 'view' })
+  }
+  if (couple.has_extras) {
+    links.push({ label: 'View Extras', href: `/admin/extras/${couple.id}/view`, section: 'view' })
+  }
+  if (couple.wdf_ids && couple.wdf_ids.length > 0) {
+    links.push({ label: 'View Day Form', href: `/admin/documents/wedding-day-form/${couple.wdf_ids[0]}`, section: 'view' })
+  }
+  if (couple.pof_ids && couple.pof_ids.length > 0) {
+    links.push({ label: 'View Photo Order', href: `/admin/documents/photo-order/${couple.pof_ids[0]}`, section: 'view' })
+  }
+  if (couple.vof_ids && couple.vof_ids.length > 0) {
+    links.push({ label: 'View Video Order', href: `/admin/documents/video-order/${couple.vof_ids[0]}`, section: 'view' })
+  }
+
+  if (couple.contract_ids && couple.contract_ids.length > 0) {
+    links.push({ label: 'Print Contract', href: `/admin/contracts/${couple.contract_ids[0]}/view?print=true`, section: 'print' })
+  }
+  if (couple.extras_order_ids && couple.extras_order_ids.length > 0) {
+    links.push({ label: 'Print Frames', href: `/admin/albums/${couple.extras_order_ids[0]}/view?print=true`, section: 'print' })
+  }
+  if (couple.has_extras) {
+    links.push({ label: 'Print Extras', href: `/admin/extras/${couple.id}/view?print=true`, section: 'print' })
+  }
+
+  if (links.length === 0) return <span className="text-gray-300">—</span>
+
+  const viewLinks = links.filter(l => l.section === 'view')
+  const printLinks = links.filter(l => l.section === 'print')
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={<button className="p-1 rounded hover:bg-gray-100 focus:outline-none"><MoreVertical size={16} className="text-gray-500" /></button>} />
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel>View</DropdownMenuLabel>
-        {hasC1 && (
-          <DropdownMenuItem onSelect={() => window.open(`/admin/contracts/${row.contract_ids[0]}/view`, '_blank')}>
-            Contract
-          </DropdownMenuItem>
-        )}
-        {hasC2 && (
-          <DropdownMenuItem onSelect={() => window.open(`/admin/albums/${row.extras_order_ids[0]}/view`, '_blank')}>
-            Frames & Albums
-          </DropdownMenuItem>
-        )}
-        {hasC3 && (
-          <DropdownMenuItem onSelect={() => window.open(`/admin/extras/${row.id}/view`, '_blank')}>
-            Extras
-          </DropdownMenuItem>
-        )}
-        {hasWdf && (
-          <DropdownMenuItem onSelect={() => window.open(`/admin/documents/wedding-day-form/${row.wdf_ids[0]}`, '_blank')}>
-            Day Form
-          </DropdownMenuItem>
-        )}
-        {hasPof && (
-          <DropdownMenuItem onSelect={() => window.open(`/admin/documents/photo-order/${row.pof_ids[0]}`, '_blank')}>
-            Photo Order
-          </DropdownMenuItem>
-        )}
-        {hasVof && (
-          <DropdownMenuItem onSelect={() => window.open(`/admin/documents/video-order/${row.vof_ids[0]}`, '_blank')}>
-            Video Order
-          </DropdownMenuItem>
-        )}
-
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel>Print</DropdownMenuLabel>
-        {hasC1 && (
-          <DropdownMenuItem onSelect={() => window.open(`/admin/contracts/${row.contract_ids[0]}/view?print=true`, '_blank')}>
-            Print Contract
-          </DropdownMenuItem>
-        )}
-        {hasC2 && (
-          <DropdownMenuItem onSelect={() => window.open(`/admin/albums/${row.extras_order_ids[0]}/view?print=true`, '_blank')}>
-            Print Frames
-          </DropdownMenuItem>
-        )}
-        {hasC3 && (
-          <DropdownMenuItem onSelect={() => window.open(`/admin/extras/${row.id}/view?print=true`, '_blank')}>
-            Print Extras
-          </DropdownMenuItem>
-        )}
-        {hasWdf && (
-          <DropdownMenuItem onSelect={() => window.open(`/admin/documents/wedding-day-form/${row.wdf_ids[0]}?print=true`, '_blank')}>
-            Print Day Form
-          </DropdownMenuItem>
-        )}
-        {hasPof && (
-          <DropdownMenuItem onSelect={() => window.open(`/admin/documents/photo-order/${row.pof_ids[0]}?print=true`, '_blank')}>
-            Print Photo Order
-          </DropdownMenuItem>
-        )}
-        {hasVof && (
-          <DropdownMenuItem onSelect={() => window.open(`/admin/documents/video-order/${row.vof_ids[0]}?print=true`, '_blank')}>
-            Print Video Order
-          </DropdownMenuItem>
-        )}
-
-        {hasEmail && (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" className="p-1 rounded hover:bg-gray-100">
+          <MoreVertical size={16} className="text-gray-500" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-52 p-1">
+        {viewLinks.length > 0 && (
           <>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Email</DropdownMenuLabel>
-            {hasC1 && (
-              <DropdownMenuItem onSelect={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Contract — ${coupleName}`)}>
-                Email Contract
-              </DropdownMenuItem>
-            )}
-            {hasC2 && (
-              <DropdownMenuItem onSelect={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Frames %26 Albums — ${coupleName}`)}>
-                Email Frames
-              </DropdownMenuItem>
-            )}
-            {hasC3 && (
-              <DropdownMenuItem onSelect={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Extras — ${coupleName}`)}>
-                Email Extras
-              </DropdownMenuItem>
-            )}
+            <p className="text-xs font-semibold text-gray-400 px-3 py-1.5">View</p>
+            {viewLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block px-3 py-1.5 text-sm rounded hover:bg-gray-100 text-gray-700"
+              >
+                {link.label}
+              </a>
+            ))}
           </>
         )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        {printLinks.length > 0 && (
+          <>
+            <div className="my-1 border-t" />
+            <p className="text-xs font-semibold text-gray-400 px-3 py-1.5">Print</p>
+            {printLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block px-3 py-1.5 text-sm rounded hover:bg-gray-100 text-gray-700"
+              >
+                {link.label}
+              </a>
+            ))}
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
   )
 }
 
@@ -312,7 +280,7 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
     {
       id: 'actions',
       header: '',
-      cell: ({ row }) => <ActionsCell row={row.original} />,
+      cell: ({ row }) => <ActionsPopover couple={row.original} />,
       enableSorting: false,
       size: 40,
     },
