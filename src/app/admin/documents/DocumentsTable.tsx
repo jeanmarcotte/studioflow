@@ -66,11 +66,11 @@ function DocLink({ href, title }: { href: string; title: string }) {
   )
 }
 
-function DocStatus({ ids, baseUrl, title }: { ids: string[]; baseUrl: string; title: string }) {
+function DocStatus({ ids, baseUrl, suffix = '', title }: { ids: string[]; baseUrl: string; suffix?: string; title: string }) {
   if (ids.length === 0) return <Minus size={16} className="text-gray-300 mx-auto" />
   return (
     <span className="flex gap-1 justify-center">
-      {ids.map(id => <DocLink key={id} href={`${baseUrl}/${id}`} title={title} />)}
+      {ids.map(id => <DocLink key={id} href={`${baseUrl}/${id}${suffix}`} title={title} />)}
     </span>
   )
 }
@@ -251,11 +251,11 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
     {
       id: 'couple',
       accessorFn: (row) => row.bride_first_name,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" className="text-left" />,
       cell: ({ row }) => (
-        <span className="font-medium whitespace-nowrap">
+        <a href={`/admin/couples/${row.original.id}`} className="text-blue-600 hover:text-blue-800 hover:underline font-medium whitespace-nowrap">
           {row.original.bride_first_name} & {row.original.groom_first_name}
-        </span>
+        </a>
       ),
     },
     {
@@ -283,47 +283,47 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
     },
     {
       id: 'contract',
-      header: 'Contract',
-      cell: ({ row }) => <DocStatus ids={row.original.contract_ids} baseUrl="/admin/contracts" title="View Contract" />,
-      enableSorting: false,
+      accessorFn: (row) => row.contract_ids.length > 0 ? 1 : 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Contract" />,
+      cell: ({ row }) => <DocStatus ids={row.original.contract_ids} baseUrl="/admin/contracts" suffix="/view" title="View Contract" />,
       size: 50,
     },
     {
       id: 'frames',
-      header: 'Frames',
-      cell: ({ row }) => <DocStatus ids={row.original.extras_order_ids} baseUrl="/admin/albums" title="View Frames & Albums" />,
-      enableSorting: false,
+      accessorFn: (row) => row.extras_order_ids.length > 0 ? 1 : 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Frames" />,
+      cell: ({ row }) => <DocStatus ids={row.original.extras_order_ids} baseUrl="/admin/albums" suffix="/view" title="View Frames & Albums" />,
       size: 50,
     },
     {
       id: 'extras',
-      header: 'Extras',
+      accessorFn: (row) => row.has_extras ? 1 : 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Extras" />,
       cell: ({ row }) => {
         if (!row.original.has_extras) return <Minus size={16} className="text-gray-300 mx-auto" />
         return <DocLink href={`/admin/extras/${row.original.id}/view`} title="View Extras" />
       },
-      enableSorting: false,
       size: 50,
     },
     {
       id: 'dayForm',
-      header: 'Day Form',
+      accessorFn: (row) => row.wdf_ids.length > 0 ? 1 : 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Day Form" />,
       cell: ({ row }) => <DocStatus ids={row.original.wdf_ids} baseUrl="/admin/documents/wedding-day-form" title="View Day Form" />,
-      enableSorting: false,
       size: 50,
     },
     {
       id: 'photoOrder',
-      header: 'Photo Order',
+      accessorFn: (row) => row.pof_ids.length > 0 ? 1 : 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Photo Order" />,
       cell: ({ row }) => <DocStatus ids={row.original.pof_ids} baseUrl="/admin/documents/photo-order" title="View Photo Order" />,
-      enableSorting: false,
       size: 50,
     },
     {
       id: 'videoOrder',
-      header: 'Video Order',
+      accessorFn: (row) => row.vof_ids.length > 0 ? 1 : 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Video Order" />,
       cell: ({ row }) => <DocStatus ids={row.original.vof_ids} baseUrl="/admin/documents/video-order" title="View Video Order" />,
-      enableSorting: false,
       size: 50,
     },
     {
@@ -382,7 +382,7 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
                 {hg.headers.map(header => (
                   <TableHead
                     key={header.id}
-                    className="text-center text-xs"
+                    className={`text-xs ${header.id === 'couple' ? 'text-left' : 'text-center'}`}
                     style={{ width: header.column.getSize() !== 150 ? header.column.getSize() : undefined }}
                   >
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
@@ -396,7 +396,7 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
               table.getRowModel().rows.map((row, i) => (
                 <TableRow key={row.id} className={`${i % 2 === 1 ? 'bg-gray-50' : ''} h-9`}>
                   {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id} className="py-1.5 px-2 text-center">
+                    <TableCell key={cell.id} className={`py-1.5 px-2 ${cell.column.id === 'couple' ? 'text-left' : 'text-center'}`}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
