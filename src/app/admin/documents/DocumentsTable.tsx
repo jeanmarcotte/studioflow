@@ -26,8 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { MoreVertical, FileText, Check, Minus } from 'lucide-react'
+import { FileText, Check, Minus } from 'lucide-react'
 import { parseISO, format } from 'date-fns'
 import type { CoupleDocRow } from './page'
 
@@ -72,89 +71,6 @@ function BoolDoc({ exists }: { exists: boolean }) {
   return exists
     ? <Check size={16} className="text-green-600 mx-auto" />
     : <Minus size={16} className="text-gray-300 mx-auto" />
-}
-
-function ActionsPopover({ couple }: { couple: CoupleDocRow }) {
-  const links: { label: string; href: string; section: string }[] = []
-
-  if (couple.contract_ids && couple.contract_ids.length > 0) {
-    links.push({ label: 'View Contract', href: `/admin/contracts/${couple.contract_ids[0]}/view`, section: 'view' })
-  }
-  if (couple.extras_order_ids && couple.extras_order_ids.length > 0) {
-    links.push({ label: 'View Frames', href: `/admin/albums/${couple.extras_order_ids[0]}/view`, section: 'view' })
-  }
-  if (couple.has_extras) {
-    links.push({ label: 'View Extras', href: `/admin/extras/${couple.id}/view`, section: 'view' })
-  }
-  if (couple.wdf_ids && couple.wdf_ids.length > 0) {
-    links.push({ label: 'View Day Form', href: `/admin/documents/wedding-day-form/${couple.wdf_ids[0]}`, section: 'view' })
-  }
-  if (couple.pof_ids && couple.pof_ids.length > 0) {
-    links.push({ label: 'View Photo Order', href: `/admin/documents/photo-order/${couple.pof_ids[0]}`, section: 'view' })
-  }
-  if (couple.vof_ids && couple.vof_ids.length > 0) {
-    links.push({ label: 'View Video Order', href: `/admin/documents/video-order/${couple.vof_ids[0]}`, section: 'view' })
-  }
-
-  if (couple.contract_ids && couple.contract_ids.length > 0) {
-    links.push({ label: 'Print Contract', href: `/admin/contracts/${couple.contract_ids[0]}/view?print=true`, section: 'print' })
-  }
-  if (couple.extras_order_ids && couple.extras_order_ids.length > 0) {
-    links.push({ label: 'Print Frames', href: `/admin/albums/${couple.extras_order_ids[0]}/view?print=true`, section: 'print' })
-  }
-  if (couple.has_extras) {
-    links.push({ label: 'Print Extras', href: `/admin/extras/${couple.id}/view?print=true`, section: 'print' })
-  }
-
-  if (links.length === 0) return <span className="text-gray-300">—</span>
-
-  const viewLinks = links.filter(l => l.section === 'view')
-  const printLinks = links.filter(l => l.section === 'print')
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button type="button" className="p-1 rounded hover:bg-gray-100">
-          <MoreVertical size={16} className="text-gray-500" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-52 p-1">
-        {viewLinks.length > 0 && (
-          <>
-            <p className="text-xs font-semibold text-gray-400 px-3 py-1.5">View</p>
-            {viewLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block px-3 py-1.5 text-sm rounded hover:bg-gray-100 text-gray-700"
-              >
-                {link.label}
-              </a>
-            ))}
-          </>
-        )}
-        {printLinks.length > 0 && (
-          <>
-            <div className="my-1 border-t" />
-            <p className="text-xs font-semibold text-gray-400 px-3 py-1.5">Print</p>
-            {printLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block px-3 py-1.5 text-sm rounded hover:bg-gray-100 text-gray-700"
-              >
-                {link.label}
-              </a>
-            ))}
-          </>
-        )}
-      </PopoverContent>
-    </Popover>
-  )
 }
 
 interface DocumentsTableProps {
@@ -276,13 +192,6 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
       header: ({ column }) => <DataTableColumnHeader column={column} title="Video Order" />,
       cell: ({ row }) => <DocStatus ids={row.original.vof_ids} baseUrl="/admin/documents/video-order" title="View Video Order" />,
       size: 50,
-    },
-    {
-      id: 'actions',
-      header: '',
-      cell: ({ row }) => <ActionsPopover couple={row.original} />,
-      enableSorting: false,
-      size: 40,
     },
   ], [])
 
