@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
 // ---------------------------------------------------------------------------
@@ -250,7 +251,13 @@ export default function ArchivePage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {drives.map((d) => (
-            <DriveCard key={d.drive_number} drive={d} />
+            <Link
+              key={d.drive_number}
+              href={`/admin/production/archive/drive/${d.drive_number}`}
+              className="block cursor-pointer"
+            >
+              <DriveCard drive={d} />
+            </Link>
           ))}
         </div>
       </div>
@@ -515,11 +522,13 @@ function DriveCard({ drive }: { drive: DriveRow }) {
 
   return (
     <div
-      className="rounded-lg p-5"
+      className="rounded-lg p-5 transition-colors"
       style={{
         background: V.surface,
         border: `1px solid ${V.border}`,
       }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = V.amber }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = V.border }}
     >
       {/* Drive number + name */}
       <div className="mb-3">
