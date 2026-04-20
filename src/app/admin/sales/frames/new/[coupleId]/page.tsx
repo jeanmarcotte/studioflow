@@ -155,22 +155,32 @@ export default function FrameSalePresentation() {
         setEditMilestones(ms)
         // redistribute will be triggered by the saleAmount useEffect after calculatedTotal is computed
       }
-      // Fetch product catalog
-      const { data: productData } = await supabase
-        .from('product_catalog')
-        .select('product_code, category, item_name, description, retail_price, unit, sort_order')
-        .eq('active', true)
-        .order('sort_order')
-      const prods = productData ?? []
+      // Fetch product catalog + milestone check in parallel
+      const [productRes, milestoneRes] = await Promise.all([
+        supabase
+          .from('product_catalog')
+          .select('product_code, category, item_name, description, retail_price, unit, sort_order')
+          .eq('active', true)
+          .order('sort_order'),
+        supabase
+          .from('couple_milestones')
+          .select('m09_eng_prints_picked_up')
+          .eq('couple_id', coupleId)
+          .limit(1),
+      ])
+      const prods = productRes.data ?? []
       setProducts(prods)
       const find = (code: string) => prods.find((p: any) => p.product_code === code)
+      const m09 = milestoneRes.data?.[0]?.m09_eng_prints_picked_up === true
+      const extraCodes = [...DEFAULT_EXTRA_CODES]
+      if (m09) extraCodes.push('PRT-5X5-50')
       const defaultSelected: SelectedProducts = {
         collage: find(DEFAULT_CODES.collage) ?? null,
         album: find(DEFAULT_CODES.album) ?? null,
         signingBook: find(DEFAULT_CODES.signingBook) ?? null,
         weddingCanvas: find(DEFAULT_CODES.weddingCanvas) ?? null,
         weddingFrame: find(DEFAULT_CODES.weddingFrame) ?? null,
-        extras: DEFAULT_EXTRA_CODES.map(code => find(code)).filter(Boolean) as ProductItem[],
+        extras: extraCodes.map(code => find(code)).filter(Boolean) as ProductItem[],
       }
       setSelected(defaultSelected)
       setOriginalSelected(defaultSelected)
@@ -909,41 +919,133 @@ export default function FrameSalePresentation() {
                   setShowProductPicker(null)
                 }
 
+                const SECTION_TITLES: Record<string, string> = {
+                  collage: 'Collage',
+                  albums: 'Albums',
+                  frame: 'Wedding Frame',
+                  digital: 'Digital Files',
+                  extras: 'Extras',
+                }
+
                 function renderSectionAddButton(section: string) {
                   const categories = SECTION_CATEGORIES[section] ?? []
                   const filtered = products.filter((p: any) => categories.includes(p.category))
+                  const usePopup = filtered.length > 5
+
                   return (
-                    <div className="relative" style={{ marginTop: 8 }}>
-                      <button
-                        onClick={() => setShowProductPicker(showProductPicker === section ? null : section)}
-                        className="flex items-center gap-1 transition-colors"
-                        style={{ fontSize: 13, color: GOLD, background: 'none', border: 'none', cursor: 'pointer', opacity: 0.8 }}
-                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
-                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8' }}
-                      >
-                        <Plus style={{ width: 13, height: 13 }} /> Add
-                      </button>
-                      {showProductPicker === section && (
-                        <div
-                          className="absolute left-0 top-7 z-20 rounded-xl overflow-hidden"
-                          style={{ backgroundColor: '#FFFFFF', border: '1px solid #E8E8E3', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 280, overflowY: 'auto', width: 380 }}
+                    <>
+                      <div className="relative" style={{ marginTop: 8 }}>
+                        <button
+                          onClick={() => setShowProductPicker(showProductPicker === section ? null : section)}
+                          className="flex items-center gap-1 transition-colors"
+                          style={{ fontSize: 13, color: GOLD, background: 'none', border: 'none', cursor: 'pointer', opacity: 0.8 }}
+                          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
+                          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8' }}
                         >
-                          {filtered.map((p: any) => (
-                            <button
-                              key={p.product_code}
-                              onClick={() => addItemToSection(section, p)}
-                              className="w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors"
-                              style={{ borderBottom: '1px solid #F3F3EE' }}
-                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FAFAF5')}
-                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
-                            >
-                              <span style={{ fontSize: 14 }}>{p.item_name ?? p.description}</span>
-                              <span style={{ fontSize: 12, color: MUTED, fontFamily: 'monospace' }}>{formatCurrency(p.retail_price)}</span>
-                            </button>
-                          ))}
+                          <Plus style={{ width: 13, height: 13 }} /> Add
+                        </button>
+                        {/* Inline dropdown for small sections */}
+                        {!usePopup && showProductPicker === section && (
+                          <div
+                            className="absolute left-0 top-7 z-20 rounded-xl overflow-hidden"
+                            style={{ backgroundColor: '#FFFFFF', border: '1px solid #E8E8E3', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', width: 380 }}
+                          >
+                            {filtered.map((p: any) => (
+                              <button
+                                key={p.product_code}
+                                onClick={() => addItemToSection(section, p)}
+                                className="w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors"
+                                style={{ borderBottom: '1px solid #F3F3EE' }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FAFAF5')}
+                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
+                              >
+                                <span style={{ fontSize: 14 }}>{p.item_name ?? p.description}</span>
+                                <span style={{ fontSize: 12, color: MUTED, fontFamily: 'monospace' }}>{formatCurrency(p.retail_price)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {/* Modal popup for large sections */}
+                      {usePopup && showProductPicker === section && (
+                        <div
+                          className="fixed inset-0 z-50 flex items-center justify-center"
+                          style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+                          onClick={() => setShowProductPicker(null)}
+                        >
+                          <div
+                            className="rounded-2xl overflow-hidden"
+                            style={{
+                              backgroundColor: '#FFFFFF',
+                              boxShadow: '0 16px 48px rgba(0,0,0,0.18)',
+                              width: 480,
+                              maxHeight: '70vh',
+                              display: 'flex',
+                              flexDirection: 'column',
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {/* Header */}
+                            <div className="flex items-center justify-between" style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${BORDER}` }}>
+                              <h4 className={playfair.className} style={{ fontSize: 18, fontWeight: 700, color: TEXT }}>
+                                Add to {SECTION_TITLES[section] ?? section}
+                              </h4>
+                              <button
+                                onClick={() => setShowProductPicker(null)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: MUTED, padding: 4 }}
+                              >
+                                <X style={{ width: 18, height: 18 }} />
+                              </button>
+                            </div>
+                            {/* Items grouped by category */}
+                            <div style={{ overflowY: 'auto', flex: 1 }}>
+                              {(() => {
+                                const grouped: Record<string, any[]> = {}
+                                filtered.forEach((p: any) => {
+                                  const cat = p.category ?? 'Other'
+                                  if (!grouped[cat]) grouped[cat] = []
+                                  grouped[cat].push(p)
+                                })
+                                return Object.entries(grouped).map(([cat, items]) => (
+                                  <div key={cat}>
+                                    <p
+                                      className={dmSans.className}
+                                      style={{
+                                        fontSize: 11,
+                                        fontWeight: 600,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.08em',
+                                        color: GOLD,
+                                        padding: '12px 24px 6px',
+                                        backgroundColor: '#FAFAF5',
+                                      }}
+                                    >
+                                      {cat}
+                                    </p>
+                                    {items.map((p: any) => (
+                                      <button
+                                        key={p.product_code}
+                                        onClick={() => addItemToSection(section, p)}
+                                        className="w-full flex items-center justify-between text-left transition-colors"
+                                        style={{ padding: '10px 24px', borderBottom: '1px solid #F3F3EE' }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FAFAF5')}
+                                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <span style={{ fontSize: 11, color: MUTED, fontFamily: 'monospace', minWidth: 100 }}>{p.product_code}</span>
+                                          <span className={dmSans.className} style={{ fontSize: 14, color: TEXT }}>{p.item_name ?? p.description}</span>
+                                        </div>
+                                        <span className={dmSans.className} style={{ fontSize: 13, color: MUTED, fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(p.retail_price)}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                ))
+                              })()}
+                            </div>
+                          </div>
                         </div>
                       )}
-                    </div>
+                    </>
                   )
                 }
 
