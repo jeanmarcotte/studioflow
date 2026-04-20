@@ -240,15 +240,6 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
     return result
   }, [data, yearFilter, nameSearch])
 
-  const metrics = useMemo(() => ({
-    contracts: filteredData.filter(r => r.contract_ids.length > 0).length,
-    frames: filteredData.filter(r => r.extras_order_ids.length > 0).length,
-    extras: filteredData.filter(r => r.has_extras).length,
-    dayForms: filteredData.filter(r => r.wdf_ids.length > 0).length,
-    photoOrders: filteredData.filter(r => r.pof_ids.length > 0).length,
-    videoOrders: filteredData.filter(r => r.vof_ids.length > 0).length,
-  }), [filteredData])
-
   const columns: ColumnDef<CoupleDocRow>[] = useMemo(() => [
     {
       id: 'rowNumber',
@@ -380,26 +371,6 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
         <span className="text-sm text-muted-foreground ml-auto">
           Showing {filteredData.length} of {data.length} couples
         </span>
-      </div>
-
-      {/* Metrics row — 6 document types as legend */}
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-        {[
-          { label: 'Contracts', value: metrics.contracts, icon: <FileText size={14} className="text-blue-600" /> },
-          { label: 'Frames', value: metrics.frames, icon: <FileText size={14} className="text-blue-600" /> },
-          { label: 'Extras', value: metrics.extras, icon: <FileText size={14} className="text-blue-600" /> },
-          { label: 'Day Forms', value: metrics.dayForms, icon: <FileText size={14} className="text-blue-600" /> },
-          { label: 'Photo Orders', value: metrics.photoOrders, icon: <FileText size={14} className="text-blue-600" /> },
-          { label: 'Video Orders', value: metrics.videoOrders, icon: <FileText size={14} className="text-blue-600" /> },
-        ].map(m => (
-          <div key={m.label} className="bg-white border rounded-lg p-3 text-center">
-            <div className="flex items-center justify-center gap-1.5">
-              {m.icon}
-              <span className="text-xl font-bold">{m.value}</span>
-            </div>
-            <div className="text-xs text-muted-foreground mt-0.5">{m.label}</div>
-          </div>
-        ))}
       </div>
 
       {/* Table */}

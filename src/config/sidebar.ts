@@ -84,7 +84,6 @@ export const studioflowAdminConfig: SidebarConfig = {
             { title: 'Couple Quotes', href: '/admin/sales/quotes', icon: FileText },
             { title: 'Frames & Albums', href: '/admin/sales/frames', icon: ShoppingBag },
             { title: 'Extras Sales', href: '/admin/sales/extras', icon: Package },
-            { title: 'Documents', href: '/admin/documents', icon: FileCheck },
             { title: 'Show Results', href: '/admin/sales/show-results', icon: BarChart3 },
           ],
         },
@@ -121,6 +120,7 @@ export const studioflowAdminConfig: SidebarConfig = {
             { title: 'Team Notes', href: '/admin/team/notes', icon: StickyNote },
           ],
         },
+        { title: 'Documents', href: '/admin/documents', icon: FileText },
         {
           title: 'Finance',
           icon: DollarSign,

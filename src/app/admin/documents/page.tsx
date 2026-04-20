@@ -1,8 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { DocumentsTable } from './DocumentsTable'
+import { Files, FileText, Image, ShoppingBag, Calendar, Camera, Video } from 'lucide-react'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
+import { parseISO, format } from 'date-fns'
 
 export interface CoupleDocRow {
   id: string
@@ -12,16 +21,34 @@ export interface CoupleDocRow {
   status: string
   email: string | null
   contract_ids: string[]
-  extras_order_ids: string[]   // only signed/paid/completed
+  extras_order_ids: string[]
   has_extras: boolean
   wdf_ids: string[]
   pof_ids: string[]
   vof_ids: string[]
 }
 
+type SheetType = 'total' | 'contracts' | 'frames' | 'extras' | 'dayForms' | 'photoOrders' | 'videoOrders' | null
+
+function formatDateDow(date: string): string {
+  if (!date) return '—'
+  try {
+    const parsed = parseISO(date)
+    return `${format(parsed, 'EEE').toUpperCase()} ${format(parsed, 'MMM d, yyyy')}`
+  } catch { return '—' }
+}
+
+function yearSortPriority(year: number): number {
+  const current = new Date().getFullYear()
+  if (year === current) return 0
+  if (year > current) return 1 + (year - current)
+  return 100 + (current - year)
+}
+
 export default function DocumentsPage() {
   const [rows, setRows] = useState<CoupleDocRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [sheetType, setSheetType] = useState<SheetType>(null)
 
   useEffect(() => {
     async function load() {
@@ -34,10 +61,7 @@ export default function DocumentsPage() {
           .lte('wedding_date', '2028-12-31')
           .order('wedding_date', { ascending: true })
 
-        if (!couples || couples.length === 0) {
-          setRows([])
-          return
-        }
+        if (!couples || couples.length === 0) { setRows([]); return }
 
         const [
           { data: contracts },
@@ -55,7 +79,6 @@ export default function DocumentsPage() {
           supabase.from('video_orders').select('id, couple_id'),
         ])
 
-        // Build lookup maps
         const contractMap = new Map<string, string[]>()
         ;(contracts || []).forEach((c: any) => {
           const arr = contractMap.get(c.couple_id) || []
@@ -63,7 +86,6 @@ export default function DocumentsPage() {
           contractMap.set(c.couple_id, arr)
         })
 
-        // Only signed/paid/completed extras orders
         const extrasOrderMap = new Map<string, string[]>()
         ;(extrasOrders || []).forEach((o: any) => {
           if (['signed', 'paid', 'completed'].includes(o.status)) {
@@ -77,32 +99,20 @@ export default function DocumentsPage() {
 
         const wdfMap = new Map<string, string[]>()
         ;(weddingDayForms || []).forEach((r: any) => {
-          if (r.couple_id) {
-            const arr = wdfMap.get(r.couple_id) || []
-            arr.push(r.id)
-            wdfMap.set(r.couple_id, arr)
-          }
+          if (r.couple_id) { const arr = wdfMap.get(r.couple_id) || []; arr.push(r.id); wdfMap.set(r.couple_id, arr) }
         })
 
         const pofMap = new Map<string, string[]>()
         ;(photoOrders || []).forEach((r: any) => {
-          if (r.couple_id) {
-            const arr = pofMap.get(r.couple_id) || []
-            arr.push(r.id)
-            pofMap.set(r.couple_id, arr)
-          }
+          if (r.couple_id) { const arr = pofMap.get(r.couple_id) || []; arr.push(r.id); pofMap.set(r.couple_id, arr) }
         })
 
         const vofMap = new Map<string, string[]>()
         ;(videoOrders || []).forEach((r: any) => {
-          if (r.couple_id) {
-            const arr = vofMap.get(r.couple_id) || []
-            arr.push(r.id)
-            vofMap.set(r.couple_id, arr)
-          }
+          if (r.couple_id) { const arr = vofMap.get(r.couple_id) || []; arr.push(r.id); vofMap.set(r.couple_id, arr) }
         })
 
-        const result: CoupleDocRow[] = couples.map((c: any) => ({
+        setRows(couples.map((c: any) => ({
           id: c.id,
           bride_first_name: c.bride_first_name || '',
           groom_first_name: c.groom_first_name || '',
@@ -115,9 +125,7 @@ export default function DocumentsPage() {
           wdf_ids: wdfMap.get(c.id) || [],
           pof_ids: pofMap.get(c.id) || [],
           vof_ids: vofMap.get(c.id) || [],
-        }))
-
-        setRows(result)
+        })))
       } catch (err) {
         console.error('[DocumentsPage] Failed to load:', err)
       } finally {
@@ -126,6 +134,71 @@ export default function DocumentsPage() {
     }
     load()
   }, [])
+
+  // Metrics
+  const metrics = useMemo(() => {
+    const contracts = rows.filter(r => r.contract_ids.length > 0).length
+    const frames = rows.filter(r => r.extras_order_ids.length > 0).length
+    const extras = rows.filter(r => r.has_extras).length
+    const dayForms = rows.filter(r => r.wdf_ids.length > 0).length
+    const photoOrders = rows.filter(r => r.pof_ids.length > 0).length
+    const videoOrders = rows.filter(r => r.vof_ids.length > 0).length
+    return { total: contracts + frames + extras, contracts, frames, extras, dayForms, photoOrders, videoOrders }
+  }, [rows])
+
+  // Sheet data
+  const sheetData = useMemo(() => {
+    if (!sheetType) return { title: '', couples: [] as CoupleDocRow[] }
+
+    const filterMap: Record<string, (r: CoupleDocRow) => boolean> = {
+      total: r => r.contract_ids.length > 0 || r.extras_order_ids.length > 0 || r.has_extras,
+      contracts: r => r.contract_ids.length > 0,
+      frames: r => r.extras_order_ids.length > 0,
+      extras: r => r.has_extras,
+      dayForms: r => r.wdf_ids.length > 0,
+      photoOrders: r => r.pof_ids.length > 0,
+      videoOrders: r => r.vof_ids.length > 0,
+    }
+
+    const titles: Record<string, string> = {
+      total: 'Total Documents',
+      contracts: 'Contracts',
+      frames: 'Frames & Albums',
+      extras: 'Extras',
+      dayForms: 'Day Forms',
+      photoOrders: 'Photo Orders',
+      videoOrders: 'Video Orders',
+    }
+
+    const couples = rows.filter(filterMap[sheetType] || (() => false))
+    return { title: titles[sheetType] || '', couples }
+  }, [sheetType, rows])
+
+  // Group couples by year for sheet display
+  const sheetGroups = useMemo(() => {
+    const groups: Record<number, CoupleDocRow[]> = {}
+    sheetData.couples.forEach(c => {
+      const year = c.wedding_date ? parseISO(c.wedding_date).getFullYear() : 2026
+      if (!groups[year]) groups[year] = []
+      groups[year].push(c)
+    })
+    const sortedYears = Object.keys(groups).map(Number).sort((a, b) => yearSortPriority(a) - yearSortPriority(b))
+    return sortedYears.map(year => ({ year, couples: groups[year] }))
+  }, [sheetData])
+
+  function getDocUrl(couple: CoupleDocRow): string {
+    if (!sheetType) return '#'
+    switch (sheetType) {
+      case 'total':
+      case 'contracts': return couple.contract_ids[0] ? `/admin/contracts/${couple.contract_ids[0]}/view` : '#'
+      case 'frames': return couple.extras_order_ids[0] ? `/admin/albums/${couple.extras_order_ids[0]}/view` : '#'
+      case 'extras': return `/admin/extras/${couple.id}/view`
+      case 'dayForms': return couple.wdf_ids[0] ? `/admin/documents/wedding-day-form/${couple.wdf_ids[0]}` : '#'
+      case 'photoOrders': return couple.pof_ids[0] ? `/admin/documents/photo-order/${couple.pof_ids[0]}` : '#'
+      case 'videoOrders': return couple.vof_ids[0] ? `/admin/documents/video-order/${couple.vof_ids[0]}` : '#'
+      default: return '#'
+    }
+  }
 
   if (isLoading) {
     return (
@@ -141,9 +214,102 @@ export default function DocumentsPage() {
         <h1 className="text-2xl font-bold tracking-tight">Documents</h1>
         <p className="text-sm text-muted-foreground mt-1">{rows.length} couples (2025 — 2028)</p>
       </div>
-      <div className="p-6">
-        <DocumentsTable data={rows} />
+
+      <div className="flex gap-6 p-6">
+        {/* LEFT: Main content */}
+        <div className="flex-1 min-w-0 space-y-4">
+          {/* Top row: 4 clickable cards */}
+          <div className="grid grid-cols-4 gap-4">
+            <button onClick={() => setSheetType('total')} className="bg-white border rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all text-left w-full">
+              <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                <Files size={14} />
+                <span>Total Documents</span>
+              </div>
+              <div className="text-2xl font-bold">{metrics.total}</div>
+            </button>
+            <button onClick={() => setSheetType('contracts')} className="bg-white border rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all text-left w-full">
+              <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                <FileText size={14} />
+                <span>Contracts</span>
+              </div>
+              <div className="text-2xl font-bold">{metrics.contracts}</div>
+            </button>
+            <button onClick={() => setSheetType('frames')} className="bg-white border rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all text-left w-full">
+              <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                <Image size={14} />
+                <span>Frames & Albums</span>
+              </div>
+              <div className="text-2xl font-bold">{metrics.frames}</div>
+            </button>
+            <button onClick={() => setSheetType('extras')} className="bg-white border rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all text-left w-full">
+              <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                <ShoppingBag size={14} />
+                <span>Extras</span>
+              </div>
+              <div className="text-2xl font-bold">{metrics.extras}</div>
+            </button>
+          </div>
+
+          {/* Table */}
+          <DocumentsTable data={rows} />
+        </div>
+
+        {/* RIGHT: Sidebar */}
+        <div className="w-72 shrink-0 space-y-4">
+          <button onClick={() => setSheetType('dayForms')} className="bg-white border rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all text-left w-full">
+            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+              <Calendar size={14} />
+              <span>Day Forms</span>
+            </div>
+            <div className="text-2xl font-bold">{metrics.dayForms}</div>
+          </button>
+          <button onClick={() => setSheetType('photoOrders')} className="bg-white border rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all text-left w-full">
+            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+              <Camera size={14} />
+              <span>Photo Orders</span>
+            </div>
+            <div className="text-2xl font-bold">{metrics.photoOrders}</div>
+          </button>
+          <button onClick={() => setSheetType('videoOrders')} className="bg-white border rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all text-left w-full">
+            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+              <Video size={14} />
+              <span>Video Orders</span>
+            </div>
+            <div className="text-2xl font-bold">{metrics.videoOrders}</div>
+          </button>
+        </div>
       </div>
+
+      {/* Sheet popup */}
+      <Sheet open={!!sheetType} onOpenChange={(open) => { if (!open) setSheetType(null) }}>
+        <SheetContent side="right">
+          <SheetHeader>
+            <SheetTitle>{sheetData.title}</SheetTitle>
+            <SheetDescription>{sheetData.couples.length} couples</SheetDescription>
+          </SheetHeader>
+          <div className="overflow-y-auto flex-1 px-4 pb-4">
+            {sheetGroups.map(({ year, couples }) => (
+              <div key={year} className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">{year}</h3>
+                <div className="space-y-1">
+                  {couples.map(couple => (
+                    <a
+                      key={couple.id}
+                      href={getDocUrl(couple)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                    >
+                      <span className="font-medium text-sm">{couple.bride_first_name} & {couple.groom_first_name}</span>
+                      <span className="text-xs text-gray-400">{formatDateDow(couple.wedding_date)}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
