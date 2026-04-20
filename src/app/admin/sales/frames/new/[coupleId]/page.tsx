@@ -513,7 +513,7 @@ export default function FrameSalePresentation() {
                 const bookPrice = selected.signingBook?.retail_price ?? 0
                 const framePrice = selected.weddingFrame?.retail_price ?? 0
                 const canvasPrice = selected.weddingCanvas?.retail_price ?? 0
-                const digTotal = selected.extras.reduce((s, e) => s + (e.retail_price ?? 0), 0)
+
                 const subtotal = collagePrice + albumNet + bookPrice + framePrice + canvasPrice
                 const tax = Math.round(subtotal * 0.13 * 100) / 100
                 const subtotalWithTax = subtotal + tax
