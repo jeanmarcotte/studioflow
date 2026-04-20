@@ -122,9 +122,10 @@ export default function FrameSalePresentation() {
 
   // Redistribute installments evenly based on current total
   const redistribute = useCallback((total: number, count: number) => {
-    if (count <= 0) return
-    const per = Math.floor((total * 100) / count) / 100
-    const remainder = Math.round((total - per * count) * 100) / 100
+    if (count <= 0) { setEditAmounts([]); return }
+    const safeTotal = isNaN(total) ? 0 : total
+    const per = Math.floor((safeTotal * 100) / count) / 100
+    const remainder = Math.round((safeTotal - per * count) * 100) / 100
     setEditAmounts(Array.from({ length: count }, (_, i) => i === count - 1 ? per + remainder : per))
   }, [])
 
@@ -577,7 +578,7 @@ export default function FrameSalePresentation() {
                               className="tabular-nums bg-transparent outline-none border border-transparent rounded px-2 py-1 text-right transition-colors hover:border-dashed hover:border-amber-400 focus:border-amber-300 focus:bg-amber-50/30"
                               style={{ fontSize: 14, fontWeight: 500, color: MUTED, width: 90, cursor: 'text' }}
                             />
-                            {i > 0 && (
+                            {editMilestones.length > 1 && (
                               <button
                                 onClick={() => {
                                   const newMs = editMilestones.filter((_, j) => j !== i)
@@ -818,6 +819,19 @@ export default function FrameSalePresentation() {
                                   <button
                                     key={p.product_code}
                                     onClick={() => {
+                                      const allCodes = [
+                                        selected.collage?.product_code,
+                                        selected.album?.product_code,
+                                        selected.signingBook?.product_code,
+                                        selected.weddingCanvas?.product_code,
+                                        selected.weddingFrame?.product_code,
+                                        ...selected.extras.map(e => e.product_code),
+                                      ].filter(Boolean)
+                                      if (allCodes.includes(p.product_code)) {
+                                        toast.error('This item is already included')
+                                        setShowProductPicker(false)
+                                        return
+                                      }
                                       setSelected(prev => ({ ...prev, extras: [...prev.extras, p] }))
                                       setShowProductPicker(false)
                                     }}
@@ -963,7 +977,7 @@ function FinanceRow({ amount, label }: { amount: string; label: string }) {
 function EditableFinanceRow({ value, onChange, label, prefix }: { value: number; onChange: (v: number) => void; label: string; prefix?: string }) {
   return (
     <div className="flex items-baseline gap-5" style={{ padding: '12px 0' }}>
-      <div className="flex items-baseline" style={{ minWidth: 120 }}>
+      <div className="flex items-baseline" style={{ minWidth: 140 }}>
         {prefix && <span className="tabular-nums" style={{ fontSize: 16, fontWeight: 700 }}>{prefix}</span>}
         <input
           type="number"
@@ -973,7 +987,7 @@ function EditableFinanceRow({ value, onChange, label, prefix }: { value: number;
           onChange={(e) => onChange(parseFloat(e.target.value) ?? 0)}
           onFocus={(e) => e.target.select()}
           className="tabular-nums bg-transparent outline-none border border-transparent rounded px-1 py-0.5 transition-colors hover:border-dashed hover:border-amber-400 focus:border-amber-300 focus:bg-amber-50/30"
-          style={{ fontSize: 16, fontWeight: 700, width: 100, cursor: 'text' }}
+          style={{ fontSize: 16, fontWeight: 700, minWidth: 140, cursor: 'text' }}
         />
       </div>
       <p style={{ fontSize: 16, color: '#888888' }}>{label}</p>
