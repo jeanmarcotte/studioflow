@@ -874,8 +874,7 @@ export default function FrameSalePresentation() {
                   collage: ['Collage'],
                   albums: ['Album'],
                   frame: ['Mounting', 'Frame', 'Glass'],
-                  digital: ['Digital'],
-                  extras: ['Print', 'Canvas', 'Portrait', 'Service', 'Stationery'],
+                  extras: ['Digital', 'Print', 'Canvas', 'Portrait', 'Service', 'Stationery'],
                 }
 
                 function swapProduct(slot: keyof Omit<SelectedProducts, 'extras'>, product: ProductItem) {
@@ -923,8 +922,7 @@ export default function FrameSalePresentation() {
                   collage: 'Collage',
                   albums: 'Albums',
                   frame: 'Wedding Frame',
-                  digital: 'Digital Files',
-                  extras: 'Extras',
+                  extras: 'Extras Included',
                 }
 
                 function renderSectionAddButton(section: string) {
@@ -1147,53 +1145,25 @@ export default function FrameSalePresentation() {
                     {renderSectionAddButton('frame')}
                   </div>
 
-                  {/* Digital Files */}
-                  <div>
-                    <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Digital Files</h3>
-                    <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
-                    {selected.extras.filter(e => e.category === 'Digital').map((ext, i) => {
-                      const realIndex = selected.extras.findIndex(e => e === ext)
-                      return (
-                        <div key={`${ext.product_code}-${i}`} className="flex items-center justify-between group" style={{ padding: '10px 0', borderBottom: `1px dashed ${BORDER}` }}>
-                          <p style={{ fontSize: 16, color: '#444444', lineHeight: 1.6 }}>{ext.description}</p>
-                          <div className="flex items-center gap-2">
-                            <span style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'monospace' }}>{ext.product_code}</span>
-                            <button
-                              onClick={() => removeExtra(realIndex)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50"
-                              style={{ color: '#D97706', background: 'none', border: 'none', cursor: 'pointer' }}
-                            >
-                              <X style={{ width: 14, height: 14 }} />
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                    {renderSectionAddButton('digital')}
-                  </div>
-
                   {/* Extras Included */}
                   <div>
                     <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Extras Included</h3>
                     <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
-                    {selected.extras.filter(e => e.category !== 'Digital').map((ext, i) => {
-                      const realIndex = selected.extras.findIndex(e => e === ext)
-                      return (
-                        <div key={`${ext.product_code}-${i}`} className="flex items-center justify-between group" style={{ padding: '10px 0', borderBottom: `1px dashed ${BORDER}` }}>
-                          <p style={{ fontSize: 16, color: '#444444', lineHeight: 1.6 }}>{ext.description}</p>
-                          <div className="flex items-center gap-2">
-                            <span style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'monospace' }}>{ext.product_code}</span>
-                            <button
-                              onClick={() => removeExtra(realIndex)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50"
-                              style={{ color: '#D97706', background: 'none', border: 'none', cursor: 'pointer' }}
-                            >
-                              <X style={{ width: 14, height: 14 }} />
-                            </button>
-                          </div>
+                    {selected.extras.map((ext, i) => (
+                      <div key={`${ext.product_code}-${i}`} className="flex items-center justify-between group" style={{ padding: '10px 0', borderBottom: `1px dashed ${BORDER}` }}>
+                        <p style={{ fontSize: 16, color: '#444444', lineHeight: 1.6 }}>{ext.description}</p>
+                        <div className="flex items-center gap-2">
+                          <span style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'monospace' }}>{ext.product_code}</span>
+                          <button
+                            onClick={() => removeExtra(i)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50"
+                            style={{ color: '#D97706', background: 'none', border: 'none', cursor: 'pointer' }}
+                          >
+                            <X style={{ width: 14, height: 14 }} />
+                          </button>
                         </div>
-                      )
-                    })}
+                      </div>
+                    ))}
                     {renderSectionAddButton('extras')}
                   </div>
 
