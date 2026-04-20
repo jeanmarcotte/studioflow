@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Loader2, ChevronLeft, ChevronRight, X, Plus, Equal, Download } from 'lucide-react'
@@ -81,6 +81,14 @@ export default function FrameSalePresentation() {
   const [extraItems, setExtraItems] = useState<{ desc: string; code: string }[]>([])
   const [showProductPicker, setShowProductPicker] = useState(false)
 
+  // Redistribute installments evenly based on current total
+  const redistribute = useCallback((total: number, count: number) => {
+    if (count <= 0) return
+    const per = Math.floor((total * 100) / count) / 100
+    const remainder = Math.round((total - per * count) * 100) / 100
+    setEditAmounts(Array.from({ length: count }, (_, i) => i === count - 1 ? per + remainder : per))
+  }, [])
+
   useEffect(() => {
     async function fetch() {
       const { data: coupleData } = await supabase
@@ -104,12 +112,8 @@ export default function FrameSalePresentation() {
         const ms = vid ? [...PV_MILESTONES] : [...PO_MILESTONES]
         setEditMilestones(ms)
         const bal = c.balance_owing ?? 0
-        const dep = Math.round((bal + ALBUM_COLLAGE_TOTAL - (ms.length * Math.floor((bal + ALBUM_COLLAGE_TOTAL) / ms.length))) * 100) / 100
-        setDepositAmount(dep)
-        const totalAfter = bal + ALBUM_COLLAGE_TOTAL - dep
-        const perInst = Math.floor(totalAfter / ms.length * 100) / 100
-        const lastInst = Math.round((totalAfter - perInst * (ms.length - 1)) * 100) / 100
-        setEditAmounts(ms.map((_, i) => i === ms.length - 1 ? lastInst : perInst))
+        const total = bal + ALBUM_COLLAGE_TOTAL - 0 // deposit starts at 0
+        redistribute(total, ms.length)
       }
       // Fetch product catalog
       const { data: productData } = await supabase
@@ -122,7 +126,15 @@ export default function FrameSalePresentation() {
       setLoading(false)
     }
     fetch()
-  }, [coupleId])
+  }, [coupleId, redistribute])
+
+  // Auto-redistribute when saleAmount or deposit changes
+  useEffect(() => {
+    if (!couple) return
+    const bal = couple.balance_owing ?? 0
+    const total = bal + saleAmount - depositAmount
+    redistribute(total, editMilestones.length)
+  }, [saleAmount, depositAmount]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function goNext() {
     if (page < 4) { setDirection('forward'); setPage(page + 1) }
@@ -380,7 +392,7 @@ export default function FrameSalePresentation() {
 
               {/* ─── PAGE 3: Payment Schedule ─── */}
               {page === 3 && (() => {
-                const totalFromInstallments = editAmounts.reduce((s, a) => s + a, 0)
+                const derivedTotal = balanceOwing + saleAmount - depositAmount
                 return (
                 <div>
                   <h2
@@ -410,7 +422,7 @@ export default function FrameSalePresentation() {
                     <div style={{ height: 1, backgroundColor: GOLD, margin: '20px 0' }} />
 
                     <FinanceRow
-                      amount={formatCurrency(totalFromInstallments)}
+                      amount={formatCurrency(derivedTotal)}
                       label={`divided into ${editMilestones.length} payments of ${formatCurrency(editAmounts[0] ?? 0)} including tax`}
                     />
                   </div>
@@ -473,20 +485,23 @@ export default function FrameSalePresentation() {
                             <input
                               type="number"
                               step="0.01"
+                              min="0"
                               value={editAmounts[i] ?? 0}
                               onChange={(e) => {
                                 const next = [...editAmounts]
-                                next[i] = parseFloat(e.target.value) || 0
+                                next[i] = parseFloat(e.target.value) ?? 0
                                 setEditAmounts(next)
                               }}
+                              onFocus={(e) => e.target.select()}
                               className="tabular-nums bg-transparent outline-none border border-transparent rounded px-2 py-1 text-right transition-colors hover:border-dashed hover:border-amber-400 focus:border-amber-300 focus:bg-amber-50/30"
                               style={{ fontSize: 14, fontWeight: 500, color: MUTED, width: 90, cursor: 'text' }}
                             />
                             {i > 0 && (
                               <button
                                 onClick={() => {
-                                  setEditMilestones(editMilestones.filter((_, j) => j !== i))
-                                  setEditAmounts(editAmounts.filter((_, j) => j !== i))
+                                  const newMs = editMilestones.filter((_, j) => j !== i)
+                                  setEditMilestones(newMs)
+                                  redistribute(derivedTotal, newMs.length)
                                 }}
                                 className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50"
                                 style={{ color: '#D97706' }}
@@ -502,12 +517,9 @@ export default function FrameSalePresentation() {
                       <div className="flex items-center gap-4 mt-4 ml-2">
                         <button
                           onClick={() => {
-                            setEditMilestones([...editMilestones, ''])
-                            const total = balanceOwing + saleAmount - depositAmount
-                            const n = editMilestones.length + 1
-                            const per = Math.floor(total / n * 100) / 100
-                            const last = Math.round((total - per * (n - 1)) * 100) / 100
-                            setEditAmounts([...Array(n - 1).fill(per), last])
+                            const newMs = [...editMilestones, '']
+                            setEditMilestones(newMs)
+                            redistribute(derivedTotal, newMs.length)
                           }}
                           className="flex items-center gap-2 text-sm transition-colors"
                           style={{ color: GOLD, background: 'none', border: 'none', cursor: 'pointer' }}
@@ -515,13 +527,7 @@ export default function FrameSalePresentation() {
                           <Plus style={{ width: 16, height: 16 }} /> Add Installment
                         </button>
                         <button
-                          onClick={() => {
-                            const total = balanceOwing + saleAmount - depositAmount
-                            const n = editMilestones.length
-                            const per = Math.floor(total / n * 100) / 100
-                            const last = Math.round((total - per * (n - 1)) * 100) / 100
-                            setEditAmounts(editMilestones.map((_, i) => i === n - 1 ? last : per))
-                          }}
+                          onClick={() => redistribute(derivedTotal, editMilestones.length)}
                           className="flex items-center gap-2 text-sm transition-colors"
                           style={{ color: GOLD, background: 'none', border: 'none', cursor: 'pointer' }}
                         >
@@ -786,8 +792,10 @@ function EditableFinanceRow({ value, onChange, label, prefix }: { value: number;
         <input
           type="number"
           step="0.01"
+          min="0"
           value={value}
-          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          onChange={(e) => onChange(parseFloat(e.target.value) ?? 0)}
+          onFocus={(e) => e.target.select()}
           className="tabular-nums bg-transparent outline-none border border-transparent rounded px-1 py-0.5 transition-colors hover:border-dashed hover:border-amber-400 focus:border-amber-300 focus:bg-amber-50/30"
           style={{ fontSize: 16, fontWeight: 700, width: 100, cursor: 'text' }}
         />
