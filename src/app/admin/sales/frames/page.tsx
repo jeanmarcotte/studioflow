@@ -74,7 +74,7 @@ export default function FrameSalesPage() {
               groom_first_name
             )
           `)
-          .order('order_date', { ascending: false })
+          .order('order_date', { ascending: true })
 
         if (error) throw error
 

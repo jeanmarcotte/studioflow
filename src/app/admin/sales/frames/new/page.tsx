@@ -43,7 +43,7 @@ export default function FrameSaleCoupleSelector() {
         .from('couples')
         .select('id, bride_first_name, groom_first_name, wedding_date, total_paid, balance_owing')
         .eq('status', 'booked')
-        .order('wedding_date', { ascending: false })
+        .order('wedding_date', { ascending: true })
 
       const { data: existingOrders } = await supabase
         .from('extras_orders')
