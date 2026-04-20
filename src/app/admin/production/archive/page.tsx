@@ -147,11 +147,32 @@ export default function ArchivePage() {
           yearMap[c.wedding_year] = (yearMap[c.wedding_year] || 0) + 1
         }
       })
-      setYears(
-        Object.entries(yearMap)
-          .map(([y, count]) => ({ wedding_year: Number(y), couples: count }))
-          .sort((a, b) => b.wedding_year - a.wedding_year),
-      )
+      const sortedYears = Object.entries(yearMap)
+        .map(([y, count]) => ({ wedding_year: Number(y), couples: count }))
+        .sort((a, b) => b.wedding_year - a.wedding_year)
+      setYears(sortedYears)
+
+      // All couples for drill-down
+      if (allCouplesRes.data) {
+        setAllCouples(allCouplesRes.data as CoupleRow[])
+      }
+
+      // Archive drive mappings — flatten the join
+      if (archiveDrivesRes.data) {
+        const entries: ArchiveDriveEntry[] = []
+        archiveDrivesRes.data.forEach((a: any) => {
+          const dn = a.vault_drives?.drive_number
+          if (dn != null && a.bride && a.groom) {
+            entries.push({ bride: a.bride, groom: a.groom, drive_number: dn })
+          }
+        })
+        setAllArchiveDrives(entries)
+      }
+
+      // Default selected year = most recent
+      if (sortedYears.length > 0) {
+        setSelectedYear(sortedYears[0].wedding_year)
+      }
 
       setLoading(false)
     }
@@ -160,6 +181,25 @@ export default function ArchivePage() {
   }, [])
 
   const maxCouples = Math.max(...years.map((y) => y.couples), 1)
+
+  // Couples for selected year
+  const yearCouples = selectedYear
+    ? allCouples.filter((c) => c.wedding_year === selectedYear)
+    : []
+
+  // Drive map for selected year — keyed by lowercase "bride|groom"
+  const driveMap = new Map<string, number[]>()
+  if (selectedYear) {
+    allArchiveDrives.forEach((a) => {
+      const key = `${a.bride.toLowerCase()}|${a.groom.toLowerCase()}`
+      if (!driveMap.has(key)) driveMap.set(key, [])
+      const arr = driveMap.get(key)!
+      if (!arr.includes(a.drive_number)) arr.push(a.drive_number)
+    })
+  }
+
+  // Distinct years for pills
+  const distinctYears = years.map((y) => y.wedding_year)
 
   // ------------------------------- RENDER -----------------------------------
 
@@ -218,7 +258,7 @@ export default function ArchivePage() {
       {/* ------------------------------------------------------------------ */}
       {/* YEAR SUMMARY TABLE                                                 */}
       {/* ------------------------------------------------------------------ */}
-      <div>
+      <div className="mb-10">
         <h2
           className="text-xs font-semibold tracking-[0.2em] uppercase mb-4"
           style={{ color: V.muted }}
@@ -282,6 +322,153 @@ export default function ArchivePage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* COUPLES DRILL-DOWN                                                 */}
+      {/* ------------------------------------------------------------------ */}
+      <div>
+        <h2
+          className="text-xs font-semibold tracking-[0.2em] uppercase mb-4"
+          style={{ color: V.muted }}
+        >
+          Couple Lookup
+        </h2>
+
+        {/* Year pills */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {distinctYears.map((y) => (
+            <button
+              key={y}
+              onClick={() => setSelectedYear(y)}
+              className="px-3 py-1.5 rounded text-xs font-semibold transition-all"
+              style={{
+                fontFamily: V.mono,
+                background: selectedYear === y ? V.amber : V.surface,
+                color: selectedYear === y ? V.bg : V.muted,
+                border: `1px solid ${selectedYear === y ? V.amber : V.border}`,
+              }}
+              onMouseEnter={(e) => {
+                if (selectedYear !== y) e.currentTarget.style.borderColor = V.amber
+              }}
+              onMouseLeave={(e) => {
+                if (selectedYear !== y) e.currentTarget.style.borderColor = V.border
+              }}
+            >
+              {y}
+            </button>
+          ))}
+        </div>
+
+        {/* Couples table */}
+        {selectedYear && (
+          <div
+            className="rounded-lg overflow-hidden"
+            style={{ border: `1px solid ${V.border}`, background: V.surface }}
+          >
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${V.border}` }}>
+                  <th
+                    className="text-left px-4 py-3 text-xs tracking-[0.15em] uppercase w-12"
+                    style={{ color: V.muted }}
+                  >
+                    #
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 text-xs tracking-[0.15em] uppercase"
+                    style={{ color: V.muted }}
+                  >
+                    Bride
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 text-xs tracking-[0.15em] uppercase"
+                    style={{ color: V.muted }}
+                  >
+                    Groom
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 text-xs tracking-[0.15em] uppercase"
+                    style={{ color: V.muted }}
+                  >
+                    Wedding Date
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 text-xs tracking-[0.15em] uppercase"
+                    style={{ color: V.muted }}
+                  >
+                    Drives
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {yearCouples.map((c, i) => {
+                  const key = `${c.bride.toLowerCase()}|${c.groom.toLowerCase()}`
+                  const couplesDrives = driveMap.get(key)?.sort((a, b) => a - b) || []
+                  return (
+                    <tr
+                      key={`${c.bride}-${c.groom}-${i}`}
+                      style={{ borderBottom: `1px solid ${V.border}` }}
+                    >
+                      <td
+                        className="px-4 py-2.5"
+                        style={{ fontFamily: V.mono, color: V.muted }}
+                      >
+                        {i + 1}
+                      </td>
+                      <td className="px-4 py-2.5 font-medium">{c.bride}</td>
+                      <td className="px-4 py-2.5">{c.groom}</td>
+                      <td
+                        className="px-4 py-2.5"
+                        style={{ color: V.muted }}
+                      >
+                        {c.wedding_date
+                          ? new Date(c.wedding_date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        {couplesDrives.length > 0 ? (
+                          <div className="flex gap-1.5 flex-wrap">
+                            {couplesDrives.map((dn) => (
+                              <span
+                                key={dn}
+                                className="inline-block px-1.5 py-0.5 rounded text-xs font-semibold"
+                                style={{
+                                  fontFamily: V.mono,
+                                  background: V.amberDim,
+                                  color: V.amber,
+                                }}
+                              >
+                                {String(dn).padStart(3, '0')}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span style={{ color: V.muted }}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+                {yearCouples.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-4 py-6 text-center text-sm"
+                      style={{ color: V.muted }}
+                    >
+                      No couples for {selectedYear}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )
