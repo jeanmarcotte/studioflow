@@ -40,6 +40,41 @@ interface ContractData {
   video_long_form: boolean | null
 }
 
+interface ProductItem {
+  product_code: string
+  category: string
+  item_name: string
+  description: string
+  retail_price: number
+}
+
+interface SelectedProducts {
+  collage: ProductItem | null
+  album: ProductItem | null
+  signingBook: ProductItem | null
+  weddingCanvas: ProductItem | null
+  weddingFrame: ProductItem | null
+  extras: ProductItem[]
+}
+
+const DEFAULT_CODES: Record<keyof Omit<SelectedProducts, 'extras'>, string> = {
+  collage: 'COL-TRIO-CANV',
+  album: 'ALB-PREM-2811',
+  signingBook: 'ALB-SIGN-08',
+  weddingCanvas: 'CNV-24X30',
+  weddingFrame: 'FRM-FLOAT-BLK',
+}
+const DEFAULT_EXTRA_CODES = ['DIG-PROOF-DL', 'DIG-GALLERY', 'DIG-HR-WED', 'DIG-HR-ENG']
+
+// Page 1 descriptions keyed by slot
+const PAGE1_DESCRIPTIONS: Record<string, (p: ProductItem) => string[]> = {
+  collage: (p) => [p.description, 'Custom-edited prints with professional retouching'],
+  album: (p) => [p.description, 'Choice of 80 selected photographs or Omakase style', '15 spreads'],
+  signingBook: (p) => [p.description],
+  weddingCanvas: (p) => [p.description],
+  weddingFrame: (p) => [p.description, 'Assembly including D rings and wire'],
+}
+
 const PV_MILESTONES = [
   'Pick Up Portraits',
   'June 1st, 2026',
@@ -80,6 +115,8 @@ export default function FrameSalePresentation() {
   const [depositAmount, setDepositAmount] = useState(0)
   const [extraItems, setExtraItems] = useState<{ desc: string; code: string }[]>([])
   const [showProductPicker, setShowProductPicker] = useState(false)
+  const [selected, setSelected] = useState<SelectedProducts>({ collage: null, album: null, signingBook: null, weddingCanvas: null, weddingFrame: null, extras: [] })
+  const [swapOpen, setSwapOpen] = useState<string | null>(null)
 
   // Redistribute installments evenly based on current total
   const redistribute = useCallback((total: number, count: number) => {
@@ -121,7 +158,17 @@ export default function FrameSalePresentation() {
         .select('product_code, category, item_name, description, retail_price, unit, sort_order')
         .eq('active', true)
         .order('sort_order')
-      setProducts(productData ?? [])
+      const prods = productData ?? []
+      setProducts(prods)
+      const find = (code: string) => prods.find((p: any) => p.product_code === code)
+      setSelected({
+        collage: find(DEFAULT_CODES.collage) ?? null,
+        album: find(DEFAULT_CODES.album) ?? null,
+        signingBook: find(DEFAULT_CODES.signingBook) ?? null,
+        weddingCanvas: find(DEFAULT_CODES.weddingCanvas) ?? null,
+        weddingFrame: find(DEFAULT_CODES.weddingFrame) ?? null,
+        extras: DEFAULT_EXTRA_CODES.map(code => find(code)).filter(Boolean) as ProductItem[],
+      })
 
       setLoading(false)
     }
@@ -310,33 +357,40 @@ export default function FrameSalePresentation() {
               {/* ─── PAGE 1: The Package ─── */}
               {page === 1 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 56 }}>
-                  <MenuSection title="Collage" items={[
-                    '3 × 16×16 custom-edited prints with editing',
-                    'All 3 mounted on canvas stretcher',
-                    'All 3 framed with black float-frame',
-                  ]} />
+                  {selected.collage && (
+                    <MenuSection title="Collage" items={PAGE1_DESCRIPTIONS.collage(selected.collage)} />
+                  )}
                   <MenuSection title="Albums" items={[
-                    '1 × 28×11 digital album with leather cover or acrylic cover, matt pages',
-                    'Choice of 80 selected photographs or Omakase style',
-                    '15 spreads',
-                    '8×10 Engagement signing book, black linen, 6 spreads, 22 images',
+                    ...(selected.album ? PAGE1_DESCRIPTIONS.album(selected.album) : []),
+                    ...(selected.signingBook ? PAGE1_DESCRIPTIONS.signingBook(selected.signingBook) : []),
                   ]} />
                   <MenuSection title="Wedding Frame" items={[
-                    'Black floating frame same style as engagement portraits',
-                    '24×30 photo (in wedding package) mounted on canvas stretcher',
+                    ...(selected.weddingFrame ? [selected.weddingFrame.description] : []),
+                    ...(selected.weddingCanvas ? PAGE1_DESCRIPTIONS.weddingCanvas(selected.weddingCanvas) : []),
                     'Assembly including D rings and wire',
                   ]} />
-                  <MenuSection title="Extras Included" items={[
-                    'Download link of all Engagement Proof files Dropbox without watermark',
-                    'Online proofing and download share and customer gallery',
-                    'High-resolution digital files for Wedding images 16×24 300 dpi',
-                    'High-resolution digital files for Engagement images 16×16 300 dpi',
-                  ]} />
+                  <MenuSection title="Extras Included" items={
+                    selected.extras.map(e => e.description)
+                  } />
                 </div>
               )}
 
               {/* ─── PAGE 2: Expense Breakdown ─── */}
-              {page === 2 && (
+              {page === 2 && (() => {
+                const collagePrice = selected.collage?.retail_price ?? 0
+                const albumPrice = selected.album?.retail_price ?? 0
+                const printCredit = 500
+                const albumNet = albumPrice - printCredit
+                const bookPrice = selected.signingBook?.retail_price ?? 0
+                const framePrice = selected.weddingFrame?.retail_price ?? 0
+                const canvasPrice = selected.weddingCanvas?.retail_price ?? 0
+                const digTotal = selected.extras.reduce((s, e) => s + (e.retail_price ?? 0), 0)
+                const subtotal = collagePrice + albumNet + bookPrice + framePrice + canvasPrice
+                const tax = Math.round(subtotal * 0.13 * 100) / 100
+                const subtotalWithTax = subtotal + tax
+                const discount = Math.round(subtotalWithTax * 0.25 * 100) / 100
+                const totalAfterDiscount = Math.round((subtotalWithTax - discount) * 100) / 100
+                return (
                 <div>
                   <h2
                     className={playfair.className}
@@ -346,21 +400,21 @@ export default function FrameSalePresentation() {
                   </h2>
 
                   <div>
-                    <LedgerLine label="Engagement Photo Collage" amount="$1,500.00" />
-                    <LedgerLine label="Wedding Album ($1,750 – $500 print credit)" amount="$1,250.00" />
-                    <LedgerLine label="Engagement Sign Book" amount="$200.00" />
-                    <LedgerLine label="Wedding Frame" amount="$400.00" />
-                    <LedgerLine label="24×30 Canvas" amount="$200.00" />
+                    <LedgerLine label="Engagement Photo Collage" amount={formatCurrency(collagePrice)} />
+                    <LedgerLine label={`Wedding Album ($${albumPrice.toLocaleString()} – $${printCredit} print credit)`} amount={formatCurrency(albumNet)} />
+                    <LedgerLine label="Engagement Sign Book" amount={formatCurrency(bookPrice)} />
+                    <LedgerLine label="Wedding Frame" amount={formatCurrency(framePrice)} />
+                    <LedgerLine label={`${selected.weddingCanvas?.item_name ?? 'Canvas'}`} amount={formatCurrency(canvasPrice)} />
                     <LedgerLine label="Engagement and Wedding High-Resolution files *" amount="$0.00" />
                   </div>
 
                   <div style={{ margin: '32px 0', height: 1, backgroundColor: GOLD }} />
 
                   <div>
-                    <LedgerLine label="Subtotal" amount="$3,550.00" bold />
-                    <LedgerLine label="Tax (13%)" amount="$461.50" />
-                    <LedgerLine label="Subtotal including Tax" amount="$4,011.50" bold />
-                    <LedgerLine label="SIGS Customer Discount (25%)" amount="–$1,002.88" green />
+                    <LedgerLine label="Subtotal" amount={formatCurrency(subtotal)} bold />
+                    <LedgerLine label="Tax (13%)" amount={formatCurrency(tax)} />
+                    <LedgerLine label="Subtotal including Tax" amount={formatCurrency(subtotalWithTax)} bold />
+                    <LedgerLine label="SIGS Customer Discount (25%)" amount={`–${formatCurrency(discount)}`} green />
                   </div>
 
                   <div
@@ -371,7 +425,7 @@ export default function FrameSalePresentation() {
                       Total Cost after Discount
                     </p>
                     <p className={playfair.className} style={{ fontSize: 22, fontWeight: 700 }}>
-                      $3,008.63
+                      {formatCurrency(totalAfterDiscount)}
                     </p>
                   </div>
 
@@ -385,10 +439,11 @@ export default function FrameSalePresentation() {
                       borderTop: `1px solid ${BORDER}`,
                     }}
                   >
-* The cost for the Engagement and Wedding High-Resolution files is listed as $0.00 CAD, however, the retail price is $2,250 plus tax. When purchasing the above package there is no additional charge for these files. SIGS Customer Discount (25%) applies only when purchasing the package.
+* The cost for the Engagement and Wedding High-Resolution files is listed as $0.00 CAD, however, the retail price is ${formatCurrency(digTotal)} plus tax. When purchasing the above package there is no additional charge for these files. SIGS Customer Discount (25%) applies only when purchasing the package.
                   </p>
                 </div>
-              )}
+                )
+              })()}
 
               {/* ─── PAGE 3: Payment Schedule ─── */}
               {page === 3 && (() => {
@@ -571,44 +626,147 @@ export default function FrameSalePresentation() {
               })()}
 
               {/* ─── PAGE 4: Calculations ─── */}
-              {page === 4 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
-                  <InvoiceSection title="Collage" items={[
-                    { desc: '3 × 16×16 custom-edited prints with editing', code: 'COL-TRIO-CANV' },
-                  ]} />
-                  <InvoiceSection title="Albums" items={[
-                    { desc: '28×11 digital album, leather/acrylic, 15 spreads', code: 'ALB-PREM-2811' },
-                    { desc: '8×10 Engagement signing book, black linen', code: 'ALB-SIGN-08' },
-                  ]} />
-                  <InvoiceSection title="Wedding Frame" items={[
-                    { desc: '24×30 photo mounted on canvas stretcher', code: 'CNV-24X30' },
-                    { desc: 'Black floating frame, D-rings and wire', code: 'FRM-FLOAT-BLK' },
-                  ]} />
-                  <div>
-                    <InvoiceSection title="Extras Included" items={[
-                      { desc: 'Engagement Proof files — Dropbox, no watermark', code: 'DIG-PROOF-DL' },
-                      { desc: 'Online proofing, download share, gallery', code: 'DIG-GALLERY' },
-                      { desc: 'High-res Wedding files — 16×24, 300 dpi', code: 'DIG-HR-WED' },
-                      { desc: 'High-res Engagement files — 16×16, 300 dpi', code: 'DIG-HR-ENG' },
-                      ...extraItems,
-                    ]} />
-                    {/* Remove buttons for added extras */}
-                    {extraItems.length > 0 && (
-                      <div style={{ marginTop: -4 }}>
-                        {extraItems.map((item, i) => (
-                          <div key={i} className="flex items-center justify-end" style={{ padding: '2px 0' }}>
-                            <button
-                              onClick={() => setExtraItems(extraItems.filter((_, j) => j !== i))}
-                              className="flex items-center gap-1 text-xs transition-colors"
-                              style={{ color: '#D97706', background: 'none', border: 'none', cursor: 'pointer' }}
+              {page === 4 && (() => {
+                const slotItems: { slot: keyof Omit<SelectedProducts, 'extras'>; title: string }[] = [
+                  { slot: 'collage', title: 'Collage' },
+                ]
+                const albumItems: (keyof Omit<SelectedProducts, 'extras'>)[] = ['album', 'signingBook']
+                const frameItems: (keyof Omit<SelectedProducts, 'extras'>)[] = ['weddingCanvas', 'weddingFrame']
+
+                function swapProduct(slot: keyof Omit<SelectedProducts, 'extras'>, product: ProductItem) {
+                  setSelected(prev => ({ ...prev, [slot]: product }))
+                  setSwapOpen(null)
+                }
+
+                function removeSlot(slot: keyof Omit<SelectedProducts, 'extras'>) {
+                  setSelected(prev => ({ ...prev, [slot]: null }))
+                }
+
+                function removeExtra(i: number) {
+                  setSelected(prev => ({ ...prev, extras: prev.extras.filter((_, j) => j !== i) }))
+                }
+
+                function renderSwappableLine(product: ProductItem | null, slot: string, onSwap: (p: ProductItem) => void, onRemove: () => void) {
+                  if (!product) return null
+                  const sameCat = products.filter((p: any) => p.category === product.category)
+                  return (
+                    <div className="flex items-center justify-between group" style={{ padding: '10px 0', borderBottom: `1px dashed ${BORDER}` }}>
+                      <p style={{ fontSize: 16, color: '#444444', lineHeight: 1.6 }}>{product.description}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <button
+                            onClick={() => setSwapOpen(swapOpen === slot ? null : slot)}
+                            className="transition-all"
+                            style={{
+                              fontSize: 13,
+                              color: swapOpen === slot ? '#FFFFFF' : '#9CA3AF',
+                              fontFamily: 'monospace',
+                              whiteSpace: 'nowrap',
+                              cursor: 'pointer',
+                              background: swapOpen === slot ? GOLD : 'none',
+                              border: 'none',
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                              borderBottom: swapOpen === slot ? 'none' : '1px dashed transparent',
+                            }}
+                            onMouseEnter={(e) => { if (swapOpen !== slot) e.currentTarget.style.borderBottom = `1px dashed ${GOLD}` }}
+                            onMouseLeave={(e) => { if (swapOpen !== slot) e.currentTarget.style.borderBottom = '1px dashed transparent' }}
+                          >
+                            {product.product_code}
+                          </button>
+                          {swapOpen === slot && (
+                            <div
+                              className="absolute right-0 top-8 z-20 rounded-xl overflow-hidden"
+                              style={{
+                                backgroundColor: '#FFFFFF',
+                                border: '1px solid #E8E8E3',
+                                boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                                width: 320,
+                              }}
                             >
-                              <X style={{ width: 12, height: 12 }} /> Remove {item.code}
-                            </button>
-                          </div>
-                        ))}
+                              {sameCat.map((p: any) => (
+                                <button
+                                  key={p.product_code}
+                                  onClick={() => onSwap(p)}
+                                  className="w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors"
+                                  style={{
+                                    borderBottom: '1px solid #F3F3EE',
+                                    fontWeight: p.product_code === product.product_code ? 700 : 400,
+                                    backgroundColor: p.product_code === product.product_code ? '#FFF8E7' : '#FFFFFF',
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = p.product_code === product.product_code ? '#FFF8E7' : '#FAFAF5')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = p.product_code === product.product_code ? '#FFF8E7' : '#FFFFFF')}
+                                >
+                                  <span style={{ fontSize: 14 }}>{p.item_name}</span>
+                                  <span style={{ fontSize: 13, color: MUTED }}>{formatCurrency(p.retail_price)}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={onRemove}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50"
+                          style={{ color: '#D97706', background: 'none', border: 'none', cursor: 'pointer' }}
+                        >
+                          <X style={{ width: 14, height: 14 }} />
+                        </button>
                       </div>
-                    )}
-                    {/* Add item picker */}
+                    </div>
+                  )
+                }
+
+                return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
+                  {/* Collage */}
+                  {selected.collage && (
+                    <div>
+                      <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Collage</h3>
+                      <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
+                      {renderSwappableLine(selected.collage, 'collage', (p) => swapProduct('collage', p), () => removeSlot('collage'))}
+                    </div>
+                  )}
+
+                  {/* Albums */}
+                  {(selected.album ?? selected.signingBook) && (
+                    <div>
+                      <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Albums</h3>
+                      <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
+                      {renderSwappableLine(selected.album, 'album', (p) => swapProduct('album', p), () => removeSlot('album'))}
+                      {renderSwappableLine(selected.signingBook, 'signingBook', (p) => swapProduct('signingBook', p), () => removeSlot('signingBook'))}
+                    </div>
+                  )}
+
+                  {/* Wedding Frame */}
+                  {(selected.weddingCanvas ?? selected.weddingFrame) && (
+                    <div>
+                      <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Wedding Frame</h3>
+                      <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
+                      {renderSwappableLine(selected.weddingCanvas, 'weddingCanvas', (p) => swapProduct('weddingCanvas', p), () => removeSlot('weddingCanvas'))}
+                      {renderSwappableLine(selected.weddingFrame, 'weddingFrame', (p) => swapProduct('weddingFrame', p), () => removeSlot('weddingFrame'))}
+                    </div>
+                  )}
+
+                  {/* Extras */}
+                  <div>
+                    <h3 className={playfair.className} style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: TEXT }}>Extras Included</h3>
+                    <div style={{ width: 40, height: 1, backgroundColor: GOLD, marginBottom: 16 }} />
+                    {selected.extras.map((ext, i) => (
+                      <div key={`${ext.product_code}-${i}`} className="flex items-center justify-between group" style={{ padding: '10px 0', borderBottom: `1px dashed ${BORDER}` }}>
+                        <p style={{ fontSize: 16, color: '#444444', lineHeight: 1.6 }}>{ext.description}</p>
+                        <div className="flex items-center gap-2">
+                          <span style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'monospace' }}>{ext.product_code}</span>
+                          <button
+                            onClick={() => removeExtra(i)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50"
+                            style={{ color: '#D97706', background: 'none', border: 'none', cursor: 'pointer' }}
+                          >
+                            <X style={{ width: 14, height: 14 }} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {/* Add item */}
                     <div className="relative" style={{ marginTop: 12 }}>
                       <button
                         onClick={() => setShowProductPicker(!showProductPicker)}
@@ -620,22 +778,11 @@ export default function FrameSalePresentation() {
                       {showProductPicker && (
                         <div
                           className="absolute left-0 top-8 z-10 rounded-xl overflow-hidden"
-                          style={{
-                            backgroundColor: '#FFFFFF',
-                            border: '1px solid #E8E8E3',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                            maxHeight: 300,
-                            overflowY: 'auto',
-                            width: 420,
-                          }}
+                          style={{ backgroundColor: '#FFFFFF', border: '1px solid #E8E8E3', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 300, overflowY: 'auto', width: 420 }}
                         >
                           {(() => {
                             const grouped: Record<string, any[]> = {}
-                            products.forEach((p: any) => {
-                              const cat = p.category ?? 'Other'
-                              if (!grouped[cat]) grouped[cat] = []
-                              grouped[cat].push(p)
-                            })
+                            products.forEach((p: any) => { const cat = p.category ?? 'Other'; if (!grouped[cat]) grouped[cat] = []; grouped[cat].push(p) })
                             return Object.entries(grouped).map(([cat, items]) => (
                               <div key={cat}>
                                 <p className="px-4 py-2 text-xs uppercase tracking-wider" style={{ color: '#BBBBBB', backgroundColor: '#FAFAF5' }}>{cat}</p>
@@ -643,7 +790,7 @@ export default function FrameSalePresentation() {
                                   <button
                                     key={p.product_code}
                                     onClick={() => {
-                                      setExtraItems([...extraItems, { desc: p.item_name ?? p.description, code: p.product_code }])
+                                      setSelected(prev => ({ ...prev, extras: [...prev.extras, p] }))
                                       setShowProductPicker(false)
                                     }}
                                     className="w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors"
@@ -663,7 +810,8 @@ export default function FrameSalePresentation() {
                     </div>
                   </div>
                 </div>
-              )}
+                )
+              })()}
 
             </motion.div>
           </AnimatePresence>
