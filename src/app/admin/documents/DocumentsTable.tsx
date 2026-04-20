@@ -34,7 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu'
-import { MoreVertical, FileText, Check, Minus, Eye, Printer, Mail } from 'lucide-react'
+import { MoreVertical, FileText, Check, Minus } from 'lucide-react'
 import { parseISO, format } from 'date-fns'
 import type { CoupleDocRow } from './page'
 
@@ -91,77 +91,75 @@ function ActionsCell({ row }: { row: CoupleDocRow }) {
   const hasEmail = !!row.email
   const coupleName = `${row.bride_first_name} %26 ${row.groom_first_name}`
 
-  const noActions = !hasC1 && !hasC2 && !hasC3 && !hasWdf && !hasPof && !hasVof
-  if (noActions) return <Minus size={16} className="text-gray-300" />
+  const hasAnyDoc = hasC1 || hasC2 || hasC3 || hasWdf || hasPof || hasVof
+  if (!hasAnyDoc) return <span className="text-gray-300">—</span>
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent">
-        <MoreVertical size={16} />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuTrigger render={<button className="p-1 rounded hover:bg-gray-100 focus:outline-none"><MoreVertical size={16} className="text-gray-500" /></button>} />
+      <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuLabel>View</DropdownMenuLabel>
         {hasC1 && (
-          <DropdownMenuItem onClick={() => window.open(`/admin/contracts/${row.contract_ids[0]}/view`, '_blank')}>
-            <Eye className="h-4 w-4 mr-2" /> Contract
+          <DropdownMenuItem onSelect={() => window.open(`/admin/contracts/${row.contract_ids[0]}/view`, '_blank')}>
+            Contract
           </DropdownMenuItem>
         )}
         {hasC2 && (
-          <DropdownMenuItem onClick={() => window.open(`/admin/albums/${row.extras_order_ids[0]}/view`, '_blank')}>
-            <Eye className="h-4 w-4 mr-2" /> Frames & Albums
+          <DropdownMenuItem onSelect={() => window.open(`/admin/albums/${row.extras_order_ids[0]}/view`, '_blank')}>
+            Frames & Albums
           </DropdownMenuItem>
         )}
         {hasC3 && (
-          <DropdownMenuItem onClick={() => window.open(`/admin/extras/${row.id}/view`, '_blank')}>
-            <Eye className="h-4 w-4 mr-2" /> Extras
+          <DropdownMenuItem onSelect={() => window.open(`/admin/extras/${row.id}/view`, '_blank')}>
+            Extras
           </DropdownMenuItem>
         )}
         {hasWdf && (
-          <DropdownMenuItem onClick={() => window.open(`/admin/documents/wedding-day-form/${row.wdf_ids[0]}`, '_blank')}>
-            <Eye className="h-4 w-4 mr-2" /> Day Form
+          <DropdownMenuItem onSelect={() => window.open(`/admin/documents/wedding-day-form/${row.wdf_ids[0]}`, '_blank')}>
+            Day Form
           </DropdownMenuItem>
         )}
         {hasPof && (
-          <DropdownMenuItem onClick={() => window.open(`/admin/documents/photo-order/${row.pof_ids[0]}`, '_blank')}>
-            <Eye className="h-4 w-4 mr-2" /> Photo Order
+          <DropdownMenuItem onSelect={() => window.open(`/admin/documents/photo-order/${row.pof_ids[0]}`, '_blank')}>
+            Photo Order
           </DropdownMenuItem>
         )}
         {hasVof && (
-          <DropdownMenuItem onClick={() => window.open(`/admin/documents/video-order/${row.vof_ids[0]}`, '_blank')}>
-            <Eye className="h-4 w-4 mr-2" /> Video Order
+          <DropdownMenuItem onSelect={() => window.open(`/admin/documents/video-order/${row.vof_ids[0]}`, '_blank')}>
+            Video Order
           </DropdownMenuItem>
         )}
 
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Print</DropdownMenuLabel>
         {hasC1 && (
-          <DropdownMenuItem onClick={() => window.open(`/admin/contracts/${row.contract_ids[0]}/view?print=true`, '_blank')}>
-            <Printer className="h-4 w-4 mr-2" /> Contract
+          <DropdownMenuItem onSelect={() => window.open(`/admin/contracts/${row.contract_ids[0]}/view?print=true`, '_blank')}>
+            Print Contract
           </DropdownMenuItem>
         )}
         {hasC2 && (
-          <DropdownMenuItem onClick={() => window.open(`/admin/albums/${row.extras_order_ids[0]}/view?print=true`, '_blank')}>
-            <Printer className="h-4 w-4 mr-2" /> Frames & Albums
+          <DropdownMenuItem onSelect={() => window.open(`/admin/albums/${row.extras_order_ids[0]}/view?print=true`, '_blank')}>
+            Print Frames
           </DropdownMenuItem>
         )}
         {hasC3 && (
-          <DropdownMenuItem onClick={() => window.open(`/admin/extras/${row.id}/view?print=true`, '_blank')}>
-            <Printer className="h-4 w-4 mr-2" /> Extras
+          <DropdownMenuItem onSelect={() => window.open(`/admin/extras/${row.id}/view?print=true`, '_blank')}>
+            Print Extras
           </DropdownMenuItem>
         )}
         {hasWdf && (
-          <DropdownMenuItem onClick={() => window.open(`/admin/documents/wedding-day-form/${row.wdf_ids[0]}?print=true`, '_blank')}>
-            <Printer className="h-4 w-4 mr-2" /> Day Form
+          <DropdownMenuItem onSelect={() => window.open(`/admin/documents/wedding-day-form/${row.wdf_ids[0]}?print=true`, '_blank')}>
+            Print Day Form
           </DropdownMenuItem>
         )}
         {hasPof && (
-          <DropdownMenuItem onClick={() => window.open(`/admin/documents/photo-order/${row.pof_ids[0]}?print=true`, '_blank')}>
-            <Printer className="h-4 w-4 mr-2" /> Photo Order
+          <DropdownMenuItem onSelect={() => window.open(`/admin/documents/photo-order/${row.pof_ids[0]}?print=true`, '_blank')}>
+            Print Photo Order
           </DropdownMenuItem>
         )}
         {hasVof && (
-          <DropdownMenuItem onClick={() => window.open(`/admin/documents/video-order/${row.vof_ids[0]}?print=true`, '_blank')}>
-            <Printer className="h-4 w-4 mr-2" /> Video Order
+          <DropdownMenuItem onSelect={() => window.open(`/admin/documents/video-order/${row.vof_ids[0]}?print=true`, '_blank')}>
+            Print Video Order
           </DropdownMenuItem>
         )}
 
@@ -170,33 +168,18 @@ function ActionsCell({ row }: { row: CoupleDocRow }) {
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Email</DropdownMenuLabel>
             {hasC1 && (
-              <DropdownMenuItem onClick={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Contract — ${coupleName}`)}>
-                <Mail className="h-4 w-4 mr-2" /> Contract
+              <DropdownMenuItem onSelect={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Contract — ${coupleName}`)}>
+                Email Contract
               </DropdownMenuItem>
             )}
             {hasC2 && (
-              <DropdownMenuItem onClick={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Frames %26 Albums — ${coupleName}`)}>
-                <Mail className="h-4 w-4 mr-2" /> Frames & Albums
+              <DropdownMenuItem onSelect={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Frames %26 Albums — ${coupleName}`)}>
+                Email Frames
               </DropdownMenuItem>
             )}
             {hasC3 && (
-              <DropdownMenuItem onClick={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Extras — ${coupleName}`)}>
-                <Mail className="h-4 w-4 mr-2" /> Extras
-              </DropdownMenuItem>
-            )}
-            {hasWdf && (
-              <DropdownMenuItem onClick={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Day Form — ${coupleName}`)}>
-                <Mail className="h-4 w-4 mr-2" /> Day Form
-              </DropdownMenuItem>
-            )}
-            {hasPof && (
-              <DropdownMenuItem onClick={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Photo Order — ${coupleName}`)}>
-                <Mail className="h-4 w-4 mr-2" /> Photo Order
-              </DropdownMenuItem>
-            )}
-            {hasVof && (
-              <DropdownMenuItem onClick={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Video Order — ${coupleName}`)}>
-                <Mail className="h-4 w-4 mr-2" /> Video Order
+              <DropdownMenuItem onSelect={() => window.open(`mailto:${row.email}?subject=SIGS Photography — Extras — ${coupleName}`)}>
+                Email Extras
               </DropdownMenuItem>
             )}
           </>
