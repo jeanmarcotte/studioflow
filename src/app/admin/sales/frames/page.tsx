@@ -121,13 +121,23 @@ export default function FrameSalesPage() {
   }
 
   // Signed table columns
+  // Group signed orders by year with custom sort: current year first, future ascending, past descending
+  const signedByYear = useMemo(() => {
+    const groups: Record<number, ExtrasOrder[]> = {}
+    signedOrders.forEach(o => {
+      const year = o.order_date ? new Date(o.order_date).getFullYear() : currentYear
+      if (!groups[year]) groups[year] = []
+      groups[year].push(o)
+    })
+    const sortedYears = Object.keys(groups).map(Number).sort((a, b) => {
+      const priorityA = a === currentYear ? 0 : a > currentYear ? 1 + (a - currentYear) : 100 + (currentYear - a)
+      const priorityB = b === currentYear ? 0 : b > currentYear ? 1 + (b - currentYear) : 100 + (currentYear - b)
+      return priorityA - priorityB
+    })
+    return sortedYears.map(year => ({ year, orders: groups[year] }))
+  }, [signedOrders, currentYear])
+
   const signedColumns: ColumnDef<ExtrasOrder>[] = useMemo(() => [
-    {
-      id: 'row_num',
-      header: '#',
-      cell: ({ row }) => <span className="text-muted-foreground">{row.index + 1}</span>,
-      enableSorting: false,
-    },
     {
       id: 'couple',
       accessorFn: (row) => coupleName(row),
@@ -195,12 +205,6 @@ export default function FrameSalesPage() {
 
   // Declined table columns
   const declinedColumns: ColumnDef<ExtrasOrder>[] = useMemo(() => [
-    {
-      id: 'row_num',
-      header: '#',
-      cell: ({ row }) => <span className="text-muted-foreground">{row.index + 1}</span>,
-      enableSorting: false,
-    },
     {
       id: 'couple',
       accessorFn: (row) => coupleName(row),
@@ -298,7 +302,6 @@ export default function FrameSalesPage() {
             <table className="w-full text-sm border rounded-lg overflow-hidden">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="text-left p-3">#</th>
                   <th className="text-left p-3">Couple</th>
                   <th className="text-left p-3">Wedding Date</th>
                   <th className="text-left p-3">Order Date</th>
@@ -311,7 +314,6 @@ export default function FrameSalesPage() {
                   const days = getDaysPending(order.order_date)
                   return (
                     <tr key={order.id} className="border-t">
-                      <td className="p-3">{i + 1}</td>
                       <td className="p-3">{coupleName(order)}</td>
                       <td className="p-3">{formatDateCompact(order.wedding_date)}</td>
                       <td className="p-3">{order.order_date ? formatDateCompact(order.order_date) : '—'}</td>
@@ -327,7 +329,7 @@ export default function FrameSalesPage() {
           </div>
         )}
 
-        {/* SIGNED ORDERS TABLE */}
+        {/* SIGNED ORDERS TABLE — grouped by year */}
         <div>
           <div className="flex items-center gap-3 mb-3">
             <h3 className="text-lg font-semibold">Signed Orders</h3>
@@ -335,12 +337,24 @@ export default function FrameSalesPage() {
               {signedOrders.length}
             </span>
           </div>
-          <DataTable
-            columns={signedColumns}
-            data={signedOrders}
-            showPagination={false}
-            emptyMessage="No signed orders"
-          />
+          {signedByYear.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No signed orders</p>
+          ) : (
+            signedByYear.map(({ year, orders: yearOrders }) => (
+              <div key={year} className="mb-6">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                  {year} Sales
+                  <span className="ml-2 text-xs font-normal">({yearOrders.length})</span>
+                </h4>
+                <DataTable
+                  columns={signedColumns}
+                  data={yearOrders}
+                  showPagination={false}
+                  emptyMessage="No signed orders"
+                />
+              </div>
+            ))
+          )}
         </div>
 
         {/* SECTION 6 — DECLINED ORDERS (collapsed by default) */}

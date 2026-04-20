@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Loader2, ChevronLeft, ChevronRight, X, Plus, Equal, Download } from 'lucide-react'
+import { Loader2, ChevronLeft, ChevronRight, X, Plus, Equal, Download, Check } from 'lucide-react'
 import { formatWeddingDate, formatCurrency } from '@/lib/formatters'
 import { Playfair_Display, DM_Sans } from 'next/font/google'
 import { toast } from 'sonner'
@@ -287,6 +287,96 @@ export default function FrameSalePresentation() {
       .eq('id', coupleId)
 
     toast.success(`C2 saved as Pending for ${couple.bride_first_name} & ${couple.groom_first_name}`)
+    router.push('/admin/sales/frames')
+  }
+
+  async function handleApproved() {
+    if (!couple) return
+    setSaving(true)
+
+    const bal = couple.balance_owing ?? 0
+    const numInstallments = editMilestones.length
+    const newBalance = bal + saleAmount
+    const today = new Date().toISOString().split('T')[0]
+
+    const { data: orderData, error: orderError } = await supabase
+      .from('extras_orders')
+      .insert({
+        couple_id: coupleId,
+        order_type: 'frames_albums',
+        order_date: today,
+        status: 'signed',
+        extras_sale_amount: saleAmount,
+        contract_balance_remaining: bal,
+        new_balance: newBalance,
+        num_installments: numInstallments,
+        payment_per_installment: editAmounts[0] ?? 0,
+        last_installment_amount: editAmounts[editAmounts.length - 1] ?? 0,
+        downpayment: depositAmount,
+        collage_type: 'canvas_float',
+        collage_size: '16x16',
+        collage_frame_color: 'black',
+        album_qty: 1,
+        signing_book: true,
+        version: 'v1.0',
+      })
+      .select('id')
+      .limit(1)
+
+    if (orderError) {
+      toast.error(`Failed to create sale: ${orderError.message}`)
+      setSaving(false)
+      return
+    }
+
+    const orderId = orderData?.[0]?.id
+    if (!orderId) {
+      toast.error('Failed to get order ID')
+      setSaving(false)
+      return
+    }
+
+    const installments = editMilestones.map((desc, i) => ({
+      extras_order_id: orderId,
+      installment_number: i + 1,
+      due_description: desc,
+      amount: editAmounts[i] ?? 0,
+      paid: false,
+    }))
+
+    const { error: installError } = await supabase
+      .from('extras_installments')
+      .insert(installments)
+
+    if (installError) {
+      toast.error(`Failed to create installments: ${installError.message}`)
+      setSaving(false)
+      return
+    }
+
+    await supabase
+      .from('couples')
+      .update({ c2_amount: saleAmount })
+      .eq('id', coupleId)
+
+    // Send approval email
+    try {
+      await fetch('/api/c2/approved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bride: couple.bride_first_name,
+          groom: couple.groom_first_name,
+          saleAmount,
+          numInstallments,
+          dateApproved: today,
+        }),
+      })
+    } catch (emailErr) {
+      console.error('Email notification failed:', emailErr)
+    }
+
+    toast.success(`C2 approved for ${couple.bride_first_name} & ${couple.groom_first_name}`)
     router.push('/admin/sales/frames')
   }
 
@@ -619,24 +709,10 @@ export default function FrameSalePresentation() {
                     </div>
                   </div>
 
-                  {/* Save + Download */}
+                  {/* Save + Download + Approved */}
                   <div className="flex justify-center gap-4" style={{ paddingTop: 16 }}>
                     <button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="px-8 py-3.5 rounded-xl text-base font-semibold tracking-wide transition-all disabled:opacity-50"
-                      style={{
-                        backgroundColor: GOLD,
-                        color: '#FFFFFF',
-                        boxShadow: '0 2px 12px rgba(201,168,76,0.3)',
-                        letterSpacing: '0.02em',
-                      }}
-                    >
-                      {saving ? <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> : null}
-                      Save
-                    </button>
-                    <button
-                      onClick={() => toast.info('PDF download coming soon')}
+                      onClick={() => window.print()}
                       className="px-8 py-3.5 rounded-xl text-base font-semibold tracking-wide transition-all flex items-center gap-2"
                       style={{
                         border: `1.5px solid ${GOLD}`,
@@ -646,6 +722,34 @@ export default function FrameSalePresentation() {
                       }}
                     >
                       <Download style={{ width: 16, height: 16 }} /> Download
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="px-8 py-3.5 rounded-xl text-base font-semibold tracking-wide transition-all disabled:opacity-50"
+                      style={{
+                        border: `1.5px solid ${GOLD}`,
+                        color: GOLD,
+                        backgroundColor: 'transparent',
+                        letterSpacing: '0.02em',
+                      }}
+                    >
+                      {saving ? <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> : null}
+                      Save & Close
+                    </button>
+                    <button
+                      onClick={handleApproved}
+                      disabled={saving}
+                      className="px-8 py-3.5 rounded-xl text-base font-semibold tracking-wide transition-all disabled:opacity-50 flex items-center gap-2"
+                      style={{
+                        backgroundColor: '#16a34a',
+                        color: '#FFFFFF',
+                        boxShadow: '0 2px 12px rgba(22,163,74,0.3)',
+                        letterSpacing: '0.02em',
+                      }}
+                    >
+                      {saving ? <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> : null}
+                      Approved <Check style={{ width: 16, height: 16 }} />
                     </button>
                   </div>
                 </div>
