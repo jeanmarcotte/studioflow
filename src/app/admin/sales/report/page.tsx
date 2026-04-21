@@ -145,7 +145,16 @@ export default function BookingPipelineDashboard() {
     )
   }
 
-  if (!selected) return null
+  if (!selected) {
+    return (
+      <div className={dmSans.className} style={{ backgroundColor: BG, minHeight: '100vh', color: '#1A1A1A' }}>
+        <div style={{ padding: '32px 40px' }}>
+          <h1 className={playfair.className} style={{ fontSize: 30, fontWeight: 700 }}>Booking Pipeline</h1>
+          <p className="mt-4 text-sm" style={{ color: MUTED }}>No season data found. Check that bridal_show_seasons has data and RLS policies allow access.</p>
+        </div>
+      </div>
+    )
+  }
 
   const showedUp = selected.appts - selected.pending
   const convRate = selected.conversion_rate ? parseFloat(selected.conversion_rate) : null
