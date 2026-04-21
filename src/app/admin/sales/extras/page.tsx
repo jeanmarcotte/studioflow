@@ -613,25 +613,16 @@ export default function ExtrasSalesPage() {
           </div>
 
           {/* Search */}
-          <div className="flex flex-wrap gap-3">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search couples or item types..."
-                className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
-                style={{ paddingLeft: '2.25rem' }}
-              />
-            </div>
-            <button
-              onClick={() => router.push('/admin/sales/extras/new')}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              New Sale
-            </button>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search couples or item types..."
+              className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
+              style={{ paddingLeft: '2.25rem' }}
+            />
           </div>
 
           {renderSection('section-2026', '2026 SALES', rows2026, 'bg-teal-100 text-teal-700')}
