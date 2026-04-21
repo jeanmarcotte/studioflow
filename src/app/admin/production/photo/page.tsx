@@ -1075,7 +1075,7 @@ export default function PhotoProductionPage() {
                   {/* Lane body */}
                   {!isCollapsed && laneCount > 0 && (
                     <div className="border-t">
-                      <DataTable columns={laneColumns} data={lane.jobs} showPagination={false} emptyMessage="No jobs" />
+                      <DataTable columns={lane.key === 'at_lab' ? atLabColumns : laneColumns} data={lane.jobs} showPagination={false} emptyMessage="No jobs" />
                     </div>
                   )}
 
@@ -1226,6 +1226,13 @@ export default function PhotoProductionPage() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 rounded-lg px-4 py-2.5 text-sm font-medium shadow-lg transition-all ${toast.includes('Error') ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}>
+          {toast}
         </div>
       )}
     </div>
