@@ -7,6 +7,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #7360 | 4:04 PM | ✅ | Removed Duplicate Inline New Sale Button from Extras Dashboard | ~281 |
+| #7359 | " | ✅ | Removed Duplicate Inline New Sale Button from Extras Dashboard | ~315 |
 | #7351 | 3:06 PM | 🟣 | Deployed Complete C3 Extras Sale System to Production | ~413 |
 | #7349 | 3:04 PM | ✅ | Connected Extras Dashboard to New C3 Couple Picker Flow | ~302 |
 | #7340 | 2:59 PM | 🔵 | Product Catalog Categories and Current Extras Implementation | ~513 |

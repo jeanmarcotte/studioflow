@@ -21,6 +21,8 @@ interface VideoJob {
   id: string
   couple_id: string
   job_type: string
+  product_code?: string | null
+  quantity?: number | null
   section: string
   wedding_date: string | null
   order_date: string | null
@@ -568,6 +570,20 @@ export default function VideoProductionPage() {
       },
     },
     {
+      id: 'product_remaining',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Product" />,
+      accessorFn: (row) => row.product_code ?? JOB_TYPE_LABELS[row.job_type] ?? row.job_type,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{row.original.product_code ?? JOB_TYPE_LABELS[row.original.job_type] ?? row.original.job_type}</span>
+      ),
+    },
+    {
+      id: 'qty_remaining',
+      header: 'Qty',
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.quantity ?? '—'}</span>,
+      enableSorting: false,
+    },
+    {
       id: 'days_since',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Days" />,
       accessorFn: (row) => {
@@ -701,6 +717,26 @@ export default function VideoProductionPage() {
         },
       },
     ]
+
+    cols.push({
+      id: 'product',
+      header: 'Product',
+      accessorFn: (row) => row.product_code ?? JOB_TYPE_LABELS[row.job_type] ?? row.job_type,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground truncate">
+          {row.original.product_code ?? JOB_TYPE_LABELS[row.original.job_type] ?? row.original.job_type}
+        </span>
+      ),
+    })
+    cols.push({
+      id: 'quantity',
+      header: 'Qty',
+      accessorFn: (row) => row.quantity ?? 1,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{row.original.quantity ?? '—'}</span>
+      ),
+      enableSorting: false,
+    })
 
     if (!hideSegments) {
       cols.push({

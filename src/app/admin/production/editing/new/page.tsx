@@ -12,50 +12,7 @@ type Category = 'wedding' | 'engagement' | 'video'
 
 const MONTH_ABBRS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-const JOB_TYPES: Record<Category, { value: string; label: string }[]> = {
-  wedding: [
-    { value: 'wedding_proofs', label: 'Wedding Proofs' },
-    { value: 'parent_album', label: 'Parent Album(s)' },
-    { value: 'bg_album', label: 'Bride & Groom Album' },
-    { value: 'tyc', label: 'Thank You Cards' },
-    { value: 'parent_portrait_print', label: 'Parent Portrait Print' },
-    { value: 'parent_portrait_canvas', label: 'Parent Portrait Canvas' },
-    { value: 'bg_portrait_print', label: 'B&G Portrait Print' },
-    { value: 'bg_portrait_canvas', label: 'B&G Portrait Canvas' },
-    { value: 'hires_wedding', label: 'Hi-Res Wedding Export' },
-  ],
-  engagement: [
-    { value: 'eng_proofs', label: 'Engagement Proofs' },
-    { value: 'eng_collage_print', label: 'Collage Print' },
-    { value: 'eng_collage_canvas', label: 'Collage Canvas' },
-    { value: 'eng_signing_book', label: 'Engagement Signing Book' },
-    { value: 'hires_engagement', label: 'Hi-Res Eng Export' },
-  ],
-  video: [
-    { value: 'FULL', label: 'Full Length Video' },
-    { value: 'RECAP', label: 'Recap Video' },
-    { value: 'ENG_SLIDESHOW', label: 'Engagement Slideshow' },
-    { value: 'RAW_VIDEO_OUTPUT', label: 'Raw Video Output' },
-  ],
-}
-
-const VENDORS = [
-  { value: 'cci', label: 'CCI' },
-  { value: 'uaf', label: 'UAF' },
-  { value: 'best_canvas', label: 'Best Canvas' },
-  { value: 'in_house', label: 'In-house' },
-]
-
-const AUTO_FILL_QUANTITY: Record<string, number> = {
-  parent_album: 30,
-  bg_album: 70,
-  eng_collage: 3,
-  eng_signing_book: 22,
-  bg_portrait_canvas: 1,
-  bg_portrait_print: 1,
-  parent_portrait_canvas: 1,
-  parent_portrait_print: 1,
-}
+const VENDOR_SUGGESTIONS = ['Best Canvas', 'CCI', 'Graphi Studio', 'Queensberry']
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -64,6 +21,60 @@ interface CoupleOption {
   couple_name: string
   wedding_date: string | null
   wedding_year: number | null
+}
+
+interface ProductItem {
+  product_code: string
+  item_name: string
+  category: string
+}
+
+interface ClientOrder {
+  id: string
+  order_number: string
+  vendor: string | null
+  item_count: number
+}
+
+// ── Product filtering ──────────────────────────────────────────────
+
+function filterProductsByTab(products: ProductItem[], tab: Category): ProductItem[] {
+  return products.filter(p => {
+    if (tab === 'wedding') {
+      if (p.category === 'Production') return /Wedding/i.test(p.item_name) || /Hi-Res Wedding/i.test(p.item_name)
+      if (p.category === 'Album') return true
+      if (p.category === 'Portrait') return true
+      if (p.category === 'Print') return !['PRT-5X5-50', 'PRT-5X7', 'PRT-8X10'].includes(p.product_code)
+      if (p.category === 'Canvas') return true
+      if (p.category === 'Mounting') return p.product_code.startsWith('MNT-CNV-')
+      if (p.category === 'Collage') return true
+      if (p.category === 'Frame') return true
+      if (p.category === 'Stationery') return true
+      if (p.category === 'Digital') return p.product_code === 'DIG-USB-COMBO'
+      return false
+    }
+    if (tab === 'engagement') {
+      if (p.category === 'Production') return /Engagement|Collage|Hi-Res Engagement/i.test(p.item_name)
+      if (p.category === 'Print') return ['PRT-5X5-50', 'PRT-5X7', 'PRT-8X10'].includes(p.product_code)
+      return false
+    }
+    if (tab === 'video') {
+      if (p.category === 'Production') return /Video/i.test(p.item_name)
+      return false
+    }
+    return false
+  })
+}
+
+function groupByCategory(products: ProductItem[]): { category: string; products: ProductItem[] }[] {
+  const map: Record<string, ProductItem[]> = {}
+  for (const p of products) {
+    if (!map[p.category]) map[p.category] = []
+    map[p.category].push(p)
+  }
+  return Object.entries(map)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([category, products]) => ({ category, products }))
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -84,18 +95,53 @@ export default function AddEditingJobPage() {
 
   // ── Form state ─────────────────────────────────────────────────
   const [category, setCategory] = useState<Category>('wedding')
-  const [jobType, setJobType] = useState('')
-  const [vendor, setVendor] = useState('')
+  const [products, setProducts] = useState<ProductItem[]>([])
+  const [selectedProductCode, setSelectedProductCode] = useState('')
   const [quantity, setQuantity] = useState<number | string>(1)
   const [description, setDescription] = useState('')
   const [notes, setNotes] = useState('')
+
+  // ── Client order state ─────────────────────────────────────────
+  const [orderMode, setOrderMode] = useState<'new' | 'existing'>('new')
+  const [vendor, setVendor] = useState('')
+  const [existingOrders, setExistingOrders] = useState<ClientOrder[]>([])
+  const [selectedOrderId, setSelectedOrderId] = useState('')
 
   // ── Submission state ───────────────────────────────────────────
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
 
-  // ── Couple search (copied from team-notes) ─────────────────────
+  // ── Derived: selected product info ─────────────────────────────
+  const selectedProduct = useMemo(
+    () => products.find(p => p.product_code === selectedProductCode) ?? null,
+    [products, selectedProductCode]
+  )
+  const isPhysicalItem = selectedProduct ? selectedProduct.category !== 'Production' : false
+
+  // ── Filtered products for current tab ──────────────────────────
+  const filteredProducts = useMemo(
+    () => filterProductsByTab(products, category),
+    [products, category]
+  )
+  const groupedProducts = useMemo(
+    () => groupByCategory(filteredProducts),
+    [filteredProducts]
+  )
+
+  // ── Load products on mount ─────────────────────────────────────
+  useEffect(() => {
+    supabase
+      .from('product_catalog')
+      .select('product_code, item_name, category')
+      .eq('active', true)
+      .eq('production_visible', true)
+      .order('category')
+      .order('sort_order')
+      .then(({ data }) => setProducts(data ?? []))
+  }, [])
+
+  // ── Couple search (kept from original) ─────────────────────────
 
   const fetchCouples = useCallback(async (q: string) => {
     const res = await fetch(`/api/couples/search?q=${encodeURIComponent(q)}`)
@@ -103,7 +149,6 @@ export default function AddEditingJobPage() {
     if (json.data) setCoupleOptions(json.data)
   }, [])
 
-  // Load all couples on mount for month search
   useEffect(() => {
     const loadAll = async () => {
       const res = await fetch('/api/couples/search?q=')
@@ -113,13 +158,11 @@ export default function AddEditingJobPage() {
     loadAll()
   }, [])
 
-  // Check if search is a month abbreviation
   const isMonthSearch = coupleSearch.trim().length === 3 &&
     MONTH_ABBRS.some(m => m.toLowerCase() === coupleSearch.trim().toLowerCase())
 
   useEffect(() => {
     if (isMonthSearch) {
-      // Month search — filter allCouples client-side
       const monthIdx = MONTH_ABBRS.findIndex(m => m.toLowerCase() === coupleSearch.trim().toLowerCase())
       const filtered = allCouples.filter(c => {
         if (!c.wedding_date) return false
@@ -145,12 +188,10 @@ export default function AddEditingJobPage() {
   const groupedCouples = useMemo(() => {
     const groups: Record<number, CoupleOption[]> = {}
     for (const c of coupleOptions) {
-      const year = c.wedding_year || (c.wedding_date ? new Date(c.wedding_date).getFullYear() : 0)
+      const year = c.wedding_year ?? (c.wedding_date ? new Date(c.wedding_date).getFullYear() : 0)
       if (!groups[year]) groups[year] = []
       groups[year].push(c)
     }
-
-    // Sort within each year: by month ASC, then alphabetically
     for (const year of Object.keys(groups)) {
       groups[Number(year)].sort((a, b) => {
         const aMonth = a.wedding_date ? new Date(a.wedding_date).getMonth() : 99
@@ -159,7 +200,6 @@ export default function AddEditingJobPage() {
         return a.couple_name.localeCompare(b.couple_name)
       })
     }
-
     const yearOrder = [2026, 2027, 2025]
     return Object.entries(groups)
       .sort(([a], [b]) => {
@@ -177,6 +217,8 @@ export default function AddEditingJobPage() {
     setCoupleName(couple.couple_name)
     setCoupleSearch(couple.couple_name)
     setCoupleDropdownOpen(false)
+    // Fetch existing orders for this couple
+    fetchExistingOrders(couple.id)
   }
 
   const formatDateLocal = (dateStr: string | null) => {
@@ -184,21 +226,47 @@ export default function AddEditingJobPage() {
     return formatDateCompact(dateStr)
   }
 
+  // ── Fetch existing orders for couple ───────────────────────────
+  const fetchExistingOrders = async (cId: string) => {
+    const { data } = await supabase
+      .from('client_orders')
+      .select('id, order_number, vendor')
+      .eq('couple_id', cId)
+      .eq('lab_status', 'pending')
+      .order('created_at', { ascending: false })
+
+    if (data) {
+      // Count items per order from jobs table
+      const orders: ClientOrder[] = []
+      for (const order of data) {
+        const { count } = await supabase
+          .from('jobs')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_order_id', order.id)
+        orders.push({
+          id: order.id,
+          order_number: order.order_number,
+          vendor: order.vendor,
+          item_count: count ?? 0,
+        })
+      }
+      setExistingOrders(orders)
+    }
+  }
+
   // ── Handlers ───────────────────────────────────────────────────
 
   const handleCategoryChange = (cat: Category) => {
     setCategory(cat)
-    setJobType('')
+    setSelectedProductCode('')
     setQuantity(1)
   }
 
-  const handleJobTypeChange = (jt: string) => {
-    setJobType(jt)
-    if (jt in AUTO_FILL_QUANTITY) {
-      setQuantity(AUTO_FILL_QUANTITY[jt])
-    } else {
-      setQuantity(1)
-    }
+  const handleProductChange = (code: string) => {
+    setSelectedProductCode(code)
+    setQuantity(1)
+    setOrderMode('new')
+    setSelectedOrderId('')
   }
 
   const resetForm = () => {
@@ -206,60 +274,97 @@ export default function AddEditingJobPage() {
     setCoupleName('')
     setCoupleSearch('')
     setCategory('wedding')
-    setJobType('')
+    setSelectedProductCode('')
     setVendor('')
     setQuantity(1)
     setDescription('')
     setNotes('')
+    setOrderMode('new')
+    setSelectedOrderId('')
+    setExistingOrders([])
     setSuccess(false)
     setError('')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!coupleId || !jobType) return
+    if (!coupleId || !selectedProductCode) return
 
     setSubmitting(true)
     setError('')
 
-    let insertError: { message: string } | null = null
+    try {
+      let clientOrderId: string | null = null
 
-    if (category === 'video') {
-      // Video jobs go into video_jobs table
-      const { error } = await supabase
-        .from('video_jobs')
-        .insert({
-          couple_id: coupleId,
-          job_type: jobType,
-          status: 'not_started',
-          notes: notes.trim() || null,
-          section: 'editing',
-        })
-      insertError = error
-    } else {
-      // Engagement & Wedding jobs go into jobs table
-      const { error } = await supabase
+      // Create or link client order for physical items
+      if (isPhysicalItem) {
+        if (orderMode === 'new') {
+          // Generate next order number
+          const { data: lastOrder } = await supabase
+            .from('client_orders')
+            .select('order_number')
+            .order('created_at', { ascending: false })
+            .limit(1)
+
+          const year = new Date().getFullYear()
+          let nextNum = 1
+          if (lastOrder && lastOrder.length > 0) {
+            const match = lastOrder[0].order_number.match(/CO-\d{4}-(\d+)/)
+            if (match) nextNum = parseInt(match[1]) + 1
+          }
+          const orderNumber = `CO-${year}-${String(nextNum).padStart(3, '0')}`
+          const orderType = category === 'video' ? 'video' : 'photo'
+
+          const { data: newOrder, error: orderErr } = await supabase
+            .from('client_orders')
+            .insert({
+              couple_id: coupleId,
+              order_number: orderNumber,
+              order_type: orderType,
+              vendor: vendor || null,
+              lab_status: 'pending',
+            })
+            .select('id')
+            .limit(1)
+
+          if (orderErr) {
+            setError(orderErr.message)
+            setSubmitting(false)
+            return
+          }
+          clientOrderId = newOrder?.[0]?.id ?? null
+        } else if (orderMode === 'existing' && selectedOrderId) {
+          clientOrderId = selectedOrderId
+        }
+      }
+
+      // Insert into jobs table
+      const { error: jobErr } = await supabase
         .from('jobs')
         .insert({
           couple_id: coupleId,
           category,
-          job_type: jobType,
-          vendor: vendor || null,
-          photos_taken: Number(quantity) || null,
-          status: 'not_started',
+          job_type: selectedProductCode,
+          product_code: selectedProductCode,
+          quantity: Number(quantity) || 1,
+          client_order_id: clientOrderId,
+          description: description.trim() || null,
           notes: notes.trim() || null,
+          status: 'not_started',
         })
-      insertError = error
-    }
 
-    if (insertError) {
-      setError(insertError.message)
+      if (jobErr) {
+        setError(jobErr.message)
+        setSubmitting(false)
+        return
+      }
+
       setSubmitting(false)
-      return
+      setSuccess(true)
+    } catch (err: any) {
+      setError(err?.message ?? 'Unknown error')
+      setSubmitting(false)
     }
-
-    setSubmitting(false)
-    setSuccess(true)
   }
 
   // ── Success state ──────────────────────────────────────────────
@@ -326,7 +431,7 @@ export default function AddEditingJobPage() {
               {coupleId && (
                 <button
                   type="button"
-                  onClick={() => { setCoupleId(''); setCoupleName(''); setCoupleSearch('') }}
+                  onClick={() => { setCoupleId(''); setCoupleName(''); setCoupleSearch(''); setExistingOrders([]) }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground"
                 >
                   <X size={14} />
@@ -382,69 +487,53 @@ export default function AddEditingJobPage() {
             </div>
           </div>
 
-          {/* ── Job Type ────────────────────────────────────── */}
+          {/* ── Product (replaces old Job Type) ────────────── */}
           <div>
-            <Label>Job Type *</Label>
+            <Label>Product *</Label>
             <select
-              value={jobType}
-              onChange={(e) => handleJobTypeChange(e.target.value)}
+              value={selectedProductCode}
+              onChange={(e) => handleProductChange(e.target.value)}
               className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
             >
-              <option value="">Select job type...</option>
-              {JOB_TYPES[category].map(jt => (
-                <option key={jt.value} value={jt.value}>{jt.label}</option>
+              <option value="">Select product...</option>
+              {groupedProducts.map(({ category: cat, products: prods }) => (
+                <optgroup key={cat} label={cat}>
+                  {prods.map(p => (
+                    <option key={p.product_code} value={p.product_code}>
+                      {p.item_name}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
 
-          {/* ── Vendor (hidden for video) ────────────────── */}
-          {category !== 'video' && (
-            <div>
-              <Label>Vendor</Label>
-              <select
-                value={vendor}
-                onChange={(e) => setVendor(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
-              >
-                <option value="">None</option>
-                {VENDORS.map(v => (
-                  <option key={v.value} value={v.value}>{v.label}</option>
-                ))}
-              </select>
-            </div>
-          )}
+          {/* ── Quantity ──────────────────────────────────────── */}
+          <div>
+            <Label>Quantity</Label>
+            <input
+              type="number"
+              min={1}
+              max={9999}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value === '' ? '' : Math.max(1, Number(e.target.value)))}
+              className="w-24 rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
+            />
+          </div>
 
-          {/* ── Photos Taken (hidden for video) ─────────── */}
-          {category !== 'video' && (
-            <div>
-              <Label>Photos Taken</Label>
-              <input
-                type="number"
-                min={1}
-                max={9999}
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value === '' ? '' : Math.max(1, Number(e.target.value)))}
-                readOnly={jobType in AUTO_FILL_QUANTITY}
-                className={`w-24 rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring ${jobType in AUTO_FILL_QUANTITY ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''}`}
-              />
-            </div>
-          )}
+          {/* ── Description ──────────────────────────────────── */}
+          <div>
+            <Label>Description</Label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g., Mom's side, Bride's parents, Groom 24x30"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
+            />
+          </div>
 
-          {/* ── Description (hidden for video) ──────────── */}
-          {category !== 'video' && (
-            <div>
-              <Label>Description</Label>
-              <input
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="e.g., Parent Album - Mom's side"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
-              />
-            </div>
-          )}
-
-          {/* ── Notes ───────────────────────────────────────── */}
+          {/* ── Notes ─────────────────────────────────────────── */}
           <div>
             <Label>Notes</Label>
             <textarea
@@ -456,6 +545,80 @@ export default function AddEditingJobPage() {
             />
           </div>
 
+          {/* ── Client Order (physical items only) ────────────── */}
+          {isPhysicalItem && (
+            <div className="rounded-lg border border-input bg-muted/30 p-4 space-y-3">
+              <Label>Client Order</Label>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setOrderMode('new'); setSelectedOrderId('') }}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    orderMode === 'new'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'border-input hover:bg-accent/50'
+                  }`}
+                >
+                  Create new order
+                </button>
+                {existingOrders.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setOrderMode('existing')}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      orderMode === 'existing'
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'border-input hover:bg-accent/50'
+                    }`}
+                  >
+                    Add to existing order
+                  </button>
+                )}
+              </div>
+
+              {orderMode === 'new' && (
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Vendor</label>
+                  <input
+                    type="text"
+                    list="vendor-suggestions"
+                    value={vendor}
+                    onChange={(e) => setVendor(e.target.value)}
+                    placeholder="Type or select vendor..."
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring"
+                  />
+                  <datalist id="vendor-suggestions">
+                    {VENDOR_SUGGESTIONS.map(v => (
+                      <option key={v} value={v} />
+                    ))}
+                  </datalist>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Order type: {category === 'video' ? 'video' : 'photo'} — order number auto-generated
+                  </p>
+                </div>
+              )}
+
+              {orderMode === 'existing' && (
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Select order</label>
+                  <select
+                    value={selectedOrderId}
+                    onChange={(e) => setSelectedOrderId(e.target.value)}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
+                  >
+                    <option value="">Select an order...</option>
+                    {existingOrders.map(o => (
+                      <option key={o.id} value={o.id}>
+                        {o.order_number} — {o.vendor ?? 'No vendor'} ({o.item_count} item{o.item_count !== 1 ? 's' : ''})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ── Error ───────────────────────────────────────── */}
           {error && (
             <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -466,7 +629,7 @@ export default function AddEditingJobPage() {
           {/* ── Submit ──────────────────────────────────────── */}
           <button
             type="submit"
-            disabled={submitting || !coupleId || !jobType}
+            disabled={submitting || !coupleId || !selectedProductCode}
             className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {submitting ? 'Creating...' : 'Create Job'}

@@ -20,6 +20,8 @@ interface Job {
   couple_id: string
   job_type: string
   category: string
+  product_code: string | null
+  quantity: number | null
   photos_taken: number | null
   edited_so_far: number | null
   total_proofs: number | null
@@ -158,6 +160,9 @@ export default function PhotoProductionPage() {
 
   // Save tracking for green flash
   const [savedFields, setSavedFields] = useState<Set<string>>(new Set())
+
+  // Toast
+  const [toast, setToast] = useState('')
 
   // Sidebar popup
   const [popupStatus, setPopupStatus] = useState<string | null>(null)
@@ -334,6 +339,30 @@ export default function PhotoProductionPage() {
     }
   }
 
+  // ── Vendor update (At Lab only) ─────────────────────────────
+
+  const updateVendor = async (jobId: string, value: string) => {
+    const vendorValue = value === '' ? null : value
+    // Optimistic update
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, vendor: vendorValue } : j))
+
+    const { error } = await supabase
+      .from('jobs')
+      .update({ vendor: vendorValue, updated_at: new Date().toISOString() })
+      .eq('id', jobId)
+
+    if (error) {
+      setToast('Error updating vendor')
+      setTimeout(() => setToast(''), 3000)
+      // Revert on error
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, vendor: j.vendor } : j))
+    } else {
+      const label = vendorValue ? (VENDOR_LABELS[vendorValue.toLowerCase().replace(/-/g, '_')] || vendorValue) : null
+      setToast(label ? `Vendor updated to ${label}` : 'Vendor cleared')
+      setTimeout(() => setToast(''), 3000)
+    }
+  }
+
   // ── Filtered & sorted jobs ────────────────────────────────────
 
   const filteredJobs = useMemo(() => {
@@ -473,11 +502,20 @@ export default function PhotoProductionPage() {
       ),
     },
     {
-      accessorKey: 'job_type',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Job Type" />,
+      accessorKey: 'product_code',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Product" />,
       cell: ({ row }) => (
         <div className="text-sm text-muted-foreground truncate">
-          {JOB_TYPE_LABELS[row.original.job_type] || row.original.job_type}
+          {row.original.product_code ?? JOB_TYPE_LABELS[row.original.job_type] ?? row.original.job_type}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'quantity',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Qty" />,
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground">
+          {row.original.quantity ?? '—'}
         </div>
       ),
     },
@@ -523,6 +561,49 @@ export default function PhotoProductionPage() {
       enableSorting: false,
     },
   ], [])
+
+  // At Lab columns — same as laneColumns but with editable vendor dropdown
+  const atLabColumns: ColumnDef<Job>[] = useMemo(() => [
+    ...laneColumns.filter(col => {
+      const id = (col as any).accessorKey || (col as any).id
+      return id !== 'vendor' && id !== 'status_select'
+    }),
+    {
+      accessorKey: 'vendor',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Vendor" />,
+      cell: ({ row }) => (
+        <select
+          value={row.original.vendor || ''}
+          onChange={(e) => updateVendor(row.original.id, e.target.value)}
+          className="text-xs rounded-lg border border-input bg-background px-2 py-1.5 outline-none transition-colors focus:border-ring cursor-pointer"
+        >
+          <option value="">—</option>
+          <option value="cci">CCI</option>
+          <option value="uaf">UAF</option>
+          <option value="best">Best</option>
+          <option value="best_canvas">Best Canvas</option>
+          <option value="custom">Custom</option>
+          <option value="in-house">In-House</option>
+        </select>
+      ),
+    },
+    {
+      id: 'status_select',
+      header: 'Status',
+      cell: ({ row }) => (
+        <select
+          value={row.original.status}
+          onChange={(e) => updateStatus(row.original.id, e.target.value)}
+          className="text-xs rounded-lg border border-input bg-background px-2 py-1.5 outline-none transition-colors focus:border-ring cursor-pointer"
+        >
+          {STATUS_OPTIONS.map(s => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+      ),
+      enableSorting: false,
+    },
+  ], [laneColumns])
 
   const waitingPhotoColumns: ColumnDef<WaitingOrderCouple>[] = useMemo(() => [
     {
@@ -578,9 +659,14 @@ export default function PhotoProductionPage() {
       ),
     },
     {
-      accessorKey: 'job_type',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Job Type" />,
-      cell: ({ row }) => <span className="text-muted-foreground">{JOB_TYPE_LABELS[row.original.job_type] || row.original.job_type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</span>,
+      accessorKey: 'product_code',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Product" />,
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.product_code ?? JOB_TYPE_LABELS[row.original.job_type] ?? row.original.job_type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</span>,
+    },
+    {
+      accessorKey: 'quantity',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Qty" />,
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.quantity ?? '—'}</span>,
     },
     {
       accessorKey: 'photos_taken',
@@ -807,7 +893,8 @@ export default function PhotoProductionPage() {
                     <thead>
                       <tr className="border-b border-border bg-primary/5">
                         <th className="text-left px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary min-w-[180px]">Couple</th>
-                        <th className="text-left px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary min-w-[130px]">Job</th>
+                        <th className="text-left px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary min-w-[130px]">Product</th>
+                        <th className="text-right px-2 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary w-[50px]">Qty</th>
                         <th className="text-right px-2 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary w-[90px]">Photos Taken</th>
                         <th className="text-right px-2 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary w-[90px]">Edited So Far</th>
                         <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-primary w-[80px]">Remaining</th>
@@ -840,8 +927,9 @@ export default function PhotoProductionPage() {
                               )}
                             </td>
                             <td className="px-3 py-2.5 text-muted-foreground">
-                              {JOB_TYPE_LABELS[job.job_type] || job.job_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              {job.product_code ?? JOB_TYPE_LABELS[job.job_type] ?? job.job_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                             </td>
+                            <td className="px-2 py-2.5 text-right text-muted-foreground">{job.quantity ?? '—'}</td>
                             <td className="px-1 py-1 text-right">
                               <input
                                 key={`pt_${job.id}_${job.photos_taken}`}
@@ -899,7 +987,7 @@ export default function PhotoProductionPage() {
 
                       {inProgressJobs.length === 0 && (
                         <tr>
-                          <td colSpan={10} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                          <td colSpan={12} className="px-4 py-6 text-center text-sm text-muted-foreground">
                             No jobs currently being edited
                           </td>
                         </tr>
@@ -908,6 +996,7 @@ export default function PhotoProductionPage() {
                       {/* Currently Due ASAP Summary */}
                       <tr className="border-t-2 border-border bg-muted">
                         <td className={`px-3 py-2.5 font-bold text-sm text-foreground ${nunito.className}`}>Currently Due ASAP</td>
+                        <td></td>
                         <td></td>
                         <td className="px-3 py-2.5 text-right font-semibold text-sm text-foreground">{asapTotals.photosTaken.toLocaleString()}</td>
                         <td className="px-3 py-2.5 text-right font-semibold text-sm text-foreground">{asapTotals.editedSoFar.toLocaleString()}</td>
@@ -923,6 +1012,7 @@ export default function PhotoProductionPage() {
                       <tr className="border-t border-border bg-muted/60">
                         <td className={`px-3 py-2.5 font-bold text-sm text-muted-foreground ${nunito.className}`}>Completed in 2026</td>
                         <td></td>
+                        <td></td>
                         <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.photosTaken.toLocaleString()}</td>
                         <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.editedSoFar.toLocaleString()}</td>
                         <td className="px-3 py-2.5 text-right font-semibold text-sm text-muted-foreground">{cemeteryProofsTotals.remaining.toLocaleString()}</td>
@@ -936,6 +1026,7 @@ export default function PhotoProductionPage() {
                       {/* Year to Date Summary — TEAL */}
                       <tr style={{ fontSize: '15px' }} className="bg-primary text-primary-foreground font-bold">
                         <td className={`px-3 py-3 font-bold rounded-bl-xl ${nunito.className}`}>Year to Date</td>
+                        <td></td>
                         <td></td>
                         <td className="px-3 py-3 text-right">{ytdTotals.photosTaken.toLocaleString()}</td>
                         <td className="px-3 py-3 text-right">{ytdTotals.editedSoFar.toLocaleString()}</td>
