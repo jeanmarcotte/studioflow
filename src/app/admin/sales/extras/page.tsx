@@ -590,6 +590,7 @@ export default function ExtrasSalesPage() {
         subtitle="Additional sales by year"
         reportHref="/admin/sales/report"
         actionLabel="New Sale"
+        actionHref="/admin/sales/extras/new"
       />
 
       <div className="flex">
@@ -625,7 +626,7 @@ export default function ExtrasSalesPage() {
               />
             </div>
             <button
-              onClick={() => setShowNewSale(true)}
+              onClick={() => router.push('/admin/sales/extras/new')}
               className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors"
             >
               <Plus className="h-4 w-4" />
