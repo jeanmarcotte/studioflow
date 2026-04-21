@@ -5,8 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { ChevronDown } from 'lucide-react'
 import { DM_Sans, Playfair_Display } from 'next/font/google'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, Legend,
+  ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Line, Legend,
 } from 'recharts'
 
 const dmSans = DM_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'] })
@@ -337,7 +337,7 @@ export default function BookingPipelineDashboard() {
           </h2>
           <div style={{ width: '100%', height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={4}>
+              <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={4}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" vertical={false} />
                 <XAxis
                   dataKey="name"
@@ -382,7 +382,7 @@ export default function BookingPipelineDashboard() {
                 <Bar yAxisId="left" dataKey="booked" name="Booked" fill={GOLD} radius={[4, 4, 0, 0]} barSize={28} />
                 <Bar yAxisId="left" dataKey="revenue" name="Revenue (K)" fill="#4A5568" radius={[4, 4, 0, 0]} barSize={28} />
                 <Line yAxisId="right" type="monotone" dataKey="convRate" name="Conv %" stroke={SUCCESS} strokeWidth={2.5} dot={{ r: 4, fill: SUCCESS, strokeWidth: 0 }} />
-              </BarChart>
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>

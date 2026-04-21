@@ -85,7 +85,6 @@ export const studioflowAdminConfig: SidebarConfig = {
             { title: 'Frames & Albums', href: '/admin/sales/frames', icon: ShoppingBag },
             { title: 'Extras Sales', href: '/admin/sales/extras', icon: Package },
             { title: 'Revenue', href: '/admin/sales/revenue', icon: DollarSign },
-            { title: 'Show Results', href: '/admin/sales/show-results', icon: BarChart3 },
           ],
         },
         {

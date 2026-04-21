@@ -7,6 +7,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #7421 | 7:23 PM | 🔴 | Fixed Mismatched Chart Component Tags in Sales Report | ~125 |
+| #7420 | 7:22 PM | 🔴 | Fixed Chart Component Type in Sales Report | ~219 |
 | #7387 | 6:23 PM | 🔴 | Fixed TypeScript Type Error in Sales Report Tooltip Formatter | ~255 |
 | #7386 | 6:22 PM | 🟣 | Implemented Premium Booking Pipeline Dashboard | ~747 |
 </claude-mem-context>
