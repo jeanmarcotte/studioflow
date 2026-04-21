@@ -562,12 +562,22 @@ export default function PhotoProductionPage() {
     },
   ], [])
 
-  // At Lab columns — same as laneColumns but with editable vendor dropdown
+  // At Lab columns — same as laneColumns but with editable vendor dropdown + total_proofs for Photos
   const atLabColumns: ColumnDef<Job>[] = useMemo(() => [
     ...laneColumns.filter(col => {
       const id = (col as any).accessorKey || (col as any).id
-      return id !== 'vendor' && id !== 'status_select'
+      return id !== 'vendor' && id !== 'status_select' && id !== 'photos_taken'
     }),
+    {
+      accessorKey: 'photos_taken',
+      header: 'Photos',
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground">
+          {(row.original.total_proofs && row.original.total_proofs > 0) ? row.original.total_proofs : (row.original.photos_taken ?? '—')}
+        </div>
+      ),
+      enableSorting: false,
+    },
     {
       accessorKey: 'vendor',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Vendor" />,
