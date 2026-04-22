@@ -15,6 +15,8 @@ interface PhotoJob {
   id: string
   couple_id: string
   job_type: string
+  product_code: string | null
+  quantity: number | null
   category: string
   photos_taken: number | null
   edited_so_far: number | null
@@ -28,6 +30,11 @@ interface PhotoJob {
   updated_at: string
   completed_date: string | null
   couples?: { couple_name: string; wedding_date: string | null } | null
+}
+
+interface ProductInfo {
+  item_name: string
+  category: string
 }
 
 interface VideoJob {
@@ -111,8 +118,9 @@ function safeDeleted(pt: number, tp: number): number {
   return pt - tp
 }
 
-function isProofsJob(jobType: string): boolean {
-  return jobType.toLowerCase().includes('proofs')
+function isProofsJob(job: { product_code: string | null; job_type: string }): boolean {
+  if (job.product_code === 'PROD-WED-PROOFS' || job.product_code === 'PROD-ENG-PROOFS') return true
+  return job.job_type.toLowerCase().includes('proofs')
 }
 
 function countSegments(job: VideoJob): number {
@@ -195,8 +203,25 @@ export default function ProductionReportPage() {
   const [allPhotoJobs, setAllPhotoJobs] = useState<PhotoJob[]>([])
   const [videoJobs, setVideoJobs] = useState<VideoJob[]>([])
   const [waitingOrderCouples, setWaitingOrderCouples] = useState<WaitingOrderCouple[]>([])
+  const [productMap, setProductMap] = useState<Map<string, ProductInfo>>(new Map())
   const [loading, setLoading] = useState(true)
   const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle')
+
+  // Resolve display name: product_catalog item_name > formatJobType(job_type) > 'Unknown'
+  const resolveProductName = (job: { product_code: string | null; job_type: string }) => {
+    if (job.product_code && productMap.has(job.product_code)) {
+      return productMap.get(job.product_code)!.item_name
+    }
+    return formatJobType(job.job_type)
+  }
+
+  const resolveProductLabel = (job: { product_code: string | null; job_type: string }) => {
+    const name = resolveProductName(job)
+    if (job.product_code && productMap.has(job.product_code)) {
+      return <>{name} <span style={{ fontSize: '11px', opacity: 0.5 }}>({job.product_code})</span></>
+    }
+    return name
+  }
 
   const sendTestEmail = async () => {
     setEmailStatus('sending')
@@ -215,7 +240,7 @@ export default function ProductionReportPage() {
   useEffect(() => {
     const fetchAll = async () => {
       const today = new Date().toISOString().split('T')[0]
-      const [allPhotosRes, couplesRes, waitingRes, videoRes] = await Promise.all([
+      const [allPhotosRes, couplesRes, waitingRes, videoRes, productsRes] = await Promise.all([
         supabase.from('jobs').select('*').order('created_at', { ascending: false }),
         supabase.from('couples').select('id, couple_name, wedding_date'),
         supabase.from('couples')
@@ -224,7 +249,15 @@ export default function ProductionReportPage() {
           .order('wedding_date', { ascending: true }),
         supabase.from('video_jobs').select('*, couples(id, couple_name, wedding_date)')
           .order('sort_order', { ascending: true, nullsFirst: false }),
+        supabase.from('product_catalog').select('product_code, item_name, category'),
       ])
+
+      // Build product lookup map
+      const pMap = new Map<string, ProductInfo>()
+      if (productsRes.data) {
+        productsRes.data.forEach((p: any) => pMap.set(p.product_code, { item_name: p.item_name, category: p.category }))
+      }
+      setProductMap(pMap)
 
       const coupleMap = new Map<string, { couple_name: string; wedding_date: string | null }>()
       if (couplesRes.data) {
@@ -269,7 +302,7 @@ export default function ProductionReportPage() {
   }, [inProgressPhotoJobs])
 
   const cemeteryTotals = useMemo(() => {
-    const cemProofs = allPhotoJobs.filter(j => ['completed', 'picked_up'].includes(j.status) && isProofsJob(j.job_type))
+    const cemProofs = allPhotoJobs.filter(j => ['completed', 'picked_up'].includes(j.status) && isProofsJob(j))
     const pt = cemProofs.reduce((s, j) => s + (j.photos_taken || 0), 0)
     const esf = cemProofs.reduce((s, j) => s + (j.edited_so_far || 0), 0)
     const tp = cemProofs.reduce((s, j) => s + (j.total_proofs || 0), 0)
@@ -279,7 +312,7 @@ export default function ProductionReportPage() {
   }, [allPhotoJobs])
 
   const ytdTotals = useMemo(() => {
-    const proofsAll = allPhotoJobs.filter(j => isProofsJob(j.job_type))
+    const proofsAll = allPhotoJobs.filter(j => isProofsJob(j))
     const pt = proofsAll.reduce((s, j) => s + (j.photos_taken || 0), 0)
     const esf = proofsAll.reduce((s, j) => s + (j.edited_so_far || 0), 0)
     const tp = proofsAll.reduce((s, j) => s + (j.total_proofs || 0), 0)
@@ -293,7 +326,7 @@ export default function ProductionReportPage() {
     const map: Record<string, { done: number; at_lab: number; at_studio: number; re_edit: number; total: number }> = {}
     for (const job of allPhotoJobs) {
       if (!delivStatusGroups.includes(job.status)) continue
-      const label = DELIVERABLE_MAP[job.job_type] || formatJobType(job.job_type)
+      const label = resolveProductName(job)
       if (!map[label]) map[label] = { done: 0, at_lab: 0, at_studio: 0, re_edit: 0, total: 0 }
       if (['completed', 'picked_up'].includes(job.status)) map[label].done++
       else if (job.status === 'at_lab') map[label].at_lab++
@@ -302,7 +335,7 @@ export default function ProductionReportPage() {
       map[label].total++
     }
     return Object.entries(map).filter(([, c]) => c.total > 0)
-  }, [allPhotoJobs])
+  }, [allPhotoJobs, productMap])
 
   // Video data
   const videoEditing = useMemo(() =>
@@ -568,7 +601,8 @@ export default function ProductionReportPage() {
                 <thead>
                   <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
                     <TH align="left" px="px-4">Couple</TH>
-                    <TH align="left" px="px-3">Job</TH>
+                    <TH align="left" px="px-3">Product</TH>
+                    <TH align="center" px="px-2">Qty</TH>
                     <TH align="right" px="px-3">Taken</TH>
                     <TH align="right" px="px-3">Edited</TH>
                     <TH align="right" px="px-3">Remain</TH>
@@ -591,7 +625,8 @@ export default function ProductionReportPage() {
                           <div className="font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</div>
                           {job.couples?.wedding_date && <div className="text-[11px]" style={{ color: C.textSubtle }}>{formatDateLocal(job.couples.wedding_date)}</div>}
                         </td>
-                        <td className="px-3 py-2.5" style={{ color: C.textMuted }}>{formatJobType(job.job_type)}</td>
+                        <td className="px-3 py-2.5" style={{ color: C.textMuted }}>{resolveProductLabel(job)}</td>
+                        <td className="text-center px-2 py-2.5 tabular-nums" style={{ color: C.textMuted }}>{job.quantity ?? 1}</td>
                         <td className="text-right px-3 py-2.5 tabular-nums">{pt.toLocaleString()}</td>
                         <td className="text-right px-3 py-2.5 tabular-nums">{esf.toLocaleString()}</td>
                         <td className="text-right px-3 py-2.5 tabular-nums" style={{ color: C.textMuted }}>{remaining.toLocaleString()}</td>
@@ -603,12 +638,13 @@ export default function ProductionReportPage() {
                     )
                   })}
                   {inProgressPhotoJobs.length === 0 && (
-                    <tr><td colSpan={9} className="px-4 py-8 text-center" style={{ color: C.textSubtle }}>No jobs currently being edited</td></tr>
+                    <tr><td colSpan={10} className="px-4 py-8 text-center" style={{ color: C.textSubtle }}>No jobs currently being edited</td></tr>
                   )}
                   <SummaryRow label="Currently Due ASAP" totals={asapTotals} bg={C.summaryLight} textColor={C.textSecondary} />
                   <SummaryRow label="Completed 2026" totals={cemeteryTotals} bg={C.summaryMed} textColor={C.textMuted} />
                   <tr style={{ background: C.teal, fontSize: '14px' }} className="text-primary-foreground font-bold">
                     <td className="px-4 py-3 font-bold">Year to Date</td>
+                    <td></td>
                     <td></td>
                     <td className="text-right px-3 py-3 tabular-nums">{ytdTotals.pt.toLocaleString()}</td>
                     <td className="text-right px-3 py-3 tabular-nums">{ytdTotals.esf.toLocaleString()}</td>
@@ -640,7 +676,8 @@ export default function ProductionReportPage() {
                     <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
                       <TH align="left">Couple</TH>
                       <TH align="left" px="px-4">Wedding Date</TH>
-                      <TH align="left" px="px-4">Job</TH>
+                      <TH align="left" px="px-4">Product</TH>
+                      <TH align="center" px="px-3">Qty</TH>
                       <TH align="right" px="px-4">Photos</TH>
                       <TH align="left" px="px-4">Vendor</TH>
                     </tr>
@@ -650,7 +687,8 @@ export default function ProductionReportPage() {
                       <tr key={job.id} style={{ borderBottom: '1px solid var(--border, #f3f0ed)' }}>
                         <td className="px-5 py-2.5 font-semibold" style={{ color: C.textPrimary }}>{job.couples?.couple_name || 'Unknown'}</td>
                         <td className="px-4 py-2.5" style={{ color: C.textSubtle }}>{formatDateLocal(job.couples?.wedding_date ?? null)}</td>
-                        <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{formatJobType(job.job_type)}</td>
+                        <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{resolveProductLabel(job)}</td>
+                        <td className="text-center px-3 py-2.5 tabular-nums" style={{ color: C.textMuted }}>{job.quantity ?? 1}</td>
                         <td className="text-right px-4 py-2.5 tabular-nums" style={{ color: C.textMuted }}>{job.photos_taken ?? '\u2014'}</td>
                         <td className="px-4 py-2.5" style={{ color: C.textMuted }}>{formatVendor(job.vendor)}</td>
                       </tr>
@@ -920,6 +958,7 @@ function SummaryRow({ label, totals, bg, textColor }: {
   return (
     <tr style={{ background: bg, borderTop: '2px solid var(--border, #e7e1d8)' }}>
       <td className="px-4 py-2.5 font-bold text-[13px]" style={{ color: textColor }}>{label}</td>
+      <td></td>
       <td></td>
       <td className="text-right px-3 py-2.5 font-semibold tabular-nums" style={{ color: textColor }}>{totals.pt.toLocaleString()}</td>
       <td className="text-right px-3 py-2.5 font-semibold tabular-nums" style={{ color: textColor }}>{totals.esf.toLocaleString()}</td>
