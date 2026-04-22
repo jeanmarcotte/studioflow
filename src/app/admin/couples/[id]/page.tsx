@@ -270,12 +270,12 @@ export default function CoupleDetailPage() {
       exists: !!weddingDayForm
     },
     {
-      label: 'Photo Order',
+      label: 'Photo Form',
       href: null,
       exists: false
     },
     {
-      label: 'Video Order',
+      label: 'Video Form',
       href: videoOrder?.id ? `/admin/video-orders/${videoOrder.id}` : null,
       exists: !!videoOrder?.submitted_at
     },

@@ -93,6 +93,7 @@ export const studioflowAdminConfig: SidebarConfig = {
           children: [
             { title: 'Photo Editing', href: '/admin/production/photo', icon: Camera },
             { title: 'Video Editing', href: '/admin/production/video', icon: Video },
+            { title: 'Client Orders', href: '/admin/orders', icon: FileCheck },
             { title: 'Add Editing Job', href: '/admin/production/editing/new', icon: Scissors },
             { title: 'Archive', href: '/admin/production/archive', icon: Archive },
           ],

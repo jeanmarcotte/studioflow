@@ -195,6 +195,40 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
       size: 50,
     },
     {
+      id: 'photoProdOrder',
+      accessorFn: (row) => row.photo_order_ids.length > 0 ? 1 : 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Photo Prod" />,
+      cell: ({ row }) => {
+        const ids = row.original.photo_order_ids
+        if (ids.length === 0) return <Minus size={16} className="text-gray-300 mx-auto" />
+        if (ids.length === 1) return <DocLink href={`/admin/orders/${ids[0]}/view`} title="View Photo Production Order" />
+        return (
+          <span className="flex items-center justify-center gap-1">
+            <DocLink href={`/admin/orders/${ids[0]}/view`} title="View Photo Production Order" />
+            <span className="text-[10px] font-bold text-gray-500 bg-gray-100 rounded-full px-1.5">{ids.length}</span>
+          </span>
+        )
+      },
+      size: 50,
+    },
+    {
+      id: 'videoProdOrder',
+      accessorFn: (row) => row.video_order_ids.length > 0 ? 1 : 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Video Prod" />,
+      cell: ({ row }) => {
+        const ids = row.original.video_order_ids
+        if (ids.length === 0) return <Minus size={16} className="text-gray-300 mx-auto" />
+        if (ids.length === 1) return <DocLink href={`/admin/orders/${ids[0]}/view`} title="View Video Production Order" />
+        return (
+          <span className="flex items-center justify-center gap-1">
+            <DocLink href={`/admin/orders/${ids[0]}/view`} title="View Video Production Order" />
+            <span className="text-[10px] font-bold text-gray-500 bg-gray-100 rounded-full px-1.5">{ids.length}</span>
+          </span>
+        )
+      },
+      size: 50,
+    },
+    {
       id: 'actions',
       header: '',
       enableSorting: false,
@@ -227,6 +261,14 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
         if (c.vof_ids.length > 0) {
           viewLinks.push({ label: 'View Video Order', href: `/admin/documents/video-order/${c.vof_ids[0]}` })
           printLinks.push({ label: 'Print Video Order', href: `/admin/documents/video-order/${c.vof_ids[0]}?print=true` })
+        }
+        if (c.photo_order_ids.length > 0) {
+          viewLinks.push({ label: 'View Photo Prod Order', href: `/admin/orders/${c.photo_order_ids[0]}/view` })
+          printLinks.push({ label: 'Print Photo Prod Order', href: `/admin/orders/${c.photo_order_ids[0]}/view?print=true` })
+        }
+        if (c.video_order_ids.length > 0) {
+          viewLinks.push({ label: 'View Video Prod Order', href: `/admin/orders/${c.video_order_ids[0]}/view` })
+          printLinks.push({ label: 'Print Video Prod Order', href: `/admin/orders/${c.video_order_ids[0]}/view?print=true` })
         }
 
         if (viewLinks.length === 0) return <span className="text-gray-300">—</span>

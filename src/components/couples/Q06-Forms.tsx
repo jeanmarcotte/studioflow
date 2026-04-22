@@ -77,8 +77,8 @@ export function Q06Forms({ dayFormApproved, photoOrderIn, videoOrderIn, packageT
       </div>
       <div>
         <FormRow name="Wedding Day Form" isComplete={dayFormApproved} href={`/client/wedding-day-form/${coupleId}`} />
-        <FormRow name="Photo Order" isComplete={photoOrderIn} href={`/client/photo-order/${coupleId}`} />
-        <FormRow name="Video Order" isComplete={videoOrderIn} href={`/client/video-order/${coupleId}`} isNA={isPhotoOnly} />
+        <FormRow name="Photo Form" isComplete={photoOrderIn} href={`/client/photo-order/${coupleId}`} />
+        <FormRow name="Video Form" isComplete={videoOrderIn} href={`/client/video-order/${coupleId}`} isNA={isPhotoOnly} />
       </div>
     </div>
   );

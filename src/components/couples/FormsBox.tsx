@@ -77,12 +77,12 @@ export function FormsBox({
           href={`/client/wedding-day-form/${coupleId}`}
         />
         <FormRow
-          name="Photo Order"
+          name="Photo Form"
           isComplete={photoOrderIn}
           href={`/client/photo-order/${coupleId}`}
         />
         <FormRow
-          name="Video Order"
+          name="Video Form"
           isComplete={videoOrderIn}
           href={`/client/video-order/${coupleId}`}
           isNA={isPhotoOnly}

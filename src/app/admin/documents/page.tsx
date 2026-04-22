@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { DocumentsTable } from './DocumentsTable'
-import { Files, FileText, Image, ShoppingBag, Calendar, Camera, Video } from 'lucide-react'
+import { Files, FileText, Image, ShoppingBag, Calendar, Camera, Video, Package } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -26,9 +26,11 @@ export interface CoupleDocRow {
   wdf_ids: string[]
   pof_ids: string[]
   vof_ids: string[]
+  photo_order_ids: string[]
+  video_order_ids: string[]
 }
 
-type SheetType = 'total' | 'contracts' | 'frames' | 'extras' | 'dayForms' | 'photoOrders' | 'videoOrders' | null
+type SheetType = 'total' | 'contracts' | 'frames' | 'extras' | 'dayForms' | 'photoOrders' | 'videoOrders' | 'photoProdOrders' | 'videoProdOrders' | null
 
 function formatDateDow(date: string): string {
   if (!date) return '—'
@@ -70,6 +72,7 @@ export default function DocumentsPage() {
           { data: weddingDayForms },
           { data: photoOrders },
           { data: videoOrders },
+          { data: clientOrders },
         ] = await Promise.all([
           supabase.from('contracts').select('id, couple_id'),
           supabase.from('extras_orders').select('id, couple_id, status'),
@@ -77,6 +80,7 @@ export default function DocumentsPage() {
           supabase.from('wedding_day_forms').select('id, couple_id'),
           supabase.from('photo_orders').select('id, couple_id'),
           supabase.from('video_orders').select('id, couple_id'),
+          supabase.from('client_orders').select('id, couple_id, order_type'),
         ])
 
         const contractMap = new Map<string, string[]>()
@@ -112,6 +116,16 @@ export default function DocumentsPage() {
           if (r.couple_id) { const arr = vofMap.get(r.couple_id) || []; arr.push(r.id); vofMap.set(r.couple_id, arr) }
         })
 
+        const photoProdMap = new Map<string, string[]>()
+        const videoProdMap = new Map<string, string[]>()
+        ;(clientOrders || []).forEach((r: any) => {
+          if (!r.couple_id) return
+          const map = r.order_type === 'video' ? videoProdMap : photoProdMap
+          const arr = map.get(r.couple_id) || []
+          arr.push(r.id)
+          map.set(r.couple_id, arr)
+        })
+
         setRows(couples.map((c: any) => ({
           id: c.id,
           bride_first_name: c.bride_first_name || '',
@@ -125,6 +139,8 @@ export default function DocumentsPage() {
           wdf_ids: wdfMap.get(c.id) || [],
           pof_ids: pofMap.get(c.id) || [],
           vof_ids: vofMap.get(c.id) || [],
+          photo_order_ids: photoProdMap.get(c.id) || [],
+          video_order_ids: videoProdMap.get(c.id) || [],
         })))
       } catch (err) {
         console.error('[DocumentsPage] Failed to load:', err)
@@ -143,7 +159,9 @@ export default function DocumentsPage() {
     const dayForms = rows.filter(r => r.wdf_ids.length > 0).length
     const photoOrders = rows.filter(r => r.pof_ids.length > 0).length
     const videoOrders = rows.filter(r => r.vof_ids.length > 0).length
-    return { total: contracts + frames + extras, contracts, frames, extras, dayForms, photoOrders, videoOrders }
+    const photoProdOrders = rows.filter(r => r.photo_order_ids.length > 0).length
+    const videoProdOrders = rows.filter(r => r.video_order_ids.length > 0).length
+    return { total: contracts + frames + extras, contracts, frames, extras, dayForms, photoOrders, videoOrders, photoProdOrders, videoProdOrders }
   }, [rows])
 
   // Sheet data
@@ -158,6 +176,8 @@ export default function DocumentsPage() {
       dayForms: r => r.wdf_ids.length > 0,
       photoOrders: r => r.pof_ids.length > 0,
       videoOrders: r => r.vof_ids.length > 0,
+      photoProdOrders: r => r.photo_order_ids.length > 0,
+      videoProdOrders: r => r.video_order_ids.length > 0,
     }
 
     const titles: Record<string, string> = {
@@ -168,6 +188,8 @@ export default function DocumentsPage() {
       dayForms: 'Day Forms',
       photoOrders: 'Photo Orders',
       videoOrders: 'Video Orders',
+      photoProdOrders: 'Photo Production Orders',
+      videoProdOrders: 'Video Production Orders',
     }
 
     const couples = rows.filter(filterMap[sheetType] || (() => false))
@@ -196,6 +218,8 @@ export default function DocumentsPage() {
       case 'dayForms': return couple.wdf_ids[0] ? `/admin/documents/wedding-day-form/${couple.wdf_ids[0]}` : '#'
       case 'photoOrders': return couple.pof_ids[0] ? `/admin/documents/photo-order/${couple.pof_ids[0]}` : '#'
       case 'videoOrders': return couple.vof_ids[0] ? `/admin/documents/video-order/${couple.vof_ids[0]}` : '#'
+      case 'photoProdOrders': return couple.photo_order_ids[0] ? `/admin/orders/${couple.photo_order_ids[0]}/view` : '#'
+      case 'videoProdOrders': return couple.video_order_ids[0] ? `/admin/orders/${couple.video_order_ids[0]}/view` : '#'
       default: return '#'
     }
   }
@@ -277,6 +301,25 @@ export default function DocumentsPage() {
             </div>
             <div className="text-2xl font-bold">{metrics.videoOrders}</div>
           </button>
+          <div className="border-t pt-4 mt-2">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Production Orders</p>
+            <div className="space-y-3">
+              <button onClick={() => setSheetType('photoProdOrders')} className="bg-white border rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all text-left w-full">
+                <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                  <Package size={14} />
+                  <span>Photo Prod Orders</span>
+                </div>
+                <div className="text-2xl font-bold">{metrics.photoProdOrders}</div>
+              </button>
+              <button onClick={() => setSheetType('videoProdOrders')} className="bg-white border rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all text-left w-full">
+                <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                  <Package size={14} />
+                  <span>Video Prod Orders</span>
+                </div>
+                <div className="text-2xl font-bold">{metrics.videoProdOrders}</div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
