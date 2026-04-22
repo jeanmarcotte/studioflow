@@ -2,10 +2,13 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Send, X, ChevronDown, ChevronRight, Plus, Eye, Check, Clock, Mail, Upload, FileText, Trash2, Download, ExternalLink, ChevronUp } from 'lucide-react'
+import { Send, X, ChevronDown, ChevronRight, Plus, Eye, Check, Clock, Mail, Upload, FileText, Trash2, Download, ExternalLink } from 'lucide-react'
 import { Playfair_Display, Nunito } from 'next/font/google'
 import { format } from 'date-fns'
 import { formatPackage } from '@/lib/formatters'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -51,15 +54,6 @@ interface Milestone {
   m15_day_form_approved: boolean | null
 }
 
-interface MeetingPoint {
-  id: string
-  name: string
-  address: string
-  maps_url: string | null
-  usual_for: string | null
-  is_active: boolean
-}
-
 interface CrewEntry {
   team_member_id: string
   member_name: string
@@ -67,18 +61,8 @@ interface CrewEntry {
   role: string
   checked: boolean
   call_time: string
-  meeting_point_id: string
-  meeting_point: string
-  meeting_point_address: string
-  meeting_point_maps_url: string
-  meeting_point_custom: string
-  meeting_point_time: string
-  equipment_pickup_location: string
-  equipment_pickup_time: string
-  equipment_dropoff_location: string
-  equipment_dropoff_time: string
+  meeting_location: string
   special_notes: string
-  showEquipment: boolean
 }
 
 interface HistorySheet {
@@ -115,7 +99,6 @@ interface ScheduleEvent {
 
 function parseTimeStr(t: string): number | null {
   if (!t) return null
-  // Format: "7:30 AM" or "10:30 PM"
   const match12 = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
   if (match12) {
     let h = parseInt(match12[1])
@@ -125,12 +108,10 @@ function parseTimeStr(t: string): number | null {
     if (ampm === 'AM' && h === 12) h = 0
     return h * 60 + m
   }
-  // Format: "10:30" (24h)
   const match24 = t.match(/^(\d{1,2}):(\d{2})$/)
   if (match24) {
     return parseInt(match24[1]) * 60 + parseInt(match24[2])
   }
-  // Format: "10am" or "10pm"
   const matchShort = t.match(/^(\d{1,2})\s*(am|pm)$/i)
   if (matchShort) {
     let h = parseInt(matchShort[1])
@@ -151,82 +132,25 @@ function minutesToTimeStr(mins: number): string {
   return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`
 }
 
-function adjustTime(time: string, deltaMins: number): string {
-  const mins = parseTimeStr(time)
-  if (mins === null) return time
-  return minutesToTimeStr(mins + deltaMins)
+/** Convert any time string to HH:MM format for <input type="time"> */
+function toHHMM(t: string): string {
+  const mins = parseTimeStr(t)
+  if (mins === null) return ''
+  const h = Math.floor(mins / 60) % 24
+  const m = mins % 60
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+}
+
+/** Convert HH:MM from <input type="time"> back to display format */
+function fromHHMM(hhmm: string): string {
+  if (!hhmm) return ''
+  const [h, m] = hhmm.split(':').map(Number)
+  if (isNaN(h) || isNaN(m)) return ''
+  return minutesToTimeStr(h * 60 + m)
 }
 
 function mapsUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-}
-
-// ── Digital Clock Time Picker ────────────────────────────────────
-
-function TimePicker({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
-  const hasValue = !!value && parseTimeStr(value) !== null
-
-  return (
-    <div>
-      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: '4px' }}>{label}</span>
-      <div style={{
-        display: 'flex', alignItems: 'stretch', border: '1px solid var(--border)', borderRadius: '8px',
-        overflow: 'hidden', background: 'var(--background)', height: '38px',
-      }}>
-        {/* Down button */}
-        <button
-          onClick={() => onChange(adjustTime(value || '12:00 PM', -15))}
-          style={{
-            width: '32px', border: 'none', background: 'var(--muted)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRight: '1px solid var(--border)', color: 'var(--primary)', flexShrink: 0,
-          }}
-          title="-15 min"
-        >
-          <ChevronDown size={14} />
-        </button>
-
-        {/* Time display */}
-        <div style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: "'Courier New', Courier, monospace",
-          fontSize: '1rem', fontWeight: 700,
-          color: hasValue ? 'var(--primary)' : 'var(--muted-foreground)',
-          letterSpacing: '0.5px',
-          background: hasValue ? 'var(--accent)' : 'var(--background)',
-          minWidth: '90px',
-          cursor: 'text',
-          position: 'relative',
-        }}>
-          <input
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            placeholder="--:-- --"
-            style={{
-              width: '100%', textAlign: 'center', border: 'none', background: 'transparent',
-              fontFamily: "'Courier New', Courier, monospace",
-              fontSize: '1rem', fontWeight: 700,
-              color: hasValue ? 'var(--primary)' : 'var(--muted-foreground)',
-              outline: 'none', padding: '0 4px',
-            }}
-          />
-        </div>
-
-        {/* Up button */}
-        <button
-          onClick={() => onChange(adjustTime(value || '12:00 PM', 15))}
-          style={{
-            width: '32px', border: 'none', background: 'var(--muted)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderLeft: '1px solid var(--border)', color: 'var(--primary)', flexShrink: 0,
-          }}
-          title="+15 min"
-        >
-          <ChevronUp size={14} />
-        </button>
-      </div>
-    </div>
-  )
 }
 
 // ── Component ────────────────────────────────────────────────────
@@ -237,10 +161,10 @@ export default function CrewCallSheetPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [milestones, setMilestones] = useState<Milestone[]>([])
-  const [meetingPoints, setMeetingPoints] = useState<MeetingPoint[]>([])
   const [selectedCoupleId, setSelectedCoupleId] = useState<string>('')
   const [crewEntries, setCrewEntries] = useState<CrewEntry[]>([])
   const [generalNotes, setGeneralNotes] = useState('')
+  const [equipmentNotes, setEquipmentNotes] = useState('')
   const [dressCode, setDressCode] = useState('')
   const [bridesmaids, setBridesmaids] = useState('')
   const [groomsmen, setGroomsmen] = useState('')
@@ -260,9 +184,6 @@ export default function CrewCallSheetPage() {
   const [showHistory, setShowHistory] = useState(false)
   const [showAddCrew, setShowAddCrew] = useState(false)
   const [showVendors, setShowVendors] = useState(false)
-  const [showAddMeetingPoint, setShowAddMeetingPoint] = useState(false)
-  const [newMpName, setNewMpName] = useState('')
-  const [newMpAddress, setNewMpAddress] = useState('')
   const [loading, setLoading] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -272,14 +193,13 @@ export default function CrewCallSheetPage() {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
 
-    const [couplesRes, contractsRes, assignmentsRes, membersRes, milestonesRes, mpRes] = await Promise.all([
+    const [couplesRes, contractsRes, assignmentsRes, membersRes, milestonesRes] = await Promise.all([
       supabase.from('couples').select('id, couple_name, wedding_date, park_location, package_type')
         .gte('wedding_date', today).order('wedding_date', { ascending: true }),
       supabase.from('contracts').select('couple_id, ceremony_location, reception_venue, start_time, end_time, num_photographers, num_videographers, day_of_week'),
       supabase.from('wedding_assignments').select('couple_id, photo_1, photo_2, video_1'),
       supabase.from('team_members').select('id, first_name, last_name, email, status').in('status', ['active', 'probationary']),
       supabase.from('couple_milestones').select('couple_id, m15_day_form_approved'),
-      supabase.from('meeting_points').select('*').eq('is_active', true).order('name'),
     ])
 
     if (couplesRes.data) setCouples(couplesRes.data)
@@ -287,7 +207,6 @@ export default function CrewCallSheetPage() {
     if (assignmentsRes.data) setAssignments(assignmentsRes.data)
     if (membersRes.data) setTeamMembers(membersRes.data)
     if (milestonesRes.data) setMilestones(milestonesRes.data)
-    if (mpRes.data) setMeetingPoints(mpRes.data)
     setLoading(false)
   }, [])
 
@@ -315,7 +234,6 @@ export default function CrewCallSheetPage() {
     }
 
     try {
-      // Hardcoded Toronto coordinates — all GTA weddings
       const lat = 43.6532, lng = -79.3832
 
       const weatherRes = await fetch(
@@ -358,33 +276,42 @@ export default function CrewCallSheetPage() {
         planner: form.vendor_wedding_planner || '', transport: form.vendor_transportation || '',
       })
 
-      // Build schedule events from wedding day form
-      const events: ScheduleEvent[] = []
+      // Build schedule events — order depends on First Look
       const fmtTime = (t: string) => { const m = parseTimeStr(t); return m !== null ? minutesToTimeStr(m) : t }
-      if (form.groom_start_time && form.groom_address) {
-        events.push({ time: fmtTime(form.groom_start_time), label: 'Groom Prep', address: form.groom_address, maps_url: mapsUrl(form.groom_address) })
+
+      const groomEvt = (form.groom_start_time && form.groom_address)
+        ? { time: fmtTime(form.groom_start_time), label: 'Groom Prep', address: form.groom_address, maps_url: mapsUrl(form.groom_address) } : null
+      const brideEvt = (form.bride_start_time && form.bride_address)
+        ? { time: fmtTime(form.bride_start_time), label: 'Bride Prep', address: form.bride_address, maps_url: mapsUrl(form.bride_address) } : null
+      const firstLookEvt = (form.has_first_look && form.first_look_time && form.first_look_address)
+        ? { time: fmtTime(form.first_look_time), label: 'First Look', address: form.first_look_address, maps_url: mapsUrl(form.first_look_address) } : null
+      const ceremonyEvt = form.ceremony_start_time
+        ? { time: fmtTime(form.ceremony_start_time), label: 'Ceremony', address: [form.ceremony_location_name, form.ceremony_address].filter(Boolean).join(', '), maps_url: mapsUrl(form.ceremony_address || form.ceremony_location_name || '') } : null
+      const parkEvt = form.park_start_time
+        ? { time: fmtTime(form.park_start_time), label: 'Park Photos', address: [form.park_name, form.park_address].filter(Boolean).join(', '), maps_url: mapsUrl(form.park_address || form.park_name || '') } : null
+      const receptionEvt = form.reception_start_time
+        ? { time: fmtTime(form.reception_start_time), label: 'Reception', address: [form.reception_venue_name, form.reception_address].filter(Boolean).join(', '), maps_url: mapsUrl(form.reception_address || form.reception_venue_name || '') } : null
+      const endEvt = form.photo_video_end_time
+        ? { time: fmtTime(form.photo_video_end_time), label: 'Photo/Video Concludes', address: '', maps_url: '' } : null
+
+      const events: ScheduleEvent[] = []
+      if (groomEvt) events.push(groomEvt)
+      if (brideEvt) events.push(brideEvt)
+
+      if (form.has_first_look) {
+        // First Look order: First Look → Park → Ceremony
+        if (firstLookEvt) events.push(firstLookEvt)
+        if (parkEvt) events.push(parkEvt)
+        if (ceremonyEvt) events.push(ceremonyEvt)
+      } else {
+        // Default order: Ceremony → Park
+        if (ceremonyEvt) events.push(ceremonyEvt)
+        if (parkEvt) events.push(parkEvt)
       }
-      if (form.bride_start_time && form.bride_address) {
-        events.push({ time: fmtTime(form.bride_start_time), label: 'Bride Prep', address: form.bride_address, maps_url: mapsUrl(form.bride_address) })
-      }
-      if (form.has_first_look && form.first_look_time && form.first_look_address) {
-        events.push({ time: fmtTime(form.first_look_time), label: 'First Look', address: form.first_look_address, maps_url: mapsUrl(form.first_look_address) })
-      }
-      if (form.ceremony_start_time) {
-        const addr = [form.ceremony_location_name, form.ceremony_address].filter(Boolean).join(', ')
-        events.push({ time: fmtTime(form.ceremony_start_time), label: 'Ceremony', address: addr, maps_url: mapsUrl(form.ceremony_address || form.ceremony_location_name || '') })
-      }
-      if (form.park_start_time) {
-        const addr = [form.park_name, form.park_address].filter(Boolean).join(', ')
-        events.push({ time: fmtTime(form.park_start_time), label: 'Park Photos', address: addr, maps_url: mapsUrl(form.park_address || form.park_name || '') })
-      }
-      if (form.reception_start_time) {
-        const addr = [form.reception_venue_name, form.reception_address].filter(Boolean).join(', ')
-        events.push({ time: fmtTime(form.reception_start_time), label: 'Reception', address: addr, maps_url: mapsUrl(form.reception_address || form.reception_venue_name || '') })
-      }
-      if (form.photo_video_end_time) {
-        events.push({ time: fmtTime(form.photo_video_end_time), label: 'Photo/Video Concludes', address: '', maps_url: '' })
-      }
+
+      if (receptionEvt) events.push(receptionEvt)
+      if (endEvt) events.push(endEvt)
+
       setSchedule(events)
     } else {
       setSchedule([])
@@ -415,7 +342,7 @@ export default function CrewCallSheetPage() {
       setCrewEntries([]); setSentTimestamp(null); setHistory([])
       setDressCode(''); setBridesmaids(''); setGroomsmen('')
       setVendors({ dj_mc: '', florist: '', makeup: '', hair: '', planner: '', transport: '' })
-      setKeyMoments('')
+      setKeyMoments(''); setEquipmentNotes('')
       setWeather({ high: null, low: null, precipitation: null, sunrise: null, sunset: null, available: false })
       setSchedule([])
       setUploadedDocs([]); setUploadError('')
@@ -425,37 +352,22 @@ export default function CrewCallSheetPage() {
     const contract = contracts.find(c => c.couple_id === selectedCoupleId)
     const couple = couples.find(c => c.id === selectedCoupleId)
 
-    // ── All times derive from contracts.start_time ──
     const startMins = contract?.start_time ? parseTimeStr(contract.start_time) : null
-    const endMins = contract?.end_time ? parseTimeStr(contract.end_time) : null
-
-    const defaultCallTime = startMins !== null ? minutesToTimeStr(startMins - 60) : ''         // start - 1hr
-    const defaultMeetingTime = startMins !== null ? minutesToTimeStr(startMins) : ''            // = start_time
-    const defaultEquipPickup = startMins !== null ? minutesToTimeStr(startMins - 90) : ''       // meeting - 90min
-    const defaultEquipDropoff = endMins !== null ? minutesToTimeStr(endMins) : ''               // = end_time
+    const defaultCallTime = startMins !== null ? minutesToTimeStr(startMins - 60) : ''
 
     const entries: CrewEntry[] = []
-    let isFirst = true
     const addEntry = (name: string | null, role: string) => {
       if (!name) return
       const member = teamMembers.find(m => m.first_name === name)
       if (!member) return
-      const isLead = isFirst
       entries.push({
         team_member_id: member.id,
         member_name: `${member.first_name} ${member.last_name || ''}`.trim(),
         member_email: member.email || '', role, checked: true,
         call_time: defaultCallTime,
-        meeting_point_id: '', meeting_point: '', meeting_point_address: '',
-        meeting_point_maps_url: '', meeting_point_custom: '',
-        meeting_point_time: defaultMeetingTime,
-        equipment_pickup_location: isLead ? "Jean's house" : '',
-        equipment_pickup_time: isLead ? defaultEquipPickup : '',
-        equipment_dropoff_location: '',
-        equipment_dropoff_time: isLead ? defaultEquipDropoff : '',
-        special_notes: '', showEquipment: isLead,
+        meeting_location: '',
+        special_notes: '',
       })
-      isFirst = false
     }
 
     addEntry(selectedAssignment.photo_1, 'Lead Photographer')
@@ -493,58 +405,7 @@ export default function CrewCallSheetPage() {
   // ── Crew entry updates ─────────────────────────────────────────
 
   const updateEntry = (idx: number, field: keyof CrewEntry, value: any) => {
-    if (field === 'meeting_point_time') {
-      // Sync meeting point time across ALL crew members
-      const newPickup = (() => {
-        const mins = parseTimeStr(value)
-        return mins !== null ? minutesToTimeStr(mins - 90) : ''
-      })()
-      setCrewEntries(prev => prev.map((e, i) => ({
-        ...e,
-        meeting_point_time: value,
-        // Recalculate equipment pickup time for lead (first entry with showEquipment)
-        equipment_pickup_time: e.showEquipment ? newPickup : e.equipment_pickup_time,
-      })))
-    } else {
-      setCrewEntries(prev => prev.map((e, i) => i === idx ? { ...e, [field]: value } : e))
-    }
-  }
-
-  const handleMeetingPointChange = (idx: number, mpId: string) => {
-    if (mpId === '__venue__') {
-      const venue = selectedContract?.reception_venue || ''
-      setCrewEntries(prev => prev.map((e, i) => i === idx ? {
-        ...e, meeting_point_id: mpId, meeting_point: `The Venue — ${venue}`,
-        meeting_point_address: venue, meeting_point_maps_url: venue ? mapsUrl(venue) : '', meeting_point_custom: '',
-      } : e))
-    } else if (mpId === '__other__') {
-      setCrewEntries(prev => prev.map((e, i) => i === idx ? {
-        ...e, meeting_point_id: mpId, meeting_point: '', meeting_point_address: '',
-        meeting_point_maps_url: '', meeting_point_custom: '',
-      } : e))
-    } else if (mpId) {
-      const mp = meetingPoints.find(m => m.id === mpId)
-      if (mp) {
-        setCrewEntries(prev => prev.map((e, i) => i === idx ? {
-          ...e, meeting_point_id: mpId,
-          meeting_point: mp.name + (mp.usual_for ? ` — ${mp.usual_for}` : ''),
-          meeting_point_address: mp.address,
-          meeting_point_maps_url: mp.maps_url || mapsUrl(mp.address), meeting_point_custom: '',
-        } : e))
-      }
-    } else {
-      setCrewEntries(prev => prev.map((e, i) => i === idx ? {
-        ...e, meeting_point_id: '', meeting_point: '', meeting_point_address: '',
-        meeting_point_maps_url: '', meeting_point_custom: '',
-      } : e))
-    }
-  }
-
-  const handleCustomMeetingPoint = (idx: number, text: string) => {
-    setCrewEntries(prev => prev.map((e, i) => i === idx ? {
-      ...e, meeting_point_custom: text, meeting_point: text,
-      meeting_point_address: text, meeting_point_maps_url: text ? mapsUrl(text) : '',
-    } : e))
+    setCrewEntries(prev => prev.map((e, i) => i === idx ? { ...e, [field]: value } : e))
   }
 
   const addCrewMember = (member: TeamMember) => {
@@ -552,19 +413,13 @@ export default function CrewCallSheetPage() {
     const contract = contracts.find(c => c.couple_id === selectedCoupleId)
     const startMins = contract?.start_time ? parseTimeStr(contract.start_time) : null
     const defaultCallTime = startMins !== null ? minutesToTimeStr(startMins - 60) : ''
-    const defaultMeetingTime = startMins !== null ? minutesToTimeStr(startMins) : ''
-    // Inherit current meeting point time from existing crew if already changed
-    const existingMpTime = crewEntries[0]?.meeting_point_time || defaultMeetingTime
     setCrewEntries(prev => [...prev, {
       team_member_id: member.id,
       member_name: `${member.first_name} ${member.last_name || ''}`.trim(),
       member_email: member.email || '', role: '2nd Photographer', checked: true,
       call_time: defaultCallTime,
-      meeting_point_id: '', meeting_point: '', meeting_point_address: '',
-      meeting_point_maps_url: '', meeting_point_custom: '', meeting_point_time: existingMpTime,
-      equipment_pickup_location: '', equipment_pickup_time: '',
-      equipment_dropoff_location: '', equipment_dropoff_time: '',
-      special_notes: '', showEquipment: false,
+      meeting_location: '',
+      special_notes: '',
     }])
     setShowAddCrew(false)
   }
@@ -617,19 +472,6 @@ export default function CrewCallSheetPage() {
     if (data?.signedUrl) window.open(data.signedUrl, '_blank')
   }
 
-  // ── Add new meeting point ──────────────────────────────────────
-
-  const handleAddMeetingPoint = async () => {
-    if (!newMpName.trim() || !newMpAddress.trim()) return
-    const { data, error } = await supabase.from('meeting_points')
-      .insert({ name: newMpName.trim(), address: newMpAddress.trim(), maps_url: mapsUrl(newMpAddress.trim()), is_active: true })
-      .select('*').limit(1)
-    if (!error && data?.[0]) {
-      setMeetingPoints(prev => [...prev, data[0]])
-      setNewMpName(''); setNewMpAddress(''); setShowAddMeetingPoint(false)
-    }
-  }
-
   // ── Send handler ───────────────────────────────────────────────
 
   const handleSend = async () => {
@@ -655,6 +497,7 @@ export default function CrewCallSheetPage() {
           park_location: selectedCouple.park_location || '',
           start_time: selectedContract?.start_time || '', end_time: selectedContract?.end_time || '',
           package_type: selectedCouple.package_type || '', notes: generalNotes,
+          equipment_notes: equipmentNotes,
           dress_code: dressCode, bridesmaids, groomsmen, vendors, key_moments: keyMoments,
           weather: weatherStr,
           schedule: schedule.length > 0 ? schedule : (selectedContract ? (() => {
@@ -669,12 +512,14 @@ export default function CrewCallSheetPage() {
           crew_members: checkedCrew.map(e => ({
             team_member_id: e.team_member_id, member_name: e.member_name,
             member_email: e.member_email, role: e.role, call_time: e.call_time,
-            meeting_point: e.meeting_point, meeting_point_address: e.meeting_point_address,
-            meeting_point_maps_url: e.meeting_point_maps_url, meeting_point_time: e.meeting_point_time,
-            equipment_pickup_location: e.equipment_pickup_location,
-            equipment_pickup_time: e.equipment_pickup_time,
-            equipment_dropoff_location: e.equipment_dropoff_location,
-            equipment_dropoff_time: e.equipment_dropoff_time,
+            meeting_point: e.meeting_location,
+            meeting_point_address: e.meeting_location,
+            meeting_point_maps_url: e.meeting_location ? mapsUrl(e.meeting_location) : '',
+            meeting_point_time: '',
+            equipment_pickup_location: '',
+            equipment_pickup_time: '',
+            equipment_dropoff_location: '',
+            equipment_dropoff_time: '',
             special_notes: e.special_notes,
           })),
         }),
@@ -777,7 +622,7 @@ export default function CrewCallSheetPage() {
 
       {selectedCouple && (
         <>
-          {/* Section 2: Wedding Summary Card */}
+          {/* Section 2: Wedding Details Card with Locations */}
           <div style={cardStyle}>
             {sectionTitle('Wedding Details')}
             <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '6px 16px', fontSize: '0.85rem' }}>
@@ -794,30 +639,6 @@ export default function CrewCallSheetPage() {
                 ) : 'Available closer to date'}
               </span>
 
-              {selectedContract?.reception_venue && <>
-                <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Reception</span>
-                <span style={{ color: 'var(--foreground)' }}>
-                  {selectedContract.reception_venue}
-                  <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
-                </span>
-              </>}
-
-              {selectedContract?.ceremony_location && <>
-                <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Ceremony</span>
-                <span style={{ color: 'var(--foreground)' }}>
-                  {selectedContract.ceremony_location}
-                  <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
-                </span>
-              </>}
-
-              {selectedCouple.park_location && <>
-                <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Park</span>
-                <span style={{ color: 'var(--foreground)' }}>
-                  {selectedCouple.park_location}
-                  <a href={mapsUrl(selectedCouple.park_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
-                </span>
-              </>}
-
               {calcCoverage() && <>
                 <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Coverage</span>
                 <span style={{ color: 'var(--foreground)' }}>{calcCoverage()}</span>
@@ -833,10 +654,72 @@ export default function CrewCallSheetPage() {
 
               <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Wedding Day Form</span>
               <span>{selectedMilestone?.m15_day_form_approved
-                ? <span style={{ color: 'var(--primary)', fontWeight: 700 }}>Received ✅</span>
-                : <span style={{ color: 'var(--destructive)', fontWeight: 700 }}>Missing 🚨</span>
+                ? <span style={{ color: 'var(--primary)', fontWeight: 700 }}>Received</span>
+                : <span style={{ color: 'var(--destructive)', fontWeight: 700 }}>Missing</span>
               }</span>
             </div>
+
+            {/* Key Locations — ordered by First Look logic */}
+            {schedule.length > 0 && (
+              <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
+                <h3 className={playfair.className} style={{ fontSize: '0.9rem', color: 'var(--primary)', margin: '0 0 10px' }}>Key Locations</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {schedule.filter(evt => evt.label !== 'Photo/Video Concludes').map((evt, i) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'baseline', gap: '10px', fontSize: '0.85rem',
+                      padding: '6px 10px', background: 'var(--muted)', borderRadius: '6px',
+                    }}>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, color: 'var(--primary)', minWidth: '70px', flexShrink: 0 }}>{evt.time}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--foreground)', minWidth: '80px', flexShrink: 0 }}>{evt.label}</span>
+                      {evt.address && (
+                        <span style={{ color: 'var(--foreground)', flex: 1 }}>
+                          {evt.address}
+                          {evt.maps_url && (
+                            <a href={evt.maps_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Maps</a>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Fallback locations from contract when no wedding day form */}
+            {schedule.length === 0 && (selectedContract?.ceremony_location || selectedContract?.reception_venue || selectedCouple.park_location) && (
+              <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
+                <h3 className={playfair.className} style={{ fontSize: '0.9rem', color: 'var(--primary)', margin: '0 0 10px' }}>Key Locations</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedContract?.ceremony_location && (
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', fontSize: '0.85rem', padding: '6px 10px', background: 'var(--muted)', borderRadius: '6px' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--foreground)', minWidth: '80px', flexShrink: 0 }}>Ceremony</span>
+                      <span style={{ color: 'var(--foreground)', flex: 1 }}>
+                        {selectedContract.ceremony_location}
+                        <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Maps</a>
+                      </span>
+                    </div>
+                  )}
+                  {selectedCouple.park_location && (
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', fontSize: '0.85rem', padding: '6px 10px', background: 'var(--muted)', borderRadius: '6px' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--foreground)', minWidth: '80px', flexShrink: 0 }}>Park</span>
+                      <span style={{ color: 'var(--foreground)', flex: 1 }}>
+                        {selectedCouple.park_location}
+                        <a href={mapsUrl(selectedCouple.park_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Maps</a>
+                      </span>
+                    </div>
+                  )}
+                  {selectedContract?.reception_venue && (
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', fontSize: '0.85rem', padding: '6px 10px', background: 'var(--muted)', borderRadius: '6px' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--foreground)', minWidth: '80px', flexShrink: 0 }}>Reception</span>
+                      <span style={{ color: 'var(--foreground)', flex: 1 }}>
+                        {selectedContract.reception_venue}
+                        <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Maps</a>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Bridal Party */}
             <div style={{ marginTop: '12px', display: 'flex', gap: '16px', alignItems: 'center' }}>
@@ -856,19 +739,17 @@ export default function CrewCallSheetPage() {
             {sectionTitle('Wedding Day Schedule')}
             {schedule.length > 0 ? (
               <div style={{ position: 'relative', paddingLeft: '24px' }}>
-                {/* Timeline line */}
                 <div style={{ position: 'absolute', left: '8px', top: '4px', bottom: '4px', width: '2px', background: 'var(--primary)', borderRadius: '1px' }} />
                 {schedule.map((evt, i) => (
                   <div key={i} style={{ position: 'relative', marginBottom: i < schedule.length - 1 ? '16px' : 0, paddingLeft: '16px' }}>
-                    {/* Dot */}
                     <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--background)', boxShadow: '0 0 0 1px var(--primary)' }} />
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '2px' }}>
-                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', minWidth: '80px' }}>⏰ {evt.time}</span>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', minWidth: '80px' }}>{evt.time}</span>
                       <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>{evt.label}</span>
                     </div>
                     {evt.address && (
                       <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: 'var(--foreground)' }}>
-                        📍 {evt.address}
+                        {evt.address}
                         {evt.maps_url && (
                           <a href={evt.maps_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
                         )}
@@ -878,14 +759,13 @@ export default function CrewCallSheetPage() {
                 ))}
               </div>
             ) : selectedContract ? (
-              /* Minimal schedule from contracts */
               <div style={{ position: 'relative', paddingLeft: '24px' }}>
                 <div style={{ position: 'absolute', left: '8px', top: '4px', bottom: '4px', width: '2px', background: 'var(--primary)', borderRadius: '1px' }} />
                 {selectedContract.start_time && (
                   <div style={{ position: 'relative', marginBottom: '16px', paddingLeft: '16px' }}>
                     <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--background)', boxShadow: '0 0 0 1px var(--primary)' }} />
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', minWidth: '80px' }}>⏰ {selectedContract.start_time}</span>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', minWidth: '80px' }}>{selectedContract.start_time}</span>
                       <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>Coverage Begins</span>
                     </div>
                   </div>
@@ -894,7 +774,7 @@ export default function CrewCallSheetPage() {
                   <div style={{ position: 'relative', marginBottom: '16px', paddingLeft: '16px' }}>
                     <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--background)', boxShadow: '0 0 0 1px var(--primary)' }} />
                     <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--foreground)' }}>
-                      📍 Ceremony: {selectedContract.ceremony_location}
+                      Ceremony: {selectedContract.ceremony_location}
                       <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
                     </p>
                   </div>
@@ -903,7 +783,7 @@ export default function CrewCallSheetPage() {
                   <div style={{ position: 'relative', marginBottom: '16px', paddingLeft: '16px' }}>
                     <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--background)', boxShadow: '0 0 0 1px var(--primary)' }} />
                     <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--foreground)' }}>
-                      📍 Reception: {selectedContract.reception_venue}
+                      Reception: {selectedContract.reception_venue}
                       <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
                     </p>
                   </div>
@@ -912,7 +792,7 @@ export default function CrewCallSheetPage() {
                   <div style={{ position: 'relative', paddingLeft: '16px' }}>
                     <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--background)', boxShadow: '0 0 0 1px var(--primary)' }} />
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', minWidth: '80px' }}>⏰ {selectedContract.end_time}</span>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', minWidth: '80px' }}>{selectedContract.end_time}</span>
                       <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>Coverage Ends</span>
                     </div>
                   </div>
@@ -923,7 +803,7 @@ export default function CrewCallSheetPage() {
             )}
           </div>
 
-          {/* Section 3: Crew Assignment Cards */}
+          {/* Section 3: Crew Assignment Cards — Simplified */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <h2 className={playfair.className} style={{ fontSize: '1.1rem', color: 'var(--primary)', margin: 0 }}>Crew Assignments</h2>
@@ -966,7 +846,7 @@ export default function CrewCallSheetPage() {
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                 opacity: entry.checked ? 1 : 0.5,
               }}>
-                {/* Card header */}
+                {/* Card header: checkbox + name + role dropdown + remove */}
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: '10px',
                   padding: '10px 14px', background: 'var(--muted)', borderBottom: '1px solid var(--border)',
@@ -988,137 +868,43 @@ export default function CrewCallSheetPage() {
                   </button>
                 </div>
 
-                {/* Card body */}
+                {/* Card body — simplified: Call Time, Meeting Location, Special Notes */}
                 {entry.checked && (
-                  <div style={{ padding: '14px' }}>
-                    {/* Row 1: Call Time + Meeting Point Time */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                      <TimePicker label="Call Time" value={entry.call_time} onChange={v => updateEntry(idx, 'call_time', v)} />
-                      <TimePicker label="1st Location Start" value={entry.meeting_point_time} onChange={v => updateEntry(idx, 'meeting_point_time', v)} />
-                    </div>
-
-                    {/* Meeting Point Dropdown */}
-                    <div style={{ marginBottom: '10px' }}>
-                      <span style={labelStyle}>Meeting Point</span>
-                      <select
-                        value={entry.meeting_point_id}
-                        onChange={e => handleMeetingPointChange(idx, e.target.value)}
-                        style={{ ...inputStyle, marginBottom: '6px' }}
-                      >
-                        <option value="">Select meeting point...</option>
-                        {meetingPoints.map(mp => (
-                          <option key={mp.id} value={mp.id}>
-                            {mp.name}{mp.usual_for ? ` — ${mp.usual_for}` : ''}
-                          </option>
-                        ))}
-                        <option value="__venue__">The Venue (reception)</option>
-                        <option value="__other__">Other (custom)</option>
-                      </select>
-
-                      {/* Other — custom input */}
-                      {entry.meeting_point_id === '__other__' && (
-                        <input
-                          value={entry.meeting_point_custom}
-                          onChange={e => handleCustomMeetingPoint(idx, e.target.value)}
-                          placeholder="Enter custom address..."
-                          style={{ ...inputStyle, marginBottom: '6px' }}
-                        />
-                      )}
-
-                      {/* ── Address Display Card ── */}
-                      {entry.meeting_point_address && (
-                        <div style={{
-                          background: 'var(--accent)', border: '2px solid var(--primary)', borderRadius: '10px',
-                          padding: '14px 16px', marginTop: '4px',
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                            <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>📍</span>
-                            <div style={{ flex: 1 }}>
-                              <p style={{
-                                margin: 0, fontWeight: 700, fontSize: '0.95rem', color: 'var(--primary)',
-                              }}>{entry.meeting_point.split(' — ')[0]}</p>
-                              <p style={{
-                                margin: '3px 0 0', fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.4,
-                              }}>{entry.meeting_point_address}</p>
-                            </div>
-                          </div>
-                          {entry.meeting_point_maps_url && (
-                            <a
-                              href={entry.meeting_point_maps_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                                marginTop: '10px', padding: '8px 16px', borderRadius: '6px',
-                                background: 'var(--primary)', color: 'var(--primary-foreground)', textDecoration: 'none',
-                                fontWeight: 700, fontSize: '0.85rem', fontFamily: nunito.style.fontFamily,
-                              }}
-                            >
-                              🗺️ Open in Google Maps
-                            </a>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* + Add Meeting Point link */}
-                    {!showAddMeetingPoint ? (
-                      <button onClick={() => setShowAddMeetingPoint(true)} style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600,
-                        padding: '0 0 8px', fontFamily: nunito.style.fontFamily,
-                      }}>+ Add Meeting Point</button>
-                    ) : (
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', marginBottom: '8px', padding: '8px', background: 'var(--muted)', borderRadius: '6px' }}>
-                        <div style={{ flex: 1 }}>
-                          <span style={labelStyle}>Name</span>
-                          <input value={newMpName} onChange={e => setNewMpName(e.target.value)} placeholder="Tim Hortons — Location" style={inputStyle} />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <span style={labelStyle}>Address</span>
-                          <input value={newMpAddress} onChange={e => setNewMpAddress(e.target.value)} placeholder="123 Street, City" style={inputStyle} />
-                        </div>
-                        <button onClick={handleAddMeetingPoint} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', fontFamily: nunito.style.fontFamily, whiteSpace: 'nowrap' }}>Save</button>
-                        <button onClick={() => setShowAddMeetingPoint(false)} style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--background)', color: 'var(--muted-foreground)', fontSize: '0.8rem', cursor: 'pointer', fontFamily: nunito.style.fontFamily }}>Cancel</button>
-                      </div>
-                    )}
-
-                    {/* Equipment — collapsible */}
-                    <div style={{ marginBottom: '10px' }}>
-                      <button onClick={() => updateEntry(idx, 'showEquipment', !entry.showEquipment)} style={{
-                        display: 'flex', alignItems: 'center', gap: '4px', background: 'none',
-                        border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
-                        color: 'var(--muted-foreground)', padding: '4px 0', fontFamily: nunito.style.fontFamily,
-                      }}>
-                        {entry.showEquipment ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                        Equipment Instructions
-                      </button>
-                      {entry.showEquipment && (
-                        <div style={{ marginTop: '8px', paddingLeft: '18px' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                            <div>
-                              <span style={labelStyle}>Pickup Location</span>
-                              <input value={entry.equipment_pickup_location} onChange={e => updateEntry(idx, 'equipment_pickup_location', e.target.value)} placeholder="Jean's house" style={inputStyle} />
-                            </div>
-                            <TimePicker label="Pickup Time" value={entry.equipment_pickup_time} onChange={v => updateEntry(idx, 'equipment_pickup_time', v)} />
-                          </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                            <div>
-                              <span style={labelStyle}>Dropoff Location</span>
-                              <input value={entry.equipment_dropoff_location} onChange={e => updateEntry(idx, 'equipment_dropoff_location', e.target.value)} placeholder="Meet at reception venue" style={inputStyle} />
-                            </div>
-                            <TimePicker label="Dropoff Time" value={entry.equipment_dropoff_time} onChange={v => updateEntry(idx, 'equipment_dropoff_time', v)} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Special notes */}
+                  <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {/* Call Time — native time input */}
                     <div>
-                      <span style={labelStyle}>Special Notes</span>
+                      <Label className={nunito.className} style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: '4px' }}>Call Time</Label>
+                      <input
+                        type="time"
+                        value={toHHMM(entry.call_time)}
+                        onChange={e => updateEntry(idx, 'call_time', fromHHMM(e.target.value))}
+                        style={{
+                          ...inputStyle,
+                          width: '160px',
+                          fontFamily: "'Courier New', Courier, monospace",
+                          fontWeight: 700,
+                          color: 'var(--primary)',
+                        }}
+                      />
+                    </div>
+
+                    {/* Meeting Location — simple text input */}
+                    <div>
+                      <Label className={nunito.className} style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: '4px' }}>Meeting Location</Label>
+                      <input
+                        value={entry.meeting_location}
+                        onChange={e => updateEntry(idx, 'meeting_location', e.target.value)}
+                        placeholder="Tim Hortons on Keele, Bride's house, Church parking lot..."
+                        style={inputStyle}
+                      />
+                    </div>
+
+                    {/* Special Notes */}
+                    <div>
+                      <Label className={nunito.className} style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: '4px' }}>Special Notes</Label>
                       <textarea value={entry.special_notes} onChange={e => updateEntry(idx, 'special_notes', e.target.value)}
-                        placeholder="Bring the wireless mic kit" rows={2}
-                        style={{ ...inputStyle, resize: 'vertical' as const }} />
+                        placeholder="Any notes for this crew member..."
+                        rows={2} style={{ ...inputStyle, resize: 'vertical' as const }} />
                     </div>
                   </div>
                 )}
@@ -1131,6 +917,22 @@ export default function CrewCallSheetPage() {
               </div>
             )}
           </div>
+
+          {/* Section: Equipment & Notes — shared across all crew */}
+          <Card className={nunito.className} style={{ marginBottom: '1.5rem' }}>
+            <CardHeader>
+              <CardTitle className={playfair.className} style={{ fontSize: '1.1rem', color: 'var(--primary)' }}>Equipment & Notes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                className={nunito.className}
+                value={equipmentNotes}
+                onChange={e => setEquipmentNotes(e.target.value)}
+                placeholder="Bring wireless mic kit, extra batteries, 2nd body, drone..."
+                rows={3}
+              />
+            </CardContent>
+          </Card>
 
           {/* Dress Code */}
           <div style={cardStyle}>
@@ -1362,7 +1164,7 @@ export default function CrewCallSheetPage() {
                   <div style={{ padding: '20px 24px', fontSize: '0.85rem' }}>
                     {/* Jean's phone — TOP */}
                     <div style={{ background: 'var(--accent)', borderRadius: '6px', padding: '8px 14px', marginBottom: '16px', textAlign: 'center' }}>
-                      <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>📞 Questions? Call Jean: (416) 731-6748</p>
+                      <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>Questions? Call Jean: (416) 731-6748</p>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '4px 12px', marginBottom: '16px' }}>
@@ -1380,15 +1182,15 @@ export default function CrewCallSheetPage() {
                       </>}
                       {selectedContract?.ceremony_location && <>
                         <span style={{ color: 'var(--muted-foreground)' }}>Ceremony</span>
-                        <span>{selectedContract.ceremony_location} <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem' }}>📍 Open in Google Maps</a></span>
+                        <span>{selectedContract.ceremony_location} <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem' }}>Maps</a></span>
                       </>}
                       {selectedContract?.reception_venue && <>
                         <span style={{ color: 'var(--muted-foreground)' }}>Reception</span>
-                        <span>{selectedContract.reception_venue} <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem' }}>📍 Open in Google Maps</a></span>
+                        <span>{selectedContract.reception_venue} <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem' }}>Maps</a></span>
                       </>}
                       {selectedCouple?.park_location && <>
                         <span style={{ color: 'var(--muted-foreground)' }}>Park</span>
-                        <span>{selectedCouple.park_location} <a href={mapsUrl(selectedCouple.park_location)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem' }}>📍 Open in Google Maps</a></span>
+                        <span>{selectedCouple.park_location} <a href={mapsUrl(selectedCouple.park_location)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem' }}>Maps</a></span>
                       </>}
                       {(bridesmaids || groomsmen) && <>
                         <span style={{ color: 'var(--muted-foreground)' }}>Bridal Party</span>
@@ -1398,7 +1200,7 @@ export default function CrewCallSheetPage() {
 
                     {dressCode && (
                       <div style={{ background: 'var(--muted)', borderRadius: '6px', padding: '10px 14px', border: '1px solid var(--border)', marginBottom: '16px' }}>
-                        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>👔 DRESS CODE: {dressCode}</p>
+                        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>DRESS CODE: {dressCode}</p>
                       </div>
                     )}
 
@@ -1407,35 +1209,31 @@ export default function CrewCallSheetPage() {
                       <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '4px 12px' }}>
                         <span style={{ color: 'var(--muted-foreground)' }}>Name</span><span style={{ fontWeight: 700 }}>{entry.member_name}</span>
                         <span style={{ color: 'var(--muted-foreground)' }}>Role</span><span style={{ fontWeight: 700 }}>{entry.role}</span>
-                        {entry.call_time && <><span style={{ color: 'var(--muted-foreground)' }}>Meet Jean at:</span><span style={{ fontWeight: 700 }}>{entry.call_time}</span></>}
+                        {entry.call_time && <><span style={{ color: 'var(--muted-foreground)' }}>Call Time</span><span style={{ fontWeight: 700 }}>{entry.call_time}</span></>}
+                        {entry.meeting_location && <><span style={{ color: 'var(--muted-foreground)' }}>Meet at</span><span style={{ fontWeight: 700 }}>{entry.meeting_location}</span></>}
                       </div>
 
-                      {/* Meeting point with prominent address */}
-                      {entry.meeting_point && (
+                      {/* Meeting location with maps link */}
+                      {entry.meeting_location && (
                         <div style={{ marginTop: '12px', background: 'var(--accent)', border: '2px solid var(--primary)', borderRadius: '8px', padding: '12px 14px' }}>
                           <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)' }}>
-                            📍 {entry.meeting_point.split(' — ')[0]}
+                            {entry.meeting_location}
                           </p>
-                          {entry.meeting_point_address && entry.meeting_point_address !== entry.meeting_point.split(' — ')[0] && (
-                            <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: 'var(--foreground)' }}>{entry.meeting_point_address}</p>
-                          )}
-                          {entry.meeting_point_maps_url && (
-                            <a href={entry.meeting_point_maps_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '6px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>📍 Open in Google Maps</a>
-                          )}
-                          {entry.call_time && <p style={{ margin: '4px 0 0', color: 'var(--foreground)', fontWeight: 600 }}>⏰ Arrive by {entry.call_time}</p>}
-                        </div>
-                      )}
-
-                      {(entry.equipment_pickup_location || entry.equipment_dropoff_location) && (
-                        <div style={{ marginTop: '12px', borderTop: '1px solid #e7e1d8', paddingTop: '10px' }}>
-                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--primary)', margin: '0 0 6px' }}>Equipment</p>
-                          {entry.equipment_pickup_location && <p style={{ margin: '2px 0', color: 'var(--foreground)' }}>Pickup: {entry.equipment_pickup_location}{entry.equipment_pickup_time ? ` — ${entry.equipment_pickup_time}` : ''}</p>}
-                          {entry.equipment_dropoff_location && <p style={{ margin: '2px 0', color: 'var(--foreground)' }}>Dropoff: {entry.equipment_dropoff_location}{entry.equipment_dropoff_time ? ` — ${entry.equipment_dropoff_time}` : ''}</p>}
+                          <a href={mapsUrl(entry.meeting_location)} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '6px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
+                          {entry.call_time && <p style={{ margin: '4px 0 0', color: 'var(--foreground)', fontWeight: 600 }}>Arrive by {entry.call_time}</p>}
                         </div>
                       )}
 
                       {entry.special_notes && (
                         <div style={{ marginTop: '10px' }}><p style={{ margin: 0, color: 'var(--foreground)' }}><strong>Notes:</strong> {entry.special_notes}</p></div>
+                      )}
+
+                      {/* Equipment notes — shared */}
+                      {equipmentNotes && (
+                        <div style={{ marginTop: '12px', borderTop: '1px solid #e7e1d8', paddingTop: '10px' }}>
+                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--primary)', margin: '0 0 6px' }}>Equipment</p>
+                          <p style={{ margin: '2px 0', color: 'var(--foreground)' }}>{equipmentNotes}</p>
+                        </div>
                       )}
 
                       {/* Schedule preview */}
@@ -1450,10 +1248,10 @@ export default function CrewCallSheetPage() {
                           ]).map((evt, i) => (
                             <div key={i} style={{ marginBottom: '8px', paddingLeft: '12px', borderLeft: '2px solid #0d4f4f' }}>
                               <p style={{ margin: 0, fontSize: '0.85rem' }}>
-                                {evt.time && <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, color: 'var(--primary)' }}>⏰ {evt.time} — </span>}
+                                {evt.time && <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, color: 'var(--primary)' }}>{evt.time} — </span>}
                                 <strong>{evt.label}</strong>
                               </p>
-                              {evt.address && <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: 'var(--foreground)' }}>📍 {evt.address}{evt.maps_url && <a href={evt.maps_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '6px', color: 'var(--primary)', textDecoration: 'underline' }}>Open in Google Maps</a>}</p>}
+                              {evt.address && <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: 'var(--foreground)' }}>{evt.address}{evt.maps_url && <a href={evt.maps_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '6px', color: 'var(--primary)', textDecoration: 'underline' }}>Open in Google Maps</a>}</p>}
                             </div>
                           ))}
                         </div>
@@ -1473,9 +1271,9 @@ export default function CrewCallSheetPage() {
 
                       {keyMoments && (
                         <div style={{ marginTop: '12px', background: '#fffbeb', borderRadius: '6px', padding: '10px 14px', border: '1px solid #fde68a' }}>
-                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#92400e', margin: '0 0 6px' }}>📸 Must-Capture Moments</p>
+                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#92400e', margin: '0 0 6px' }}>Must-Capture Moments</p>
                           {keyMoments.split('\n').filter(Boolean).map((line, i) => (
-                            <p key={i} style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>• {line.replace(/^[-•]\s*/, '')}</p>
+                            <p key={i} style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>- {line.replace(/^[-•]\s*/, '')}</p>
                           ))}
                         </div>
                       )}
@@ -1489,12 +1287,12 @@ export default function CrewCallSheetPage() {
 
                     <div style={{ textAlign: 'center', margin: '20px 0 10px' }}>
                       <span style={{ display: 'inline-block', padding: '12px 32px', background: 'var(--primary)', color: 'var(--primary-foreground)', borderRadius: '8px', fontWeight: 700 }}>
-                        ✅ Click Here to Confirm
+                        Click Here to Confirm
                       </span>
                     </div>
 
                     <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--muted-foreground)', margin: '10px 0 0' }}>
-                      📞 Questions? Call Jean: (416) 731-6748
+                      Questions? Call Jean: (416) 731-6748
                     </p>
                   </div>
                 </div>
