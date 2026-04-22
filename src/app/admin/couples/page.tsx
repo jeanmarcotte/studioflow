@@ -103,7 +103,7 @@ export default function CouplesPage() {
   const [pendingEngCount, setPendingEngCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [yearFilter, setYearFilter] = useState<number | 'all'>(2026)
+  const [yearFilter, setYearFilter] = useState<number | 'all'>('all')
   const [engFilter, setEngFilter] = useState<string>('all')
 
   useEffect(() => {
