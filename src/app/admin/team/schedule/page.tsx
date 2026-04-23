@@ -726,7 +726,7 @@ export default function TeamSchedulePage() {
           {/* ── Table ───────────────────────────────────────────── */}
           <div id="section-schedule" className="rounded-xl border bg-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[700px]">
                 <thead>
                   <tr className="border-b bg-muted/50 text-xs uppercase text-muted-foreground">
                     {([
