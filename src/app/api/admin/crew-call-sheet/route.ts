@@ -367,35 +367,57 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Summary email to Marianna
-    const summaryRows = insertedMembers.map(cm => `
+    const summaryRows = insertedMembers.map(cm => {
+      const isLead = (cm.role || '').toLowerCase().includes('lead')
+      let confirmedCell = '⏳ Pending'
+      if (isLead) {
+        confirmedCell = '—'
+      }
+      return `
       <tr>
-        <td style="padding:6px 12px;border-bottom:1px solid #e7e1d8;font-size:14px;font-weight:600;color:#1a1a1a;">${esc(cm.member_name)}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #e7e1d8;font-size:14px;color:#374151;">${esc(cm.role)}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #e7e1d8;font-size:14px;color:#374151;">${cm.call_time ? esc(cm.call_time) : '—'}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #e7e1d8;font-size:14px;color:#374151;">${cm.meeting_point ? esc(cm.meeting_point) : '—'}</td>
-      </tr>`).join('')
+        <td style="padding:6px 12px;border-bottom:1px solid #ccfbf1;font-size:14px;font-weight:600;color:#1a1a1a;">${esc(cm.member_name)}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #ccfbf1;font-size:14px;color:#374151;">${esc(cm.role)}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #ccfbf1;font-size:14px;color:#374151;">${cm.call_time ? esc(cm.call_time) : '—'}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #ccfbf1;font-size:14px;color:#374151;">${cm.meeting_point ? esc(cm.meeting_point) : '—'}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #ccfbf1;font-size:14px;color:#374151;">${confirmedCell}</td>
+      </tr>`
+    }).join('')
+
+    // Look up confirmation statuses for all crew members on this call sheet
+    const { data: confirmData } = await supabase
+      .from('crew_call_sheet_members')
+      .select('member_name, confirmed, confirmed_at')
+      .eq('call_sheet_id', callSheetId)
+
+    const confirmMap = new Map<string, { confirmed: boolean; confirmed_at: string | null }>()
+    if (confirmData) {
+      for (const row of confirmData) {
+        confirmMap.set(row.member_name, { confirmed: row.confirmed, confirmed_at: row.confirmed_at })
+      }
+    }
 
     const summaryHtml = `
 <div style="font-family:'Trebuchet MS',sans-serif;max-width:640px;margin:0 auto;background:#ffffff;">
-  <div style="background:#0d4f4f;padding:24px 28px;border-radius:8px 8px 0 0;">
+  <div style="background:#0d9488;padding:24px 28px;border-radius:8px 8px 0 0;">
     <p style="margin:0;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.7);">SIGS Photography</p>
     <h1 style="margin:6px 0 0;font-family:Georgia,serif;font-size:22px;color:#ffffff;">Crew Call Sheet Sent</h1>
   </div>
-  <div style="padding:24px 28px;border:1px solid #e7e1d8;border-top:none;border-radius:0 0 8px 8px;">
+  <div style="padding:24px 28px;border:1px solid #ccfbf1;border-top:none;border-radius:0 0 8px 8px;">
     <p style="font-size:15px;font-weight:700;color:#1a1a1a;margin:0 0 4px;">${esc(couple_name)}</p>
     <p style="font-size:14px;color:#6b7280;margin:0 0 20px;">${dayUpper}, ${esc(dateFormatted)}</p>
     <table style="width:100%;border-collapse:collapse;">
-      <thead><tr style="background:#faf8f5;">
-        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Name</th>
-        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Role</th>
-        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Call Time</th>
-        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d4f4f;border-bottom:2px solid #e7e1d8;">Meeting Point</th>
+      <thead><tr style="background:#f0fdfa;">
+        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d9488;border-bottom:2px solid #ccfbf1;">Name</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d9488;border-bottom:2px solid #ccfbf1;">Role</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d9488;border-bottom:2px solid #ccfbf1;">Call Time</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d9488;border-bottom:2px solid #ccfbf1;">Meeting Point</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#0d9488;border-bottom:2px solid #ccfbf1;">Confirmed</th>
       </tr></thead>
       <tbody>${summaryRows}</tbody>
     </table>
     ${dress_code ? `<p style="margin:16px 0 0;font-size:14px;font-weight:700;color:#1a1a1a;">👔 Dress Code: ${esc(dress_code)}</p>` : ''}
-    ${notes ? `<div style="margin-top:12px;padding:12px;background:#faf8f5;border-radius:8px;border:1px solid #e7e1d8;"><p style="margin:0;font-size:13px;color:#374151;"><strong>Notes:</strong> ${esc(notes)}</p></div>` : ''}
-    <p style="margin:20px 0 0;font-size:13px;color:#6b7280;">Sent by Jean via StudioFlow</p>
+    ${notes ? `<div style="margin-top:12px;padding:12px;background:#f0fdfa;border-radius:8px;border:1px solid #ccfbf1;"><p style="margin:0;font-size:13px;color:#374151;"><strong>Notes:</strong> ${esc(notes)}</p></div>` : ''}
+    <p style="margin:20px 0 0;font-size:13px;color:#0d9488;">Sent by Jean via StudioFlow</p>
   </div>
 </div>`
 

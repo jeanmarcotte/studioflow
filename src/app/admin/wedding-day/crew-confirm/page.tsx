@@ -1253,10 +1253,10 @@ export default function CrewCallSheetPage() {
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                 padding: '10px 20px', borderRadius: '8px', border: 'none',
-                background: 'var(--accent)', color: 'var(--primary)', fontWeight: 700, fontSize: '0.85rem',
+                background: '#16a34a', color: '#ffffff', fontWeight: 700, fontSize: '0.85rem',
                 fontFamily: nunito.style.fontFamily,
               }}>
-                <Check size={16} /> Sent {sentTimestamp}
+                <Check size={16} /> ✓ Emails Sent — {sentTimestamp}
               </div>
             ) : (
               <button onClick={handleSend}
@@ -1376,9 +1376,13 @@ export default function CrewCallSheetPage() {
                         <span style={{ color: 'var(--muted-foreground)' }}>Weather</span>
                         <span>High {weather.high}°C / Low {weather.low}°C | {weather.precipitation}% rain</span>
                       </>}
-                      {weather.available && <>
-                        <span style={{ color: 'var(--muted-foreground)' }}></span>
+                      {weather.available && weather.sunrise && <>
+                        <span style={{ color: 'var(--muted-foreground)' }}>Sun</span>
                         <span>Sunrise {weather.sunrise} | Sunset {weather.sunset}</span>
+                      </>}
+                      {selectedContract?.start_time && selectedContract?.end_time && <>
+                        <span style={{ color: 'var(--muted-foreground)' }}>Coverage</span>
+                        <span>{selectedContract.start_time} – {selectedContract.end_time}</span>
                       </>}
                       {selectedContract?.ceremony_location && <>
                         <span style={{ color: 'var(--muted-foreground)' }}>Ceremony</span>
