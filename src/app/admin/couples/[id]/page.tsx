@@ -20,6 +20,7 @@ import { PickupSlipCard } from '@/components/couples/PickupSlipCard'
 import { FinanceCard } from '@/components/couples/FinanceCard'
 import { CoupleResourcesCard } from '@/components/couples/CoupleResourcesCard'
 import { WeddingDayItinerary } from '@/components/couples/WeddingDayItinerary'
+import { EngagementAppointments } from '@/components/couples/EngagementAppointments'
 import { buildPhases, countMilestones } from '@/lib/milestones'
 import { formatPackage } from '@/lib/formatters'
 
@@ -414,6 +415,9 @@ export default function CoupleDetailPage() {
           }}
         />
       )}
+
+      {/* 7b. Appointments */}
+      <EngagementAppointments coupleId={coupleId} />
 
       {/* 8. C2 Frames & Albums */}
       {extrasOrder && (

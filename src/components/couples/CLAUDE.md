@@ -7,6 +7,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #7527 | 11:56 AM | ✅ | Work order WO-855 completed and committed for documents page mobile responsiveness | ~564 |
+| #7522 | 11:54 AM | 🟣 | Appointment scheduling component created for couple management | ~444 |
 | #7498 | 10:45 AM | ✅ | ClientJourney header made mobile-responsive with vertical stacking | ~415 |
 | #7497 | " | ✅ | FinanceCard table converted to stacked cards on mobile | ~673 |
 | #7496 | 10:44 AM | 🟣 | ContractPackageCard refactored with collapsible accordion layout for mobile | ~740 |
