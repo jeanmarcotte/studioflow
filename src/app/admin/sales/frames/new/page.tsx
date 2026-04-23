@@ -87,7 +87,7 @@ export default function FrameSaleCoupleSelector() {
   return (
     <div className={dmSans.className} style={{ position: 'fixed', inset: 0, zIndex: 50, backgroundColor: BG, color: TEXT, overflow: 'auto' }}>
       {/* Back arrow */}
-      <div className="fixed top-6 left-6 z-50">
+      <div className="fixed top-4 left-4 md:top-6 md:left-6 z-50">
         <Link
           href="/admin/sales/frames"
           className="flex items-center gap-1.5 text-sm transition-colors"
@@ -100,7 +100,7 @@ export default function FrameSaleCoupleSelector() {
 
       {/* Centered content */}
       <div className="flex items-start justify-center min-h-full px-4" style={{ paddingTop: '23vh' }}>
-        <div style={{ width: '100%', maxWidth: 560 }}>
+        <div className="w-full md:max-w-[560px]">
           {/* Branding */}
           <p className="text-xs tracking-[0.2em] uppercase mb-2" style={{ color: '#BBBBBB' }}>
             SIGS Photography Ltd.
@@ -221,7 +221,7 @@ export default function FrameSaleCoupleSelector() {
                 </div>
 
                 <div style={{ borderTop: '1px solid #F3F3EE' }}>
-                  <div className="grid grid-cols-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3">
                     {[
                       { label: 'Contract', value: formatCurrency(contract?.total) },
                       { label: 'Paid', value: formatCurrency(selected.total_paid) },

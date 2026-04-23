@@ -83,12 +83,12 @@ export default function FramesAlbumsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Frames & Albums</h1>
+        <h1 className="text-xl md:text-2xl font-bold">Frames & Albums</h1>
         <p className="text-muted-foreground">2026 extras sales</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 max-w-md">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full md:max-w-md">
         <StatCard
           label="Sales"
           value={stats.numSales}

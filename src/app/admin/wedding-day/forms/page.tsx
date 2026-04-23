@@ -277,9 +277,9 @@ export default function WeddingDayFormsPage() {
   return (
     <div className="space-y-0">
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Wedding Day Forms</h1>
+          <h1 className="text-xl md:text-2xl font-bold">Wedding Day Forms</h1>
           <p className="text-sm text-muted-foreground">2026 season — client submissions</p>
         </div>
         <button
@@ -303,11 +303,11 @@ export default function WeddingDayFormsPage() {
         ]}
       />
 
-      <div className="flex">
-        <div className="flex-1 overflow-y-auto p-6 border-r border-border">
+      <div className="flex flex-col md:flex-row">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 border-b md:border-b-0 md:border-r border-border">
           {/* Search + Toggle */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-6">
+            <div className="relative flex-1 w-full md:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"

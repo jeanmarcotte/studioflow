@@ -291,7 +291,7 @@ function ContractGenerateContent() {
   const fmt = (n: number) => '$' + (n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   return (
-    <div className="min-h-screen bg-background p-6 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-background p-4 md:p-6 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
@@ -301,7 +301,7 @@ function ContractGenerateContent() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-xl font-bold">Generate Contract</h1>
+          <h1 className="text-xl md:text-2xl font-bold">Generate Contract</h1>
           {coupleName && (
             <p className="text-sm text-muted-foreground">{coupleName}</p>
           )}
@@ -315,7 +315,7 @@ function ContractGenerateContent() {
           <h2 className="font-semibold text-sm">Quote Summary</h2>
         </div>
 
-        <div className="grid grid-cols-2 gap-y-2 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 text-sm">
           <div>
             <span className="text-muted-foreground">Couple</span>
             <p className="font-medium">{coupleName || '\u2014'}</p>

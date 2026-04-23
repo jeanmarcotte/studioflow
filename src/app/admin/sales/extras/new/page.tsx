@@ -256,7 +256,7 @@ export default function C3ExtrasPage() {
   return (
     <div className={dmSans.className} style={{ position: 'fixed', inset: 0, zIndex: 50, backgroundColor: BG, color: TEXT, overflow: 'auto' }}>
       {/* Back arrow */}
-      <div className="fixed top-6 left-6 z-50">
+      <div className="fixed top-4 left-4 md:top-6 md:left-6 z-50">
         <Link
           href="/admin/sales/extras"
           className="flex items-center gap-1.5 text-sm transition-colors"
@@ -268,7 +268,7 @@ export default function C3ExtrasPage() {
       </div>
 
       <div className="flex justify-center px-4" style={{ paddingTop: selectedCouple ? '5vh' : '20vh', paddingBottom: 80 }}>
-        <div style={{ width: '100%', maxWidth: 600 }}>
+        <div className="w-full md:max-w-[600px]">
 
           {/* Brand + Title */}
           <p
@@ -395,7 +395,7 @@ export default function C3ExtrasPage() {
                     {items.map((item, i) => (
                       <div
                         key={i}
-                        className="px-6 py-3.5 flex items-center gap-3"
+                        className="px-4 md:px-6 py-3.5 flex flex-wrap md:flex-nowrap items-center gap-3"
                         style={{ borderBottom: i < items.length - 1 ? '1px solid #F3F3EE' : 'none' }}
                       >
                         <div className="flex-1 min-w-0">
@@ -466,7 +466,7 @@ export default function C3ExtrasPage() {
               >
                 <div className="px-6 py-5 space-y-5">
                   {/* Tax Mode */}
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
                     <label
                       className="uppercase"
                       style={{ fontSize: 10, letterSpacing: '0.08em', color: MUTED, fontWeight: 600, minWidth: 70 }}
@@ -530,7 +530,7 @@ export default function C3ExtrasPage() {
                       type="date"
                       value={invoiceDate}
                       onChange={(e) => setInvoiceDate(e.target.value)}
-                      className="rounded-lg px-4 py-2.5 text-sm outline-none"
+                      className="w-full md:w-auto rounded-lg px-4 py-2.5 text-sm outline-none"
                       style={{ border: `1px solid ${BORDER}`, backgroundColor: LIGHT_BG }}
                     />
                   </div>

@@ -179,7 +179,7 @@ export default function ClientOrderViewPage() {
         }
       `}</style>
 
-      <div id="print-area" className="max-w-3xl mx-auto px-6 py-8">
+      <div id="print-area" className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Header */}
         <div className="relative mb-8">
           <button
@@ -189,7 +189,7 @@ export default function ClientOrderViewPage() {
             PRINT
           </button>
 
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col md:flex-row items-start justify-between gap-4">
             <div>
               <Image
                 src="/sigs-logo.png"
@@ -199,7 +199,7 @@ export default function ClientOrderViewPage() {
                 className="print-logo mb-4"
                 style={{ maxHeight: 60, width: 'auto' }}
               />
-              <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>
                 Client Production Order
               </h1>
             </div>
@@ -218,7 +218,7 @@ export default function ClientOrderViewPage() {
         <div className="border-t border-gray-300 mb-6" />
 
         {/* Couple Info */}
-        <div className="grid grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
           <div>
             <div className="text-xs text-gray-500 uppercase tracking-wide">Couple</div>
             <div className="text-sm font-semibold mt-0.5">
@@ -240,6 +240,7 @@ export default function ClientOrderViewPage() {
         {/* Line Items Table */}
         <div className="mb-8">
           <h2 className="text-sm font-bold uppercase tracking-wide text-gray-500 mb-3">Line Items</h2>
+          <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b-2 border-gray-800">
@@ -276,6 +277,7 @@ export default function ClientOrderViewPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Notes */}
@@ -289,7 +291,7 @@ export default function ClientOrderViewPage() {
         {/* Lab Status Tracker (screen only) */}
         <div className="no-print mb-8">
           <h2 className="text-sm font-bold uppercase tracking-wide text-gray-500 mb-4">Lab Status</h2>
-          <div className="flex items-center gap-0">
+          <div className="flex flex-wrap md:flex-nowrap items-center gap-0">
             {LAB_STAGES.map((stage, i) => {
               const isActive = i === currentStageIndex
               const isDone = i < currentStageIndex
