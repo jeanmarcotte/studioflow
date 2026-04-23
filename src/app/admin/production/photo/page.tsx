@@ -772,9 +772,9 @@ export default function PhotoProductionPage() {
   return (
     <div className="space-y-0">
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Photo Production</h1>
+          <h1 className="text-xl md:text-2xl font-bold">Photo Production</h1>
           <p className="text-sm text-muted-foreground">{activeCount} active jobs</p>
         </div>
         <div className="flex items-center gap-2">
@@ -807,7 +807,7 @@ export default function PhotoProductionPage() {
       {/* Content area: jobs panel + stats sidebar */}
       <div className="flex">
         {/* Job List Panel */}
-        <div className="flex-1 overflow-y-auto p-6 border-r border-border">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:border-r border-border">
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-3 mb-6">
             {/* Search */}
@@ -874,7 +874,7 @@ export default function PhotoProductionPage() {
             {!collapsedLanes.has('in_progress') && (
               <>
                 {/* ── Metric Tiles ── */}
-                <div className="grid grid-cols-4 gap-3 px-5 pb-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-5 pb-4">
                   <div className="rounded-lg bg-muted border border-border p-3.5">
                     <div className={`${nunito.className} text-[11px] font-semibold uppercase tracking-wider text-muted-foreground`}>Photos Remaining</div>
                     <div className={`${nunito.className} text-2xl font-bold text-primary mt-1`}>{asapTotals.remaining.toLocaleString()}</div>

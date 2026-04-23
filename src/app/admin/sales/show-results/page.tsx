@@ -275,7 +275,7 @@ export default function ShowResultsPage() {
 
       <div className="flex">
         {/* ── Main Panel ── */}
-        <div className="flex-1 overflow-y-auto p-6 border-r border-border">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:border-r border-border">
 
           {/* Chart */}
           <div

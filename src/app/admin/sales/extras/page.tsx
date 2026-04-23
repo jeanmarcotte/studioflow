@@ -232,7 +232,7 @@ function NewSaleModal({ couples, onClose, onSaved }: { couples: CoupleOption[]; 
                       </button>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs text-muted-foreground mb-1">Item Type</label>
                       <select
@@ -594,7 +594,7 @@ export default function ExtrasSalesPage() {
       />
 
       <div className="flex">
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 border-r border-border">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 lg:border-r border-border">
           {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {[

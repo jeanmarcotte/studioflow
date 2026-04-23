@@ -251,7 +251,7 @@ export default function FrameSalesPage() {
       ]} />
 
       <div className="flex">
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 border-r border-border">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 lg:border-r border-border">
         {/* SECTION 3 — KPI CARDS */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
@@ -299,6 +299,7 @@ export default function FrameSalesPage() {
             <h3 className="font-semibold text-gray-700 mb-2">
               Pending Orders <span className="text-amber-600">({pendingOrders.length})</span>
             </h3>
+            <div className="overflow-x-auto">
             <table className="w-full text-sm border rounded-lg overflow-hidden">
               <thead className="bg-gray-50">
                 <tr>
@@ -326,6 +327,7 @@ export default function FrameSalesPage() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 

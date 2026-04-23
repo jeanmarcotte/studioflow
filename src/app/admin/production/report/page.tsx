@@ -455,7 +455,7 @@ export default function ProductionReportPage() {
             At a Glance
           </h2>
 
-          <div className="grid grid-cols-3 gap-4 mb-12 card-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-12 card-grid">
             <MetricCard
               label="Photos Remaining"
               value={asapTotals.remaining.toLocaleString()}
@@ -503,7 +503,7 @@ export default function ProductionReportPage() {
             2026 Velocity
           </h2>
 
-          <div className="grid grid-cols-2 gap-4 mb-12 card-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12 card-grid">
             <div className="rounded-xl p-6" style={{ background: C.white, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(13,79,79,0.06)' }}>
               <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: C.textMuted }}>
                 Photo Editing 2026
@@ -552,6 +552,7 @@ export default function ProductionReportPage() {
                 >
                   Couples Awaiting Photo Order
                 </div>
+                <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
                     <tr style={{ background: 'rgba(13,79,79,0.03)' }}>
@@ -575,6 +576,7 @@ export default function ProductionReportPage() {
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}
@@ -671,6 +673,7 @@ export default function ProductionReportPage() {
                 >
                   {section.label} ({sectionJobs.length})
                 </div>
+                <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
                     <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
@@ -695,6 +698,7 @@ export default function ProductionReportPage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )
           })}
@@ -778,7 +782,7 @@ export default function ProductionReportPage() {
           )}
 
           {/* Video Metric Tiles */}
-          <div className="grid grid-cols-3 gap-4 mb-8 card-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 card-grid">
             <div className="rounded-xl p-5" style={{ background: 'var(--muted, #f9fafb)', border: `1px solid ${C.border}` }}>
               <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: C.textMuted }}>In Production</div>
               <div className="font-bold tabular-nums leading-none mb-2" style={{ fontSize: '24px', color: C.textPrimary }}>
@@ -820,6 +824,7 @@ export default function ProductionReportPage() {
               >
                 Not Started ({videoNotStarted.length})
               </div>
+              <div className="overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead>
                   <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
@@ -842,6 +847,7 @@ export default function ProductionReportPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 
@@ -854,6 +860,7 @@ export default function ProductionReportPage() {
               >
                 Videos Completed in 2026 ({videoCompleted2026.length})
               </div>
+              <div className="overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead>
                   <tr style={{ background: 'rgba(13,79,79,0.02)' }}>
@@ -887,6 +894,7 @@ export default function ProductionReportPage() {
                   </tr>
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 

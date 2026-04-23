@@ -999,7 +999,7 @@ export default function VideoProductionPage() {
       {/* Content area: jobs panel + stats sidebar */}
       <div className="flex">
         {/* Job List Panel */}
-        <div className="flex-1 overflow-y-auto p-6 border-r border-border">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:border-r border-border">
           {/* Search */}
           <div className="flex flex-wrap gap-3 mb-6">
             <div className="relative flex-1 min-w-[200px]">
