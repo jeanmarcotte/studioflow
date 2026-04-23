@@ -691,11 +691,11 @@ export default function CrewCallSheetPage() {
   // ── Render ─────────────────────────────────────────────────────
 
   return (
-    <div className={`${nunito.className} max-w-4xl mx-auto`} style={{ padding: '1.5rem 2rem', background: 'var(--background)', minHeight: '100vh' }}>
+    <div className={`${nunito.className} max-w-4xl mx-auto px-4 md:px-8`} style={{ paddingTop: '1.5rem', paddingBottom: '1.5rem', background: 'var(--background)', minHeight: '100vh' }}>
 
       {/* Header */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <h1 className={playfair.className} style={{ fontSize: '1.75rem', color: 'var(--foreground)', margin: 0 }}>Crew Call Sheet</h1>
+        <h1 className={`${playfair.className} text-xl md:text-[1.75rem]`} style={{ color: 'var(--foreground)', margin: 0 }}>Crew Call Sheet</h1>
         <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>Send wedding details to your team</p>
       </div>
 
@@ -767,8 +767,8 @@ export default function CrewCallSheetPage() {
                 <h3 className={playfair.className} style={{ fontSize: '0.9rem', color: 'var(--primary)', margin: '0 0 10px' }}>Key Locations</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {weddingLocations.map((loc, i) => (
-                    <div key={i} style={{
-                      display: 'grid', gridTemplateColumns: '50px 100px 1fr', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem',
+                    <div key={i} className="grid grid-cols-[auto_1fr] md:grid-cols-[50px_100px_1fr] items-baseline gap-x-2 gap-y-1 md:gap-2" style={{
+                      fontSize: '0.85rem',
                       padding: '8px 12px', background: 'var(--muted)', borderRadius: '6px',
                     }}>
                       <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, color: loc.time === 'TBD' ? 'var(--muted-foreground)' : 'var(--primary)' }}>{loc.time}</span>
@@ -825,7 +825,7 @@ export default function CrewCallSheetPage() {
             )}
 
             {/* Bridal Party */}
-            <div style={{ marginTop: '12px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <div className="flex flex-wrap gap-4 items-center mt-3">
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={labelStyle}>Bridesmaids</span>
                 <input value={bridesmaids} onChange={e => setBridesmaids(e.target.value)} placeholder="0" style={{ ...inputStyle, width: '60px', textAlign: 'center' }} />
@@ -950,8 +950,7 @@ export default function CrewCallSheetPage() {
                 opacity: entry.checked ? 1 : 0.5,
               }}>
                 {/* Card header: checkbox + name + confirmation badge + role dropdown + remove */}
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
+                <div className="flex flex-wrap items-center gap-2 md:gap-[10px]" style={{
                   padding: '10px 14px', background: 'var(--muted)', borderBottom: '1px solid var(--border)',
                 }}>
                   <input type="checkbox" checked={entry.checked}
@@ -1024,9 +1023,10 @@ export default function CrewCallSheetPage() {
                         type="time"
                         value={toHHMM(entry.call_time)}
                         onChange={e => updateEntry(idx, 'call_time', fromHHMM(e.target.value))}
+                        className="w-full md:w-[160px]"
                         style={{
                           ...inputStyle,
-                          width: '160px',
+                          width: undefined,
                           fontFamily: "'Courier New', Courier, monospace",
                           fontWeight: 700,
                           color: 'var(--primary)',
@@ -1140,7 +1140,7 @@ export default function CrewCallSheetPage() {
               <h2 className={playfair.className} style={{ fontSize: '1.1rem', color: 'var(--primary)', margin: 0 }}>Key Vendors</h2>
             </button>
             {showVendors && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '12px' }}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-[10px] mt-3">
                 {[
                   { key: 'dj_mc', label: 'DJ/MC' }, { key: 'florist', label: 'Florist' },
                   { key: 'makeup', label: 'Makeup' }, { key: 'hair', label: 'Hair' },
@@ -1201,8 +1201,7 @@ export default function CrewCallSheetPage() {
             {uploadedDocs.length > 0 && (
               <div>
                 {uploadedDocs.map(doc => (
-                  <div key={doc.path} style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
+                  <div key={doc.path} className="flex flex-wrap items-center gap-2 md:gap-[10px]" style={{
                     padding: '8px 0', borderBottom: '1px solid #f0ece6', fontSize: '0.85rem',
                   }}>
                     <FileText size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
@@ -1237,14 +1236,14 @@ export default function CrewCallSheetPage() {
           )}
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem', alignItems: 'center' }}>
+          <div className="flex flex-col md:flex-row gap-[10px] mb-6 items-stretch md:items-center">
             <button onClick={() => { setShowPreview(true); setPreviewTab(0) }}
               disabled={!crewEntries.some(e => e.checked)}
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                 padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--border)',
                 background: 'var(--background)', color: 'var(--primary)', fontWeight: 600, fontSize: '0.85rem',
-                cursor: 'pointer', fontFamily: nunito.style.fontFamily,
+                cursor: 'pointer', fontFamily: nunito.style.fontFamily, minHeight: '44px',
                 opacity: crewEntries.some(e => e.checked) ? 1 : 0.5,
               }}>
               <Eye size={16} /> Preview Email
@@ -1263,10 +1262,10 @@ export default function CrewCallSheetPage() {
               <button onClick={handleSend}
                 disabled={sending || !crewEntries.some(e => e.checked)}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                   padding: '10px 24px', borderRadius: '8px', border: 'none',
                   background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 700, fontSize: '0.9rem',
-                  cursor: 'pointer', fontFamily: nunito.style.fontFamily,
+                  cursor: 'pointer', fontFamily: nunito.style.fontFamily, minHeight: '44px',
                   opacity: (sending || !crewEntries.some(e => e.checked)) ? 0.6 : 1,
                 }}>
                 <Send size={16} /> {sending ? 'Sending...' : 'Send Call Sheet'}
@@ -1326,9 +1325,9 @@ export default function CrewCallSheetPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)',
         }} onClick={() => setShowPreview(false)}>
-          <div onClick={e => e.stopPropagation()} style={{
-            background: 'var(--muted)', borderRadius: '16px', width: '90%', maxWidth: '700px',
-            maxHeight: '85vh', overflow: 'auto', padding: '2rem',
+          <div onClick={e => e.stopPropagation()} className="w-[95%] md:w-[90%]" style={{
+            background: 'var(--muted)', borderRadius: '16px', maxWidth: '700px',
+            maxHeight: '85vh', overflow: 'auto', padding: '1.25rem',
             boxShadow: '0 25px 50px rgba(0,0,0,0.25)', border: '1px solid var(--border)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
