@@ -635,29 +635,12 @@ export default function CrewCallSheetPage() {
     usualFor: mp.usual_for,
   })), [meetingPoints])
 
-  const venueOptions = useMemo(() => {
-    const opts: { value: string; label: string }[] = []
-    if (weddingLocations.length > 0) {
-      for (const loc of weddingLocations) {
-        if (loc.venue !== 'TBD') {
-          opts.push({ value: `${loc.label} — ${loc.venue}`, label: `${loc.label} — ${loc.venue}` })
-        }
-      }
-    } else {
-      if (selectedContract?.ceremony_location) opts.push({ value: `Ceremony — ${selectedContract.ceremony_location}`, label: `Ceremony — ${selectedContract.ceremony_location}` })
-      if (selectedCouple?.park_location) opts.push({ value: `Park — ${selectedCouple.park_location}`, label: `Park — ${selectedCouple.park_location}` })
-      if (selectedContract?.reception_venue) opts.push({ value: `Reception — ${selectedContract.reception_venue}`, label: `Reception — ${selectedContract.reception_venue}` })
-    }
-    return opts
-  }, [weddingLocations, selectedContract, selectedCouple])
-
   // All non-__other__ values for matching
   const allOptionValues = useMemo(() => {
     const vals = new Set<string>()
     mpOptions.forEach(o => vals.add(o.value))
-    venueOptions.forEach(o => vals.add(o.value))
     return vals
-  }, [mpOptions, venueOptions])
+  }, [mpOptions])
 
   // ── Helpers ────────────────────────────────────────────────────
 
@@ -1087,17 +1070,6 @@ export default function CrewCallSheetPage() {
                                       </SelectItem>
                                     ))}
                                   </SelectGroup>
-                                )}
-                                {venueOptions.length > 0 && (
-                                  <>
-                                    {mpOptions.length > 0 && <SelectSeparator />}
-                                    <SelectGroup>
-                                      <SelectLabel>Wedding Locations</SelectLabel>
-                                      {venueOptions.map(opt => (
-                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                      ))}
-                                    </SelectGroup>
-                                  </>
                                 )}
                                 <SelectSeparator />
                                 <SelectItem value="__other__">Other (type below)</SelectItem>
