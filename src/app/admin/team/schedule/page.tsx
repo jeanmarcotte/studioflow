@@ -554,7 +554,7 @@ export default function TeamSchedulePage() {
   return (
     <div className="space-y-0">
       {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between pr-6">
+      <div className="flex items-center justify-between px-4 md:px-0 md:pr-6">
         <ProductionPageHeader
           title="Team Schedule"
           subtitle="2026 Season"
@@ -577,8 +577,8 @@ export default function TeamSchedulePage() {
       ]} />
 
       {/* ── Two-column layout ───────────────────────────────────── */}
-      <div className="flex">
-        <div className="flex-1 overflow-y-auto p-6 border-r border-border space-y-6">
+      <div className="flex flex-col md:flex-row">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 border-b md:border-b-0 md:border-r border-border space-y-6">
 
           {/* ── Stat Boxes ──────────────────────────────────────── */}
           <div>

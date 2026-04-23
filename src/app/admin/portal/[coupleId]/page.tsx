@@ -177,10 +177,10 @@ export default function PortalEditorPage() {
   const currentVideoId = couple.portal_video_url ? extractYouTubeId(couple.portal_video_url) : null
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl mx-auto">
+    <div className="p-4 md:p-6 space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">{coupleName} — Portal Editor</h1>
+        <h1 className="text-xl md:text-2xl font-bold">{coupleName} — Portal Editor</h1>
         <p className="text-sm text-muted-foreground">{formatWeddingDate(couple.wedding_date)}</p>
       </div>
 
@@ -231,7 +231,7 @@ export default function PortalEditorPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex gap-2">
+          <div className="flex flex-col md:flex-row gap-2">
             <Input
               placeholder="https://youtu.be/VIDEO_ID"
               value={videoUrl}
@@ -268,7 +268,7 @@ export default function PortalEditorPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {(['left', 'center', 'right'] as const).map((pos) => {
               const column = `collage_img_${pos}`
               const url = couple[column as keyof CouplePortalData] as string | null

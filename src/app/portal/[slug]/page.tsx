@@ -144,7 +144,7 @@ export default async function PortalDisplayPage({ params }: { params: Promise<{ 
         {/* Section 3: Video */}
         <section className="mb-10">
           {videoId ? (
-            <div className="mx-auto" style={{ width: '85%' }}>
+            <div className="mx-auto w-full md:w-[85%]">
               <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
                 <iframe
                   src={`https://www.youtube.com/embed/${videoId}`}
@@ -165,7 +165,7 @@ export default async function PortalDisplayPage({ params }: { params: Promise<{ 
         {/* Section 4: Collage */}
         {hasCollage && (
           <section className="mb-10">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {[couple.collage_img_left, couple.collage_img_center, couple.collage_img_right].map((url, i) => (
                 url ? (
                   <div key={i} className="overflow-hidden rounded-lg" style={{ transition: 'transform 0.3s ease' }}>

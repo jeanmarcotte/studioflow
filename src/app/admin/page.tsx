@@ -492,20 +492,39 @@ export default function AdminDashboardPage() {
         <p className="text-muted-foreground">SIGS Photography — {formatDate(today)}</p>
       </div>
 
-      {/* Year Cards — 2026, 2027, 2025 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {yearCards.map((card) => (
-          <button
-            key={card.year}
-            onClick={() => setModalYear(card.year)}
-            className="rounded-xl border bg-card p-5 text-left hover:border-primary hover:shadow-md transition-all cursor-pointer"
-          >
-            <div className="text-sm font-medium text-muted-foreground mb-1">{card.year}</div>
-            <div className="text-2xl font-bold">{card.count} Weddings</div>
-            <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>
-          </button>
-        ))}
-      </div>
+      {/* Needs Attention — Wedding Passed, Still Booked */}
+      {recentlyPast.length > 0 && (
+        <div className="rounded-lg border-l-4 border-orange-500 bg-orange-50 p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-orange-500 text-xl">⚠️</span>
+            <div className="flex-1">
+              <h3 className="font-semibold text-orange-800 text-sm uppercase tracking-wide">
+                Needs Attention — Wedding Passed, Still "Booked"
+              </h3>
+              <p className="text-orange-700 text-xs mt-1">
+                These couples had their wedding but status was not updated. Update each couple's status to "completed".
+              </p>
+              <div className="mt-3 space-y-2">
+                {recentlyPast.map((couple) => {
+                  const wDate = parseISO(couple.wedding_date!)
+                  const dateStr = `${format(wDate, 'EEE').toUpperCase()} ${format(wDate, 'MMM d, yyyy')}`
+                  return (
+                    <div key={couple.id} className="flex items-center justify-between bg-white rounded-md px-3 py-2 border border-orange-200">
+                      <div>
+                        <span className="font-medium text-sm text-gray-900">{couple.couple_name}</span>
+                        <span className="text-xs text-orange-600 ml-2">Wedding was {dateStr}</span>
+                      </div>
+                      <a href={`/admin/couples/${couple.id}`} className="text-xs font-medium text-orange-700 hover:underline">
+                        Update →
+                      </a>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dashboard Boxes */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -515,34 +534,32 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Engagement Pipeline */}
-      <div className="rounded-xl border bg-card">
-        <div className="p-5 border-b">
-          <h2 className="font-semibold flex items-center gap-2">
-            <Camera className="h-4 w-4 text-teal-600" />
-            Engagement Pipeline
-          </h2>
+      <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-lg">📸</span>
+          <h2 className="font-semibold text-gray-900">Engagement Pipeline</h2>
         </div>
-        <div className="p-5 space-y-5">
+        <div className="space-y-4">
           {/* Summary badges */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 text-green-700 px-3 py-1 text-sm font-medium">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
               {engShotCount} Shot
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 text-amber-700 px-3 py-1 text-sm font-medium">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
               {engPendingCount} Pending
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 text-red-700 px-3 py-1 text-sm font-medium">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 border border-red-200">
               {engDeclinedCount} Declined
             </span>
           </div>
 
           {/* Upcoming Shoots */}
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Upcoming Shoots</h3>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4 mb-2">Upcoming Shoots</h4>
             {upcomingShoots.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">No shoots scheduled</p>
             ) : (
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {upcomingShoots.map(a => {
                   const d = parseISO(a.appointment_date)
                   const dow = format(d, 'EEE').toUpperCase()
@@ -552,12 +569,12 @@ export default function AdminDashboardPage() {
                   const names = [bride, groom].filter(Boolean).join(' & ')
                   const time = a.start_time ? a.start_time.slice(0, 5) : ''
                   return (
-                    <div key={a.id} className="text-sm">
-                      <span className="font-semibold">{dow} {dateStr}</span>
-                      <span className="text-muted-foreground"> — </span>
-                      <span>{names}</span>
-                      {a.location && <span className="text-muted-foreground"> ({a.location})</span>}
-                      {time && <span className="text-muted-foreground"> {time}</span>}
+                    <div key={a.id} className="flex items-center gap-2 text-sm py-1">
+                      <span className="font-medium text-gray-700 w-28">{dow} {dateStr}</span>
+                      <span className="text-gray-900">{names}</span>
+                      {(a.location || time) && (
+                        <span className="text-gray-400 text-xs">{[a.location, time].filter(Boolean).join(' · ')}</span>
+                      )}
                     </div>
                   )
                 })}
@@ -568,21 +585,24 @@ export default function AdminDashboardPage() {
           {/* Needs Follow-Up */}
           {needsFollowUp.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <Phone className="h-3.5 w-3.5" />
+              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4 mb-2">
                 Needs Follow-Up ({needsFollowUp.length})
-              </h3>
-              <div className="space-y-1.5">
+              </h4>
+              <div className="space-y-0">
                 {needsFollowUp.map(c => {
                   const wDate = c.wedding_date ? parseISO(c.wedding_date) : null
                   const dateStr = wDate ? `${format(wDate, 'EEE').toUpperCase()} ${format(wDate, 'MMM d, yyyy')}` : 'TBD'
                   const name = [c.bride_name, c.groom_name].filter(Boolean).join(' & ') || c.couple_name
                   return (
-                    <div key={c.id} className="text-sm flex flex-wrap items-center gap-x-2">
-                      <span className="font-medium">{name}</span>
-                      <span className="text-muted-foreground">{dateStr}</span>
-                      {(c as any).email && <span className="text-muted-foreground">{(c as any).email}</span>}
-                      <span className="text-muted-foreground">{(c as any).phone || '—'}</span>
+                    <div key={c.id} className="flex items-center justify-between text-sm py-1 border-b border-gray-50 last:border-0">
+                      <div>
+                        <span className="font-medium text-gray-900">{name}</span>
+                        <span className="text-xs text-gray-400 ml-2">{dateStr}</span>
+                      </div>
+                      <div className="text-right text-xs text-gray-500">
+                        {(c as any).email && <div>{(c as any).email}</div>}
+                        <div>{(c as any).phone || '—'}</div>
+                      </div>
                     </div>
                   )
                 })}
@@ -695,32 +715,21 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Needs Attention */}
-      {recentlyPast.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50/50">
-          <div className="p-5 border-b border-amber-200">
-            <h2 className="font-semibold flex items-center gap-2 text-amber-800">
-              <Clock className="h-4 w-4" />
-              Needs Attention — Wedding Passed, Still &quot;Booked&quot;
-            </h2>
-          </div>
-          <div className="divide-y divide-amber-200">
-            {recentlyPast.map((couple) => (
-              <div key={couple.id} className="p-4 flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-sm">{couple.couple_name}</div>
-                  <div className="text-xs text-amber-700">
-                    Wedding was {formatDateCompact(couple.wedding_date!)}
-                  </div>
-                </div>
-                <span className="text-xs bg-amber-200 text-amber-800 rounded-full px-2 py-0.5">
-                  Needs update
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
+      {/* Year Cards — 2026, 2027, 2025 */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {yearCards.map((card) => (
+          <button
+            key={card.year}
+            onClick={() => setModalYear(card.year)}
+            className="rounded-xl border bg-card p-5 text-left hover:border-primary hover:shadow-md transition-all cursor-pointer"
+          >
+            <div className="text-sm font-medium text-muted-foreground mb-1">{card.year}</div>
+            <div className="text-2xl font-bold">{card.count} Weddings</div>
+            <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>
+          </button>
+        ))}
+      </div>
 
       {/* Footer */}
       <div className="text-center text-sm text-muted-foreground pb-4">

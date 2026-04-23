@@ -267,7 +267,7 @@ export default function BallotPage() {
           <CardContent className="pt-6 space-y-5">
 
             {/* Bride Name */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="bride_first_name">Bride&apos;s First Name *</Label>
                 <Input
@@ -294,7 +294,7 @@ export default function BallotPage() {
             </div>
 
             {/* Groom Name */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="groom_first_name">Groom&apos;s First Name</Label>
                 <Input
@@ -368,8 +368,8 @@ export default function BallotPage() {
             </div>
 
             {/* Venue + Guest Count */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2 space-y-1.5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="md:col-span-2 space-y-1.5">
                 <Label htmlFor="venue_name">Venue Name</Label>
                 <Input
                   id="venue_name"
@@ -410,7 +410,7 @@ export default function BallotPage() {
               ].map(({ name, label }) => (
                 <div key={name} className="flex items-center justify-between gap-3">
                   <span className="text-sm text-gray-700 flex-1">{label}</span>
-                  <div className="grid grid-cols-2 gap-2 flex-shrink-0 w-32">
+                  <div className="grid grid-cols-2 gap-2 flex-shrink-0 w-full md:w-32">
                     <button
                       type="button"
                       onClick={() => handleToggle(name, true)}

@@ -431,7 +431,7 @@ export default function ScannerPage() {
         <Card>
           <CardContent className="pt-6 space-y-4">
             <h3 className="font-bold text-gray-900">Bride</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>First Name *</Label>
                 <Input
@@ -449,7 +449,7 @@ export default function ScannerPage() {
             </div>
 
             <h3 className="font-bold text-gray-900 pt-2">Groom</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>First Name</Label>
                 <Input
@@ -502,8 +502,8 @@ export default function ScannerPage() {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2 space-y-1.5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="md:col-span-2 space-y-1.5">
                 <Label>Venue</Label>
                 <Input
                   value={ballot.venue_name}
@@ -532,7 +532,7 @@ export default function ScannerPage() {
             ].map(({ key, label }) => (
               <div key={key} className="flex items-center justify-between gap-3">
                 <span className="text-sm text-gray-700">{label}</span>
-                <div className="grid grid-cols-2 gap-2 w-32">
+                <div className="grid grid-cols-2 gap-2 w-full md:w-32">
                   <button
                     type="button"
                     onClick={() => handleField(key, true)}
