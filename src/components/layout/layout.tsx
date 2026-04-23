@@ -6,18 +6,40 @@ import Link from 'next/link'
 import { supabase, getCurrentUser } from '@/lib/supabase'
 import { SidebarConfig, SidebarItem } from '@/config/sidebar'
 import { cn } from '@/lib/utils'
-import { Menu, Settings, LogOut, ChevronDown, ChevronRight } from 'lucide-react'
+import { Menu, Settings, LogOut, ChevronDown, ChevronRight, Home, Users, Camera, Video, MoreHorizontal, X, DollarSign, ShoppingBag, FileCheck, FileText, Wallet, UsersRound, CalendarCheck, BarChart3 } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
 interface LayoutProps {
   children: React.ReactNode
   sidebarConfig: SidebarConfig
 }
 
+const bottomNavItems = [
+  { label: 'Home', icon: Home, href: '/admin' },
+  { label: 'Couples', icon: Users, href: '/admin/couples' },
+  { label: 'Photo', icon: Camera, href: '/admin/production/photo' },
+  { label: 'Video', icon: Video, href: '/admin/production/video' },
+] as const
+
+const moreSheetLinks = [
+  { label: 'Sales', icon: DollarSign, href: '/admin/sales/quotes' },
+  { label: 'Frames & Albums', icon: ShoppingBag, href: '/admin/sales/frames' },
+  { label: 'Orders', icon: FileCheck, href: '/admin/orders' },
+  { label: 'Documents', icon: FileText, href: '/admin/documents' },
+  { label: 'Finance', icon: Wallet, href: '/admin/finance' },
+  { label: 'Team', icon: UsersRound, href: '/admin/team/members' },
+  { label: 'Wedding Day', icon: CalendarCheck, href: '/admin/wedding-day/forms' },
+  { label: 'Marketing', icon: BarChart3, href: '/admin/marketing/sigs' },
+  { label: 'Settings', icon: Settings, href: '/admin/settings' },
+] as const
+
 export function Layout({ children, sidebarConfig }: LayoutProps) {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
   const router = useRouter()
@@ -45,6 +67,12 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
       })
     }
   }, [pathname, sidebarConfig])
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false)
+    setMoreSheetOpen(false)
+  }, [pathname])
 
   useEffect(() => {
     const checkUser = async () => {
@@ -109,7 +137,10 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
     return pathname === href || pathname.startsWith(href + '/')
   }
 
-  const renderSidebarItem = (item: SidebarItem, itemIndex: number) => {
+  // Check if any bottom nav item is active (for "More" highlight)
+  const isMoreActive = moreSheetLinks.some(link => isActive(link.href))
+
+  const renderSidebarItem = (item: SidebarItem, itemIndex: number, onNavigate?: () => void) => {
     // Collapsible parent with children
     if (item.children && item.children.length > 0) {
       const isExpanded = expandedSections.has(item.title)
@@ -142,6 +173,7 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
                 <li key={childIndex}>
                   <Link
                     href={child.href || '#'}
+                    onClick={onNavigate}
                     className={cn(
                       "flex items-center space-x-3 rounded-lg px-3 py-1.5 text-sm transition-colors",
                       isActive(child.href)
@@ -173,6 +205,7 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
             href={item.href}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={onNavigate}
             className="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
             <item.icon className="h-4 w-4 flex-shrink-0" />
@@ -186,6 +219,7 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
       <li key={itemIndex}>
         <Link
           href={item.href || '#'}
+          onClick={onNavigate}
           className={cn(
             "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors",
             item.disabled
@@ -211,11 +245,29 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
     )
   }
 
+  // Sidebar navigation content — shared between desktop sidebar and mobile overlay
+  const sidebarNav = (onNavigate?: () => void) => (
+    <nav className="flex-1 overflow-y-auto p-4">
+      {sidebarConfig.sections.map((section, sectionIndex) => (
+        <div key={sectionIndex} className="mb-6">
+          {section.title && !sidebarCollapsed && (
+            <h3 className="mb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              {section.title}
+            </h3>
+          )}
+          <ul className="space-y-1">
+            {section.items.map((item, itemIndex) => renderSidebarItem(item, itemIndex, onNavigate))}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  )
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Sidebar */}
+      {/* Desktop Sidebar — hidden on mobile */}
       <aside className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-card border-r transition-all duration-300 print:hidden",
+        "fixed left-0 top-0 z-40 h-screen bg-card border-r transition-all duration-300 print:hidden hidden md:block",
         sidebarCollapsed ? "w-16" : "w-64"
       )}>
         {/* Logo */}
@@ -230,33 +282,48 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
           </Link>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4">
-          {sidebarConfig.sections.map((section, sectionIndex) => (
-            <div key={sectionIndex} className="mb-6">
-              {section.title && !sidebarCollapsed && (
-                <h3 className="mb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  {section.title}
-                </h3>
-              )}
-              <ul className="space-y-1">
-                {section.items.map((item, itemIndex) => renderSidebarItem(item, itemIndex))}
-              </ul>
-            </div>
-          ))}
-        </nav>
+        {sidebarNav()}
       </aside>
+
+      {/* Mobile Sidebar Overlay */}
+      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetContent side="left" className="w-64 p-0 md:hidden" showCloseButton={false}>
+          {/* Logo + Close */}
+          <div className="flex items-center justify-between h-16 px-4 border-b">
+            <Link href={sidebarConfig.logo.href} className="flex items-center space-x-2" onClick={() => setMobileMenuOpen(false)}>
+              <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-sm">SF</span>
+              </div>
+              {sidebarConfig.logo.text && (
+                <span className="font-semibold">{sidebarConfig.logo.text}</span>
+              )}
+            </Link>
+            <button onClick={() => setMobileMenuOpen(false)} className="rounded-lg p-2 hover:bg-accent">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {sidebarNav(() => setMobileMenuOpen(false))}
+        </SheetContent>
+      </Sheet>
 
       {/* Main Content */}
       <div className={cn(
         "transition-all duration-300 print:ml-0",
-        sidebarCollapsed ? "ml-16" : "ml-64"
+        sidebarCollapsed ? "md:ml-16" : "md:ml-64"
       )}>
         {/* Header */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-6 print:hidden">
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              onClick={() => {
+                // Mobile: toggle overlay sidebar. Desktop: toggle collapse
+                if (window.innerWidth < 768) {
+                  setMobileMenuOpen(!mobileMenuOpen)
+                } else {
+                  setSidebarCollapsed(!sidebarCollapsed)
+                }
+              }}
               className="rounded-lg p-2 hover:bg-accent"
             >
               <Menu className="h-4 w-4" />
@@ -339,11 +406,65 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="p-6">
+        {/* Page Content — pb-20 on mobile for bottom nav clearance */}
+        <main className="p-6 pb-20 md:pb-6">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Nav — hidden on md+ */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-background border-t md:hidden print:hidden">
+        <div className="flex items-center justify-around h-full">
+          {bottomNavItems.map(item => {
+            const active = isActive(item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex flex-col items-center justify-center flex-1 h-full"
+              >
+                <item.icon className={cn("h-5 w-5", active ? "text-teal-600" : "text-gray-400")} />
+                <span className={cn("text-[10px] mt-0.5", active ? "text-teal-600 font-semibold" : "text-gray-400")}>{item.label}</span>
+              </Link>
+            )
+          })}
+          <button
+            onClick={() => setMoreSheetOpen(true)}
+            className="flex flex-col items-center justify-center flex-1 h-full"
+          >
+            <MoreHorizontal className={cn("h-5 w-5", isMoreActive ? "text-teal-600" : "text-gray-400")} />
+            <span className={cn("text-[10px] mt-0.5", isMoreActive ? "text-teal-600 font-semibold" : "text-gray-400")}>More</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* More Sheet — slide up from bottom */}
+      <Sheet open={moreSheetOpen} onOpenChange={setMoreSheetOpen}>
+        <SheetContent side="bottom" className="md:hidden" showCloseButton={false}>
+          <SheetHeader>
+            <SheetTitle>More</SheetTitle>
+          </SheetHeader>
+          <div className="grid grid-cols-3 gap-2 px-4 pb-6">
+            {moreSheetLinks.map(link => {
+              const active = isActive(link.href)
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMoreSheetOpen(false)}
+                  className={cn(
+                    "flex flex-col items-center gap-1.5 rounded-lg p-3 transition-colors",
+                    active ? "bg-teal-50 dark:bg-teal-950" : "hover:bg-accent"
+                  )}
+                >
+                  <link.icon className={cn("h-5 w-5", active ? "text-teal-600" : "text-muted-foreground")} />
+                  <span className={cn("text-xs text-center", active ? "text-teal-600 font-semibold" : "text-muted-foreground")}>{link.label}</span>
+                </Link>
+              )
+            })}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
