@@ -14,6 +14,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #7580 | 4:51 PM | 🔴 | Fixed Pending Engagement Count Reference | ~382 |
+| #7579 | " | 🔴 | Removed Duplicate Pending Engagement Count Calculation | ~388 |
 | #7505 | 10:48 AM | ✅ | WO-711 Deployed: Pending Engagement Widget Fix Committed | ~314 |
 | #7502 | 10:46 AM | ✅ | Applied Nullable Boolean Pattern for Pending Engagement Filter | ~313 |
 | #7499 | 10:45 AM | 🟣 | Engagement pipeline tracking added to admin dashboard | ~416 |

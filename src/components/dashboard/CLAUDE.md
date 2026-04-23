@@ -7,6 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #7576 | 4:39 PM | 🟣 | Production Floor and Business Metrics Dashboard Sections Added | ~412 |
 | #7574 | 4:38 PM | 🟣 | The Business Revenue Dashboard Widget Created | ~550 |
 | #7573 | 4:37 PM | 🟣 | Production Floor Component Created | ~492 |
 | #7571 | 4:15 PM | 🟣 | WO-863 Week Ahead Feature Deployed to Production | ~480 |

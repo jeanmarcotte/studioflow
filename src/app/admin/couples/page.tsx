@@ -101,7 +101,6 @@ export default function CouplesPage() {
   const router = useRouter()
   const [couples, setCouples] = useState<CoupleRow[]>([])
   const [upcomingWeddings, setUpcomingWeddings] = useState<{ bride_first_name: string; groom_first_name: string; wedding_date: string }[]>([])
-  const [pendingEngCount, setPendingEngCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [yearFilter, setYearFilter] = useState<number | 'all'>('all')
@@ -166,17 +165,6 @@ export default function CouplesPage() {
       })))
 
       if (!couplesRes.error && couplesRes.data) {
-        // Compute pending eng count: booked couples without m06_eng_session_shot and not declined
-        const bookedCouples = couplesRes.data.filter((r: any) => r.status === 'booked')
-        let pendingCount = 0
-        bookedCouples.forEach((r: any) => {
-          const ms = milestonesMap[r.id]
-          if (!(ms?.m06_eng_session_shot === true) && !(ms?.m06_declined === true)) {
-            pendingCount++
-          }
-        })
-        setPendingEngCount(pendingCount)
-
         setCouples(couplesRes.data.map((row: any) => {
           const contract = Array.isArray(row.contracts) ? row.contracts[0] : row.contracts
           const ms = milestonesMap[row.id]
@@ -486,7 +474,7 @@ export default function CouplesPage() {
               <Users className="h-4 w-4 text-indigo-500" />
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pending Eng.</h3>
             </div>
-            <div className="text-3xl font-bold text-indigo-600">{pendingEngCount}</div>
+            <div className="text-3xl font-bold text-indigo-600">{stats.pendingEng}</div>
             <div className="text-xs text-muted-foreground mt-1">not yet shot</div>
           </div>
 
