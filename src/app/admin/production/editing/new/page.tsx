@@ -12,7 +12,7 @@ type Category = 'wedding' | 'engagement' | 'video'
 
 const MONTH_ABBRS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-const VENDOR_SUGGESTIONS = ['Best Canvas', 'CCI', 'Graphi Studio', 'Queensberry']
+const VENDOR_SUGGESTIONS = ['Best Canvas', 'Custom Colour Imaging (CCI)']
 
 // ── Types ──────────────────────────────────────────────────────────
 
