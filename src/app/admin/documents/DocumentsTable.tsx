@@ -313,34 +313,36 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
   return (
     <div className="space-y-4">
       {/* Filters bar */}
-      <div className="flex items-center gap-4">
-        <Select value={yearFilter} onValueChange={(v) => { if (v) setYearFilter(v) }}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Year" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Years</SelectItem>
-            <SelectItem value="2028">2028</SelectItem>
-            <SelectItem value="2027">2027</SelectItem>
-            <SelectItem value="2026">2026</SelectItem>
-            <SelectItem value="2025">2025</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4">
+        <div className="flex items-center gap-3">
+          <Select value={yearFilter} onValueChange={(v) => { if (v) setYearFilter(v) }}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Year" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              <SelectItem value="2028">2028</SelectItem>
+              <SelectItem value="2027">2027</SelectItem>
+              <SelectItem value="2026">2026</SelectItem>
+              <SelectItem value="2025">2025</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Input
-          placeholder="Search by name..."
-          value={nameSearch}
-          onChange={(e) => setNameSearch(e.target.value)}
-          className="max-w-xs"
-        />
+          <Input
+            placeholder="Search by name..."
+            value={nameSearch}
+            onChange={(e) => setNameSearch(e.target.value)}
+            className="flex-1 md:max-w-xs"
+          />
+        </div>
 
-        <span className="text-sm text-muted-foreground ml-auto">
+        <span className="text-sm text-muted-foreground md:ml-auto">
           Showing {filteredData.length} of {data.length} couples
         </span>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border overflow-hidden">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader className="sticky top-0 bg-gray-50 z-10">
             {table.getHeaderGroups().map(hg => (

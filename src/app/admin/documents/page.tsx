@@ -234,16 +234,57 @@ export default function DocumentsPage() {
 
   return (
     <div className="space-y-0">
-      <div className="border-b border-border bg-background px-6 py-4">
-        <h1 className="text-2xl font-bold tracking-tight">Documents</h1>
+      <div className="border-b border-border bg-background px-4 md:px-6 py-4">
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Documents</h1>
         <p className="text-sm text-muted-foreground mt-1">{rows.length} couples (2025 — 2028)</p>
       </div>
 
-      <div className="flex gap-6 p-6">
+      {/* Mobile: Sidebar cards as horizontal scroll row */}
+      <div className="lg:hidden px-4 pt-4">
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scroll-smooth">
+          <button onClick={() => setSheetType('dayForms')} className="bg-white border rounded-lg p-3 hover:border-blue-400 transition-all text-left min-w-[140px] flex-shrink-0">
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+              <Calendar size={12} />
+              <span>Day Forms</span>
+            </div>
+            <div className="text-xl font-bold">{metrics.dayForms}</div>
+          </button>
+          <button onClick={() => setSheetType('photoOrders')} className="bg-white border rounded-lg p-3 hover:border-blue-400 transition-all text-left min-w-[140px] flex-shrink-0">
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+              <Camera size={12} />
+              <span>Photo Orders</span>
+            </div>
+            <div className="text-xl font-bold">{metrics.photoOrders}</div>
+          </button>
+          <button onClick={() => setSheetType('videoOrders')} className="bg-white border rounded-lg p-3 hover:border-blue-400 transition-all text-left min-w-[140px] flex-shrink-0">
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+              <Video size={12} />
+              <span>Video Orders</span>
+            </div>
+            <div className="text-xl font-bold">{metrics.videoOrders}</div>
+          </button>
+          <button onClick={() => setSheetType('photoProdOrders')} className="bg-white border rounded-lg p-3 hover:border-blue-400 transition-all text-left min-w-[140px] flex-shrink-0">
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+              <Package size={12} />
+              <span>Photo Prod</span>
+            </div>
+            <div className="text-xl font-bold">{metrics.photoProdOrders}</div>
+          </button>
+          <button onClick={() => setSheetType('videoProdOrders')} className="bg-white border rounded-lg p-3 hover:border-blue-400 transition-all text-left min-w-[140px] flex-shrink-0">
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+              <Package size={12} />
+              <span>Video Prod</span>
+            </div>
+            <div className="text-xl font-bold">{metrics.videoProdOrders}</div>
+          </button>
+        </div>
+      </div>
+
+      <div className="flex gap-6 p-4 md:p-6">
         {/* LEFT: Main content */}
         <div className="flex-1 min-w-0 space-y-4">
           {/* Top row: 4 clickable cards */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             <button onClick={() => setSheetType('total')} className="bg-white border rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all text-left w-full">
               <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
                 <Files size={14} />
@@ -278,8 +319,8 @@ export default function DocumentsPage() {
           <DocumentsTable data={rows} />
         </div>
 
-        {/* RIGHT: Sidebar */}
-        <div className="w-72 shrink-0 space-y-4">
+        {/* RIGHT: Sidebar — desktop only */}
+        <div className="hidden lg:block w-72 shrink-0 space-y-4">
           <button onClick={() => setSheetType('dayForms')} className="bg-white border rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all text-left w-full">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
               <Calendar size={14} />
