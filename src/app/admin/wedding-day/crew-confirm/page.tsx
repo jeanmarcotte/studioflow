@@ -95,6 +95,12 @@ interface ScheduleEvent {
   maps_url: string
 }
 
+interface WeddingLocation {
+  label: string
+  venue: string
+  time: string
+}
+
 // ── Time Helpers ──────────────────────────────────────────────────
 
 function parseTimeStr(t: string): number | null {
@@ -173,6 +179,7 @@ export default function CrewCallSheetPage() {
   const [weather, setWeather] = useState<WeatherData>({ high: null, low: null, precipitation: null, sunrise: null, sunset: null, available: false })
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [schedule, setSchedule] = useState<ScheduleEvent[]>([])
+  const [weddingLocations, setWeddingLocations] = useState<WeddingLocation[]>([])
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDoc[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
@@ -313,8 +320,33 @@ export default function CrewCallSheetPage() {
       if (endEvt) events.push(endEvt)
 
       setSchedule(events)
+
+      // Build locations list — always show all entries with TBD fallback
+      const to24 = (t: string | null) => {
+        if (!t) return 'TBD'
+        const mins = parseTimeStr(t)
+        if (mins === null) return 'TBD'
+        const h = Math.floor(mins / 60) % 24
+        const m = mins % 60
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+      }
+      const locs: WeddingLocation[] = [
+        { label: 'Groom Prep', venue: form.groom_address || 'TBD', time: to24(form.groom_start_time) },
+        { label: 'Bride Prep', venue: form.bride_address || 'TBD', time: to24(form.bride_start_time) },
+      ]
+      if (form.has_first_look) {
+        locs.push({ label: 'First Look', venue: form.first_look_address || 'TBD', time: to24(form.first_look_time) })
+        locs.push({ label: 'Park/Formals', venue: [form.park_name, form.park_address].filter(Boolean).join(', ') || 'TBD', time: to24(form.park_start_time) })
+        locs.push({ label: 'Ceremony', venue: [form.ceremony_location_name, form.ceremony_address].filter(Boolean).join(', ') || 'TBD', time: to24(form.ceremony_start_time) })
+      } else {
+        locs.push({ label: 'Ceremony', venue: [form.ceremony_location_name, form.ceremony_address].filter(Boolean).join(', ') || 'TBD', time: to24(form.ceremony_start_time) })
+        locs.push({ label: 'Park/Formals', venue: [form.park_name, form.park_address].filter(Boolean).join(', ') || 'TBD', time: to24(form.park_start_time) })
+      }
+      locs.push({ label: 'Reception', venue: [form.reception_venue_name, form.reception_address].filter(Boolean).join(', ') || 'TBD', time: to24(form.reception_start_time) })
+      setWeddingLocations(locs)
     } else {
       setSchedule([])
+      setWeddingLocations([])
     }
   }, [])
 
@@ -344,7 +376,7 @@ export default function CrewCallSheetPage() {
       setVendors({ dj_mc: '', florist: '', makeup: '', hair: '', planner: '', transport: '' })
       setKeyMoments(''); setEquipmentNotes('')
       setWeather({ high: null, low: null, precipitation: null, sunrise: null, sunset: null, available: false })
-      setSchedule([])
+      setSchedule([]); setWeddingLocations([])
       setUploadedDocs([]); setUploadError('')
       return
     }
@@ -589,7 +621,7 @@ export default function CrewCallSheetPage() {
   // ── Render ─────────────────────────────────────────────────────
 
   return (
-    <div className={nunito.className} style={{ padding: '1.5rem 2rem', background: 'var(--background)', minHeight: '100vh' }}>
+    <div className={`${nunito.className} max-w-4xl mx-auto`} style={{ padding: '1.5rem 2rem', background: 'var(--background)', minHeight: '100vh' }}>
 
       {/* Header */}
       <div style={{ marginBottom: '1.5rem' }}>
@@ -659,26 +691,24 @@ export default function CrewCallSheetPage() {
               }</span>
             </div>
 
-            {/* Key Locations — ordered by First Look logic */}
-            {schedule.length > 0 && (
+            {/* Key Locations — all locations with TBD fallback */}
+            {weddingLocations.length > 0 && (
               <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
                 <h3 className={playfair.className} style={{ fontSize: '0.9rem', color: 'var(--primary)', margin: '0 0 10px' }}>Key Locations</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {schedule.filter(evt => evt.label !== 'Photo/Video Concludes').map((evt, i) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {weddingLocations.map((loc, i) => (
                     <div key={i} style={{
-                      display: 'flex', alignItems: 'baseline', gap: '10px', fontSize: '0.85rem',
-                      padding: '6px 10px', background: 'var(--muted)', borderRadius: '6px',
+                      display: 'grid', gridTemplateColumns: '50px 100px 1fr', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem',
+                      padding: '8px 12px', background: 'var(--muted)', borderRadius: '6px',
                     }}>
-                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, color: 'var(--primary)', minWidth: '70px', flexShrink: 0 }}>{evt.time}</span>
-                      <span style={{ fontWeight: 700, color: 'var(--foreground)', minWidth: '80px', flexShrink: 0 }}>{evt.label}</span>
-                      {evt.address && (
-                        <span style={{ color: 'var(--foreground)', flex: 1 }}>
-                          {evt.address}
-                          {evt.maps_url && (
-                            <a href={evt.maps_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Maps</a>
-                          )}
-                        </span>
-                      )}
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, color: loc.time === 'TBD' ? 'var(--muted-foreground)' : 'var(--primary)' }}>{loc.time}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>{loc.label}</span>
+                      <span style={{ color: loc.venue === 'TBD' ? 'var(--muted-foreground)' : 'var(--foreground)' }}>
+                        {loc.venue}
+                        {loc.venue !== 'TBD' && (
+                          <a href={mapsUrl(loc.venue)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Maps</a>
+                        )}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -686,32 +716,35 @@ export default function CrewCallSheetPage() {
             )}
 
             {/* Fallback locations from contract when no wedding day form */}
-            {schedule.length === 0 && (selectedContract?.ceremony_location || selectedContract?.reception_venue || selectedCouple.park_location) && (
+            {weddingLocations.length === 0 && (selectedContract?.ceremony_location || selectedContract?.reception_venue || selectedCouple.park_location) && (
               <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
                 <h3 className={playfair.className} style={{ fontSize: '0.9rem', color: 'var(--primary)', margin: '0 0 10px' }}>Key Locations</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {selectedContract?.ceremony_location && (
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', fontSize: '0.85rem', padding: '6px 10px', background: 'var(--muted)', borderRadius: '6px' }}>
-                      <span style={{ fontWeight: 700, color: 'var(--foreground)', minWidth: '80px', flexShrink: 0 }}>Ceremony</span>
-                      <span style={{ color: 'var(--foreground)', flex: 1 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '50px 100px 1fr', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem', padding: '8px 12px', background: 'var(--muted)', borderRadius: '6px' }}>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, color: 'var(--muted-foreground)' }}>TBD</span>
+                      <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>Ceremony</span>
+                      <span style={{ color: 'var(--foreground)' }}>
                         {selectedContract.ceremony_location}
                         <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Maps</a>
                       </span>
                     </div>
                   )}
                   {selectedCouple.park_location && (
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', fontSize: '0.85rem', padding: '6px 10px', background: 'var(--muted)', borderRadius: '6px' }}>
-                      <span style={{ fontWeight: 700, color: 'var(--foreground)', minWidth: '80px', flexShrink: 0 }}>Park</span>
-                      <span style={{ color: 'var(--foreground)', flex: 1 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '50px 100px 1fr', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem', padding: '8px 12px', background: 'var(--muted)', borderRadius: '6px' }}>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, color: 'var(--muted-foreground)' }}>TBD</span>
+                      <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>Park</span>
+                      <span style={{ color: 'var(--foreground)' }}>
                         {selectedCouple.park_location}
                         <a href={mapsUrl(selectedCouple.park_location)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Maps</a>
                       </span>
                     </div>
                   )}
                   {selectedContract?.reception_venue && (
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', fontSize: '0.85rem', padding: '6px 10px', background: 'var(--muted)', borderRadius: '6px' }}>
-                      <span style={{ fontWeight: 700, color: 'var(--foreground)', minWidth: '80px', flexShrink: 0 }}>Reception</span>
-                      <span style={{ color: 'var(--foreground)', flex: 1 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '50px 100px 1fr', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem', padding: '8px 12px', background: 'var(--muted)', borderRadius: '6px' }}>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, color: 'var(--muted-foreground)' }}>TBD</span>
+                      <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>Reception</span>
+                      <span style={{ color: 'var(--foreground)' }}>
                         {selectedContract.reception_venue}
                         <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Maps</a>
                       </span>
