@@ -171,7 +171,7 @@ export default function CouplesPage() {
         let pendingCount = 0
         bookedCouples.forEach((r: any) => {
           const ms = milestonesMap[r.id]
-          if (!(ms?.m06_eng_session_shot ?? false) && !(ms?.m06_declined ?? false)) {
+          if (!(ms?.m06_eng_session_shot === true) && !(ms?.m06_declined === true)) {
             pendingCount++
           }
         })
