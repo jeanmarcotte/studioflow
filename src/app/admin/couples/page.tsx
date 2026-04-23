@@ -13,6 +13,7 @@ import { HistoricalCouplesArchive } from '@/components/couples/HistoricalCouples
 interface CoupleRow {
   id: string
   couple_name: string
+  status: string
   wedding_date: string | null
   wedding_year: number | null
   package_type: string | null
@@ -184,6 +185,7 @@ export default function CouplesPage() {
           return {
             id: row.id,
             couple_name: row.couple_name,
+            status: row.status || 'lead',
             wedding_date: row.wedding_date,
             wedding_year: row.wedding_year,
             package_type: row.package_type,
@@ -260,8 +262,8 @@ export default function CouplesPage() {
         if (wd >= today && wd <= in14Days) next14++
       }
 
-      // Pending engagements
-      if (!c.m06_eng_session_shot && !c.m06_declined) pendingEng++
+      // Pending engagements (booked only)
+      if (c.status === 'booked' && !c.m06_eng_session_shot && !c.m06_declined) pendingEng++
 
       // Remaining (not shot) by year
       if (!c.m19_wedding_day && year && year in remainingByYear) remainingByYear[year]++
