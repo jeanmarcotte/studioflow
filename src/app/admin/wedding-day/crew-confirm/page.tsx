@@ -587,19 +587,21 @@ export default function CrewCallSheetPage() {
             return minimal
           })() : []),
           attachments: uploadedDocs.filter(d => d.attachToEmail).map(d => ({ filename: d.name, path: d.path })),
-          crew_members: checkedCrew.map(e => ({
+          crew_members: checkedCrew.map(e => {
+            const mp = meetingPoints.find(p => p.name === e.meeting_location)
+            return {
             team_member_id: e.team_member_id, member_name: e.member_name,
             member_email: e.member_email, role: e.role, call_time: e.call_time,
             meeting_point: e.meeting_location,
-            meeting_point_address: e.meeting_location,
-            meeting_point_maps_url: e.meeting_location ? mapsUrl(e.meeting_location) : '',
+            meeting_point_address: mp?.address || e.meeting_location,
+            meeting_point_maps_url: mp?.maps_url || (e.meeting_location ? mapsUrl(e.meeting_location) : ''),
             meeting_point_time: '',
             equipment_pickup_location: '',
             equipment_pickup_time: '',
             equipment_dropoff_location: '',
             equipment_dropoff_time: '',
             special_notes: e.special_notes,
-          })),
+          }}),
         }),
       })
       const data = await res.json()
@@ -1078,7 +1080,7 @@ export default function CrewCallSheetPage() {
                               <SelectContent>
                                 {mpOptions.length > 0 && (
                                   <SelectGroup>
-                                    <SelectLabel>Meeting Points</SelectLabel>
+                                    <SelectLabel>Crew Meeting Points</SelectLabel>
                                     {mpOptions.map(opt => (
                                       <SelectItem key={opt.value} value={opt.value}>
                                         {opt.label}{opt.usualFor ? ` (${opt.usualFor}'s usual)` : ''}
@@ -1098,7 +1100,7 @@ export default function CrewCallSheetPage() {
                                   </>
                                 )}
                                 <SelectSeparator />
-                                <SelectItem value="__other__">Other (specify below)</SelectItem>
+                                <SelectItem value="__other__">Other (type below)</SelectItem>
                               </SelectContent>
                             </Select>
                             {showCustomInput && (
