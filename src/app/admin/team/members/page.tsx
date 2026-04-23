@@ -486,12 +486,50 @@ export default function TeamMembersPage() {
           </span>
         </button>
         {!isCollapsed && (
-          <DataTable
-            columns={memberColumns}
-            data={data}
-            showPagination={false}
-            emptyMessage="No members"
-          />
+          <>
+            {/* Desktop: DataTable */}
+            <div className="hidden md:block">
+              <DataTable
+                columns={memberColumns}
+                data={data}
+                showPagination={false}
+                emptyMessage="No members"
+              />
+            </div>
+            {/* Mobile: Card stack */}
+            <div className="md:hidden space-y-2">
+              {data.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">No members</p>
+              ) : data.map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => { setSelectedMember(m); setEditMode(false) }}
+                  className="w-full text-left p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm text-foreground">
+                      {m.first_name}{m.last_name ? ` ${m.last_name}` : ''}
+                    </span>
+                    <StatusBadge status={m.status} />
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                    <span>{ROLE_LABELS[m.role] || m.role}</span>
+                    <span>&middot;</span>
+                    <span>{getPayLabel(m)}</span>
+                    {m.tenure_start && (
+                      <>
+                        <span>&middot;</span>
+                        <span>{formatTenure(m.tenure_start)}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="mt-1.5">
+                    <SkillPills skills={m.skills} />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
         )}
       </div>
     )
@@ -532,7 +570,7 @@ export default function TeamMembersPage() {
       <div className="flex">
 
         {/* Main panel */}
-        <div className="flex-1 overflow-y-auto p-6 border-r border-border">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:border-r border-border">
 
           {/* Search */}
           <div className="relative mb-6">
@@ -603,26 +641,27 @@ export default function TeamMembersPage() {
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="bg-muted border-border"
+            className="bg-muted border-border w-[95%] md:w-[90%]"
             style={{
-              borderRadius: '16px', width: '90%', maxWidth: '640px',
-              maxHeight: '85vh', overflow: 'auto', padding: '2rem',
+              borderRadius: '16px', maxWidth: '640px',
+              maxHeight: '85vh', overflow: 'auto', padding: '1.25rem',
               boxShadow: '0 25px 50px rgba(0,0,0,0.25)', border: '1px solid',
             }}
           >
             {/* Close */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
-              <button onClick={() => { setSelectedMember(null); setEditMode(false) }} className="text-muted-foreground" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+              <button onClick={() => { setSelectedMember(null); setEditMode(false) }} className="text-muted-foreground min-h-[44px] min-w-[44px] flex items-center justify-center" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
 
             {/* Top section */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            <div className="flex flex-col md:flex-row items-center md:items-center gap-4 md:gap-5 mb-6">
               <img
                 src={selectedMember.avatar_url || DEFAULT_AVATAR}
                 alt={selectedMember.first_name}
-                style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--border)' }}
+                className="w-20 h-20 md:w-[100px] md:h-[100px] rounded-full object-cover"
+                style={{ border: '3px solid var(--border)' }}
                 onError={e => { (e.target as HTMLImageElement).src = DEFAULT_AVATAR }}
               />
               <div>
@@ -647,7 +686,7 @@ export default function TeamMembersPage() {
             {editMode ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {/* Phone & Email */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                     Phone
                     <input type="tel" value={editData.phone ?? selectedMember.phone ?? ''} onChange={e => setEditData(d => ({ ...d, phone: e.target.value }))}
@@ -660,7 +699,7 @@ export default function TeamMembersPage() {
                   </label>
                 </div>
                 {/* Role & Status */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                     Role
                     <select value={editData.role ?? selectedMember.role} onChange={e => setEditData(d => ({ ...d, role: e.target.value }))}
@@ -702,7 +741,7 @@ export default function TeamMembersPage() {
                   </div>
                 </div>
                 {/* Emergency Contact */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                     Emergency Contact Name
                     <input value={editData.emergency_contact_name ?? selectedMember.emergency_contact_name ?? ''} onChange={e => setEditData(d => ({ ...d, emergency_contact_name: e.target.value }))}
@@ -798,7 +837,7 @@ export default function TeamMembersPage() {
                     <>
                       <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'var(--background)', borderRadius: '10px', border: '1px solid var(--border)' }}>
                         <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)', marginTop: 0, marginBottom: '10px' }}>2026 Season Stats</h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           {[
                             { label: 'Assigned', value: stats.total, color: '#1e40af' },
                             { label: 'Completed', value: stats.completed, color: 'var(--primary)' },
@@ -876,9 +915,10 @@ export default function TeamMembersPage() {
         >
           <div
             onClick={e => e.stopPropagation()}
+            className="w-[95%] md:w-[90%]"
             style={{
-              background: 'var(--muted)', borderRadius: '16px', width: '90%', maxWidth: '560px',
-              maxHeight: '85vh', overflow: 'auto', padding: '2rem',
+              background: 'var(--muted)', borderRadius: '16px', maxWidth: '560px',
+              maxHeight: '85vh', overflow: 'auto', padding: '1.25rem',
               boxShadow: '0 25px 50px rgba(0,0,0,0.25)', border: '1px solid var(--border)',
             }}
           >
@@ -891,7 +931,7 @@ export default function TeamMembersPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {/* Names */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   First Name *
                   <input value={addData.first_name || ''} onChange={e => setAddData(d => ({ ...d, first_name: e.target.value }))}
@@ -904,7 +944,7 @@ export default function TeamMembersPage() {
                 </label>
               </div>
               {/* Phone & Email */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Phone
                   <input type="tel" value={addData.phone || ''} onChange={e => setAddData(d => ({ ...d, phone: e.target.value }))}
@@ -917,7 +957,7 @@ export default function TeamMembersPage() {
                 </label>
               </div>
               {/* Role & Status */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Role
                   <select value={addData.role || 'both'} onChange={e => setAddData(d => ({ ...d, role: e.target.value }))}
@@ -934,7 +974,7 @@ export default function TeamMembersPage() {
                 </label>
               </div>
               {/* Pay & Date Joined */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Pay Per Wedding ($)
                   <input type="number" value={addData.pay_per_wedding ?? 300} onChange={e => setAddData(d => ({ ...d, pay_per_wedding: Number(e.target.value) }))}
@@ -966,7 +1006,7 @@ export default function TeamMembersPage() {
                 </div>
               </div>
               {/* Emergency Contact */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
                   Emergency Contact Name
                   <input value={addData.emergency_contact_name || ''} onChange={e => setAddData(d => ({ ...d, emergency_contact_name: e.target.value }))}
