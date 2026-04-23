@@ -6,6 +6,7 @@ import { Calendar, Camera, Clock, X, Video, ClipboardList, DollarSign, BookOpen,
 import { format, differenceInDays, parseISO, addDays } from 'date-fns'
 import { formatWeddingDate, formatDateCompact, formatDate, formatCurrency } from '@/lib/formatters'
 import * as d3 from 'd3'
+import WeekAhead from '@/components/dashboard/WeekAhead'
 
 interface Couple {
   id: string
@@ -611,6 +612,9 @@ export default function AdminDashboardPage() {
           )}
         </div>
       </div>
+
+      {/* The Week Ahead — 14-day calendar */}
+      <WeekAhead />
 
       {/* Three-column layout: Upcoming | D3 Rings | Season Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
