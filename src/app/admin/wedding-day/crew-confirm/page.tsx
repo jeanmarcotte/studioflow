@@ -7,7 +7,7 @@ import { Playfair_Display, Nunito } from 'next/font/google'
 import { format } from 'date-fns'
 import { formatPackage } from '@/lib/formatters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -110,6 +110,15 @@ interface ConfirmationStatus {
   email_sent_at: string | null
 }
 
+interface MeetingPoint {
+  id: string
+  name: string
+  address: string
+  maps_url: string | null
+  usual_for: string | null
+  is_active: boolean
+}
+
 // ── Time Helpers ──────────────────────────────────────────────────
 
 function parseTimeStr(t: string): number | null {
@@ -176,6 +185,7 @@ export default function CrewCallSheetPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [milestones, setMilestones] = useState<Milestone[]>([])
+  const [meetingPoints, setMeetingPoints] = useState<MeetingPoint[]>([])
   const [selectedCoupleId, setSelectedCoupleId] = useState<string>('')
   const [crewEntries, setCrewEntries] = useState<CrewEntry[]>([])
   const [generalNotes, setGeneralNotes] = useState('')
@@ -212,13 +222,14 @@ export default function CrewCallSheetPage() {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
 
-    const [couplesRes, contractsRes, assignmentsRes, membersRes, milestonesRes] = await Promise.all([
+    const [couplesRes, contractsRes, assignmentsRes, membersRes, milestonesRes, mpRes] = await Promise.all([
       supabase.from('couples').select('id, couple_name, wedding_date, park_location, package_type')
         .gte('wedding_date', today).order('wedding_date', { ascending: true }),
       supabase.from('contracts').select('couple_id, ceremony_location, reception_venue, start_time, end_time, num_photographers, num_videographers, day_of_week'),
       supabase.from('wedding_assignments').select('couple_id, photo_1, photo_2, video_1'),
       supabase.from('team_members').select('id, first_name, last_name, email, status').in('status', ['active', 'probationary']),
       supabase.from('couple_milestones').select('couple_id, m15_day_form_approved'),
+      supabase.from('meeting_points').select('*').eq('is_active', true).order('name'),
     ])
 
     if (couplesRes.data) setCouples(couplesRes.data)
@@ -226,6 +237,7 @@ export default function CrewCallSheetPage() {
     if (assignmentsRes.data) setAssignments(assignmentsRes.data)
     if (membersRes.data) setTeamMembers(membersRes.data)
     if (milestonesRes.data) setMilestones(milestonesRes.data)
+    if (mpRes.data) setMeetingPoints(mpRes.data)
     setLoading(false)
   }, [])
 
@@ -404,12 +416,14 @@ export default function CrewCallSheetPage() {
       if (!name) return
       const member = teamMembers.find(m => m.first_name === name)
       if (!member) return
+      // Auto-select meeting point if usual_for matches crew member's first name
+      const usualMp = meetingPoints.find(mp => mp.usual_for && mp.usual_for.toLowerCase() === name.toLowerCase())
       entries.push({
         team_member_id: member.id,
         member_name: `${member.first_name} ${member.last_name || ''}`.trim(),
         member_email: member.email || '', role, checked: true,
         call_time: defaultCallTime,
-        meeting_location: '',
+        meeting_location: usualMp ? usualMp.name : '',
         special_notes: '',
       })
     }
@@ -475,12 +489,13 @@ export default function CrewCallSheetPage() {
     const contract = contracts.find(c => c.couple_id === selectedCoupleId)
     const startMins = contract?.start_time ? parseTimeStr(contract.start_time) : null
     const defaultCallTime = startMins !== null ? minutesToTimeStr(startMins - 60) : ''
+    const usualMp = meetingPoints.find(mp => mp.usual_for && mp.usual_for.toLowerCase() === member.first_name.toLowerCase())
     setCrewEntries(prev => [...prev, {
       team_member_id: member.id,
       member_name: `${member.first_name} ${member.last_name || ''}`.trim(),
       member_email: member.email || '', role: '2nd Photographer', checked: true,
       call_time: defaultCallTime,
-      meeting_location: '',
+      meeting_location: usualMp ? usualMp.name : '',
       special_notes: '',
     }])
     setShowAddCrew(false)
@@ -609,30 +624,38 @@ export default function CrewCallSheetPage() {
     return teamMembers.filter(m => !usedIds.has(m.id))
   }, [teamMembers, crewEntries])
 
-  // ── Meeting point dropdown options ──────────────────────────────
+  // ── Meeting point dropdown options (3 sections) ────────────────
 
-  const meetingPointOptions = useMemo(() => {
+  const mpOptions = useMemo(() => meetingPoints.map(mp => ({
+    value: mp.name,
+    label: mp.name,
+    address: mp.address,
+    usualFor: mp.usual_for,
+  })), [meetingPoints])
+
+  const venueOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = []
     if (weddingLocations.length > 0) {
       for (const loc of weddingLocations) {
-        const display = `${loc.label} — ${loc.venue}`
-        opts.push({ value: display, label: display })
+        if (loc.venue !== 'TBD') {
+          opts.push({ value: `${loc.label} — ${loc.venue}`, label: `${loc.label} — ${loc.venue}` })
+        }
       }
     } else {
-      // Fallback to contract data
-      if (selectedContract?.ceremony_location) {
-        opts.push({ value: `Ceremony — ${selectedContract.ceremony_location}`, label: `Ceremony — ${selectedContract.ceremony_location}` })
-      }
-      if (selectedCouple?.park_location) {
-        opts.push({ value: `Park — ${selectedCouple.park_location}`, label: `Park — ${selectedCouple.park_location}` })
-      }
-      if (selectedContract?.reception_venue) {
-        opts.push({ value: `Reception — ${selectedContract.reception_venue}`, label: `Reception — ${selectedContract.reception_venue}` })
-      }
+      if (selectedContract?.ceremony_location) opts.push({ value: `Ceremony — ${selectedContract.ceremony_location}`, label: `Ceremony — ${selectedContract.ceremony_location}` })
+      if (selectedCouple?.park_location) opts.push({ value: `Park — ${selectedCouple.park_location}`, label: `Park — ${selectedCouple.park_location}` })
+      if (selectedContract?.reception_venue) opts.push({ value: `Reception — ${selectedContract.reception_venue}`, label: `Reception — ${selectedContract.reception_venue}` })
     }
-    opts.push({ value: '__other__', label: 'Other (specify below)' })
     return opts
   }, [weddingLocations, selectedContract, selectedCouple])
+
+  // All non-__other__ values for matching
+  const allOptionValues = useMemo(() => {
+    const vals = new Set<string>()
+    mpOptions.forEach(o => vals.add(o.value))
+    venueOptions.forEach(o => vals.add(o.value))
+    return vals
+  }, [mpOptions, venueOptions])
 
   // ── Helpers ────────────────────────────────────────────────────
 
@@ -1026,13 +1049,13 @@ export default function CrewCallSheetPage() {
                       />
                     </div>
 
-                    {/* Meeting Location — dropdown with wedding venues */}
+                    {/* Meeting Location — dropdown with meeting points + wedding venues */}
                     <div>
                       <Label className={nunito.className} style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: '4px' }}>Meeting Location</Label>
                       {(() => {
                         const isOther = otherLocationMode.has(entry.team_member_id)
-                        const matchesOption = meetingPointOptions.some(o => o.value !== '__other__' && o.value === entry.meeting_location)
-                        const showCustomInput = isOther || (entry.meeting_location && !matchesOption)
+                        const matchesOption = allOptionValues.has(entry.meeting_location)
+                        const showCustomInput = isOther || (entry.meeting_location !== '' && !matchesOption)
                         const selectValue = matchesOption ? entry.meeting_location : (showCustomInput ? '__other__' : undefined)
 
                         return (
@@ -1053,9 +1076,29 @@ export default function CrewCallSheetPage() {
                                 <SelectValue placeholder="Select meeting location..." />
                               </SelectTrigger>
                               <SelectContent>
-                                {meetingPointOptions.map(opt => (
-                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                ))}
+                                {mpOptions.length > 0 && (
+                                  <SelectGroup>
+                                    <SelectLabel>Meeting Points</SelectLabel>
+                                    {mpOptions.map(opt => (
+                                      <SelectItem key={opt.value} value={opt.value}>
+                                        {opt.label}{opt.usualFor ? ` (${opt.usualFor}'s usual)` : ''}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                )}
+                                {venueOptions.length > 0 && (
+                                  <>
+                                    {mpOptions.length > 0 && <SelectSeparator />}
+                                    <SelectGroup>
+                                      <SelectLabel>Wedding Locations</SelectLabel>
+                                      {venueOptions.map(opt => (
+                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                      ))}
+                                    </SelectGroup>
+                                  </>
+                                )}
+                                <SelectSeparator />
+                                <SelectItem value="__other__">Other (specify below)</SelectItem>
                               </SelectContent>
                             </Select>
                             {showCustomInput && (
