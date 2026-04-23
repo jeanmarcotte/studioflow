@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Calendar, Camera, Clock, X, Video, ClipboardList, DollarSign, BookOpen, Pencil } from 'lucide-react'
+import { Calendar, Camera, Clock, X, Video, ClipboardList, DollarSign, BookOpen, Pencil, Phone } from 'lucide-react'
 import { format, differenceInDays, parseISO, addDays } from 'date-fns'
 import { formatWeddingDate, formatDateCompact, formatDate, formatCurrency } from '@/lib/formatters'
 import * as d3 from 'd3'
@@ -73,6 +73,22 @@ interface CurrentlyEditingJob {
   photos_taken: number
   edited_so_far: number
   status: string
+}
+
+interface EngMilestone {
+  couple_id: string
+  m06_eng_session_shot: boolean | null
+  m06_declined: boolean | null
+}
+
+interface EngAppointment {
+  id: string
+  couple_id: string
+  appointment_date: string
+  start_time: string | null
+  location: string | null
+  status: string
+  couples?: { bride_first_name: string | null; groom_first_name: string | null } | null
 }
 
 interface YearRingData {
@@ -196,19 +212,24 @@ export default function AdminDashboardPage() {
   const [installments, setInstallments] = useState<InstallmentRow[]>([])
   const [editingJobs, setEditingJobs] = useState<EditingJobRow[]>([])
   const [formCoupleIds, setFormCoupleIds] = useState<Set<string>>(new Set())
+  const [engMilestones, setEngMilestones] = useState<EngMilestone[]>([])
+  const [engAppointments, setEngAppointments] = useState<EngAppointment[]>([])
   const [loading, setLoading] = useState(true)
   const [modalYear, setModalYear] = useState<number | null>(null)
   const [expandedBox, setExpandedBox] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [couplesRes, photoRes, videoRes, installRes, editingRes, formsRes] = await Promise.all([
+      const todayDate = new Date().toISOString().split('T')[0]
+      const [couplesRes, photoRes, videoRes, installRes, editingRes, formsRes, milestonesRes, appointmentsRes] = await Promise.all([
         supabase.from('couples').select('*').order('wedding_date', { ascending: true }),
         supabase.from('editing_queue').select('id, couple_id, status, couples(couple_name)'),
         supabase.from('video_jobs').select('id, couple_id, status, couples(couple_name, wedding_date)'),
         supabase.from('contract_installments').select('id, contract_id, installment_number, due_description, amount, due_date, paid, contracts(couples(couple_name))'),
         supabase.from('jobs').select('id, couple_id, job_type, category, description, vendor, status, photos_taken, edited_so_far, couples(couple_name, wedding_date)'),
         supabase.from('wedding_day_forms').select('couple_id'),
+        supabase.from('couple_milestones').select('couple_id, m06_eng_session_shot, m06_declined'),
+        supabase.from('couple_appointments').select('id, couple_id, appointment_date, start_time, location, status, couples(bride_first_name, groom_first_name)').eq('appointment_type', 'engagement_shoot').eq('status', 'scheduled').gte('appointment_date', todayDate).order('appointment_date', { ascending: true }),
       ])
 
       if (couplesRes.data) setCouples(couplesRes.data)
@@ -217,6 +238,8 @@ export default function AdminDashboardPage() {
       if (installRes.data) setInstallments(installRes.data as unknown as InstallmentRow[])
       if (editingRes.data) setEditingJobs(editingRes.data as unknown as EditingJobRow[])
       if (formsRes.data) setFormCoupleIds(new Set(formsRes.data.map((f: { couple_id: string }) => f.couple_id)))
+      if (milestonesRes.data) setEngMilestones(milestonesRes.data as EngMilestone[])
+      if (appointmentsRes.data) setEngAppointments(appointmentsRes.data as unknown as EngAppointment[])
       setLoading(false)
     }
     fetchAll()
@@ -440,6 +463,27 @@ export default function AdminDashboardPage() {
 
   const expandedBoxData = expandedBox ? dashboardBoxes.find(b => b.key === expandedBox) : null
 
+  // === ENGAGEMENT PIPELINE ===
+  const msMap = new Map(engMilestones.map(m => [m.couple_id, m]))
+  const bookedCouples = couples.filter(c => c.status === 'booked')
+
+  const engShotCount = engMilestones.filter(m => m.m06_eng_session_shot === true).length
+  const engDeclinedCount = engMilestones.filter(m => m.m06_declined === true).length
+  const engPendingCouples = bookedCouples.filter(c => {
+    const m = msMap.get(c.id)
+    return !(m?.m06_eng_session_shot === true) && !(m?.m06_declined === true)
+  })
+  const engPendingCount = engPendingCouples.length
+
+  // Upcoming shoots (already filtered by query: engagement_shoot, scheduled, >= today)
+  const upcomingShoots = engAppointments
+
+  // Needs Follow-Up: pending couples with NO scheduled engagement/PLW appointment
+  const scheduledCoupleIds = new Set(engAppointments.map(a => a.couple_id))
+  const needsFollowUp = engPendingCouples
+    .filter(c => !scheduledCoupleIds.has(c.id))
+    .sort((a, b) => (a.wedding_date ?? '').localeCompare(b.wedding_date ?? ''))
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -468,6 +512,84 @@ export default function AdminDashboardPage() {
         {dashboardBoxes.map((box) => (
           <DashboardBoxCard key={box.key} box={box} onClick={() => setExpandedBox(box.key)} />
         ))}
+      </div>
+
+      {/* Engagement Pipeline */}
+      <div className="rounded-xl border bg-card">
+        <div className="p-5 border-b">
+          <h2 className="font-semibold flex items-center gap-2">
+            <Camera className="h-4 w-4 text-teal-600" />
+            Engagement Pipeline
+          </h2>
+        </div>
+        <div className="p-5 space-y-5">
+          {/* Summary badges */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 text-green-700 px-3 py-1 text-sm font-medium">
+              {engShotCount} Shot
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 text-amber-700 px-3 py-1 text-sm font-medium">
+              {engPendingCount} Pending
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 text-red-700 px-3 py-1 text-sm font-medium">
+              {engDeclinedCount} Declined
+            </span>
+          </div>
+
+          {/* Upcoming Shoots */}
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Upcoming Shoots</h3>
+            {upcomingShoots.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">No shoots scheduled</p>
+            ) : (
+              <div className="space-y-1.5">
+                {upcomingShoots.map(a => {
+                  const d = parseISO(a.appointment_date)
+                  const dow = format(d, 'EEE').toUpperCase()
+                  const dateStr = format(d, 'MMM d')
+                  const bride = (a.couples as any)?.bride_first_name || ''
+                  const groom = (a.couples as any)?.groom_first_name || ''
+                  const names = [bride, groom].filter(Boolean).join(' & ')
+                  const time = a.start_time ? a.start_time.slice(0, 5) : ''
+                  return (
+                    <div key={a.id} className="text-sm">
+                      <span className="font-semibold">{dow} {dateStr}</span>
+                      <span className="text-muted-foreground"> — </span>
+                      <span>{names}</span>
+                      {a.location && <span className="text-muted-foreground"> ({a.location})</span>}
+                      {time && <span className="text-muted-foreground"> {time}</span>}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Needs Follow-Up */}
+          {needsFollowUp.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Phone className="h-3.5 w-3.5" />
+                Needs Follow-Up ({needsFollowUp.length})
+              </h3>
+              <div className="space-y-1.5">
+                {needsFollowUp.map(c => {
+                  const wDate = c.wedding_date ? parseISO(c.wedding_date) : null
+                  const dateStr = wDate ? `${format(wDate, 'EEE').toUpperCase()} ${format(wDate, 'MMM d, yyyy')}` : 'TBD'
+                  const name = [c.bride_name, c.groom_name].filter(Boolean).join(' & ') || c.couple_name
+                  return (
+                    <div key={c.id} className="text-sm flex flex-wrap items-center gap-x-2">
+                      <span className="font-medium">{name}</span>
+                      <span className="text-muted-foreground">{dateStr}</span>
+                      {(c as any).email && <span className="text-muted-foreground">{(c as any).email}</span>}
+                      <span className="text-muted-foreground">{(c as any).phone || '—'}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Three-column layout: Upcoming | D3 Rings | Season Overview */}
