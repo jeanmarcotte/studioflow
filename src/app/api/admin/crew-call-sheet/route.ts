@@ -343,8 +343,9 @@ export async function POST(request: NextRequest) {
       const emailPayload: any = {
         from: 'SIGS Photography <noreply@sigsphoto.ca>',
         to: [cm.member_email],
-        cc: ['mariannakogan@gmail.com'],
-        subject: `Crew Call Sheet — ${couple_name} | ${subjectDate}`,
+        cc: ['info@sigsphoto.ca'],
+        bcc: ['jeanmarcotte@gmail.com'],
+        subject: `SIGS Photography — Crew Call Sheet: ${couple_name} — ${subjectDate}`,
         html,
       }
 
@@ -401,8 +402,8 @@ export async function POST(request: NextRequest) {
     try {
       await getResend().emails.send({
         from: 'SIGS Photography <noreply@sigsphoto.ca>',
-        to: ['mariannakogan@gmail.com'],
-        subject: `Crew Call Sheet Sent — ${couple_name} | ${subjectDate}`,
+        to: ['jeanmarcotte@gmail.com', 'info@sigsphoto.ca'],
+        subject: `SIGS Photography — Crew Call Sheet Sent: ${couple_name} — ${subjectDate}`,
         html: summaryHtml,
       })
     } catch { /* non-critical */ }

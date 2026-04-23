@@ -101,6 +101,14 @@ interface WeddingLocation {
   time: string
 }
 
+interface ConfirmationStatus {
+  team_member_id: string
+  confirmed: boolean
+  confirmed_at: string | null
+  email_sent: boolean
+  email_sent_at: string | null
+}
+
 // ── Time Helpers ──────────────────────────────────────────────────
 
 function parseTimeStr(t: string): number | null {
@@ -191,6 +199,8 @@ export default function CrewCallSheetPage() {
   const [showHistory, setShowHistory] = useState(false)
   const [showAddCrew, setShowAddCrew] = useState(false)
   const [showVendors, setShowVendors] = useState(false)
+  const [sendError, setSendError] = useState('')
+  const [confirmationStatuses, setConfirmationStatuses] = useState<ConfirmationStatus[]>([])
   const [loading, setLoading] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -371,7 +381,7 @@ export default function CrewCallSheetPage() {
 
   useEffect(() => {
     if (!selectedCoupleId || !selectedAssignment) {
-      setCrewEntries([]); setSentTimestamp(null); setHistory([])
+      setCrewEntries([]); setSentTimestamp(null); setHistory([]); setConfirmationStatuses([]); setSendError('')
       setDressCode(''); setBridesmaids(''); setGroomsmen('')
       setVendors({ dj_mc: '', florist: '', makeup: '', hair: '', planner: '', transport: '' })
       setKeyMoments(''); setEquipmentNotes('')
@@ -407,8 +417,9 @@ export default function CrewCallSheetPage() {
     addEntry(selectedAssignment.video_1, 'Videographer')
     setCrewEntries(entries)
 
-    setSentTimestamp(null)
+    setSentTimestamp(null); setSendError('')
     fetchHistory(selectedCoupleId)
+    fetchConfirmationStatuses(selectedCoupleId)
     fetchUploadedDocs(selectedCoupleId)
     fetchWeddingDayForm(selectedCoupleId)
 
@@ -431,6 +442,23 @@ export default function CrewCallSheetPage() {
       members: (members || []).filter(m => m.call_sheet_id === s.id).map(m => ({
         member_name: m.member_name, role: m.role, confirmed: m.confirmed, email_sent: m.email_sent,
       })),
+    })))
+  }
+
+  const fetchConfirmationStatuses = async (coupleId: string) => {
+    // Get the most recent call sheet for this couple
+    const { data: sheets } = await supabase.from('crew_call_sheets')
+      .select('id').eq('couple_id', coupleId).order('sent_at', { ascending: false }).limit(1)
+    if (!sheets?.length) { setConfirmationStatuses([]); return }
+    const { data: members } = await supabase.from('crew_call_sheet_members')
+      .select('team_member_id, confirmed, confirmed_at, email_sent, email_sent_at')
+      .eq('call_sheet_id', sheets[0].id)
+    setConfirmationStatuses((members || []).map(m => ({
+      team_member_id: m.team_member_id,
+      confirmed: m.confirmed || false,
+      confirmed_at: m.confirmed_at,
+      email_sent: m.email_sent || false,
+      email_sent_at: m.email_sent_at,
     })))
   }
 
@@ -516,6 +544,7 @@ export default function CrewCallSheetPage() {
       : ''
 
     setSending(true)
+    setSendError('')
     try {
       const res = await fetch('/api/admin/crew-call-sheet', {
         method: 'POST',
@@ -560,8 +589,14 @@ export default function CrewCallSheetPage() {
       if (data.success) {
         setSentTimestamp(new Date().toLocaleString('en-US', { timeZone: 'America/Toronto' }))
         fetchHistory(selectedCouple.id)
+        fetchConfirmationStatuses(selectedCouple.id)
+      } else {
+        setSendError(data.error || 'Failed to send call sheet')
       }
-    } catch (err) { console.error('Send failed:', err) }
+    } catch (err) {
+      console.error('Send failed:', err)
+      setSendError('Network error — check your connection and try again')
+    }
     setSending(false)
   }
 
@@ -879,7 +914,7 @@ export default function CrewCallSheetPage() {
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                 opacity: entry.checked ? 1 : 0.5,
               }}>
-                {/* Card header: checkbox + name + role dropdown + remove */}
+                {/* Card header: checkbox + name + confirmation badge + role dropdown + remove */}
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: '10px',
                   padding: '10px 14px', background: 'var(--muted)', borderBottom: '1px solid var(--border)',
@@ -887,7 +922,50 @@ export default function CrewCallSheetPage() {
                   <input type="checkbox" checked={entry.checked}
                     onChange={e => updateEntry(idx, 'checked', e.target.checked)}
                     style={{ width: 18, height: 18, cursor: 'pointer' }} />
-                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)', flex: 1 }}>{entry.member_name}</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>{entry.member_name}</span>
+                  {/* Confirmation status badge */}
+                  {(() => {
+                    const status = confirmationStatuses.find(s => s.team_member_id === entry.team_member_id)
+                    if (!status) return null
+                    if (status.confirmed) {
+                      return (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          padding: '2px 8px', borderRadius: '9999px', fontSize: '0.7rem', fontWeight: 600,
+                          background: '#dcfce7', color: '#166534',
+                        }}>
+                          <Check size={10} /> Confirmed
+                          {status.confirmed_at && (
+                            <span style={{ fontWeight: 400, marginLeft: '2px' }}>
+                              {format(new Date(status.confirmed_at), 'MMM d, h:mm a')}
+                            </span>
+                          )}
+                        </span>
+                      )
+                    }
+                    if (status.email_sent) {
+                      return (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          padding: '2px 8px', borderRadius: '9999px', fontSize: '0.7rem', fontWeight: 600,
+                          background: '#fef3c7', color: '#92400e',
+                        }}>
+                          <Clock size={10} /> Awaiting confirmation
+                        </span>
+                      )
+                    }
+                    return (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        padding: '2px 8px', borderRadius: '9999px', fontSize: '0.7rem', fontWeight: 600,
+                        background: 'var(--muted)', color: 'var(--muted-foreground)',
+                        border: '1px solid var(--border)',
+                      }}>
+                        <Mail size={10} /> Not sent
+                      </span>
+                    )
+                  })()}
+                  <div style={{ flex: 1 }} />
                   <select value={entry.role} onChange={e => updateEntry(idx, 'role', e.target.value)} style={{
                     padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)',
                     fontSize: '0.8rem', fontFamily: nunito.style.fontFamily, background: 'var(--background)',
@@ -1067,6 +1145,17 @@ export default function CrewCallSheetPage() {
               </div>
             )}
           </div>
+
+          {/* Send Error */}
+          {sendError && (
+            <div style={{
+              padding: '10px 14px', marginBottom: '1rem', borderRadius: '8px',
+              background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b',
+              fontSize: '0.85rem', fontWeight: 600,
+            }}>
+              {sendError}
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem', alignItems: 'center' }}>

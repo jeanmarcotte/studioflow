@@ -66,18 +66,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       minute: '2-digit',
     })
 
+    // Get member details for the notification
+    const { data: memberDetails } = await supabase
+      .from('crew_call_sheet_members')
+      .select('call_time, meeting_point')
+      .eq('id', member.id)
+      .limit(1)
+    const callTime = memberDetails?.[0]?.call_time || 'Not specified'
+    const meetingLocation = memberDetails?.[0]?.meeting_point || 'Not specified'
+
     await resend.emails.send({
       from: 'SIGS Photography <noreply@sigsphoto.ca>',
       to: ['jeanmarcotte@gmail.com', 'info@sigsphoto.ca'],
-      subject: `✅ ${member.member_name} confirmed — ${coupleName} | ${weddingDate}`,
+      subject: `✅ ${member.member_name} confirmed for ${coupleName} — ${weddingDate}`,
       html: `
         <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;">
           <div style="background:#0d4f4f;color:white;padding:20px 24px;border-radius:8px 8px 0 0;">
             <h2 style="margin:0;font-size:18px;">✅ Crew Confirmation</h2>
           </div>
           <div style="padding:20px 24px;background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
-            <p style="margin:0 0 12px;font-size:15px;color:#111827;"><strong>${member.member_name}</strong> just confirmed for <strong>${coupleName}</strong>'s wedding on <strong>${weddingDate}</strong>.</p>
-            <p style="margin:0 0 4px;font-size:14px;color:#374151;"><strong>Role:</strong> ${member.role || 'Not specified'}</p>
+            <p style="margin:0 0 12px;font-size:15px;color:#111827;"><strong>${member.member_name}</strong> (${member.role || 'Crew'}) has confirmed for the crew call.</p>
+            <p style="margin:0 0 4px;font-size:14px;color:#374151;"><strong>Call time:</strong> ${callTime}</p>
+            <p style="margin:0 0 4px;font-size:14px;color:#374151;"><strong>Meeting location:</strong> ${meetingLocation}</p>
             <p style="margin:0 0 16px;font-size:14px;color:#374151;"><strong>Confirmed at:</strong> ${confirmedAtToronto}</p>
             <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />
             <p style="margin:0;"><a href="https://studioflow-zeta.vercel.app/admin/wedding-day/crew-confirm" style="color:#0d9488;text-decoration:none;font-weight:600;">View Crew Call Sheet →</a></p>
@@ -85,6 +95,37 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         </div>
       `,
     })
+
+    // Check if ALL members on this call sheet are now confirmed
+    const { data: allMembers } = await supabase
+      .from('crew_call_sheet_members')
+      .select('member_name, role, call_time, confirmed')
+      .eq('call_sheet_id', member.call_sheet_id)
+
+    if (allMembers?.length && allMembers.every(m => m.confirmed)) {
+      const memberList = allMembers.map(m =>
+        `<p style="margin:4px 0;font-size:14px;color:#374151;">✅ <strong>${m.member_name}</strong> (${m.role}) — Call time: ${m.call_time || 'TBD'}</p>`
+      ).join('')
+
+      await resend.emails.send({
+        from: 'SIGS Photography <noreply@sigsphoto.ca>',
+        to: ['jeanmarcotte@gmail.com', 'info@sigsphoto.ca'],
+        subject: `Full crew confirmed for ${coupleName} — ${weddingDate}`,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;">
+            <div style="background:#0d4f4f;color:white;padding:20px 24px;border-radius:8px 8px 0 0;">
+              <h2 style="margin:0;font-size:18px;">Full Crew Confirmed</h2>
+            </div>
+            <div style="padding:20px 24px;background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
+              <p style="margin:0 0 12px;font-size:15px;color:#111827;">All crew members have confirmed for <strong>${coupleName}</strong>'s wedding on <strong>${weddingDate}</strong>.</p>
+              ${memberList}
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />
+              <p style="margin:0;"><a href="https://studioflow-zeta.vercel.app/admin/wedding-day/crew-confirm" style="color:#0d9488;text-decoration:none;font-weight:600;">View Crew Call Sheet →</a></p>
+            </div>
+          </div>
+        `,
+      })
+    }
   } catch (emailErr) {
     console.error('[Crew confirm] Notification email failed:', emailErr)
   }
