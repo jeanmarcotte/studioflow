@@ -80,7 +80,7 @@ interface DocumentsTableProps {
 
 export function DocumentsTable({ data }: DocumentsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'weddingDate', desc: false }])
-  const [yearFilter, setYearFilter] = useState('all')
+  const [yearFilter, setYearFilter] = useState(String(new Date().getFullYear()))
   const [nameSearch, setNameSearch] = useState('')
 
   const filteredData = useMemo(() => {
@@ -320,11 +320,13 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
               <SelectValue placeholder="Year" />
             </SelectTrigger>
             <SelectContent>
+              {(() => {
+                const cy = new Date().getFullYear()
+                return [cy, cy + 1, cy - 1].map(y => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))
+              })()}
               <SelectItem value="all">All Years</SelectItem>
-              <SelectItem value="2028">2028</SelectItem>
-              <SelectItem value="2027">2027</SelectItem>
-              <SelectItem value="2026">2026</SelectItem>
-              <SelectItem value="2025">2025</SelectItem>
             </SelectContent>
           </Select>
 
