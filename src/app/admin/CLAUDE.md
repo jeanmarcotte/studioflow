@@ -19,7 +19,9 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #7570 | 4:15 PM | 🟣 | Week Ahead Widget Integrated into Dashboard | ~423 |
+| #7575 | 4:38 PM | ✅ | Production Floor and Business Sections Added to Dashboard Layout | ~329 |
+| #7571 | 4:15 PM | 🟣 | WO-863 Week Ahead Feature Deployed to Production | ~480 |
+| #7570 | " | 🟣 | Week Ahead Widget Integrated into Dashboard | ~423 |
 | #7566 | 3:52 PM | ✅ | WO-862 Dashboard Fixes Committed and Deployed | ~342 |
 | #7564 | " | ✅ | Year Cards Repositioned to Bottom of Dashboard | ~299 |
 | #7563 | 3:51 PM | ✅ | Year Cards Section Removed from Dashboard | ~308 |

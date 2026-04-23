@@ -7,6 +7,8 @@ import { format, differenceInDays, parseISO, addDays } from 'date-fns'
 import { formatWeddingDate, formatDateCompact, formatDate, formatCurrency } from '@/lib/formatters'
 import * as d3 from 'd3'
 import WeekAhead from '@/components/dashboard/WeekAhead'
+import ProductionFloor from '@/components/dashboard/ProductionFloor'
+import TheBusiness from '@/components/dashboard/TheBusiness'
 
 interface Couple {
   id: string
@@ -719,6 +721,12 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+
+      {/* The Production Floor */}
+      <ProductionFloor />
+
+      {/* The Business */}
+      <TheBusiness />
 
       {/* Year Cards — 2026, 2027, 2025 */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
