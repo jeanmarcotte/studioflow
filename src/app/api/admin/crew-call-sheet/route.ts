@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { format } from 'date-fns'
+import { buildCrewEmailHtml } from '@/lib/crew-email-html'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -209,136 +210,40 @@ export async function POST(request: NextRequest) {
       const confirmUrl = `${APP_URL}/api/confirm-crew/${cm.confirmation_token}`
       const mpMapsUrl = crewPayload ? crewMapsLink(crewPayload) : ''
 
-      const equipmentHtml = (cm.equipment_pickup_location || cm.equipment_dropoff_location) ? `
-        <tr><td colspan="2" style="padding:16px 0 8px;">
-          <div style="border-top:2px solid #e7e1d8;padding-top:12px;">
-            <p style="margin:0 0 8px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">Equipment</p>
-            ${cm.equipment_pickup_location ? `<p style="margin:4px 0;font-size:14px;color:#374151;"><strong>Pickup:</strong> ${esc(cm.equipment_pickup_location)}${cm.equipment_pickup_time ? ` — ${esc(cm.equipment_pickup_time)}` : ''}</p>` : ''}
-            ${cm.equipment_dropoff_location ? `<p style="margin:4px 0;font-size:14px;color:#374151;"><strong>Dropoff:</strong> ${esc(cm.equipment_dropoff_location)}${cm.equipment_dropoff_time ? ` — ${esc(cm.equipment_dropoff_time)}` : ''}</p>` : ''}
-          </div>
-        </td></tr>` : ''
+      const vendorList = vendorLines.map(v => {
+        const colonIdx = v.indexOf(':')
+        return { key: v.substring(0, colonIdx), value: v.substring(colonIdx + 2) }
+      })
 
-      const dressCodeHtml = dress_code ? `
-        <tr><td colspan="2" style="padding:12px 0 8px;">
-          <div style="background:#faf8f5;border-radius:6px;padding:10px 14px;border:1px solid #e7e1d8;">
-            <p style="margin:0;font-size:15px;font-weight:700;color:#1a1a1a;">👔 DRESS CODE: ${esc(dress_code)}</p>
-          </div>
-        </td></tr>` : ''
-
-      const bridalPartyHtml = bridalPartyText ? `
-        <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Bridal Party</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(bridalPartyText)}</td></tr>` : ''
-
-      const vendorsHtml = vendorLines.length ? `
-        <tr><td colspan="2" style="padding:12px 0 4px;">
-          <p style="margin:0 0 6px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">Key Vendors</p>
-          ${vendorLines.map(v => `<p style="margin:2px 0;font-size:13px;color:#374151;">${esc(v)}</p>`).join('')}
-        </td></tr>` : ''
-
-      const keyMomentsHtml = key_moments ? `
-        <tr><td colspan="2" style="padding:12px 0 8px;">
-          <div style="background:#fffbeb;border-radius:6px;padding:10px 14px;border:1px solid #fde68a;">
-            <p style="margin:0 0 6px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#92400e;">📸 Must-Capture Moments</p>
-            ${esc(key_moments).split('\n').filter(Boolean).map(line => `<p style="margin:2px 0;font-size:14px;color:#374151;">• ${line.replace(/^[-•]\s*/, '')}</p>`).join('')}
-          </div>
-        </td></tr>` : ''
-
-      const weatherHtml = weather ? `
-        <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Weather</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(weather)}</td></tr>` : ''
-
-      const notesHtml = cm.special_notes ? `
-        <tr><td colspan="2" style="padding:8px 0;">
-          <p style="margin:0 0 4px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">Notes</p>
-          <p style="margin:0;font-size:14px;color:#374151;">${esc(cm.special_notes)}</p>
-        </td></tr>` : ''
-
-      const generalNotesHtml = notes ? `
-        <tr><td colspan="2" style="padding:12px 0 8px;">
-          <div style="border-top:2px solid #e7e1d8;padding-top:12px;">
-            <p style="margin:0 0 8px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">General Notes</p>
-            <p style="margin:0;font-size:14px;color:#374151;">${esc(notes)}</p>
-          </div>
-        </td></tr>` : ''
-
-      const scheduleHtml = schedule?.length ? `
-        <tr><td colspan="2" style="padding:16px 0 8px;">
-          <div style="border-top:2px solid #e7e1d8;padding-top:12px;">
-            <p style="margin:0 0 12px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#0d4f4f;">Wedding Day Schedule</p>
-            ${schedule.map(evt => `
-              <div style="margin-bottom:12px;padding-left:12px;border-left:3px solid #0d4f4f;">
-                <p style="margin:0;font-size:14px;">
-                  ${evt.time ? `<span style="font-family:'Courier New',monospace;font-weight:700;color:#0d4f4f;">⏰ ${esc(evt.time)}</span> &mdash; ` : ''}
-                  <strong>${esc(evt.label)}</strong>
-                </p>
-                ${evt.address ? `<p style="margin:2px 0 0;font-size:13px;color:#374151;">📍 ${esc(evt.address)}</p>` : ''}
-                ${evt.maps_url ? `<p style="margin:2px 0 0;"><a href="${evt.maps_url}" style="color:#0d4f4f;text-decoration:underline;font-weight:600;font-size:13px;">🗺️ Open in Google Maps</a></p>` : ''}
-              </div>
-            `).join('')}
-          </div>
-        </td></tr>` : ''
-
-      const html = `
-<div style="font-family:'Trebuchet MS',sans-serif;max-width:600px;margin:0 auto;background:#ffffff;">
-  <div style="background:#0d4f4f;padding:24px 28px;border-radius:8px 8px 0 0;">
-    <p style="margin:0;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.7);">SIGS Photography</p>
-    <h1 style="margin:6px 0 0;font-family:Georgia,serif;font-size:22px;color:#ffffff;">Crew Call Sheet</h1>
-  </div>
-
-  <div style="padding:24px 28px;border:1px solid #e7e1d8;border-top:none;border-radius:0 0 8px 8px;">
-    <!-- Jean's phone — TOP -->
-    <div style="background:#e6f4f1;border-radius:6px;padding:8px 14px;margin-bottom:16px;text-align:center;">
-      <p style="margin:0;font-size:14px;font-weight:700;color:#0d4f4f;">📞 Questions? Call Jean: (416) 731-6748</p>
-    </div>
-
-    <!-- Wedding Details -->
-    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-      <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;width:100px;">Couple</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(couple_name)}</td></tr>
-      <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Date</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${dayUpper}, ${esc(dateFormatted)}</td></tr>
-      ${weatherHtml}
-      ${ceremony_location ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Ceremony</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(ceremony_location)} <a href="${mapsUrl(ceremony_location)}" style="color:#0d4f4f;text-decoration:underline;font-weight:600;font-size:13px;">📍 Open in Google Maps</a></td></tr>` : ''}
-      ${reception_venue ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Reception</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(reception_venue)} <a href="${mapsUrl(reception_venue)}" style="color:#0d4f4f;text-decoration:underline;font-weight:600;font-size:13px;">📍 Open in Google Maps</a></td></tr>` : ''}
-      ${park_location ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Park</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(park_location)} <a href="${mapsUrl(park_location)}" style="color:#0d4f4f;text-decoration:underline;font-weight:600;font-size:13px;">📍 Open in Google Maps</a></td></tr>` : ''}
-      ${coverageText ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Coverage</td><td style="padding:4px 0;font-size:14px;color:#374151;">${esc(coverageText)}</td></tr>` : ''}
-      ${bridalPartyHtml}
-    </table>
-
-    <!-- Divider -->
-    <div style="border-top:3px solid #0d4f4f;margin:20px 0;"></div>
-
-    <!-- Assignment -->
-    <table style="width:100%;border-collapse:collapse;">
-      <tr><td colspan="2" style="padding:0 0 12px;">
-        <p style="margin:0;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#0d4f4f;">Your Assignment</p>
-      </td></tr>
-      <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;width:120px;">Name</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(cm.member_name)}</td></tr>
-      <tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Role</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(cm.role)}</td></tr>
-      ${cm.call_time ? `<tr><td style="padding:4px 0;font-size:14px;color:#6b7280;">Meet Jean at:</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#1a1a1a;">${esc(cm.call_time)}</td></tr>` : ''}
-      ${cm.meeting_point ? `
-      <tr><td colspan="2" style="padding:12px 0 4px;">
-        <p style="margin:0 0 4px;font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d4f4f;">Meeting Point</p>
-        <p style="margin:0;font-size:14px;color:#374151;">📍 ${esc(cm.meeting_point)}</p>
-        ${mpMapsUrl ? `<p style="margin:4px 0 0;"><a href="${mpMapsUrl}" style="color:#0d4f4f;text-decoration:underline;font-weight:600;font-size:13px;">📍 Open in Google Maps</a></p>` : ''}
-        ${cm.call_time ? `<p style="margin:4px 0 0;font-size:14px;color:#374151;font-weight:600;">⏰ Arrive by ${esc(cm.call_time)}</p>` : ''}
-      </td></tr>` : ''}
-      ${equipmentHtml}
-      ${notesHtml}
-      ${scheduleHtml}
-      ${dressCodeHtml}
-      ${vendorsHtml}
-      ${keyMomentsHtml}
-      ${generalNotesHtml}
-    </table>
-
-    <!-- Confirm Button -->
-    <div style="text-align:center;margin:28px 0 16px;">
-      <a href="${confirmUrl}" style="display:inline-block;padding:14px 40px;background:#0d4f4f;color:#ffffff;font-family:Georgia,serif;font-size:16px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:0.5px;">✅ Click Here to Confirm</a>
-    </div>
-
-    <!-- Footer -->
-    <div style="border-top:1px solid #e7e1d8;padding-top:16px;text-align:center;">
-      <p style="margin:0;font-size:13px;color:#6b7280;">📞 Questions? Call Jean: (416) 731-6748</p>
-    </div>
-  </div>
-</div>`
+      const html = buildCrewEmailHtml({
+        coupleName: couple_name,
+        dateFormatted,
+        dayUpper,
+        weather,
+        ceremonyLocation: ceremony_location,
+        receptionVenue: reception_venue,
+        parkLocation: park_location,
+        coverageText,
+        bridalPartyText,
+        dressCode: dress_code,
+        generalNotes: notes,
+        keyMoments: key_moments,
+        schedule: schedule || [],
+        vendors: vendorList,
+        member: {
+          name: cm.member_name,
+          role: cm.role,
+          callTime: cm.call_time || '',
+          meetingPoint: cm.meeting_point || '',
+          meetingPointMapsUrl: mpMapsUrl,
+          specialNotes: cm.special_notes || '',
+          equipmentPickup: cm.equipment_pickup_location || '',
+          equipmentPickupTime: cm.equipment_pickup_time || '',
+          equipmentDropoff: cm.equipment_dropoff_location || '',
+          equipmentDropoffTime: cm.equipment_dropoff_time || '',
+        },
+        confirmUrl,
+      })
 
       const emailPayload: any = {
         from: 'SIGS Photography <noreply@sigsphoto.ca>',

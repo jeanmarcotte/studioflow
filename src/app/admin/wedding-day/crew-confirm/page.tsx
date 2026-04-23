@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { buildCrewEmailHtml } from '@/lib/crew-email-html'
 import { Send, X, ChevronDown, ChevronRight, Plus, Eye, Check, Clock, Mail, Upload, FileText, Trash2, Download, ExternalLink } from 'lucide-react'
 import { Playfair_Display, Nunito } from 'next/font/google'
 import { format } from 'date-fns'
@@ -1348,159 +1349,91 @@ export default function CrewCallSheetPage() {
               ))}
             </div>
 
-            {/* Preview content */}
+            {/* Preview content — uses same HTML builder as the send API */}
             {(() => {
               const checked = crewEntries.filter(e => e.checked)
               const entry = checked[previewTab]
               if (!entry) return null
-              const dateStr = selectedCouple?.wedding_date ? formatWeddingDateUpper(selectedCouple.wedding_date) : '—'
 
-              return (
-                <div style={{ background: 'var(--background)', borderRadius: '10px', border: '1px solid var(--border)', overflow: 'hidden' }}>
-                  <div style={{ background: 'var(--primary)', padding: '20px 24px', color: 'var(--primary-foreground)' }}>
-                    <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', opacity: 0.7 }}>SIGS Photography</p>
-                    <h3 style={{ margin: '4px 0 0', fontSize: '1.1rem', fontFamily: 'Georgia, serif' }}>Crew Call Sheet</h3>
-                  </div>
-                  <div style={{ padding: '20px 24px', fontSize: '0.85rem' }}>
-                    {/* Jean's phone — TOP */}
-                    <div style={{ background: 'var(--accent)', borderRadius: '6px', padding: '8px 14px', marginBottom: '16px', textAlign: 'center' }}>
-                      <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>Questions? Call Jean: (416) 731-6748</p>
-                    </div>
+              const dateFormatted = selectedCouple?.wedding_date
+                ? format(new Date(selectedCouple.wedding_date + 'T12:00:00'), 'MMMM d, yyyy')
+                : ''
+              const dayUpper = selectedCouple?.wedding_date
+                ? format(new Date(selectedCouple.wedding_date + 'T12:00:00'), 'EEEE').toUpperCase()
+                : ''
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '4px 12px', marginBottom: '16px' }}>
-                      <span style={{ color: 'var(--muted-foreground)' }}>Couple</span>
-                      <span style={{ fontWeight: 700 }}>{selectedCouple?.couple_name}</span>
-                      <span style={{ color: 'var(--muted-foreground)' }}>Date</span>
-                      <span style={{ fontWeight: 700 }}>{dateStr}</span>
-                      {weather.available && <>
-                        <span style={{ color: 'var(--muted-foreground)' }}>Weather</span>
-                        <span>High {weather.high}°C / Low {weather.low}°C | {weather.precipitation}% rain</span>
-                      </>}
-                      {weather.available && weather.sunrise && <>
-                        <span style={{ color: 'var(--muted-foreground)' }}>Sun</span>
-                        <span>Sunrise {weather.sunrise} | Sunset {weather.sunset}</span>
-                      </>}
-                      {selectedContract?.start_time && selectedContract?.end_time && <>
-                        <span style={{ color: 'var(--muted-foreground)' }}>Coverage</span>
-                        <span>{selectedContract.start_time} – {selectedContract.end_time}</span>
-                      </>}
-                      {selectedContract?.ceremony_location && <>
-                        <span style={{ color: 'var(--muted-foreground)' }}>Ceremony</span>
-                        <span>{selectedContract.ceremony_location} <a href={mapsUrl(selectedContract.ceremony_location)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem' }}>Maps</a></span>
-                      </>}
-                      {selectedContract?.reception_venue && <>
-                        <span style={{ color: 'var(--muted-foreground)' }}>Reception</span>
-                        <span>{selectedContract.reception_venue} <a href={mapsUrl(selectedContract.reception_venue)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem' }}>Maps</a></span>
-                      </>}
-                      {selectedCouple?.park_location && <>
-                        <span style={{ color: 'var(--muted-foreground)' }}>Park</span>
-                        <span>{selectedCouple.park_location} <a href={mapsUrl(selectedCouple.park_location)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem' }}>Maps</a></span>
-                      </>}
-                      {(bridesmaids || groomsmen) && <>
-                        <span style={{ color: 'var(--muted-foreground)' }}>Bridal Party</span>
-                        <span>{bridesmaids || '0'} bridesmaids + {groomsmen || '0'} groomsmen</span>
-                      </>}
-                    </div>
+              const weatherStr = weather.available
+                ? `High ${weather.high}°C / Low ${weather.low}°C | ${weather.precipitation}% rain | Sunrise ${weather.sunrise} | Sunset ${weather.sunset}`
+                : ''
 
-                    {dressCode && (
-                      <div style={{ background: 'var(--muted)', borderRadius: '6px', padding: '10px 14px', border: '1px solid var(--border)', marginBottom: '16px' }}>
-                        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>DRESS CODE: {dressCode}</p>
-                      </div>
-                    )}
+              let coverageText = ''
+              if (selectedContract?.start_time && selectedContract?.end_time) {
+                coverageText = `${selectedContract.start_time} – ${selectedContract.end_time}`
+                const parseT = (t: string) => {
+                  const m = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
+                  if (!m) return null
+                  let h = parseInt(m[1])
+                  const mi = parseInt(m[2])
+                  const ap = m[3].toUpperCase()
+                  if (ap === 'PM' && h !== 12) h += 12
+                  if (ap === 'AM' && h === 12) h = 0
+                  return h * 60 + mi
+                }
+                const s = parseT(selectedContract.start_time)
+                const e = parseT(selectedContract.end_time)
+                if (s !== null && e !== null && e - s > 0) coverageText += ` (${Math.round((e - s) / 60)} hours)`
+              }
 
-                    <div style={{ borderTop: '3px solid #0d4f4f', paddingTop: '16px' }}>
-                      <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--primary)', margin: '0 0 10px' }}>Your Assignment</p>
-                      <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '4px 12px' }}>
-                        <span style={{ color: 'var(--muted-foreground)' }}>Name</span><span style={{ fontWeight: 700 }}>{entry.member_name}</span>
-                        <span style={{ color: 'var(--muted-foreground)' }}>Role</span><span style={{ fontWeight: 700 }}>{entry.role}</span>
-                        {entry.call_time && <><span style={{ color: 'var(--muted-foreground)' }}>Call Time</span><span style={{ fontWeight: 700 }}>{entry.call_time}</span></>}
-                        {entry.meeting_location && <><span style={{ color: 'var(--muted-foreground)' }}>Meet at</span><span style={{ fontWeight: 700 }}>{entry.meeting_location}</span></>}
-                      </div>
+              const bridalPartyText = (bridesmaids || groomsmen)
+                ? `${bridesmaids || '0'} bridesmaids + ${groomsmen || '0'} groomsmen`
+                : ''
 
-                      {/* Meeting location with maps link */}
-                      {entry.meeting_location && (
-                        <div style={{ marginTop: '12px', background: 'var(--accent)', border: '2px solid var(--primary)', borderRadius: '8px', padding: '12px 14px' }}>
-                          <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)' }}>
-                            {entry.meeting_location}
-                          </p>
-                          <a href={mapsUrl(entry.meeting_location)} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '6px', color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', fontWeight: 600 }}>Open in Google Maps</a>
-                          {entry.call_time && <p style={{ margin: '4px 0 0', color: 'var(--foreground)', fontWeight: 600 }}>Arrive by {entry.call_time}</p>}
-                        </div>
-                      )}
+              const vendorLabels: Record<string, string> = { dj_mc: 'DJ/MC', florist: 'Florist', makeup: 'Makeup', hair: 'Hair', planner: 'Planner', transport: 'Transport' }
+              const vendorList = Object.entries(vendors)
+                .filter(([, v]) => v)
+                .map(([k, v]) => ({ key: vendorLabels[k] || k, value: v }))
 
-                      {entry.special_notes && (
-                        <div style={{ marginTop: '10px' }}><p style={{ margin: 0, color: 'var(--foreground)' }}><strong>Notes:</strong> {entry.special_notes}</p></div>
-                      )}
+              const previewSchedule = schedule.length > 0 ? schedule : [
+                ...(selectedContract?.start_time ? [{ time: selectedContract.start_time, label: 'Coverage Begins', address: '', maps_url: '' }] : []),
+                ...(selectedContract?.ceremony_location ? [{ time: '', label: 'Ceremony', address: selectedContract.ceremony_location, maps_url: mapsUrl(selectedContract.ceremony_location) }] : []),
+                ...(selectedContract?.reception_venue ? [{ time: '', label: 'Reception', address: selectedContract.reception_venue, maps_url: mapsUrl(selectedContract.reception_venue) }] : []),
+                ...(selectedContract?.end_time ? [{ time: selectedContract.end_time, label: 'Coverage Ends', address: '', maps_url: '' }] : []),
+              ]
 
-                      {/* Equipment notes — shared */}
-                      {equipmentNotes && (
-                        <div style={{ marginTop: '12px', borderTop: '1px solid #e7e1d8', paddingTop: '10px' }}>
-                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--primary)', margin: '0 0 6px' }}>Equipment</p>
-                          <p style={{ margin: '2px 0', color: 'var(--foreground)' }}>{equipmentNotes}</p>
-                        </div>
-                      )}
+              const mp = meetingPoints.find(p => p.name === entry.meeting_location)
+              const mpUrl = mp?.maps_url || (entry.meeting_location ? mapsUrl(entry.meeting_location) : '')
 
-                      {/* Schedule preview */}
-                      {(schedule.length > 0 || selectedContract) && (
-                        <div style={{ marginTop: '16px', borderTop: '2px solid #e7e1d8', paddingTop: '12px' }}>
-                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--primary)', margin: '0 0 10px' }}>Wedding Day Schedule</p>
-                          {(schedule.length > 0 ? schedule : [
-                            ...(selectedContract?.start_time ? [{ time: selectedContract.start_time, label: 'Coverage Begins', address: '', maps_url: '' }] : []),
-                            ...(selectedContract?.ceremony_location ? [{ time: '', label: 'Ceremony', address: selectedContract.ceremony_location, maps_url: mapsUrl(selectedContract.ceremony_location) }] : []),
-                            ...(selectedContract?.reception_venue ? [{ time: '', label: 'Reception', address: selectedContract.reception_venue, maps_url: mapsUrl(selectedContract.reception_venue) }] : []),
-                            ...(selectedContract?.end_time ? [{ time: selectedContract.end_time, label: 'Coverage Ends', address: '', maps_url: '' }] : []),
-                          ]).map((evt, i) => (
-                            <div key={i} style={{ marginBottom: '8px', paddingLeft: '12px', borderLeft: '2px solid #0d4f4f' }}>
-                              <p style={{ margin: 0, fontSize: '0.85rem' }}>
-                                {evt.time && <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, color: 'var(--primary)' }}>{evt.time} — </span>}
-                                <strong>{evt.label}</strong>
-                              </p>
-                              {evt.address && <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: 'var(--foreground)' }}>{evt.address}{evt.maps_url && <a href={evt.maps_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '6px', color: 'var(--primary)', textDecoration: 'underline' }}>Open in Google Maps</a>}</p>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+              const previewHtml = buildCrewEmailHtml({
+                coupleName: selectedCouple?.couple_name || '',
+                dateFormatted,
+                dayUpper,
+                weather: weatherStr,
+                ceremonyLocation: selectedContract?.ceremony_location || '',
+                receptionVenue: selectedContract?.reception_venue || '',
+                parkLocation: selectedCouple?.park_location || '',
+                coverageText,
+                bridalPartyText,
+                dressCode,
+                generalNotes,
+                keyMoments,
+                schedule: previewSchedule,
+                vendors: vendorList,
+                member: {
+                  name: entry.member_name,
+                  role: entry.role,
+                  callTime: entry.call_time,
+                  meetingPoint: entry.meeting_location,
+                  meetingPointMapsUrl: mpUrl,
+                  specialNotes: entry.special_notes,
+                  equipmentPickup: '',
+                  equipmentPickupTime: '',
+                  equipmentDropoff: '',
+                  equipmentDropoffTime: '',
+                },
+                confirmUrl: null,
+              })
 
-                      {Object.values(vendors).some(v => v) && (
-                        <div style={{ marginTop: '12px', borderTop: '1px solid #e7e1d8', paddingTop: '10px' }}>
-                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--primary)', margin: '0 0 6px' }}>Key Vendors</p>
-                          {vendors.dj_mc && <p style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>DJ/MC: {vendors.dj_mc}</p>}
-                          {vendors.florist && <p style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>Florist: {vendors.florist}</p>}
-                          {vendors.makeup && <p style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>Makeup: {vendors.makeup}</p>}
-                          {vendors.hair && <p style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>Hair: {vendors.hair}</p>}
-                          {vendors.planner && <p style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>Planner: {vendors.planner}</p>}
-                          {vendors.transport && <p style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>Transport: {vendors.transport}</p>}
-                        </div>
-                      )}
-
-                      {keyMoments && (
-                        <div style={{ marginTop: '12px', background: '#fffbeb', borderRadius: '6px', padding: '10px 14px', border: '1px solid #fde68a' }}>
-                          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#92400e', margin: '0 0 6px' }}>Must-Capture Moments</p>
-                          {keyMoments.split('\n').filter(Boolean).map((line, i) => (
-                            <p key={i} style={{ margin: '2px 0', color: 'var(--foreground)', fontSize: '0.85rem' }}>- {line.replace(/^[-•]\s*/, '')}</p>
-                          ))}
-                        </div>
-                      )}
-
-                      {generalNotes && (
-                        <div style={{ marginTop: '10px', borderTop: '1px solid #e7e1d8', paddingTop: '10px' }}>
-                          <p style={{ margin: 0, color: 'var(--foreground)' }}><strong>General Notes:</strong> {generalNotes}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ textAlign: 'center', margin: '20px 0 10px' }}>
-                      <span style={{ display: 'inline-block', padding: '12px 32px', background: 'var(--primary)', color: 'var(--primary-foreground)', borderRadius: '8px', fontWeight: 700 }}>
-                        Click Here to Confirm
-                      </span>
-                    </div>
-
-                    <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--muted-foreground)', margin: '10px 0 0' }}>
-                      Questions? Call Jean: (416) 731-6748
-                    </p>
-                  </div>
-                </div>
-              )
+              return <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
             })()}
           </div>
         </div>
