@@ -32,13 +32,13 @@ export function CoupleHeader({
   }[status] ?? 'bg-gray-500'
 
   return (
-    <div className="bg-teal-600 rounded-lg p-6 text-white">
-      <div className="flex justify-between items-start">
+    <div className="bg-teal-600 rounded-lg p-4 md:p-6 text-white">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 md:gap-0">
         <div>
-          <h1 className="text-2xl font-semibold">
+          <h1 className="text-xl md:text-2xl font-semibold">
             {coupleName} <span className="text-teal-200 font-normal">— {packageType}</span>
           </h1>
-          <p className="mt-2 text-teal-100">
+          <p className="mt-2 text-teal-100 text-sm md:text-base">
             {weddingDate} · <span className="text-teal-200">{daysUntil} days until wedding</span>
           </p>
           <p className="text-sm text-teal-200">

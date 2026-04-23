@@ -12,15 +12,15 @@ export function FramesAlbumsCard({ items, specs, financials }: FramesAlbumsProps
   return (
     <div className="border rounded-lg overflow-hidden">
       {/* Header */}
-      <div className="bg-teal-600 px-5 py-4 flex justify-between items-center">
+      <div className="bg-teal-600 px-4 md:px-5 py-4 flex justify-between items-center">
         <span className="text-white font-medium">Frames & Albums</span>
         <span className="text-white font-medium text-lg">${financials.salePrice.toLocaleString()}</span>
       </div>
 
-      {/* 3-Column Grid */}
-      <div className="grid grid-cols-3 divide-x">
+      {/* 3-Column Grid — stacks on mobile */}
+      <div className="grid grid-cols-1 md:grid-cols-3 md:divide-x">
         {/* Items */}
-        <div className="p-4">
+        <div className="p-4 border-b md:border-b-0">
           <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 pb-2 border-b-2 border-amber-500">
             Items
           </h4>
@@ -39,7 +39,7 @@ export function FramesAlbumsCard({ items, specs, financials }: FramesAlbumsProps
         </div>
 
         {/* Specs */}
-        <div className="p-4">
+        <div className="p-4 border-b md:border-b-0">
           <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 pb-2 border-b-2 border-teal-500">
             Specs
           </h4>

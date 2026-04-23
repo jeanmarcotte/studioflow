@@ -70,15 +70,15 @@ export function FinanceCard({
         <CardTitle className="text-base font-medium">Finance</CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Table Header */}
-        <div className="grid grid-cols-4 text-xs font-medium text-gray-500 uppercase tracking-wider pb-2 border-b">
+        {/* Desktop Table Header */}
+        <div className="hidden md:grid grid-cols-4 text-xs font-medium text-gray-500 uppercase tracking-wider pb-2 border-b">
           <div></div>
           <div className="text-right">Invoiced</div>
           <div className="text-right">Received</div>
           <div className="text-right">Balance</div>
         </div>
 
-        {/* Lines */}
+        {/* Desktop Lines */}
         {lines.map((line) => {
           const linkHref =
             line.label === 'C1 Contract' && contractId ? `/admin/contracts/${contractId}/view` :
@@ -87,7 +87,7 @@ export function FinanceCard({
             null
 
           return (
-          <div key={line.label} className="grid grid-cols-4 py-3 text-sm border-b">
+          <div key={line.label} className="hidden md:grid grid-cols-4 py-3 text-sm border-b">
             <div>
               {linkHref ? (
                 <Link href={linkHref} className="text-blue-600 hover:underline">{line.label}</Link>
@@ -103,6 +103,45 @@ export function FinanceCard({
           </div>
           )
         })}
+
+        {/* Mobile Lines — stacked cards */}
+        <div className="md:hidden space-y-3 py-2">
+          {lines.map((line) => {
+            const linkHref =
+              line.label === 'C1 Contract' && contractId ? `/admin/contracts/${contractId}/view` :
+              line.label === 'C2 Frames & Albums' && hasExtrasOrder ? `/admin/albums/${coupleId}/view` :
+              line.label === 'C3 Extras' && hasClientExtras ? `/admin/extras/${coupleId}/view` :
+              null
+
+            return (
+            <div key={line.label} className="border-b pb-3">
+              <div className="font-medium text-sm mb-2">
+                {linkHref ? (
+                  <Link href={linkHref} className="text-blue-600 hover:underline">{line.label}</Link>
+                ) : (
+                  <span className="text-gray-900">{line.label}</span>
+                )}
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <span className="text-gray-500 uppercase block">Invoiced</span>
+                  <span className="text-gray-900 text-sm">${line.invoiced.toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 uppercase block">Received</span>
+                  <span className="text-gray-900 text-sm">${line.received.toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 uppercase block">Balance</span>
+                  <span className={`text-sm font-medium ${line.balance > 0 ? 'text-red-600' : line.balance < 0 ? 'text-teal-600' : 'text-gray-500'}`}>
+                    {line.balance < 0 ? `-$${Math.abs(line.balance).toLocaleString()}` : `$${line.balance.toLocaleString()}`}
+                  </span>
+                </div>
+              </div>
+            </div>
+            )
+          })}
+        </div>
 
         {/* Totals */}
         <div className="pt-4 space-y-2">
@@ -121,7 +160,7 @@ export function FinanceCard({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 mt-4 pt-4 border-t flex-wrap">
+        <div className="flex gap-2 mt-4 pt-4 border-t flex-wrap justify-start">
           {/* View Payments Popup */}
           <Dialog open={paymentsOpen} onOpenChange={setPaymentsOpen}>
             <DialogTrigger render={<Button variant="outline" size="sm" />}>

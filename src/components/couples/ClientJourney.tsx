@@ -27,9 +27,9 @@ export function ClientJourney({ phases, totalMilestones, completedMilestones }: 
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between pb-2 gap-1">
         <CardTitle className="text-base font-medium">Client Journey</CardTitle>
-        <span className="text-sm text-gray-500">
+        <span className="text-xs md:text-sm text-gray-500">
           {Math.round(progress)}% complete — {completedMilestones} of {totalMilestones} milestones
         </span>
       </CardHeader>

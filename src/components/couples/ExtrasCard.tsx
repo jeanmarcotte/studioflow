@@ -28,8 +28,8 @@ export function ExtrasCard({ extras }: ExtrasCardProps) {
         <span className="text-white font-medium text-lg">${totalAmount.toLocaleString()}</span>
       </div>
 
-      {/* Items Table */}
-      <div className="p-4">
+      {/* Desktop: Items Table */}
+      <div className="hidden md:block p-4">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b">
@@ -52,6 +52,20 @@ export function ExtrasCard({ extras }: ExtrasCardProps) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile: Stacked cards */}
+      <div className="md:hidden p-4 space-y-3">
+        {extras.map((item) => (
+          <div key={item.id} className="border-b pb-3 last:border-0">
+            <div className="flex justify-between items-start mb-1">
+              <span className="text-sm font-medium text-gray-900">{item.item_type}</span>
+              <span className="text-sm font-medium text-gray-900">${Number(item.total).toLocaleString()}</span>
+            </div>
+            <p className="text-xs text-gray-600 mb-1">{item.description}</p>
+            <p className="text-xs text-gray-500">Qty: {item.quantity} × ${Number(item.unit_price).toLocaleString()}</p>
+          </div>
+        ))}
       </div>
     </div>
   )
