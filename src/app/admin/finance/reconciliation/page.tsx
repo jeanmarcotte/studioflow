@@ -270,13 +270,13 @@ export default function ReconciliationPage() {
   
   if (viewState === 'paste') {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-2">Payment Reconciliation</h1>
+      <div className="max-w-4xl mx-auto p-4 md:p-6">
+        <h1 className="text-xl md:text-2xl font-bold mb-2">Payment Reconciliation</h1>
         <p className="text-gray-600 mb-6">
           Paste your Interac e-Transfer history below. Copy directly from your bank&apos;s transaction page.
         </p>
-        
-        <div className="bg-white rounded-lg shadow p-6">
+
+        <div className="bg-white rounded-lg shadow p-4 md:p-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Paste e-Transfer Text
           </label>
@@ -330,11 +330,11 @@ Apr 15, 2026  JOHN SMITH  $500.00
       batchResult.unmatched.filter((_, i) => decisions[batchResult.fuzzy.length + i]?.coupleId).length;
 
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="max-w-6xl mx-auto p-4 md:p-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Review Matches</h1>
-            <p className="text-gray-600">
+            <h1 className="text-xl md:text-2xl font-bold">Review Matches</h1>
+            <p className="text-gray-600 text-sm md:text-base">
               {batchResult.total} transactions parsed • {batchResult.exact.length} exact • {batchResult.fuzzy.length} fuzzy • {batchResult.unmatched.length} unmatched
             </p>
           </div>
@@ -364,12 +364,12 @@ Apr 15, 2026  JOHN SMITH  $500.00
         {/* EXACT MATCHES - GREEN */}
         {batchResult.exact.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-lg font-semibold text-green-700 mb-3 flex items-center gap-2">
+            <h2 className="text-base md:text-lg font-semibold text-green-700 mb-3 flex items-center gap-2">
               <span className="w-3 h-3 bg-green-500 rounded-full"></span>
               Exact Matches ({batchResult.exact.length})
             </h2>
-            <div className="bg-green-50 border border-green-200 rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="bg-green-50 border border-green-200 rounded-lg overflow-x-auto">
+              <table className="w-full text-sm min-w-[500px]">
                 <thead className="bg-green-100">
                   <tr>
                     <th className="text-left p-3">Date</th>
@@ -398,12 +398,12 @@ Apr 15, 2026  JOHN SMITH  $500.00
         {/* FUZZY MATCHES - YELLOW */}
         {batchResult.fuzzy.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-lg font-semibold text-yellow-700 mb-3 flex items-center gap-2">
+            <h2 className="text-base md:text-lg font-semibold text-yellow-700 mb-3 flex items-center gap-2">
               <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
               Fuzzy Matches - Confirm ({batchResult.fuzzy.length})
             </h2>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg overflow-x-auto">
+              <table className="w-full text-sm min-w-[600px]">
                 <thead className="bg-yellow-100">
                   <tr>
                     <th className="text-left p-3">Date</th>
@@ -464,12 +464,12 @@ Apr 15, 2026  JOHN SMITH  $500.00
         {/* UNMATCHED - RED */}
         {batchResult.unmatched.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-lg font-semibold text-red-700 mb-3 flex items-center gap-2">
+            <h2 className="text-base md:text-lg font-semibold text-red-700 mb-3 flex items-center gap-2">
               <span className="w-3 h-3 bg-red-500 rounded-full"></span>
               Unmatched - Manual Assign ({batchResult.unmatched.length})
             </h2>
-            <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="bg-red-50 border border-red-200 rounded-lg overflow-x-auto">
+              <table className="w-full text-sm min-w-[500px]">
                 <thead className="bg-red-100">
                   <tr>
                     <th className="text-left p-3">Date</th>
@@ -539,18 +539,18 @@ Apr 15, 2026  JOHN SMITH  $500.00
   // ============================================
   
   return (
-    <div className="max-w-2xl mx-auto p-6 text-center">
-      <div className="bg-green-50 border border-green-200 rounded-lg p-8">
+    <div className="max-w-2xl mx-auto p-4 md:p-6 text-center">
+      <div className="bg-green-50 border border-green-200 rounded-lg p-6 md:p-8">
         <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
           <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-green-700 mb-2">Import Complete!</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-green-700 mb-2">Import Complete!</h1>
         <p className="text-gray-600 mb-6">
           Payments have been added to the ledger and new aliases saved for future matching.
         </p>
-        <div className="flex gap-3 justify-center">
+        <div className="flex flex-col md:flex-row gap-3 justify-center">
           <button
             onClick={() => {
               setViewState('paste');
