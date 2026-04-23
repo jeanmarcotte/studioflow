@@ -7,6 +7,7 @@ import { Playfair_Display, Nunito } from 'next/font/google'
 import { format } from 'date-fns'
 import { formatPackage } from '@/lib/formatters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -197,6 +198,7 @@ export default function CrewCallSheetPage() {
   const [previewTab, setPreviewTab] = useState(0)
   const [history, setHistory] = useState<HistorySheet[]>([])
   const [showHistory, setShowHistory] = useState(false)
+  const [otherLocationMode, setOtherLocationMode] = useState<Set<string>>(new Set())
   const [showAddCrew, setShowAddCrew] = useState(false)
   const [showVendors, setShowVendors] = useState(false)
   const [sendError, setSendError] = useState('')
@@ -607,6 +609,31 @@ export default function CrewCallSheetPage() {
     return teamMembers.filter(m => !usedIds.has(m.id))
   }, [teamMembers, crewEntries])
 
+  // ── Meeting point dropdown options ──────────────────────────────
+
+  const meetingPointOptions = useMemo(() => {
+    const opts: { value: string; label: string }[] = []
+    if (weddingLocations.length > 0) {
+      for (const loc of weddingLocations) {
+        const display = `${loc.label} — ${loc.venue}`
+        opts.push({ value: display, label: display })
+      }
+    } else {
+      // Fallback to contract data
+      if (selectedContract?.ceremony_location) {
+        opts.push({ value: `Ceremony — ${selectedContract.ceremony_location}`, label: `Ceremony — ${selectedContract.ceremony_location}` })
+      }
+      if (selectedCouple?.park_location) {
+        opts.push({ value: `Park — ${selectedCouple.park_location}`, label: `Park — ${selectedCouple.park_location}` })
+      }
+      if (selectedContract?.reception_venue) {
+        opts.push({ value: `Reception — ${selectedContract.reception_venue}`, label: `Reception — ${selectedContract.reception_venue}` })
+      }
+    }
+    opts.push({ value: '__other__', label: 'Other (specify below)' })
+    return opts
+  }, [weddingLocations, selectedContract, selectedCouple])
+
   // ── Helpers ────────────────────────────────────────────────────
 
   const formatWeddingDateUpper = (d: string | null) => {
@@ -999,15 +1026,50 @@ export default function CrewCallSheetPage() {
                       />
                     </div>
 
-                    {/* Meeting Location — simple text input */}
+                    {/* Meeting Location — dropdown with wedding venues */}
                     <div>
                       <Label className={nunito.className} style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: '4px' }}>Meeting Location</Label>
-                      <input
-                        value={entry.meeting_location}
-                        onChange={e => updateEntry(idx, 'meeting_location', e.target.value)}
-                        placeholder="Tim Hortons on Keele, Bride's house, Church parking lot..."
-                        style={inputStyle}
-                      />
+                      {(() => {
+                        const isOther = otherLocationMode.has(entry.team_member_id)
+                        const matchesOption = meetingPointOptions.some(o => o.value !== '__other__' && o.value === entry.meeting_location)
+                        const showCustomInput = isOther || (entry.meeting_location && !matchesOption)
+                        const selectValue = matchesOption ? entry.meeting_location : (showCustomInput ? '__other__' : undefined)
+
+                        return (
+                          <>
+                            <Select
+                              value={selectValue}
+                              onValueChange={(v) => {
+                                if (v === '__other__') {
+                                  setOtherLocationMode(prev => new Set(prev).add(entry.team_member_id))
+                                  updateEntry(idx, 'meeting_location', '')
+                                } else if (v) {
+                                  setOtherLocationMode(prev => { const next = new Set(prev); next.delete(entry.team_member_id); return next })
+                                  updateEntry(idx, 'meeting_location', v)
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select meeting location..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {meetingPointOptions.map(opt => (
+                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {showCustomInput && (
+                              <input
+                                value={entry.meeting_location}
+                                onChange={e => updateEntry(idx, 'meeting_location', e.target.value)}
+                                placeholder="Tim Hortons on Keele, Bride's house, Church parking lot..."
+                                style={{ ...inputStyle, marginTop: '6px' }}
+                                autoFocus
+                              />
+                            )}
+                          </>
+                        )
+                      })()}
                     </div>
 
                     {/* Special Notes */}
