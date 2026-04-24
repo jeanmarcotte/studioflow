@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { supabase, getCurrentUser } from '@/lib/supabase'
 import { SidebarConfig, SidebarItem } from '@/config/sidebar'
 import { cn } from '@/lib/utils'
-import { Menu, Settings, LogOut, ChevronDown, ChevronRight, Home, Users, Camera, Video, MoreHorizontal, X, DollarSign, ShoppingBag, FileCheck, FileText, Wallet, UsersRound, CalendarCheck, BarChart3 } from 'lucide-react'
+import { Menu, Settings, LogOut, ChevronDown, ChevronRight, Home, Users, Camera, Video, MoreHorizontal, X, DollarSign, ShoppingBag, FileCheck, FileText, Wallet, UsersRound, CalendarCheck, BarChart3, ClipboardList, ExternalLink } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
@@ -31,6 +31,7 @@ const moreSheetLinks = [
   { label: 'Team', icon: UsersRound, href: '/admin/team/members' },
   { label: 'Wedding Day', icon: CalendarCheck, href: '/admin/wedding-day/forms' },
   { label: 'Marketing', icon: BarChart3, href: '/admin/marketing/sigs' },
+  { label: 'BridalFlow', icon: ClipboardList, href: '/leads' },
   { label: 'Settings', icon: Settings, href: '/admin/settings' },
 ] as const
 
@@ -457,7 +458,10 @@ export function Layout({ children, sidebarConfig }: LayoutProps) {
                     active ? "bg-teal-50 dark:bg-teal-950" : "hover:bg-accent"
                   )}
                 >
-                  <link.icon className={cn("h-5 w-5", active ? "text-teal-600" : "text-muted-foreground")} />
+                  <div className="relative">
+                    <link.icon className={cn("h-5 w-5", active ? "text-teal-600" : "text-muted-foreground")} />
+                    {link.label === 'BridalFlow' && <ExternalLink className="h-2.5 w-2.5 absolute -top-1 -right-1.5 text-muted-foreground" />}
+                  </div>
                   <span className={cn("text-xs text-center", active ? "text-teal-600 font-semibold" : "text-muted-foreground")}>{link.label}</span>
                 </Link>
               )
