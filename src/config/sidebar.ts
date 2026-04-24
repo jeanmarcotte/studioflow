@@ -1,7 +1,6 @@
 import {
   LucideIcon,
   Home,
-  Settings,
   Users,
   FileText,
   DollarSign,
@@ -133,7 +132,7 @@ export const studioflowAdminConfig: SidebarConfig = {
             { title: 'Reconciliation', href: '/admin/finance/reconciliation', icon: ArrowLeftRight },
           ],
         },
-        { title: 'Settings', href: '/admin/settings', icon: Settings },
+        { title: 'Reports', href: '/admin/reports', icon: BarChart3 },
       ],
     },
   ],
