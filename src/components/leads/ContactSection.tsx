@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import type { Lead } from '@/lib/lead-utils'
-import { getCallScript, getTextTemplate, formatWeddingDate, formatShowName } from '@/lib/lead-utils'
+import { getTextTemplate, formatWeddingDate, formatShowName } from '@/lib/lead-utils'
 import { inferCultureFromLastName } from '@/lib/cultureInference'
 import { useRouter } from 'next/navigation'
 
@@ -47,15 +47,8 @@ export function ContactSection({ lead, onUpdate }: ContactSectionProps) {
     setEditedEmail(lead?.email || '')
   }, [lead?.email])
 
-  const handleCall = async () => {
-    await navigator.clipboard.writeText(getCallScript(lead))
-    toast.success('Script copied! Call from iPhone')
-  }
-
-  const handleText = async () => {
-    await navigator.clipboard.writeText(getTextTemplate(lead))
-    toast.success('Text copied! Send from iPhone')
-  }
+  const phoneDigits = lead.cell_phone?.replace(/\D/g, '') || ''
+  const textScript = getTextTemplate(lead)
 
   const handleEmailSave = async () => {
     if (!lead?.id) return
@@ -95,12 +88,18 @@ export function ContactSection({ lead, onUpdate }: ContactSectionProps) {
           <span className="font-medium">{formatPhone(lead.cell_phone)}</span>
         </div>
         <div className="flex gap-1">
-          <Button variant="ghost" size="sm" className="h-9 px-3 text-xs" onClick={handleCall}>
+          <a
+            href={`tel:${phoneDigits}`}
+            className="inline-flex items-center justify-center rounded-md text-xs font-medium h-11 min-w-[44px] px-3 hover:bg-accent hover:text-accent-foreground"
+          >
             <Phone className="h-3.5 w-3.5 mr-1" /> Call
-          </Button>
-          <Button variant="ghost" size="sm" className="h-9 px-3 text-xs" onClick={handleText}>
+          </a>
+          <a
+            href={`sms:${phoneDigits}?&body=${encodeURIComponent(textScript)}`}
+            className="inline-flex items-center justify-center rounded-md text-xs font-medium h-11 min-w-[44px] px-3 hover:bg-accent hover:text-accent-foreground"
+          >
             <MessageSquare className="h-3.5 w-3.5 mr-1" /> Text
-          </Button>
+          </a>
         </div>
       </div>
 
