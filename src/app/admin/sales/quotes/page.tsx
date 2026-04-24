@@ -759,7 +759,6 @@ export default function CoupleQuotesPage() {
       <ProductionPageHeader
         title="Couple Quotes"
         subtitle="2026 sales meetings"
-        reportHref="/admin/sales/report"
         actionLabel="New Sale"
         actionHref="/client/new-quote"
       />

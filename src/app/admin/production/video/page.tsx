@@ -954,7 +954,6 @@ export default function VideoProductionPage() {
       <ProductionPageHeader
         title="Video Production"
         subtitle={`${jobs.filter(j => j.section === 'editing' && j.status !== 'video_proofs_out').length} active jobs`}
-        reportHref="/admin/production/report"
         actionLabel="+ Add Job"
         actionHref="/admin/production/new-job"
       />

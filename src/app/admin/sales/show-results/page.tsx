@@ -259,7 +259,6 @@ export default function ShowResultsPage() {
       <ProductionPageHeader
         title="Bridal Show Results"
         subtitle="Historical performance across all shows"
-        reportHref="/admin/production/report"
       />
 
       {currentSeason && (

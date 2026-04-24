@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Playfair_Display, Nunito } from 'next/font/google'
-import { Download, Users, BarChart3 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Users, BarChart3 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { StatsCards } from '@/components/analytics/StatsCards'
 import { LeadsBySourceChart } from '@/components/analytics/LeadsBySourceChart'
@@ -141,24 +140,6 @@ export default function AnalyticsPage() {
     fetchAll()
   }, [])
 
-  const handleExportCSV = () => {
-    if (sourcePerf.length === 0) return
-    const header = 'Source,Cost,Leads,Booked,Conv%,Revenue,CPL,ROI%'
-    const rows = sourcePerf.filter(r => r.lead_count > 0).map(r => {
-      const conv = r.lead_count > 0 ? (r.booked_count / r.lead_count * 100).toFixed(1) : '0'
-      const cpl = r.lead_count > 0 && r.source_cost > 0 ? (r.source_cost / r.lead_count).toFixed(0) : '0'
-      const roi = r.source_cost > 0 ? (((r.total_revenue - r.source_cost) / r.source_cost) * 100).toFixed(0) : 'N/A'
-      return `"${r.source_name}",${r.source_cost},${r.lead_count},${r.booked_count},${conv}%,$${r.total_revenue},$${cpl},${roi}%`
-    })
-    const csv = [header, ...rows].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `bridalflow-analytics-${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
 
   if (loading) {
     return (
@@ -186,13 +167,6 @@ export default function AnalyticsPage() {
               </span>
             </div>
           </div>
-          <Button
-            variant="outline"
-            className="h-10 px-4 rounded-lg"
-            onClick={handleExportCSV}
-          >
-            <Download className="h-4 w-4 mr-1.5" /> Export CSV
-          </Button>
         </div>
 
         {/* Stats Cards */}

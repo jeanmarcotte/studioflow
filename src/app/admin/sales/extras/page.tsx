@@ -588,7 +588,6 @@ export default function ExtrasSalesPage() {
       <ProductionPageHeader
         title="Extras Sales"
         subtitle="Additional sales by year"
-        reportHref="/admin/sales/report"
         actionLabel="New Sale"
         actionHref="/admin/sales/extras/new"
       />

@@ -239,7 +239,6 @@ export default function FrameSalesPage() {
       <ProductionPageHeader
         title="Frame Sales"
         subtitle="2026 frame & album orders"
-        reportHref="/admin/sales/report"
         actionLabel="New Sale"
         actionHref="/admin/sales/frames/new"
       />

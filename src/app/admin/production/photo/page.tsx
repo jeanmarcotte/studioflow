@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, Plus, ChevronDown, ChevronRight, X, FileText } from 'lucide-react'
+import { Search, Plus, ChevronDown, ChevronRight, X } from 'lucide-react'
 import { differenceInDays, parseISO } from 'date-fns'
 import { formatDateCompact } from '@/lib/formatters'
 import { Playfair_Display, Nunito } from 'next/font/google'
@@ -751,12 +751,6 @@ export default function PhotoProductionPage() {
     },
   ], [])
 
-  // ── Report ───────────────────────────────────────────────────
-
-  const openReport = () => {
-    window.open('/admin/production/report', '_blank')
-  }
-
   // ── Loading ───────────────────────────────────────────────────
 
   if (loading) {
@@ -778,13 +772,6 @@ export default function PhotoProductionPage() {
           <p className="text-sm text-muted-foreground">{activeCount} active jobs</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={openReport}
-            className="flex items-center gap-2 rounded-lg border border-input bg-background px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-accent/50 transition-colors"
-          >
-            <FileText className="h-4 w-4" />
-            Report
-          </button>
           <button
             onClick={() => router.push('/admin/production/editing/new')}
             className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
