@@ -13,6 +13,12 @@ import { HistoricalCouplesArchive } from '@/components/couples/HistoricalCouples
 interface CoupleRow {
   id: string
   couple_name: string
+  bride_first_name: string | null
+  bride_last_name: string | null
+  groom_first_name: string | null
+  groom_last_name: string | null
+  phone: string | null
+  email: string | null
   status: string
   wedding_date: string | null
   wedding_year: number | null
@@ -114,7 +120,7 @@ export default function CouplesPage() {
       const [couplesRes, financialsRes, paymentCountsRes, milestonesRes, upcomingRes] = await Promise.all([
         supabase
           .from('couples')
-          .select('id, couple_name, wedding_date, wedding_year, package_type, status, contracts(reception_venue)')
+          .select('id, couple_name, bride_first_name, bride_last_name, groom_first_name, groom_last_name, phone, email, wedding_date, wedding_year, package_type, status, contracts(reception_venue)')
           .order('wedding_date', { ascending: true }),
         supabase
           .from('couple_financial_summary')
@@ -173,6 +179,12 @@ export default function CouplesPage() {
           return {
             id: row.id,
             couple_name: row.couple_name,
+            bride_first_name: row.bride_first_name || null,
+            bride_last_name: row.bride_last_name || null,
+            groom_first_name: row.groom_first_name || null,
+            groom_last_name: row.groom_last_name || null,
+            phone: row.phone || null,
+            email: row.email || null,
             status: row.status || 'lead',
             wedding_date: row.wedding_date,
             wedding_year: row.wedding_year,
@@ -207,10 +219,34 @@ export default function CouplesPage() {
 
     if (search.trim()) {
       const q = search.toLowerCase()
-      result = result.filter(c =>
-        c.couple_name.toLowerCase().includes(q) ||
-        c.reception_venue?.toLowerCase().includes(q)
-      )
+      const qDigits = q.replace(/\D/g, '')
+
+      // Day-of-week matching
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+      const dayAbbrevs = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+      let matchDayIndex = -1
+      for (let i = 0; i < 7; i++) {
+        if (dayNames[i].startsWith(q) || dayAbbrevs[i] === q) {
+          matchDayIndex = i
+          break
+        }
+      }
+
+      result = result.filter(c => {
+        if (c.couple_name.toLowerCase().includes(q)) return true
+        if (c.bride_first_name?.toLowerCase().includes(q)) return true
+        if (c.bride_last_name?.toLowerCase().includes(q)) return true
+        if (c.groom_first_name?.toLowerCase().includes(q)) return true
+        if (c.groom_last_name?.toLowerCase().includes(q)) return true
+        if (c.reception_venue?.toLowerCase().includes(q)) return true
+        if (c.email?.toLowerCase().includes(q)) return true
+        if (qDigits && c.phone?.replace(/\D/g, '').includes(qDigits)) return true
+        if (matchDayIndex >= 0 && c.wedding_date) {
+          const wd = new Date(c.wedding_date + 'T12:00:00')
+          if (wd.getDay() === matchDayIndex) return true
+        }
+        return false
+      })
     }
 
     if (yearFilter !== 'all') {
@@ -517,32 +553,36 @@ export default function CouplesPage() {
           </div>
         </div>
 
-        {/* Search + Eng Filter */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
+        {/* Search */}
+        <div className="space-y-2">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search by name or venue..."
+              placeholder="Search by name, venue, phone, email, or day..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none transition-colors focus:border-ring"
               style={{ paddingLeft: '2.25rem' }}
             />
           </div>
-          <select
-            value={engFilter}
-            onChange={(e) => setEngFilter(e.target.value)}
-            className="!w-auto"
-          >
-            <option value="all">All Eng</option>
-            <option value="pending">Pending</option>
-            <option value="declined">Declined</option>
-            <option value="shot">Shot</option>
-            <option value="quoted">Quoted</option>
-            <option value="no_sale">No Sale</option>
-            <option value="sold">Sold</option>
-          </select>
+          {/* Filters */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-muted-foreground">Eng:</label>
+            <select
+              value={engFilter}
+              onChange={(e) => setEngFilter(e.target.value)}
+              className="!w-auto text-sm rounded-md border border-input bg-background px-2 py-1"
+            >
+              <option value="all">All</option>
+              <option value="pending">Pending</option>
+              <option value="declined">Declined</option>
+              <option value="shot">Shot</option>
+              <option value="quoted">Quoted</option>
+              <option value="no_sale">No Sale</option>
+              <option value="sold">Sold</option>
+            </select>
+          </div>
         </div>
 
         {/* Table Card */}
