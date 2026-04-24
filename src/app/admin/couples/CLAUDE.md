@@ -22,4 +22,10 @@
 | #7492 | 10:43 AM | 🔴 | Pending Engagements widget fixed to use milestone filtering | ~253 |
 | #7488 | 10:42 AM | 🔄 | Added status field to CoupleRow interface | ~261 |
 | #7484 | 10:26 AM | 🔵 | Current Pending Engagement Count Implementation Analyzed | ~389 |
+
+### Apr 24, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #7593 | 6:32 AM | ✅ | Couples page year filter defaults to current year | ~309 |
 </claude-mem-context>

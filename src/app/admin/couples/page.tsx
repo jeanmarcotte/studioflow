@@ -103,7 +103,7 @@ export default function CouplesPage() {
   const [upcomingWeddings, setUpcomingWeddings] = useState<{ bride_first_name: string; groom_first_name: string; wedding_date: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [yearFilter, setYearFilter] = useState<number | 'all'>('all')
+  const [yearFilter, setYearFilter] = useState<number | 'all'>(new Date().getFullYear())
   const [engFilter, setEngFilter] = useState<string>('all')
 
   useEffect(() => {
@@ -302,13 +302,14 @@ export default function CouplesPage() {
     return { total, remaining, shot, totalBalance }
   }, [filtered])
 
-  // Shot vs remaining for sidebar (based on year filter)
-  const shotVsRemaining = useMemo(() => {
-    const yearCouples = yearFilter === 'all' ? couples : couples.filter(c => c.wedding_year === yearFilter)
-    const shot = yearCouples.filter(c => c.m19_wedding_day).length
-    const remaining = yearCouples.filter(c => !c.m19_wedding_day).length
-    return { shot, remaining, total: yearCouples.length }
-  }, [couples, yearFilter])
+  // Engagement status for sidebar (booked couples only)
+  const engSidebar = useMemo(() => {
+    const booked = couples.filter(c => c.status === 'booked')
+    const shot = booked.filter(c => c.m06_eng_session_shot).length
+    const declined = booked.filter(c => c.m06_declined).length
+    const pending = booked.filter(c => !c.m06_eng_session_shot && !c.m06_declined).length
+    return { shot, declined, pending, total: booked.length }
+  }, [couples])
 
   const columns: ColumnDef<CoupleRow>[] = useMemo(() => [
     {
@@ -328,6 +329,21 @@ export default function CouplesPage() {
           {formatDateFull(row.original.wedding_date)}
         </span>
       ),
+    },
+    {
+      accessorKey: "status",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: ({ row }) => {
+        const s = row.original.status
+        const colors: Record<string, string> = {
+          booked: 'bg-green-100 text-green-700',
+          completed: 'bg-blue-100 text-blue-700',
+          cancelled: 'bg-red-100 text-red-700',
+          lead: 'bg-gray-100 text-gray-700',
+          quoted: 'bg-yellow-100 text-yellow-700',
+        }
+        return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colors[s] || 'bg-gray-100 text-gray-700'}`}>{s}</span>
+      },
     },
     {
       accessorKey: "eng_pipeline",
@@ -589,25 +605,29 @@ export default function CouplesPage() {
           </div>
         </div>
 
-        {/* Shot vs Remaining */}
+        {/* Engagement Status */}
         <div className="rounded-xl border bg-card p-4">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            Shot vs Remaining {yearFilter !== 'all' ? `(${yearFilter})` : ''}
+            Engagement Status
           </h3>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Shot</span>
-              <span className="font-semibold text-green-600">{shotVsRemaining.shot}</span>
+              <span className="font-semibold text-green-600">{engSidebar.shot}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Remaining</span>
-              <span className="font-semibold text-amber-600">{shotVsRemaining.remaining}</span>
+              <span className="text-muted-foreground">Declined</span>
+              <span className="font-semibold text-gray-500">{engSidebar.declined}</span>
             </div>
-            {shotVsRemaining.total > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Pending</span>
+              <span className="font-semibold text-amber-600">{engSidebar.pending}</span>
+            </div>
+            {engSidebar.total > 0 && (
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden mt-2">
                 <div
                   className="h-full bg-teal-500 rounded-full transition-all"
-                  style={{ width: `${(shotVsRemaining.shot / shotVsRemaining.total) * 100}%` }}
+                  style={{ width: `${(engSidebar.shot / engSidebar.total) * 100}%` }}
                 />
               </div>
             )}
