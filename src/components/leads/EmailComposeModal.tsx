@@ -24,9 +24,19 @@ export function EmailComposeModal({ lead, open, onClose, onTouchLogged }: EmailC
   const [body, setBody] = useState('')
   const [loading, setLoading] = useState(true)
 
+  const isProtectedLead = ['meeting_booked', 'quoted', 'booked'].includes(lead.status) || !!lead.appointment_date
+
   useEffect(() => {
     if (!open) return
     setLoading(true)
+
+    // Protected leads get blank compose — no sales template
+    if (isProtectedLead) {
+      setSubject('')
+      setBody('')
+      setLoading(false)
+      return
+    }
 
     const touchNum = (lead.contact_count || 0) + 1
     const vars = getTemplateVariables(lead)
@@ -36,14 +46,13 @@ export function EmailComposeModal({ lead, open, onClose, onTouchLogged }: EmailC
         setSubject(renderTemplate(tmpl.subject || `Your ${lead.venue_name || ''} Wedding Photography`, vars))
         setBody(renderTemplate(tmpl.body, vars))
       } else {
-        // Fallback — fetch from message_templates
         setSubject(`SIGS Photography — Your ${lead.venue_name || 'Wedding'} Day!`)
         const fallbackBody = await getMessageTemplate(1, lead)
         setBody(fallbackBody)
       }
       setLoading(false)
     })
-  }, [open, lead])
+  }, [open, lead, isProtectedLead])
 
   const handleCopy = async () => {
     const full = `Subject: ${subject}\n\n${body}`

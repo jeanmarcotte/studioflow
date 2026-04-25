@@ -48,11 +48,14 @@ export function ContactSection({ lead, onUpdate }: ContactSectionProps) {
   }, [lead?.email])
 
   const phoneDigits = lead.cell_phone?.replace(/\D/g, '') || ''
+  const isProtectedLead = ['meeting_booked', 'quoted', 'booked'].includes(lead.status) || !!lead.appointment_date
   const [textScript, setTextScript] = useState('')
 
   useEffect(() => {
-    getMessageTemplate(1, lead).then(setTextScript)
-  }, [lead])
+    if (!isProtectedLead) {
+      getMessageTemplate(1, lead).then(setTextScript)
+    }
+  }, [lead, isProtectedLead])
 
   const handleEmailSave = async () => {
     if (!lead?.id) return
@@ -99,7 +102,7 @@ export function ContactSection({ lead, onUpdate }: ContactSectionProps) {
             <Phone className="h-3.5 w-3.5 mr-1" /> Call
           </a>
           <a
-            href={`sms:${phoneDigits}?&body=${encodeURIComponent(textScript)}`}
+            href={isProtectedLead ? `sms:${phoneDigits}` : `sms:${phoneDigits}?&body=${encodeURIComponent(textScript)}`}
             className="inline-flex items-center justify-center rounded-md text-xs font-medium h-11 min-w-[44px] px-3 hover:bg-accent hover:text-accent-foreground"
           >
             <MessageSquare className="h-3.5 w-3.5 mr-1" /> Text

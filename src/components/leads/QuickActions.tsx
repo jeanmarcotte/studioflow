@@ -15,11 +15,18 @@ interface QuickActionsProps {
 }
 
 export function QuickActions({ lead, onEmailClick }: QuickActionsProps) {
+  const isProtectedLead = ['meeting_booked', 'quoted', 'booked'].includes(lead.status) || !!lead.appointment_date
+
   const handleCall = async (e: React.MouseEvent) => {
     e.stopPropagation()
 
     const touchNum = (lead.contact_count || 0) + 1
     const vars = getTemplateVariables(lead)
+    if (isProtectedLead) {
+      toast.info('This lead is already in the pipeline — no script copied')
+      return
+    }
+
     const tmpl = await getTemplateForTouch(touchNum, 'call')
     const script = tmpl
       ? renderTemplate(tmpl.body, vars)
@@ -42,6 +49,11 @@ export function QuickActions({ lead, onEmailClick }: QuickActionsProps) {
 
     const touchNum = (lead.contact_count || 0) + 1
     const vars = getTemplateVariables(lead)
+    if (isProtectedLead) {
+      toast.info('This lead is already in the pipeline — no script copied')
+      return
+    }
+
     const tmpl = await getTemplateForTouch(touchNum, 'text')
     const text = tmpl
       ? renderTemplate(tmpl.body, vars)

@@ -83,6 +83,7 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
   const temp = getTempConfig(lead.temperature)
   const dotColor = temp.dot
   const isDead = lead.status === 'dead'
+  const isProtectedLead = ['meeting_booked', 'quoted', 'booked'].includes(lead.status) || !!lead.appointment_date
 
 
   return (
@@ -135,9 +136,21 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
               </span>
             </div>
 
-            {/* 2. Next Touch Recommendation */}
-            {!isDead && (lead.contact_count || 0) < 6 && (
+            {/* 2. Next Touch Recommendation — hidden for protected leads */}
+            {!isDead && !isProtectedLead && (lead.contact_count || 0) < 6 && (
               <NextTouchCard lead={lead} onTouchLogged={handleTouchLogged} />
+            )}
+
+            {/* Protected lead status badge */}
+            {isProtectedLead && (
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                <Badge className="bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 border-green-300 dark:border-green-700 border font-bold text-xs">
+                  {lead.status === 'booked' ? 'BOOKED' : lead.status === 'quoted' ? 'QUOTED' : 'MEETING BOOKED'}
+                </Badge>
+                <span className="text-xs text-green-700 dark:text-green-400">
+                  In pipeline — sales scripts disabled
+                </span>
+              </div>
             )}
 
             {/* 3. Contact Info */}
