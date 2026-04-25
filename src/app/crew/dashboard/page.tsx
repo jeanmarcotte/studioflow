@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { crewSupabase } from '@/lib/supabase-crew'
 import { Calendar, MapPin, Clock, Building2, PartyPopper, Truck, StickyNote, CheckCircle2, Camera } from 'lucide-react'
 
@@ -417,7 +418,7 @@ function UpcomingCard({ job }: { job: WeddingJob }) {
   const days = daysUntil(job.weddingDate)
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4 cursor-pointer hover:border-teal-300 hover:shadow-md transition-all">
+    <Link href={`/crew/wedding/${job.coupleId}`} className="block bg-white rounded-xl border border-stone-200 shadow-sm p-4 cursor-pointer hover:border-teal-300 hover:shadow-md transition-all">
       {/* Top row: Names + countdown */}
       <div className="flex items-start justify-between mb-1">
         <h3 className="font-bold text-stone-900">
@@ -465,6 +466,6 @@ function UpcomingCard({ job }: { job: WeddingJob }) {
           {!job.ceremonyLocation && job.receptionVenue ? job.receptionVenue : ''}
         </p>
       )}
-    </div>
+    </Link>
   )
 }
