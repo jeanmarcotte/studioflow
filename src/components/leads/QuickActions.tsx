@@ -4,6 +4,7 @@ import { Phone, MessageSquare, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import type { Lead } from '@/lib/lead-utils'
+import { getMessageTemplate } from '@/lib/lead-utils'
 import { getTemplateForTouch, renderTemplate, getTemplateVariables } from '@/lib/template-utils'
 import { logTouch, undoTouch } from '@/lib/chase-actions'
 
@@ -22,7 +23,7 @@ export function QuickActions({ lead, onEmailClick }: QuickActionsProps) {
     const tmpl = await getTemplateForTouch(touchNum, 'call')
     const script = tmpl
       ? renderTemplate(tmpl.body, vars)
-      : `Hi ${vars.bride_name}! This is Marianna from SIGS Photography. I saw you stopped by our booth — congratulations on your upcoming wedding at ${vars.venue_name}! I'd love to chat about capturing your big day. Do you have a few minutes?`
+      : await getMessageTemplate('initial', lead)
 
     await navigator.clipboard.writeText(script)
     toast.success(`Copied: "${script.slice(0, 60)}..."`)
@@ -44,7 +45,7 @@ export function QuickActions({ lead, onEmailClick }: QuickActionsProps) {
     const tmpl = await getTemplateForTouch(touchNum, 'text')
     const text = tmpl
       ? renderTemplate(tmpl.body, vars)
-      : `Hi ${vars.bride_name}! 💕 This is Marianna from SIGS Photography. We met at the bridal show — congrats on your wedding at ${vars.venue_name}! Would you like to set up a quick Zoom call to chat about photos & video? 📸`
+      : await getMessageTemplate('initial', lead)
 
     await navigator.clipboard.writeText(text)
     toast.success(`Copied: "${text.slice(0, 60)}..."`)

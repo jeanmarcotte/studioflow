@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { ClipboardList, Camera, Ticket, Users, MoreHorizontal, ExternalLink, Home, BarChart3 } from 'lucide-react'
+import { ClipboardList, Camera, Ticket, Users, MoreHorizontal, ExternalLink, Home, BarChart3, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useState, useEffect } from 'react'
@@ -18,6 +18,7 @@ const moreSheetLinks = [
   { label: 'StudioFlow', icon: Home, href: '/admin' },
   { label: 'Dashboard', icon: Home, href: '/admin' },
   { label: 'Reports', icon: BarChart3, href: '/admin/production/report' },
+  { label: 'Scripts', icon: FileText, href: '/leads/settings' },
 ] as const
 
 export function BridalFlowLayout({ children }: { children: React.ReactNode }) {

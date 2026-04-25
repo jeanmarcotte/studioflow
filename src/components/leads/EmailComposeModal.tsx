@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import type { Lead } from '@/lib/lead-utils'
-import { coupleName } from '@/lib/lead-utils'
+import { coupleName, getMessageTemplate } from '@/lib/lead-utils'
 import { getTemplateForTouch, renderTemplate, getTemplateVariables } from '@/lib/template-utils'
 import { logTouch } from '@/lib/chase-actions'
 
@@ -31,14 +31,15 @@ export function EmailComposeModal({ lead, open, onClose, onTouchLogged }: EmailC
     const touchNum = (lead.contact_count || 0) + 1
     const vars = getTemplateVariables(lead)
 
-    getTemplateForTouch(touchNum, 'email').then(tmpl => {
+    getTemplateForTouch(touchNum, 'email').then(async (tmpl) => {
       if (tmpl) {
         setSubject(renderTemplate(tmpl.subject || `Your ${lead.venue_name || ''} Wedding Photography`, vars))
         setBody(renderTemplate(tmpl.body, vars))
       } else {
-        // Fallback
+        // Fallback — fetch from message_templates
         setSubject(`SIGS Photography — Your ${lead.venue_name || 'Wedding'} Day!`)
-        setBody(`Hi ${vars.bride_name},\n\nI hope this email finds you well! I wanted to follow up about your upcoming wedding.\n\nWould you be available for a quick Zoom call this week?\n\nWarmly,\nMarianna\nSIGS Photography\n416-831-8942`)
+        const fallbackBody = await getMessageTemplate('initial', lead)
+        setBody(fallbackBody)
       }
       setLoading(false)
     })

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import type { Lead } from '@/lib/lead-utils'
-import { formatWeddingDate } from '@/lib/lead-utils'
+import { formatWeddingDate, getMessageTemplate } from '@/lib/lead-utils'
 
 interface EmailComposerFormProps {
   lead: Lead
@@ -16,11 +16,15 @@ export function EmailComposerForm({ lead, onClose }: EmailComposerFormProps) {
   const venue = lead.venue_name || 'your venue'
 
   const [to, setTo] = useState(lead.email || '')
-  const [subject, setSubject] = useState('Met you at the bridal show — SIGS Photography')
-  const [body, setBody] = useState(
-    `Hi ${bride},\n\nThank you for connecting with us! We're excited to learn more about your ${date} wedding at ${venue}.\n\nI'd love to schedule a quick call or Zoom to discuss your photography vision and answer any questions. Or you can visit us at our studio in Toronto located just north of Yorkdale Mall. Allen Rd and Sheppard.\n\nWhat time works best for you this week?\n\nBest regards,\n\nJean Marcotte\nPrincipal Photographer\nSIGS Photography\n416-831-8942\nwww.sigsphoto.ca`
-  )
+  const [subject, setSubject] = useState('SIGS Photography — Following Up')
+  const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
+
+  useEffect(() => {
+    getMessageTemplate('initial', lead).then(text => {
+      setBody(text)
+    })
+  }, [lead])
 
   const handleSend = async () => {
     if (!to) { toast.error('Please enter an email address'); return }

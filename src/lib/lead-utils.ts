@@ -1,4 +1,5 @@
 // Lead scoring utilities — colors, temperatures, formatters
+import { supabase } from '@/lib/supabase'
 
 export interface Lead {
   id: string
@@ -123,12 +124,42 @@ export function coupleName(lead: Lead): string {
   return 'UNKNOWN'
 }
 
+/**
+ * Fetch a message_template by type and replace [BRIDE_NAME] with actual name.
+ * Falls back to a generic string if the DB fetch fails.
+ */
+export async function getMessageTemplate(
+  templateType: 'initial' | 'followup_1' | 'followup_2',
+  lead: Lead
+): Promise<string> {
+  const bride = lead.bride_first_name || 'there'
+  const showName = lead.show_id
+    ? (SHOW_LABELS[lead.show_id] || 'the bridal show')
+    : 'the bridal show'
+
+  const { data } = await supabase
+    .from('message_templates')
+    .select('message_text')
+    .eq('template_type', templateType)
+    .eq('is_active', true)
+    .limit(1)
+
+  const text = data?.[0]?.message_text ?? null
+  if (!text) return `Hi ${bride}! This is Marianna from SIGS Photography. We'd love to chat about capturing your big day!`
+
+  return text
+    .replace(/\[BRIDE_NAME\]/g, bride)
+    .replace(/\[SHOW_NAME\]/g, showName)
+}
+
+/** @deprecated — use getMessageTemplate() instead */
 export function getCallScript(lead: Lead): string {
   const bride = lead.bride_first_name || 'there'
   const venue = lead.venue_name || 'your venue'
   return `Hi ${bride}! This is Marianna from SIGS Photography. I saw you stopped by our booth — congratulations on your upcoming wedding at ${venue}! I'd love to chat about capturing your big day. Do you have a few minutes?`
 }
 
+/** @deprecated — use getMessageTemplate() instead */
 export function getTextTemplate(lead: Lead): string {
   const bride = lead.bride_first_name || 'there'
   const venue = lead.venue_name ? ` at ${lead.venue_name}` : ''
