@@ -21,8 +21,8 @@
 
 | # | Issue | Impact | Planned Fix |
 |---|-------|--------|-------------|
-| 5 | **Duplicate triggers on m15** | Two triggers (`trg_flip_m15_on_form`, `trigger_day_form_milestone`) both flip m15. No current harm but messy. | Remove one |
-| 6 | **Duplicate triggers on m25** | Two triggers (`trg_flip_m25_on_video_order`, `video_order_submitted_trigger`) both flip m25. | Remove one |
+| 5 | **~~Duplicate triggers on m15~~** | ✅ RESOLVED April 25, 2026 — removed `trigger_day_form_milestone` | — |
+| 6 | **~~Duplicate triggers on m25~~** | ✅ RESOLVED April 25, 2026 — removed `video_order_submitted_trigger` | — |
 | 7 | **No auth on admin routes** | Any URL is accessible without login. Internal tool, but risky. | Add Supabase Auth for admin |
 | 8 | **`client_orders` table has 0 rows** | Table built but never populated. Add Editing Job form doesn't use it. | Wire into production workflow |
 | 9 | **m09 label mismatch** | Client Journey shows "Eng Prints Picked Up" but trigger fires on `at_studio`. | Fix label or fix trigger |
@@ -51,6 +51,7 @@
 | 18 | **`couples.status = 'completed'` was set manually for some couples** | Should only be set via auto-trigger. Some may be incorrect. | Audit and fix |
 | 19 | **`active` status in extras_orders** | Deprecated but may still exist in old records. | Migrate to `pending` or `signed` |
 | 20 | **Backblaze B2 not set up** | P14 — replacing Dropbox for offsite backup. Storage decision pending. | Spencer review required |
+| 21 | **216 work orders with NULL project** | Low — work orders exist but aren't assigned to a GSD project. | Backfill or ignore |
 
 ---
 
@@ -62,6 +63,11 @@
 | 2026-04-25 | — | `trg_auto_complete_couple_on_proofs` trigger built |
 | 2026-04-25 | — | `trg_autofill_vendor` trigger built (canvas → Best Canvas) |
 | 2026-04-25 | — | Carmela & James manually flipped to completed |
+| 2026-04-25 | 5 | Duplicate m15 trigger removed (`trigger_day_form_milestone` + `update_milestone_on_day_form()`) |
+| 2026-04-25 | 6 | Duplicate m25 trigger removed (`video_order_submitted_trigger` + `set_video_order_milestone()`) |
+| 2026-04-25 | — | Orphaned functions dropped: `flip_m24_on_photo_order`, `set_photo_order_milestone`, `update_editing_jobs_timestamp`, `update_photo_jobs_updated_at` |
+| 2026-04-25 | — | 18 `updated_at` auto-triggers added to tables missing them |
+| 2026-04-25 | — | Test couple "Test & Verify" created for trigger verification |
 
 ---
 
