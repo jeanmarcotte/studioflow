@@ -90,7 +90,7 @@ Zooming into StudioFlow. These are the separately deployable units.
 ```mermaid
 graph TB
     subgraph StudioFlow ["StudioFlow System"]
-        Admin["🖥️ Admin App<br/>Next.js 14 (App Router)<br/>/admin/* routes<br/>Jean + Marianna"]
+        Admin["🖥️ Admin App<br/>Next.js 16 (App Router)<br/>/admin/* routes<br/>Jean + Marianna"]
         BridalFlow["📱 BridalFlow<br/>Next.js (shared codebase)<br/>/leads routes<br/>Lead capture at expos"]
         Portal["🔐 Client Portal<br/>Next.js (shared codebase)<br/>/portal/* routes<br/>Couples view photos"]
         API["⚡ API Routes<br/>Next.js serverless<br/>/api/* routes<br/>Server-side logic"]
@@ -114,7 +114,7 @@ graph TB
 
 | Container | Technology | URL | Purpose |
 |-----------|-----------|-----|---------|
-| **Admin App** | Next.js 14, React, Tailwind, shadcn/ui | studioflow-zeta.vercel.app/admin | All business management — couples, production, sales, finance, documents |
+| **Admin App** | Next.js 16, React 19, Tailwind, shadcn/ui | studioflow-zeta.vercel.app/admin | All business management — couples, production, sales, finance, documents |
 | **BridalFlow** | Same Next.js app, separate layout | studioflow-zeta.vercel.app/leads | Lead capture at bridal expos, lead scoring algorithm, follow-up tracking |
 | **Client Portal** | Same Next.js app, Supabase Auth | studioflow-zeta.vercel.app/portal | Couple-facing: view photos, approve albums (future), payment status |
 | **API Routes** | Next.js serverless functions | studioflow-zeta.vercel.app/api | Server-side: email sending, auth, WHOOP sync, portal magic links |
@@ -126,7 +126,7 @@ graph TB
 
 | Layer | Technology | Why |
 |-------|-----------|-----|
-| **Frontend** | React 18, Next.js 14 (App Router) | Server Components for data-heavy pages, client components for interactivity |
+| **Frontend** | React 19, Next.js 16 (App Router) | Server Components for data-heavy pages, client components for interactivity |
 | **Styling** | Tailwind CSS + shadcn/ui | Utility-first CSS + pre-built accessible components |
 | **Database** | Supabase (PostgreSQL 15) | Managed Postgres with auth, storage, real-time, and JS client |
 | **Auth** | Supabase Auth (magic links via Resend) | Client portal authentication — admin uses no auth (internal tool) |
@@ -254,20 +254,25 @@ See [PAGES.md](PAGES.md) for the complete route inventory.
 
 | Section | Route Prefix | Pages | Purpose |
 |---------|-------------|-------|---------|
-| Dashboard | `/admin` | 1 | Home — engagement pipeline, week ahead, production, revenue |
-| Couples | `/admin/couples` | 2 | Couple list + detail (Client Journey) |
-| Production | `/admin/production` | 5 | Photo editing, video editing, client orders, add job, archive |
-| Sales | `/admin/sales` | 4 | Quotes, frames, extras, C2 presentation |
-| Documents | `/admin/documents` | 1 | C1/C2/C3 contract views |
-| Contracts | `/admin/contracts` | 1 | C1 retro view |
-| Albums | `/admin/albums` | 1 | C2 retro view |
-| Extras | `/admin/extras` | 1 | C3 extras form |
-| Finance | `/admin/finance` | 1 | Finance overview |
-| Portal Admin | `/admin/portal` | 1 | Portal editor per couple |
-| Settings | `/admin/settings` | 1 | App settings |
-| BridalFlow | `/leads` | 1 | Lead list + ballot form |
-| Client Portal | `/portal` | 2 | Login + couple portal page |
-| **Total** | | **~22** | |
+| Root / Auth | `/`, `/login` | 2 | Landing + admin login |
+| Dashboard | `/admin` | 2 | Home — engagement pipeline, week ahead, production, revenue |
+| Couples | `/admin/couples` | 4 | Couple list, detail, uploads |
+| Production | `/admin/production` | 7 | Photo editing, video editing, add job, equipment, archive, report |
+| Sales | `/admin/sales` | 8 | Quotes, frames, extras, revenue, show results, reports |
+| Documents & Contracts | `/admin/documents`, `/admin/contracts`, `/admin/albums`, `/admin/extras` | 7 | C1/C2/C3 views, document hub, photo/video order docs |
+| Finance | `/admin/finance` | 5 | Overview, income, expenses, reconciliation, tax |
+| Wedding Day | `/admin/wedding-day` | 7 | Forms, crew confirm, checklist, coordination, equipment, packing |
+| Team | `/admin/team` | 5 | Members, notes, payments, schedule, training |
+| Reports | `/admin/reports` | 1 | Business intelligence dashboard |
+| Orders | `/admin/orders` | 2 | Client orders list + detail |
+| Portal | `/admin/portal`, `/portal` | 3 | Portal editor, login, couple page |
+| Client Admin | `/admin/client*` | 5 | Client quotes, communication, extras |
+| Marketing & Settings | `/admin/marketing`, `/admin/settings` | 4 | SEO dashboards, settings |
+| BridalFlow | `/leads` | 4 | Lead list, compose, analytics, settings |
+| Client Forms | `/client` | 9 | Quote builder, photo/video orders, wedding day form, extras |
+| Crew Portal | `/crew` | 3 | Login, dashboard, wedding detail |
+| Other | Various | 4 | Analytics, ballot, scanner, test-quote |
+| **Total** | | **83** | |
 
 ---
 

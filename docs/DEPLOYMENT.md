@@ -71,6 +71,14 @@ All env vars are set in Vercel project settings. Key variables:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (client-side) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role (server-side only) |
 | `RESEND_API_KEY` | Resend email API key |
+| `CRON_SECRET` | Shared secret for production report cron (Sun+Thu 9AM Toronto) |
+| `NEXT_PUBLIC_APP_URL` | Public app base URL |
+| `NEXT_PUBLIC_SITE_URL` | Public site URL (used by auth redirects) |
+| `ANTHROPIC_API_KEY` | Claude API key for AI features |
+| `INBOUND_WEBHOOK_KEY` | Webhook authentication key |
+| `META_VERIFY_TOKEN` | Meta/Facebook webhook verification token |
+| `PERSONAL_SUPABASE_URL` | Personal Supabase project API URL (Ops/Health) |
+| `PERSONAL_SUPABASE_ANON_KEY` | Personal Supabase anon key (Ops/Health) |
 
 **Rule:** Never use `NEXT_PRIVATE_` prefix — not reliably exposed to serverless functions. Use `SUPABASE_SERVICE_ROLE_KEY` (no prefix) for server-side secrets.
 

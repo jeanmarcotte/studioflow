@@ -79,7 +79,7 @@
 | m19 | `m19_wedding_day` | Wedding Day | ❌ MISSING | `couples` | Should fire when `wedding_date < CURRENT_DATE` — cron job or on first post-wedding job creation | ❌ | 2026-04-25 |
 | m20 | `m20_files_backed_up` | Files Backed Up | ❌ MISSING | `jobs` | Should fire when PROD-WED-PROOFS job created (can't create proofs job without backup being done) | ❌ | 2026-04-25 |
 | m22 | `m22_proofs_edited` | Proofs Edited | ❌ MISSING | `jobs` | Should fire when PROD-WED-PROOFS status → `completed` | ❌ | 2026-04-25 |
-| m24 | `m24_photo_order_in` | Photo Order In | `trigger_m24_photo_order_in` | `jobs` | Wedding non-proofs job INSERT | ✅ | 2026-04-25 |
+| m24 | `m24_photo_order_in` | Photo Order In | `on_wedding_job_created` → `trigger_m24_photo_order_in()` | `jobs` | Wedding non-proofs job INSERT | ✅ | 2026-04-25 |
 | m25 | `m25_video_order_in` | Video Order In | `flip_m25_on_video_order` + `set_video_order_milestone` | `video_orders` | INSERT (DUPLICATE — two triggers) | ✅ ⚠️ | 2026-04-25 |
 | m26 | `m26_photo_order_to_lab` | Photo Order to Lab | ❌ MISSING | `jobs` | Should fire when first wedding physical job → `at_lab` | ❌ | 2026-04-25 |
 | m27 | `m27_video_long_form` | Video Long Form | ❌ MISSING | `video_jobs` | Should fire when longform video status → complete | ❌ | 2026-04-25 |
@@ -90,6 +90,8 @@
 | m32 | `m32_ready_at_studio` | Ready at Studio | ❌ MISSING | `jobs` | Should fire when ALL wedding physical jobs for couple → `at_studio` or better | ❌ | 2026-04-25 |
 
 **Tech Debt:** m25 has two triggers doing the same thing. One should be removed.
+
+**Tech Debt (m24):** Two orphaned functions exist — `flip_m24_on_photo_order` and `set_photo_order_milestone` — that reference `couple_milestones` but are NOT attached to any trigger. Only `trigger_m24_photo_order_in` (via trigger `on_wedding_job_created`) is active. The orphaned functions should be removed or consolidated.
 
 **Open Questions:**
 - m19: Should this be a daily cron that checks all couples where `wedding_date < CURRENT_DATE AND m19 = false`? Or should it fire when the first post-wedding job is created?
@@ -122,6 +124,8 @@
 | `flip_m15_on_form_submit` | `wedding_day_forms` INSERT | Flips m15 |
 | `update_milestone_on_day_form` | `wedding_day_forms` INSERT | Flips m15 (DUPLICATE of above) |
 | `check_and_flip_m33` | `payments` INSERT/UPDATE/DELETE | Checks balance_due, flips m33 if ≤ 0 |
+| `flip_m24_on_photo_order` | ⚠️ NOT ATTACHED TO ANY TRIGGER | Orphaned — references couple_milestones but never fires. Remove or consolidate with `trigger_m24_photo_order_in`. |
+| `set_photo_order_milestone` | ⚠️ NOT ATTACHED TO ANY TRIGGER | Orphaned — references couple_milestones but never fires. Remove or consolidate with `trigger_m24_photo_order_in`. |
 | `fn_auto_complete_couple_on_proofs` | `jobs` INSERT/UPDATE | Flips couples.status → completed when PROD-WED-PROOFS exists and wedding_date passed |
 | `fn_autofill_vendor_from_catalog` | `jobs` INSERT | Auto-fills vendor from product_catalog.default_vendor |
 | `score_lead_on_insert` | `ballots` INSERT | Calculates lead score 0-300 |

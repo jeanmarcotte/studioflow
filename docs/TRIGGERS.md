@@ -76,7 +76,7 @@
 |---------|-------|--------|----------|---------|
 | `trg_flip_m25_on_video_order` | INSERT | AFTER | `flip_m25_on_video_order` | Flips m25 |
 | `video_order_submitted_trigger` | INSERT | AFTER | `set_video_order_milestone` | Flips m25 ⚠️ DUPLICATE |
-| `video_orders_updated_at` | UPDATE | BEFORE | `update_video_jobs_updated_at` | Sets `updated_at = NOW()` |
+| `video_orders_updated_at` | UPDATE | BEFORE | `update_milestones_timestamp` | Sets `updated_at = NOW()` |
 
 ### `wedding_assignments`
 

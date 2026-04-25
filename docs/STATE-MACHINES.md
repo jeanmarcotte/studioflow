@@ -70,6 +70,8 @@ stateDiagram-v2
     [*] --> not_started : Job created
     not_started --> in_progress : Editing begins
     in_progress --> video_out : First cut sent to couple
+    in_progress --> video_proofs_out : Video proofs sent
+    video_proofs_out --> waiting_for_bride : Awaiting feedback
     video_out --> waiting_for_bride : Awaiting feedback
     waiting_for_bride --> in_progress : Changes received
     in_progress --> complete : Final delivered
@@ -86,6 +88,7 @@ stateDiagram-v2
 | `waiting_for_bride` | Awaiting couple feedback | — |
 | `waiting_on_recap` | Full video done, recap pending | — |
 | `raw_video_output` | Raw export completed | — |
+| `video_proofs_out` | Video proofs sent to couple | — |
 | `complete` | Final video delivered | m27 (NO TRIGGER), m28 (NO TRIGGER) |
 | `archived` | Raw footage archived | — |
 
@@ -133,6 +136,7 @@ stateDiagram-v2
 | Value | Meaning | Triggers |
 |-------|---------|----------|
 | `draft` | Created, not sent | — |
+| `pending` | Quote created, awaiting action | — |
 | `sent` | Emailed to couple | — |
 | `converted` | Accepted | — |
 | `booked` | Contract created | `on_quote_status_change` → `convert_quote_to_contract` → seeds m01-m05 |
