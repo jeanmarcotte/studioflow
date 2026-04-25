@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import type { Lead } from '@/lib/lead-utils'
-import { getTextTemplate, formatWeddingDate, formatShowName } from '@/lib/lead-utils'
+import { getMessageTemplate, formatWeddingDate, formatShowName } from '@/lib/lead-utils'
 import { inferCultureFromLastName } from '@/lib/cultureInference'
 import { useRouter } from 'next/navigation'
 
@@ -48,7 +48,11 @@ export function ContactSection({ lead, onUpdate }: ContactSectionProps) {
   }, [lead?.email])
 
   const phoneDigits = lead.cell_phone?.replace(/\D/g, '') || ''
-  const textScript = getTextTemplate(lead)
+  const [textScript, setTextScript] = useState('')
+
+  useEffect(() => {
+    getMessageTemplate(1, lead).then(setTextScript)
+  }, [lead])
 
   const handleEmailSave = async () => {
     if (!lead?.id) return

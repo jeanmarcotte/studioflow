@@ -125,43 +125,99 @@ export function coupleName(lead: Lead): string {
 }
 
 /**
- * Fetch a message_template by type and replace [BRIDE_NAME] with actual name.
- * Falls back to a generic string if the DB fetch fails.
+ * Fetch a chase_template by touch number and render variables.
+ * chase_templates is the single source of truth for all scripts.
+ * Falls back to a generic string only if the DB fetch fails.
  */
 export async function getMessageTemplate(
-  templateType: 'initial' | 'followup_1' | 'followup_2',
+  touchNumber: number = 1,
   lead: Lead
 ): Promise<string> {
   const bride = lead.bride_first_name || 'there'
+  const venue = lead.venue_name || 'your venue'
+  const weddingDate = lead.wedding_date || 'your wedding'
   const showName = lead.show_id
     ? (SHOW_LABELS[lead.show_id] || 'the bridal show')
     : 'the bridal show'
 
   const { data } = await supabase
-    .from('message_templates')
-    .select('message_text')
-    .eq('template_type', templateType)
+    .from('chase_templates')
+    .select('body')
+    .eq('touch_number', touchNumber)
     .eq('is_active', true)
     .limit(1)
 
-  const text = data?.[0]?.message_text ?? null
+  const text = data?.[0]?.body ?? null
   if (!text) return `Hi ${bride}! This is Marianna from SIGS Photography. We'd love to chat about capturing your big day!`
 
   return text
-    .replace(/\[BRIDE_NAME\]/g, bride)
-    .replace(/\[SHOW_NAME\]/g, showName)
+    .replace(/\{\{bride_name\}\}/g, bride)
+    .replace(/\{\{venue_name\}\}/g, venue)
+    .replace(/\{\{wedding_date\}\}/g, weddingDate)
+    .replace(/\{\{show_name\}\}/g, showName)
+    .replace(/\\n/g, '\n')
 }
 
-/** @deprecated — use getMessageTemplate() instead */
-export function getCallScript(lead: Lead): string {
-  const bride = lead.bride_first_name || 'there'
-  const venue = lead.venue_name || 'your venue'
-  return `Hi ${bride}! This is Marianna from SIGS Photography. I saw you stopped by our booth — congratulations on your upcoming wedding at ${venue}! I'd love to chat about capturing your big day. Do you have a few minutes?`
-}
+/**
+ * Detect duplicate ballots by normalized phone number.
+ * Keeps the "best" record (highest status + most data) and flags others as duplicates.
+ * Returns the number of newly flagged duplicates.
+ */
+export async function detectAndFlagDuplicates(): Promise<number> {
+  const { data: ballots, error } = await supabase
+    .from('ballots')
+    .select('id, bride_first_name, bride_last_name, groom_first_name, groom_last_name, cell_phone, email, wedding_date, status, created_at, is_duplicate')
+    .not('status', 'in', '("dead")')
+    .eq('hidden', false)
+    .eq('is_duplicate', false)
+    .order('created_at', { ascending: true })
 
-/** @deprecated — use getMessageTemplate() instead */
-export function getTextTemplate(lead: Lead): string {
-  const bride = lead.bride_first_name || 'there'
-  const venue = lead.venue_name ? ` at ${lead.venue_name}` : ''
-  return `Hi ${bride}! 💕 This is Marianna from SIGS Photography. We met at the bridal show — congrats on your wedding${venue}! Would you like to set up a quick Zoom call to chat about photos & video? 📸`
+  if (error || !ballots) return 0
+
+  const normalize = (phone: string | null): string => {
+    if (!phone) return ''
+    return phone.replace(/\D/g, '')
+  }
+
+  const phoneGroups: Record<string, typeof ballots> = {}
+  for (const b of ballots) {
+    const norm = normalize(b.cell_phone)
+    if (!norm || norm.length < 7) continue
+    if (!phoneGroups[norm]) phoneGroups[norm] = []
+    phoneGroups[norm].push(b)
+  }
+
+  let flagged = 0
+  for (const [, group] of Object.entries(phoneGroups)) {
+    if (group.length <= 1) continue
+
+    const scored = group.map(b => ({
+      ...b,
+      score: (b.email ? 2 : 0)
+        + (b.wedding_date ? 1 : 0)
+        + (b.groom_first_name ? 1 : 0)
+        + (['booked', 'quoted', 'meeting_booked'].includes(b.status) ? 10 : 0)
+        + (['contacted'].includes(b.status) ? 3 : 0)
+    }))
+
+    scored.sort((a, b) => b.score - a.score || new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+    const keeper = scored[0]
+    const dupes = scored.slice(1)
+
+    for (const dupe of dupes) {
+      const { error: updateError } = await supabase
+        .from('ballots')
+        .update({
+          is_duplicate: true,
+          duplicate_of: keeper.id,
+          hidden: true
+        })
+        .eq('id', dupe.id)
+
+      if (!updateError) flagged++
+    }
+  }
+
+  return flagged
 }

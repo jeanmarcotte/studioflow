@@ -38,7 +38,7 @@ export function EmailComposeModal({ lead, open, onClose, onTouchLogged }: EmailC
       } else {
         // Fallback — fetch from message_templates
         setSubject(`SIGS Photography — Your ${lead.venue_name || 'Wedding'} Day!`)
-        const fallbackBody = await getMessageTemplate('initial', lead)
+        const fallbackBody = await getMessageTemplate(1, lead)
         setBody(fallbackBody)
       }
       setLoading(false)

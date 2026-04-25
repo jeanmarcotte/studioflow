@@ -23,7 +23,7 @@ export function QuickActions({ lead, onEmailClick }: QuickActionsProps) {
     const tmpl = await getTemplateForTouch(touchNum, 'call')
     const script = tmpl
       ? renderTemplate(tmpl.body, vars)
-      : await getMessageTemplate('initial', lead)
+      : await getMessageTemplate(1, lead)
 
     await navigator.clipboard.writeText(script)
     toast.success(`Copied: "${script.slice(0, 60)}..."`)
@@ -45,7 +45,7 @@ export function QuickActions({ lead, onEmailClick }: QuickActionsProps) {
     const tmpl = await getTemplateForTouch(touchNum, 'text')
     const text = tmpl
       ? renderTemplate(tmpl.body, vars)
-      : await getMessageTemplate('initial', lead)
+      : await getMessageTemplate(1, lead)
 
     await navigator.clipboard.writeText(text)
     toast.success(`Copied: "${text.slice(0, 60)}..."`)

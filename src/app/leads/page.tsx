@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import { SourceDropdown } from '@/components/leads/SourceDropdown'
 import { ChaseSubFilters, type ChaseFilter } from '@/components/leads/ChaseSubFilters'
 import type { Lead, FilterKey } from '@/lib/lead-utils'
+import { detectAndFlagDuplicates } from '@/lib/lead-utils'
 
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
 
@@ -385,14 +386,21 @@ export default function LeadsPage() {
                 const result = await res.json()
                 if (result.success) {
                   toast.success(`Scores recalculated: ${result.updated} leads updated`)
-                  // Refetch leads
-                  const { data } = await supabase.from('ballots').select('*').order('book_score', { ascending: false })
-                  if (data) {
-                    setAllLeads(data as Lead[])
-                    setLeads((data as Lead[]).filter(l => !l.hidden))
-                  }
                 } else {
                   toast.error(result.error || 'Failed to recalculate')
+                }
+
+                // Run duplicate detection
+                const dupeCount = await detectAndFlagDuplicates()
+                if (dupeCount > 0) {
+                  toast.success(`Found and hidden ${dupeCount} duplicate${dupeCount > 1 ? 's' : ''}`)
+                }
+
+                // Refetch leads to reflect score changes + hidden dupes
+                const { data } = await supabase.from('ballots').select('*').order('book_score', { ascending: false })
+                if (data) {
+                  setAllLeads(data as Lead[])
+                  setLeads((data as Lead[]).filter(l => !l.hidden))
                 }
               } catch {
                 toast.error('Failed to recalculate scores')

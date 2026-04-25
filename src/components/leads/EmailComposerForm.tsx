@@ -21,7 +21,7 @@ export function EmailComposerForm({ lead, onClose }: EmailComposerFormProps) {
   const [sending, setSending] = useState(false)
 
   useEffect(() => {
-    getMessageTemplate('initial', lead).then(text => {
+    getMessageTemplate(1, lead).then(text => {
       setBody(text)
     })
   }, [lead])
