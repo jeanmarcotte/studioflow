@@ -52,6 +52,7 @@
 | 19 | **`active` status in extras_orders** | Deprecated but may still exist in old records. | Migrate to `pending` or `signed` |
 | 20 | **Backblaze B2 not set up** | P14 — replacing Dropbox for offsite backup. Storage decision pending. | Spencer review required |
 | 21 | **216 work orders with NULL project** | Low — work orders exist but aren't assigned to a GSD project. | Backfill or ignore |
+| 22 | **Job status dropdown has 13 values** | Potential overlap/redundancy. Simplification audit pending. | Blocked by Production Hub (WO-902-907) |
 
 ---
 

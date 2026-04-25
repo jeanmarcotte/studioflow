@@ -191,9 +191,27 @@
 
 | Issue | Severity | Tables | Details |
 |-------|----------|--------|---------|
-| No wedding production triggers | Critical | `jobs` | m19, m20, m22, m26, m29, m32 have no triggers. Wedding production milestones never auto-flip. |
-| No video production triggers | Critical | `video_jobs` | m27, m28 have no triggers. Video completion milestones never auto-flip. |
-| No delivery triggers | High | `jobs` | m34 (items picked up) has no trigger. |
+| No wedding production triggers | Critical | `jobs` | m19, m20, m22, m26, m29, m32 have no triggers. See WO-895, WO-896, WO-897. |
+| No video production triggers | Critical | `video_jobs` | m27, m28 have no triggers. See WO-898. |
+| No delivery triggers | High | `jobs` | m30, m31, m34 have no trigger. See WO-899. |
+| No sales milestone triggers | High | `extras_orders` | m10, m11 have no triggers. See WO-892. |
+| No engagement physical triggers | Medium | `jobs` | m12 has no trigger. m13 needs auto-flip with m09. See WO-893. |
+| No crew milestone trigger | Medium | `crew_call_sheets` | m16 has no trigger. See WO-894. |
+| No completion trigger | Medium | `couple_milestones` | m36 has no trigger. See WO-900. |
+
+## Triggers To Build
+
+| WO | Milestones | Table | Trigger Spec |
+|----|-----------|-------|-------------|
+| WO-892 | m10, m11 | `extras_orders` | INSERT flips m10; UPDATE status → signed/declined flips m11 |
+| WO-893 | m12, m13 | `jobs` | m12: engagement non-proofs → at_lab. m13: add line to `flip_engagement_milestones` to auto-flip with m09 |
+| WO-894 | m16 | `crew_call_sheets` | INSERT flips m16 |
+| WO-895 | m19 | Edge Function cron | Daily 00:01 Toronto — flip m19 for couples where wedding_date < CURRENT_DATE |
+| WO-896 | m20, m22 | `jobs` | m20: INSERT WED_PROOFS job flips m20. m22: UPDATE WED_PROOFS → completed flips m22 |
+| WO-897 | m26, m29, m32 | `jobs` | m26: first wedding non-proofs → at_lab. m29: first → at_studio. m32: ALL non-proofs → at_studio+ |
+| WO-898 | m27, m28 | `video_jobs` | m27: FULL → complete. m28: RECAP → complete |
+| WO-899 | m30, m31, m34 | `jobs` | ALL wedding non-proofs jobs → picked_up flips m34 + m30 + m31 |
+| WO-900 | m36 | `couple_milestones` | ALL m01-m35 = true → flip m36, set couples.status = 'completed' |
 
 ## Resolved Issues
 
