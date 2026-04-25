@@ -8,16 +8,15 @@ import { supabase } from '@/lib/supabase'
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatBytes(bytes: number, decimals = 2): string {
-  if (!bytes) return '0 B'
-  const tb = bytes / (1024 ** 4)
-  if (tb >= 0.1) return `${tb.toFixed(decimals)} TB`
-  const gb = bytes / (1024 ** 3)
-  return `${gb.toFixed(1)} GB`
+function formatBytes(bytes: number): string {
+  if (!bytes) return '0 GB'
+  const gb = Math.round(bytes / (1024 ** 3))
+  return `${gb.toLocaleString()} GB`
 }
 
-function formatTB(bytes: number): string {
-  return (bytes / (1024 ** 4)).toFixed(2)
+function formatGB(bytes: number): string {
+  const gb = Math.round(bytes / (1024 ** 3))
+  return gb.toLocaleString()
 }
 
 function usagePercent(used: number, capacity: number): number {
@@ -232,7 +231,7 @@ export default function ArchivePage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatTile label="DRIVES" value={String(driveCount)} />
-          <StatTile label="TB ARCHIVED" value={formatTB(totalUsed)} />
+          <StatTile label="GB ARCHIVED" value={formatGB(totalUsed)} />
           <StatTile label="FOLDERS" value={folderCount.toLocaleString()} />
           <StatTile label="COUPLES CATALOGUED" value={coupleCount.toLocaleString()} />
         </div>

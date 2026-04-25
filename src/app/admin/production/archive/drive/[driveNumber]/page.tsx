@@ -10,14 +10,10 @@ import { ArrowLeft } from 'lucide-react'
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatBytes(bytes: number, decimals = 2): string {
-  if (!bytes) return '0 B'
-  const tb = bytes / (1024 ** 4)
-  if (tb >= 0.1) return `${tb.toFixed(decimals)} TB`
-  const gb = bytes / (1024 ** 3)
-  if (gb >= 1) return `${gb.toFixed(1)} GB`
-  const mb = bytes / (1024 ** 2)
-  return `${mb.toFixed(0)} MB`
+function formatBytes(bytes: number): string {
+  if (!bytes) return '0 GB'
+  const gb = Math.round(bytes / (1024 ** 3))
+  return `${gb.toLocaleString()} GB`
 }
 
 function usagePercent(used: number, capacity: number): number {
