@@ -44,6 +44,23 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
   }
 
+  // Crew routes: login and callback are public, everything else requires auth
+  if (pathname.startsWith('/crew')) {
+    if (pathname.startsWith('/crew/login') || pathname.startsWith('/crew/auth/callback')) {
+      return supabaseResponse
+    }
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/crew/login'
+      const redirectResponse = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value)
+      })
+      return redirectResponse
+    }
+    return supabaseResponse
+  }
+
   // Admin routes: no session and not on a public route → redirect to /login
   if (
     !user &&
