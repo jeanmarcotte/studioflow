@@ -49,16 +49,44 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/crew/login') || pathname.startsWith('/crew/auth/callback')) {
       return supabaseResponse
     }
-    if (!user) {
+
+    // Crew uses a separate storage key — create a dedicated client to check crew session
+    const crewResponse = NextResponse.next({ request: { headers: request.headers } })
+    const crewSupabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        auth: {
+          storageKey: 'crew-auth',
+        },
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            )
+            cookiesToSet.forEach(({ name, value, options }) =>
+              crewResponse.cookies.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
+    const { data: { user: crewUser } } = await crewSupabase.auth.getUser()
+
+    if (!crewUser) {
       const url = request.nextUrl.clone()
       url.pathname = '/crew/login'
       const redirectResponse = NextResponse.redirect(url)
-      supabaseResponse.cookies.getAll().forEach((cookie) => {
+      crewResponse.cookies.getAll().forEach((cookie) => {
         redirectResponse.cookies.set(cookie.name, cookie.value)
       })
       return redirectResponse
     }
-    return supabaseResponse
+    return crewResponse
   }
 
   // Admin routes: no session and not on a public route → redirect to /login
