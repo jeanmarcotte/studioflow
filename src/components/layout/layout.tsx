@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { supabase, getCurrentUser } from '@/lib/supabase'
 import { SidebarConfig, SidebarItem } from '@/config/sidebar'
 import { cn } from '@/lib/utils'
-import { Menu, Settings, LogOut, ChevronDown, ChevronRight, Home, Users, Camera, Video, MoreHorizontal, X, DollarSign, ShoppingBag, FileCheck, FileText, Wallet, UsersRound, CalendarCheck, BarChart3, ClipboardList, ExternalLink } from 'lucide-react'
+import { Menu, Settings, LogOut, ChevronDown, ChevronRight, Home, Users, Camera, Video, MoreHorizontal, X, DollarSign, ShoppingBag, FileCheck, FileText, Wallet, UsersRound, CalendarCheck, BarChart3, ClipboardList, ExternalLink, FileBarChart } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
@@ -32,7 +32,7 @@ const moreSheetLinks = [
   { label: 'Wedding Day', icon: CalendarCheck, href: '/admin/wedding-day/forms' },
   { label: 'Marketing', icon: BarChart3, href: '/admin/marketing/sigs-seo' },
   { label: 'BridalFlow', icon: ClipboardList, href: '/leads' },
-  { label: 'Settings', icon: Settings, href: '/admin/settings' },
+  { label: 'Reports', icon: FileBarChart, href: '/admin/reports' },
 ] as const
 
 export function Layout({ children, sidebarConfig }: LayoutProps) {
