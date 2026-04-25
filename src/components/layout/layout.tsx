@@ -30,7 +30,7 @@ const moreSheetLinks = [
   { label: 'Finance', icon: Wallet, href: '/admin/finance' },
   { label: 'Team', icon: UsersRound, href: '/admin/team/members' },
   { label: 'Wedding Day', icon: CalendarCheck, href: '/admin/wedding-day/forms' },
-  { label: 'Marketing', icon: BarChart3, href: '/admin/marketing/sigs' },
+  { label: 'Marketing', icon: BarChart3, href: '/admin/marketing/sigs-seo' },
   { label: 'BridalFlow', icon: ClipboardList, href: '/leads' },
   { label: 'Settings', icon: Settings, href: '/admin/settings' },
 ] as const
