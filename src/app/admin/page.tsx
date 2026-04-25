@@ -9,6 +9,7 @@ import * as d3 from 'd3'
 import WeekAhead from '@/components/dashboard/WeekAhead'
 import ProductionFloor from '@/components/dashboard/ProductionFloor'
 import TheBusiness from '@/components/dashboard/TheBusiness'
+import WeddingDayBanner from '@/components/shared/WeddingDayBanner'
 
 interface Couple {
   id: string
@@ -489,6 +490,9 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
+      {/* Wedding Day Banner — only shows on wedding days */}
+      <WeddingDayBanner />
+
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
