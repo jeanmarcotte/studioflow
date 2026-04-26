@@ -192,7 +192,7 @@ graph LR
 |-------|--------|---------|
 | **Core** | couples, contracts, couple_milestones, couple_appointments, couple_documents, couple_charges, wedding_assignments, wedding_day_forms, crew_call_sheets, team_members, team_notes, master_couples | The couple and everything directly attached to them |
 | **Sales** | ballots, lead_contacts, lead_sources, sales_meetings, client_quotes, shows, bridal_show_results, scoring_config, chase_templates | BridalFlow lead pipeline → contract conversion |
-| **Production** | jobs, video_jobs, video_orders, photo_orders, client_orders, product_catalog, job_status_history, studio_pickup_items, meeting_points | Photo and video editing, lab orders, physical product tracking |
+| **Production** | jobs, video_jobs, video_orders, photo_orders, client_orders, product_catalog, job_status_history, studio_pickup_items, meeting_points, job_checklist_items, communication_log | Photo and video editing, lab orders, physical product tracking, per-job checklists, client communication log |
 | **Finance** | payments, extras_orders, extras_installments, c2_line_items, c3_line_items, client_extras, contract_installments, payer_links, import_batches | Revenue, C2 frame sales, installment payments, expense tracking |
 | **Archive** | archive_couples, archive_drives, archive_milestones, archive_junk, vault_archive, vault_drives, vault_historical_couples, drive_contents | PhotoVault — 721 couples across 25 years of archive drives |
 | **System** | settings, app_meta, seo_*, sigs_*, entity_events, legacy_weddings, working_drives | Configuration, SEO tracking, business expenses |
