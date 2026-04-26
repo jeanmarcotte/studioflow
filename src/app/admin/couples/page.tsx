@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ColumnDef } from '@tanstack/react-table'
 import { supabase } from '@/lib/supabase'
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
-import { Users, Search, Calendar, AlertTriangle } from 'lucide-react'
+import { Users, Search, Calendar, AlertTriangle, Wrench } from 'lucide-react'
 import { formatCurrency, formatWeddingDateShort, formatPackage } from '@/lib/formatters'
 import Link from 'next/link'
 import { HistoricalCouplesArchive } from '@/components/couples/HistoricalCouplesArchive'
@@ -387,9 +387,14 @@ export default function CouplesPage() {
       accessorKey: "couple_name",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
       cell: ({ row }) => (
-        <Link href={`/admin/couples/${row.original.id}`} className="text-blue-600 hover:underline font-medium">
-          {row.original.couple_name}
-        </Link>
+        <div className="flex items-center gap-1.5">
+          <Link href={`/admin/couples/${row.original.id}`} className="text-blue-600 hover:underline font-medium">
+            {row.original.couple_name}
+          </Link>
+          <Link href={`/admin/production/couples/${row.original.id}`} title="Production Hub" className="text-muted-foreground/50 hover:text-teal-600 transition-colors">
+            <Wrench size={14} />
+          </Link>
+        </div>
       ),
     },
     {

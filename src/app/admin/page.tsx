@@ -72,6 +72,7 @@ interface InstallmentRow {
 
 interface CurrentlyEditingJob {
   id: string
+  couple_id: string
   couple_name: string
   job_type: string
   photos_taken: number
@@ -189,7 +190,7 @@ interface DashboardBox {
   count: number
   color: string
   iconColor: string
-  details: { label: string; sub?: string }[]
+  details: { label: string; sub?: string; href?: string }[]
 }
 
 function DashboardBoxCard({ box, onClick }: { box: DashboardBox; onClick: () => void }) {
@@ -361,6 +362,7 @@ export default function AdminDashboardPage() {
     .filter(j => j.status === 'in_progress' || j.status === 'not_started')
     .map(j => ({
       id: j.id,
+      couple_id: j.couple_id,
       couple_name: j.couples?.couple_name || 'Unknown',
       job_type: j.job_type,
       photos_taken: Number(j.photos_taken) || 0,
@@ -410,6 +412,7 @@ export default function AdminDashboardPage() {
       details: currentlyEditing.map(j => ({
         label: `${j.couple_name} — ${JOB_TYPE_LABELS[j.job_type] || j.job_type.replace(/_/g, ' ')}`,
         sub: j.photos_taken > 0 ? `${j.edited_so_far}/${j.photos_taken} edited` : j.status === 'not_started' ? 'Not started' : 'In progress',
+        href: `/admin/production/couples/${j.couple_id}`,
       })),
     },
     {
@@ -422,6 +425,7 @@ export default function AdminDashboardPage() {
       details: videosInProd.map(j => ({
         label: j.couples?.couple_name || 'Unknown',
         sub: j.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        href: `/admin/production/couples/${j.couple_id}`,
       })),
     },
     {
@@ -461,6 +465,7 @@ export default function AdminDashboardPage() {
       details: albumsInProgress.map(j => ({
         label: `${j.couples?.couple_name || 'Unknown'} — ${ALBUM_TYPE_LABELS[j.job_type] || j.job_type}${j.description ? ` (${j.description})` : ''}`,
         sub: `${j.vendor ? j.vendor.toUpperCase() : '—'} · ${ALBUM_STATUS_LABELS[j.status] || j.status}`,
+        href: `/admin/production/couples/${j.couple_id}`,
       })),
     },
   ]
@@ -814,12 +819,23 @@ export default function AdminDashboardPage() {
               {expandedBoxData.details.length === 0 ? (
                 <div className="p-5 text-sm text-muted-foreground">None right now.</div>
               ) : (
-                expandedBoxData.details.map((d, i) => (
-                  <div key={i} className="p-4 flex items-center justify-between">
-                    <div className="font-medium text-sm">{d.label}</div>
-                    {d.sub && <span className="text-xs text-muted-foreground flex-shrink-0 ml-4">{d.sub}</span>}
-                  </div>
-                ))
+                expandedBoxData.details.map((d, i) => {
+                  const inner = (
+                    <>
+                      <div className="font-medium text-sm">{d.label}</div>
+                      {d.sub && <span className="text-xs text-muted-foreground flex-shrink-0 ml-4">{d.sub}</span>}
+                    </>
+                  )
+                  return d.href ? (
+                    <a key={i} href={d.href} className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors cursor-pointer">
+                      {inner}
+                    </a>
+                  ) : (
+                    <div key={i} className="p-4 flex items-center justify-between">
+                      {inner}
+                    </div>
+                  )
+                })
               )}
             </div>
           </div>

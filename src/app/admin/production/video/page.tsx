@@ -552,12 +552,12 @@ export default function VideoProductionPage() {
       header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
       accessorFn: (row) => row.couples?.couple_name || 'Unknown',
       cell: ({ row }) => (
-        <button
-          onClick={() => row.original.couple_id && router.push(`/admin/couples/${row.original.couple_id}`)}
-          className="font-medium text-blue-600 hover:underline text-left"
+        <a
+          href={`/admin/production/couples/${row.original.couple_id}`}
+          className="font-medium text-teal-700 hover:underline text-left"
         >
           {row.original.couples?.couple_name || 'Unknown'}
-        </button>
+        </a>
       ),
     },
     {
@@ -701,10 +701,10 @@ export default function VideoProductionPage() {
         header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
         accessorFn: (row) => row.couples?.couple_name || 'Unknown',
         cell: ({ row }) => (
-          <button onClick={() => row.original.couple_id && router.push(`/admin/couples/${row.original.couple_id}`)}
-            className="font-medium text-blue-600 hover:underline text-left">
+          <a href={`/admin/production/couples/${row.original.couple_id}`}
+            className="font-medium text-teal-700 hover:underline text-left">
             {row.original.couples?.couple_name || 'Unknown'}
-          </button>
+          </a>
         ),
       },
       {

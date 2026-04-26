@@ -485,9 +485,9 @@ export default function PhotoProductionPage() {
       accessorFn: (row) => row.couples?.couple_name || 'Unknown',
       cell: ({ row }) => (
         <div className="min-w-0">
-          <div className="text-sm font-medium truncate">
+          <a href={`/admin/production/couples/${row.original.couple_id}`} className="text-sm font-medium truncate block text-teal-700 hover:underline">
             {row.original.couples?.couple_name || 'Unknown'}
-          </div>
+          </a>
           {row.original.couples?.wedding_date && (
             <div className="text-[11px] text-muted-foreground">
               {formatDateCompact(row.original.couples.wedding_date)}
@@ -620,10 +620,10 @@ export default function PhotoProductionPage() {
       accessorKey: 'couple_name',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
       cell: ({ row }) => (
-        <button onClick={() => router.push(`/admin/couples/${row.original.id}`)}
-          className="font-medium text-blue-600 hover:underline text-left text-sm">
+        <a href={`/admin/production/couples/${row.original.id}`}
+          className="font-medium text-teal-700 hover:underline text-left text-sm">
           {row.original.couple_name}
-        </button>
+        </a>
       ),
     },
     {
@@ -661,7 +661,7 @@ export default function PhotoProductionPage() {
       accessorFn: (row) => row.couples?.couple_name || 'Unknown',
       cell: ({ row }) => (
         <div>
-          <div className="font-medium text-sm text-muted-foreground">{row.original.couples?.couple_name || 'Unknown'}</div>
+          <a href={`/admin/production/couples/${row.original.couple_id}`} className="font-medium text-sm text-teal-700 hover:underline">{row.original.couples?.couple_name || 'Unknown'}</a>
           {row.original.couples?.wedding_date && (
             <div className="text-[11px] text-muted-foreground">{formatDateCompact(row.original.couples.wedding_date)}</div>
           )}
