@@ -447,6 +447,7 @@ export default function LeadsPage() {
       <AddLeadModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
+        selectedSourceId={selectedSourceId}
         onLeadAdded={(newLead) => {
           setLeads(prev => [newLead, ...prev])
           toast.success('Lead added successfully')

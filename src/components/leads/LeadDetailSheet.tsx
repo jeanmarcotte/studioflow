@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import type { Lead } from '@/lib/lead-utils'
 import {
-  coupleName, getScoreTier, getScoreColors, getTempConfig, formatShowName, formatWeddingDate,
+  coupleName, getScoreColors, getTempConfig, formatShowName, formatWeddingDate,
 } from '@/lib/lead-utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { logTouch } from '@/lib/chase-actions'
@@ -78,7 +78,6 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
   if (!lead) return null
 
   const score = lead.book_score ?? 0
-  const tier = getScoreTier(score)
   const colors = getScoreColors(score)
   const temp = getTempConfig(lead.temperature)
   const dotColor = temp.dot
@@ -119,9 +118,6 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
             <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 border border-border/60">
               <Badge className={`${colors.bg} ${colors.text} ${colors.border} border font-bold text-base px-3 py-1`}>
                 {score}
-              </Badge>
-              <Badge className={`${colors.bg} ${colors.text} ${colors.border} border font-bold text-xs`}>
-                {tier}-TIER
               </Badge>
               <span className={`text-xs font-bold uppercase tracking-wider ${temp.color} flex items-center gap-1 ml-auto`}>
                 {temp.pulse ? (

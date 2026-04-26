@@ -16,6 +16,7 @@ interface AddLeadModalProps {
   isOpen: boolean
   onClose: () => void
   onLeadAdded: (lead: Lead) => void
+  selectedSourceId?: string | null
 }
 
 const SERVICE_OPTIONS = [
@@ -24,7 +25,7 @@ const SERVICE_OPTIONS = [
   { value: 'video_only', label: 'Video Only' },
 ]
 
-export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps) {
+export function AddLeadModal({ isOpen, onClose, onLeadAdded, selectedSourceId }: AddLeadModalProps) {
   const [saving, setSaving] = useState(false)
   const [weddingDate, setWeddingDate] = useState<Date | undefined>()
   const [form, setForm] = useState({
@@ -82,6 +83,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
         has_videographer: false,
         has_venue: !!form.venue_name,
         ...(inferredCulture ? { inferred_ethnicity: inferredCulture, culture_confirmed: false } : {}),
+        ...(selectedSourceId ? { lead_source_id: selectedSourceId, lead_source_date: format(new Date(), 'yyyy-MM-dd') } : {}),
       }
 
       const { data, error } = await supabase

@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge'
 import { ScoreBar } from './ScoreBar'
 import type { Lead } from '@/lib/lead-utils'
 import {
-  getScoreTier,
   getScoreColors,
   getTempConfig,
   formatShowName,
@@ -85,7 +84,6 @@ interface LeadCardProps {
 
 export function LeadCard({ lead, onHide, onEmailClick, onCardClick, onLeadUpdate }: LeadCardProps) {
   const score = lead.book_score ?? 0
-  const tier = getScoreTier(score)
   const colors = getScoreColors(score)
   const temp = getTempConfig(lead.temperature)
   const dotColor = temp.dot
@@ -170,7 +168,6 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick, onLeadUpdate
                 )}
                 {temp.label}
               </span>
-              <span className={`ml-auto text-[11px] font-bold tracking-wider ${colors.text}`}>{tier}-TIER</span>
             </>
           )}
 

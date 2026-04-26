@@ -174,10 +174,10 @@
 
 | Route | Page | Reads From | Writes To | Triggers |
 |-------|------|-----------|----------|----------|
-| `/leads` | BridalFlow Lead List | ballots, lead_contacts, shows | ballots (INSERT on ballot submit) | `trigger_score_lead_on_insert` |
+| `/leads` | BridalFlow Lead List | ballots, lead_contacts, shows, lead_sources | ballots (INSERT with lead_source_id auto-set from active filter) | `trigger_score_lead_on_insert` |
 | `/leads/[id]/compose` | Lead Email Compose | ballots, lead_contacts | — | None |
 | `/leads/analytics` | Lead Analytics | ballots, shows | None (read-only) | None |
-| `/leads/settings` | BridalFlow Settings | scoring_config, shows | scoring_config, shows | None |
+| `/leads/settings` | BridalFlow Script Editor | message_templates, chase_templates | message_templates, chase_templates | None |
 
 ### Client-Facing Forms
 
