@@ -304,6 +304,10 @@ export default function CouplesPage() {
     const frameSalesByYear: Record<number, number> = {}
     YEARS.forEach(y => { frameSalesByYear[y] = 0 })
 
+    // Extras sales by year (c3 > 0)
+    const c3SalesByYear: Record<number, number> = {}
+    YEARS.forEach(y => { c3SalesByYear[y] = 0 })
+
     couples.forEach(c => {
       const year = c.wedding_date ? new Date(c.wedding_date + 'T12:00:00').getFullYear() : null
       if (year && year in byYear) byYear[year]++
@@ -322,9 +326,12 @@ export default function CouplesPage() {
 
       // Frame sales by year
       if (c.c2_frames_albums > 0 && year && year in frameSalesByYear) frameSalesByYear[year]++
+
+      // Extras sales by year
+      if (c.c3_extras > 0 && year && year in c3SalesByYear) c3SalesByYear[year]++
     })
 
-    return { byYear, next14, pendingEng, remainingByYear, frameSalesByYear }
+    return { byYear, next14, pendingEng, remainingByYear, frameSalesByYear, c3SalesByYear }
   }, [couples])
 
   // Milestone alerts
@@ -423,58 +430,53 @@ export default function CouplesPage() {
     },
     {
       accessorKey: "c1_contract",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="C1 Contract" />,
+      header: ({ column }) => <div style={{ textAlign: 'right' }}><DataTableColumnHeader column={column} title="C1 Contract" /></div>,
       cell: ({ row }) => row.original.c1_contract > 0
         ? <Link href={`/admin/contracts/${row.original.id}/view`} className="text-blue-600 hover:underline" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.c1_contract))}</Link>
         : <span className="text-muted-foreground/40" style={{ textAlign: 'right', display: 'block' }}>—</span>,
     },
     {
       accessorKey: "c2_frames_albums",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="C2 Frames" />,
+      header: ({ column }) => <div style={{ textAlign: 'right' }}><DataTableColumnHeader column={column} title="C2 Frames" /></div>,
       cell: ({ row }) => row.original.c2_frames_albums > 0
         ? <Link href={`/admin/albums/${row.original.id}/view`} className="text-blue-600 hover:underline" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.c2_frames_albums))}</Link>
         : <span className="text-muted-foreground/40" style={{ textAlign: 'right', display: 'block' }}>—</span>,
     },
     {
       accessorKey: "c3_extras",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="C3 Extras" />,
+      header: ({ column }) => <div style={{ textAlign: 'right' }}><DataTableColumnHeader column={column} title="C3 Extras" /></div>,
       cell: ({ row }) => row.original.c3_extras > 0
-        ? <Link href={`/admin/extras/${row.original.id}/view`} className="text-blue-600 hover:underline" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.c3_extras))}</Link>
+        ? <Link href={`/admin/couples/${row.original.id}`} className="text-blue-600 hover:underline" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.c3_extras))}</Link>
         : <span className="text-muted-foreground/40" style={{ textAlign: 'right', display: 'block' }}>—</span>,
     },
     {
       accessorKey: "total_invoiced",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Invoiced" />,
+      header: ({ column }) => <div style={{ textAlign: 'right' }}><DataTableColumnHeader column={column} title="Invoiced" /></div>,
       cell: ({ row }) => row.original.total_invoiced > 0
         ? <span className="font-medium" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.total_invoiced))}</span>
         : <span className="text-muted-foreground/40" style={{ textAlign: 'right', display: 'block' }}>—</span>,
     },
     {
       accessorKey: "total_received",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Received" />,
+      header: ({ column }) => <div style={{ textAlign: 'right' }}><DataTableColumnHeader column={column} title="Received" /></div>,
       cell: ({ row }) => row.original.total_received > 0
         ? <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.total_received))}</span>
         : <span className="text-muted-foreground/40" style={{ textAlign: 'right', display: 'block' }}>—</span>,
     },
     {
       accessorKey: "payments_count",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Pmts" />,
+      header: ({ column }) => <div style={{ textAlign: 'right' }}><DataTableColumnHeader column={column} title="Pmts" /></div>,
       cell: ({ row }) => row.original.payments_count > 0
         ? <span className="text-muted-foreground" style={{ textAlign: 'center', display: 'block' }}>{row.original.payments_count}</span>
         : <span className="text-muted-foreground/50" style={{ textAlign: 'center', display: 'block' }}>—</span>,
     },
     {
       accessorKey: "balance_due",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Balance Due" />,
+      header: ({ column }) => <div style={{ textAlign: 'right' }}><DataTableColumnHeader column={column} title="Balance Due" /></div>,
       cell: ({ row }) => {
         const bal = row.original.balance_due
         if (Math.abs(bal) < 50) {
-          return (
-            <div style={{ textAlign: 'right' }}>
-              <span style={{ color: '#16a34a', fontWeight: 600 }}>$0</span>
-              <span style={{ display: 'block', fontSize: '0.7rem', color: '#16a34a' }}>Paid in Full</span>
-            </div>
-          )
+          return <span style={{ textAlign: 'right', display: 'block', color: '#16a34a', fontWeight: 600 }}>$0</span>
         }
         if (bal > 0) return <span style={{ textAlign: 'right', display: 'block', color: '#dc2626', fontWeight: 600 }}>{formatCurrency(Math.round(bal))}</span>
         return <span style={{ textAlign: 'right', display: 'block', color: '#16a34a', fontWeight: 600 }}>{formatCurrency(Math.round(bal))}</span>
@@ -641,7 +643,7 @@ export default function CouplesPage() {
 
       {/* Right Sidebar */}
       <div className="hidden lg:block w-[260px] flex-shrink-0 space-y-4">
-        {/* Year Filter Pills */}
+        {/* 1. Year Filter Pills */}
         <div className="rounded-xl border bg-card p-4">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Filter by Year</h3>
           <div className="flex flex-wrap gap-2">
@@ -673,7 +675,31 @@ export default function CouplesPage() {
           </div>
         </div>
 
-        {/* Engagement Status */}
+        {/* 2. Milestone Alerts */}
+        {alerts.length > 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <h3 className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Alerts ({alerts.length})</h3>
+            </div>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {alerts.map((alert, i) => (
+                <div
+                  key={i}
+                  className="text-xs cursor-pointer hover:bg-amber-100 rounded px-1 py-1 -mx-1 transition-colors"
+                  onClick={() => router.push(`/admin/couples/${alert.id}`)}
+                >
+                  <span className={`font-semibold ${alert.type === 'danger' ? 'text-red-700' : 'text-amber-700'}`}>
+                    {alert.couple}
+                  </span>
+                  <span className="text-amber-600 ml-1">— {alert.message}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 3. Engagement Status */}
         <div className="rounded-xl border bg-card p-4">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             Engagement Status
@@ -702,7 +728,7 @@ export default function CouplesPage() {
           </div>
         </div>
 
-        {/* Frame Sales by Year */}
+        {/* 4. Frame Sales by Year */}
         <div className="rounded-xl border bg-card p-4">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Frame Sales by Year</h3>
           <div className="space-y-1.5">
@@ -715,29 +741,18 @@ export default function CouplesPage() {
           </div>
         </div>
 
-        {/* Milestone Alerts */}
-        {alerts.length > 0 && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <h3 className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Alerts ({alerts.length})</h3>
-            </div>
-            <div className="space-y-2 max-h-[300px] overflow-y-auto">
-              {alerts.map((alert, i) => (
-                <div
-                  key={i}
-                  className="text-xs cursor-pointer hover:bg-amber-100 rounded px-1 py-1 -mx-1 transition-colors"
-                  onClick={() => router.push(`/admin/couples/${alert.id}`)}
-                >
-                  <span className={`font-semibold ${alert.type === 'danger' ? 'text-red-700' : 'text-amber-700'}`}>
-                    {alert.couple}
-                  </span>
-                  <span className="text-amber-600 ml-1">— {alert.message}</span>
-                </div>
-              ))}
-            </div>
+        {/* 5. Extras Sales by Year */}
+        <div className="rounded-xl border bg-card p-4">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Extras Sales by Year</h3>
+          <div className="space-y-1.5">
+            {YEARS.map(yr => (
+              <div key={yr} className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{yr}</span>
+                <span className="font-semibold">{stats.c3SalesByYear[yr] || 0}</span>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
       </div>
     </div>
   )
