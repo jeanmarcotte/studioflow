@@ -10,11 +10,11 @@
 
 | Category | Count |
 |----------|-------|
-| Milestone triggers | 12 (10 unique functions, 0 duplicates) |
+| Milestone triggers | 13 (11 unique functions, 0 duplicates) |
 | Business logic triggers | 3 (auto-complete, vendor fill, quote conversion) |
 | Lead scoring triggers | 2 |
 | Timestamp triggers | 23 (3 existing + 18 added April 25 + milestones + video_jobs) |
-| **Total** | **38** |
+| **Total** | **39** |
 
 **Cleanup (April 25, 2026):** Orphaned functions removed (`flip_m24_on_photo_order`, `set_photo_order_milestone`, `update_editing_jobs_timestamp`, `update_photo_jobs_updated_at`). Duplicate triggers removed (`trigger_day_form_milestone` on m15, `video_order_submitted_trigger` on m25). 18 `updated_at` auto-triggers added.
 
@@ -60,6 +60,12 @@
 |---------|-------|--------|----------|---------|
 | `trg_flip_m10_on_extras_insert` | INSERT | AFTER | `fn_flip_m10_on_extras_insert` | Flips m10 when extras_order created for couple |
 | `trg_flip_m11_on_extras_status` | UPDATE | AFTER | `fn_flip_m11_on_extras_status` | Flips m11 when status → signed or declined |
+
+### `crew_call_sheets`
+
+| Trigger | Event | Timing | Function | Purpose |
+|---------|-------|--------|----------|---------|
+| `trg_flip_m16_on_crew_call` | INSERT | AFTER | `fn_flip_m16_on_crew_call` | Flips m16 when crew call sheet created for couple |
 
 ### `client_orders`
 
@@ -203,7 +209,7 @@
 | No delivery triggers | High | `jobs` | m30, m31, m34 have no trigger. See WO-899. |
 | ~~No sales milestone triggers~~ | ~~High~~ | ~~`extras_orders`~~ | ✅ RESOLVED WO-892 — m10/m11 triggers built April 25, 2026 |
 | ~~No engagement physical triggers~~ | ~~Medium~~ | ~~`jobs`~~ | ✅ RESOLVED WO-893 — m12/m13 added to `flip_engagement_milestones` April 25, 2026 |
-| No crew milestone trigger | Medium | `crew_call_sheets` | m16 has no trigger. See WO-894. |
+| ~~No crew milestone trigger~~ | ~~Medium~~ | ~~`crew_call_sheets`~~ | ✅ RESOLVED WO-894 — m16 trigger built April 25, 2026 |
 | No completion trigger | Medium | `couple_milestones` | m36 has no trigger. See WO-900. |
 
 ## Triggers To Build

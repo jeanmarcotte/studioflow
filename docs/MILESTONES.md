@@ -28,8 +28,8 @@ If any of these four are missing, the trigger is not ready to build.
 
 | Status | Count |
 |--------|-------|
-| ✅ Has working trigger | 18 |
-| ❌ Missing trigger | 12 |
+| ✅ Has working trigger | 19 |
+| ❌ Missing trigger | 11 |
 | 🚫 Intentionally manual | 1 (m06_declined) |
 | 🗑️ Deleted (gap numbers) | 4 (m17, m18, m21, m23) |
 | ⏸️ Blocked | 1 (m35 → blocks m36) |
@@ -98,7 +98,7 @@ If any of these four are missing, the trigger is not ready to build.
 | # | Column | Name | Trigger | Table | Event | Status | Verified |
 |---|--------|------|---------|-------|-------|--------|----------|
 | m15 | `m15_day_form_approved` | Day Form Approved | `trg_flip_m15_on_form` → `flip_m15_on_form_submit()` | `wedding_day_forms` | INSERT | ✅ | 2026-04-25 |
-| m16 | `m16_staff_confirmed` | Staff Confirmed | ❌ MISSING (WO-894) | `crew_call_sheets` | ON INSERT WHERE `couple_id = NEW.couple_id` | ❌ | 2026-04-25 |
+| m16 | `m16_staff_confirmed` | Staff Confirmed | `trg_flip_m16_on_crew_call` → `fn_flip_m16_on_crew_call()` | `crew_call_sheets` | AFTER INSERT | ✅ | 2026-04-25 |
 
 **Consequences:**
 - **m15:** Wedding Day Form received. Dashboard "Week Ahead" shows form status. Client Detail shows Day Form checkmark. Crew call sheet can be generated.
@@ -195,6 +195,7 @@ If any of these four are missing, the trigger is not ready to build.
 | `flip_m25_on_video_order` | `video_orders` INSERT | Flips m25 |
 | `fn_flip_m10_on_extras_insert` | `extras_orders` INSERT | Flips m10 |
 | `fn_flip_m11_on_extras_status` | `extras_orders` UPDATE (status → signed/declined) | Flips m11 |
+| `fn_flip_m16_on_crew_call` | `crew_call_sheets` INSERT | Flips m16 |
 | `flip_m15_on_form_submit` | `wedding_day_forms` INSERT | Flips m15 |
 | `check_and_flip_m33` | `payments` INSERT/UPDATE/DELETE | Checks balance_due, flips m33 if <= 0 |
 | `fn_auto_complete_couple_on_proofs` | `jobs` INSERT/UPDATE | Flips couples.status → completed when PROD-WED-PROOFS exists and wedding_date passed |
@@ -209,7 +210,7 @@ If any of these four are missing, the trigger is not ready to build.
 |----|-----------|-------|-------------|
 | ~~WO-892~~ | ~~m10, m11~~ | ~~`extras_orders`~~ | ✅ DONE — triggers built + backfilled April 25, 2026 |
 | ~~WO-893~~ | ~~m12, m13~~ | ~~`jobs`~~ | ✅ DONE — added to `flip_engagement_milestones` + backfilled April 25, 2026 |
-| WO-894 | m16 | `crew_call_sheets` | INSERT flips m16 |
+| ~~WO-894~~ | ~~m16~~ | ~~`crew_call_sheets`~~ | ✅ DONE — trigger built + backfilled (38 couples) April 25, 2026 |
 | WO-895 | m19 | Edge Function cron | Daily 00:01 Toronto — flip m19 for couples where wedding_date < CURRENT_DATE |
 | WO-896 | m20, m22 | `jobs` | m20: INSERT WED_PROOFS job flips m20. m22: UPDATE WED_PROOFS → completed flips m22 |
 | WO-897 | m26, m29, m32 | `jobs` | m26: first wedding non-proofs → at_lab. m29: first → at_studio. m32: ALL non-proofs → at_studio+ |
