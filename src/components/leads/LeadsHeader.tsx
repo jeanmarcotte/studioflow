@@ -175,44 +175,6 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
           </DialogHeader>
 
           <div className="space-y-5 text-sm overflow-y-auto flex-1">
-            {/* Score Badges */}
-            <section>
-              <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Score Badges</h3>
-              <div className="grid grid-cols-2 gap-1.5">
-                {[
-                  { range: '165–200', tier: 'A-TIER', color: 'bg-green-100 text-green-700', desc: 'Hot lead!' },
-                  { range: '150–164', tier: 'B-TIER', color: 'bg-teal-100 text-teal-700', desc: '' },
-                  { range: '135–149', tier: 'C-TIER', color: 'bg-yellow-100 text-yellow-700', desc: '' },
-                  { range: '120–134', tier: 'D-TIER', color: 'bg-orange-100 text-orange-700', desc: '' },
-                  { range: '105–119', tier: 'E-TIER', color: 'bg-red-100 text-red-700', desc: '' },
-                  { range: '0–104', tier: 'F-TIER', color: 'bg-gray-100 text-gray-500', desc: 'Cold lead' },
-                ].map(s => (
-                  <div key={s.tier} className="flex items-center gap-2">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${s.color}`}>{s.range}</span>
-                    <span className="text-slate-600 dark:text-slate-400">{s.tier}{s.desc ? ` — ${s.desc}` : ''}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Temperature */}
-            <section>
-              <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Temperature</h3>
-              <div className="space-y-1">
-                {[
-                  { emoji: '🔴', label: 'HOT', desc: 'Score 150+ — act now!' },
-                  { emoji: '🟡', label: 'WARM', desc: 'Score 120–149 — follow up soon' },
-                  { emoji: '🔵', label: 'COLD', desc: 'Score <120 — lower priority' },
-                ].map(t => (
-                  <div key={t.label} className="flex items-center gap-2">
-                    <span>{t.emoji}</span>
-                    <span className="font-semibold w-12">{t.label}</span>
-                    <span className="text-slate-600 dark:text-slate-400">{t.desc}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
             {/* Quick Actions */}
             <section>
               <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Quick Action Icons</h3>
@@ -231,31 +193,6 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
               </div>
             </section>
 
-            {/* Culture Scoring */}
-            <section>
-              <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Culture Scoring</h3>
-              <div className="grid grid-cols-2 gap-1">
-                {[
-                  { flag: '🇵🇹', label: 'Portuguese', pts: 30 },
-                  { flag: '🇬🇷', label: 'Greek', pts: 30 },
-                  { flag: '🇮🇹', label: 'Italian', pts: 30 },
-                  { flag: '🇵🇭', label: 'Filipino', pts: 30 },
-                  { flag: '🇮🇱', label: 'Jewish', pts: 25 },
-                  { flag: '🇹🇹', label: 'Caribbean', pts: 24 },
-                  { flag: '🇬🇭', label: 'Ghanaian', pts: 24 },
-                  { flag: '🇯🇲', label: 'Jamaican', pts: 24 },
-                  { flag: '🇪🇸', label: 'Spanish', pts: 16 },
-                  { flag: '🇨🇦', label: 'Canadian', pts: 10 },
-                ].map(c => (
-                  <div key={c.label} className="flex items-center gap-1.5">
-                    <span>{c.flag}</span>
-                    <span className="text-slate-600 dark:text-slate-400">{c.label}</span>
-                    <span className="text-slate-400 dark:text-slate-500 ml-auto">{c.pts}pts</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
             {/* Status Filters */}
             <section>
               <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Status Filters</h3>
@@ -268,6 +205,7 @@ export function LeadsHeader({ onMenuToggle, onAddLead, searchQuery, onSearchChan
                   { code: 'QUOTED', desc: 'Quote given, waiting for decision' },
                   { code: 'BOOKED', desc: 'Won! Contract signed' },
                   { code: 'LOST', desc: 'Gone (said no, booked elsewhere, or gave up)' },
+                  { code: 'DEAD', desc: 'Blocked (date conflict or cannot serve)' },
                 ].map(f => (
                   <div key={f.code} className="flex items-start gap-2">
                     <span className="font-mono font-bold text-[#0d4f4f] dark:text-teal-400 w-24 shrink-0">{f.code}</span>

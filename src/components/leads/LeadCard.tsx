@@ -154,9 +154,6 @@ export function LeadCard({ lead, onHide, onEmailClick, onCardClick, onLeadUpdate
 
           {showHeatAndScore && (
             <>
-              <Badge className={`${colors.bg} ${colors.text} ${colors.border} border font-bold text-sm px-2.5 py-0.5`}>
-                {score}
-              </Badge>
               <span className={`text-xs font-bold uppercase tracking-wider ${temp.color} flex items-center gap-1`}>
                 {temp.pulse ? (
                   <span className="relative flex h-2.5 w-2.5">

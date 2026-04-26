@@ -40,8 +40,11 @@ interface FilterSidebarProps {
   onFiltersChange: (filters: SidebarFilters) => void
   counts: Record<FilterKey, number>
   lostCount: number
+  deadCount: number
   showLost: boolean
+  showDead: boolean
   onShowLostChange: (show: boolean) => void
+  onShowDeadChange: (show: boolean) => void
   open: boolean
   onClose: () => void
   collapsed: boolean
@@ -205,7 +208,7 @@ function CollapsedBar({ filters, counts, update, onExpand, onReset }: {
 
 /* ── Main export ─────────────────────────────────────────────── */
 
-export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, showLost, onShowLostChange, open, onClose, collapsed, onCollapsedChange, chaseSubFilters }: FilterSidebarProps) {
+export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, deadCount, showLost, showDead, onShowLostChange, onShowDeadChange, open, onClose, collapsed, onCollapsedChange, chaseSubFilters }: FilterSidebarProps) {
   const update = (patch: Partial<SidebarFilters>) => onFiltersChange({ ...filters, ...patch })
   const resetAll = () => onFiltersChange({ status: [], weddingYear: null, location: null, dateRange: 'all', venueType: [], venueRating: null, ceremonyLocation: [], chaseStatus: [], culture: null })
   const toggleStatus = (key: FilterKey) => {
@@ -346,13 +349,19 @@ export function FilterSidebar({ filters, onFiltersChange, counts, lostCount, sho
           <PillRow items={CEREMONY} selected={filters.ceremonyLocation} onToggle={(i) => toggleArr('ceremonyLocation', i)} />
         </div>
 
-        {/* LOST TOGGLE */}
-        <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
+        {/* LOST / DEAD TOGGLES */}
+        <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2">
           <ButtonWithBadge
             label="Lost"
             count={lostCount}
             active={showLost}
-            onClick={() => onShowLostChange(!showLost)}
+            onClick={() => { onShowLostChange(!showLost); if (showDead) onShowDeadChange(false) }}
+          />
+          <ButtonWithBadge
+            label="Dead"
+            count={deadCount}
+            active={showDead}
+            onClick={() => { onShowDeadChange(!showDead); if (showLost) onShowLostChange(false) }}
           />
         </div>
       </div>

@@ -116,9 +116,6 @@ export function LeadDetailSheet({ lead, isOpen, onClose, onUpdate }: LeadDetailS
 
             {/* 1. Score summary bar */}
             <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 border border-border/60">
-              <Badge className={`${colors.bg} ${colors.text} ${colors.border} border font-bold text-base px-3 py-1`}>
-                {score}
-              </Badge>
               <span className={`text-xs font-bold uppercase tracking-wider ${temp.color} flex items-center gap-1 ml-auto`}>
                 {temp.pulse ? (
                   <span className="relative flex h-2.5 w-2.5">

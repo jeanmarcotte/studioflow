@@ -55,6 +55,7 @@ export default function LeadsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showLost, setShowLost] = useState(false)
+  const [showDead, setShowDead] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [sortKey, setSortKey] = useState<'score' | 'date' | 'name' | 'temperature' | 'fresh'>('fresh')
   const [currentPage, setCurrentPage] = useState(1)
@@ -75,7 +76,7 @@ export default function LeadsPage() {
   }
 
   // Reset page when filters or search change
-  useEffect(() => { setCurrentPage(1); setChaseFilter('all') }, [filters, sortKey, searchQuery, selectedSourceId])
+  useEffect(() => { setCurrentPage(1); setChaseFilter('all') }, [filters, sortKey, searchQuery, selectedSourceId, showLost, showDead])
 
   // Fetch leads
   useEffect(() => {
@@ -169,8 +170,9 @@ export default function LeadsPage() {
           (l.email || '').toLowerCase().includes(q)
         )
         if (!match) return false
-        // Exclude lost/dead leads from search unless showLost is active
-        if (!showLost && ['dead', 'lost'].includes(l.status)) return false
+        // Exclude lost/dead leads from search unless showLost or showDead is active
+        if (l.status === 'lost' && !showLost) return false
+        if (l.status === 'dead' && !showDead) return false
         return true
       }
 
@@ -179,12 +181,15 @@ export default function LeadsPage() {
         if (l.lead_source_id !== selectedSourceId) return false;
       }
 
-      // Exclude lost leads unless showLost is active
-      if (isLost(l) && !showLost) return false
+      // Exclude lost/dead leads unless their toggle is active
+      if (isLost(l) && !showLost && !showDead) return false
 
-      // When showLost is ON: only show leads with status 'lost' or 'dead'
+      // When showLost is ON: only show lost leads
       if (showLost && filters.status.length === 0) {
-        if (!['dead', 'lost'].includes(l.status)) return false
+        if (l.status !== 'lost') return false
+      // When showDead is ON: only show dead leads
+      } else if (showDead && filters.status.length === 0) {
+        if (l.status !== 'dead') return false
       } else if (filters.status.length > 0) {
         const matchesStatus = filters.status.some(s => {
           switch (s) {
@@ -197,8 +202,8 @@ export default function LeadsPage() {
             default: return false
           }
         })
-        // When showLost is also active, lost/dead leads pass regardless of status filter
-        if (!matchesStatus && !(showLost && ['dead', 'lost'].includes(l.status))) return false
+        // When showLost/showDead is also active, those leads pass regardless of status filter
+        if (!matchesStatus && !(showLost && l.status === 'lost') && !(showDead && l.status === 'dead')) return false
       }
 
       // Wedding year
@@ -293,7 +298,7 @@ export default function LeadsPage() {
 
       return true
     })
-  }, [leads, filters, showLost, searchQuery, selectedSourceId, chaseFilter])
+  }, [leads, filters, showLost, showDead, searchQuery, selectedSourceId, chaseFilter])
 
   const counts = useMemo(() => ({
     'no-no-yes': leads.filter(l => isNNY(l)).length,
@@ -304,7 +309,8 @@ export default function LeadsPage() {
     'booked': leads.filter(l => l.status === 'booked').length,
   } as Record<FilterKey, number>), [leads])
 
-  const lostCount = useMemo(() => leads.filter(l => ['dead', 'lost'].includes(l.status)).length, [leads])
+  const lostCount = useMemo(() => leads.filter(l => l.status === 'lost').length, [leads])
+  const deadCount = useMemo(() => leads.filter(l => l.status === 'dead').length, [leads])
 
   const chaseCounts = useMemo(() => {
     const contacted = leads.filter(l => l.status === 'contacted')
@@ -352,8 +358,11 @@ export default function LeadsPage() {
           onFiltersChange={setFilters}
           counts={counts}
           lostCount={lostCount}
+          deadCount={deadCount}
           showLost={showLost}
+          showDead={showDead}
           onShowLostChange={setShowLost}
+          onShowDeadChange={setShowDead}
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           collapsed={sidebarCollapsed}
