@@ -77,9 +77,9 @@ const PHASE_COLORS: Record<string, string> = {
   'New Client': 'bg-gray-100 text-gray-700',
 }
 
-function computeLifecyclePhase(m: MilestoneRow | undefined): string {
+function computeLifecyclePhase(m: MilestoneRow | undefined, balance: number = 0): string {
   if (!m) return 'New Client'
-  if (m.m34_items_picked_up) return 'Completed'
+  if (m.m34_items_picked_up && Math.abs(balance) < 50) return 'Completed'
   if (m.m22_proofs_edited) return 'Post-Production'
   if (m.m19_wedding_day) return 'Post-Wedding'
   if (m.m15_day_form_approved) return 'Pre-Wedding'
@@ -102,9 +102,12 @@ function getFinancials(row: any) {
   const contract = Array.isArray(row.contracts) ? row.contracts[0] : row.contracts
   const c1 = parseFloat(contract?.total) || 0
 
-  // C2 — frames & albums (1:many, take first)
+  // C2 — frames & albums — ONLY if sold (not pending/quoted)
   const extras = Array.isArray(row.extras_orders) ? row.extras_orders[0] : row.extras_orders
-  const c2 = parseFloat(extras?.extras_sale_amount) || 0
+  const c2Status = extras?.status
+  const c2 = ['signed', 'paid', 'completed'].includes(c2Status)
+    ? (parseFloat(extras?.extras_sale_amount) || 0)
+    : 0
 
   // C3 — extras line items (1:many — sum all)
   const c3Items = Array.isArray(row.c3_line_items) ? row.c3_line_items : []
@@ -176,7 +179,7 @@ export default function CouplesPage() {
       const [couplesRes, upcomingRes] = await Promise.all([
         supabase
           .from('couples')
-          .select(`id, couple_name, bride_first_name, bride_last_name, groom_first_name, groom_last_name, phone, email, wedding_date, wedding_year, package_type, status, contracts(reception_venue, total), couple_milestones(m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_frame_sale_complete, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in, m34_items_picked_up), extras_orders(extras_sale_amount), c3_line_items(total), payments(amount)`)
+          .select(`id, couple_name, bride_first_name, bride_last_name, groom_first_name, groom_last_name, phone, email, wedding_date, wedding_year, package_type, status, contracts(reception_venue, total), couple_milestones(m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_frame_sale_complete, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in, m34_items_picked_up), extras_orders(extras_sale_amount, status), c3_line_items(total), payments(amount)`)
           .order('wedding_date', { ascending: true }),
         supabase
           .from('couples')
@@ -230,7 +233,7 @@ export default function CouplesPage() {
             m34_items_picked_up: ms?.m34_items_picked_up || false,
             m24_photo_order_in: ms?.m24_photo_order_in || false,
             m25_video_order_in: ms?.m25_video_order_in || false,
-            lifecycle_phase: computeLifecyclePhase(ms),
+            lifecycle_phase: computeLifecyclePhase(ms, fin.balance),
           }
         }))
       }
@@ -465,9 +468,16 @@ export default function CouplesPage() {
       header: ({ column }) => <DataTableColumnHeader column={column} title="Balance Due" />,
       cell: ({ row }) => {
         const bal = row.original.balance_due
-        if (bal > 0.50) return <span className="font-semibold text-red-600" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(bal))}</span>
-        if (bal < -0.50) return <span className="font-medium text-green-600" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(bal))}</span>
-        return <span className="text-muted-foreground/50" style={{ textAlign: 'right', display: 'block' }}>$0</span>
+        if (Math.abs(bal) < 50) {
+          return (
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ color: '#16a34a', fontWeight: 600 }}>$0</span>
+              <span style={{ display: 'block', fontSize: '0.7rem', color: '#16a34a' }}>Paid in Full</span>
+            </div>
+          )
+        }
+        if (bal > 0) return <span style={{ textAlign: 'right', display: 'block', color: '#dc2626', fontWeight: 600 }}>{formatCurrency(Math.round(bal))}</span>
+        return <span style={{ textAlign: 'right', display: 'block', color: '#16a34a', fontWeight: 600 }}>{formatCurrency(Math.round(bal))}</span>
       },
     },
   ], [])
@@ -622,7 +632,7 @@ export default function CouplesPage() {
             data={filtered}
             emptyMessage="No couples found matching your filters."
             pageSize={50}
-            rowClassName={(row) => row.is_shot ? 'bg-gray-50/80 text-gray-400 [&_span]:text-gray-400' : ''}
+            rowClassName={(row) => row.lifecycle_phase === 'Completed' ? 'bg-gray-100 text-gray-400 [&_span]:text-gray-400' : ''}
           />
         </div>
 
