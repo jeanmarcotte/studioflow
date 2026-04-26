@@ -28,8 +28,8 @@ If any of these four are missing, the trigger is not ready to build.
 
 | Status | Count |
 |--------|-------|
-| ✅ Has working trigger | 22 |
-| ❌ Missing trigger | 8 |
+| ✅ Has working trigger | 25 |
+| ❌ Missing trigger | 5 |
 | 🚫 Intentionally manual | 1 (m06_declined) |
 | 🗑️ Deleted (gap numbers) | 4 (m17, m18, m21, m23) |
 | ⏸️ Blocked | 1 (m35 → blocks m36) |
@@ -120,13 +120,13 @@ If any of these four are missing, the trigger is not ready to build.
 | m22 | `m22_proofs_edited` | Proofs Edited | `trg_flip_m22_on_proofs_complete` → `fn_flip_m22_on_proofs_complete()` | `jobs` | AFTER UPDATE WED_PROOFS status → completed | ✅ | 2026-04-25 |
 | m24 | `m24_photo_order_in` | Photo Order In | `on_wedding_job_created` → `trigger_m24_photo_order_in()` | `jobs` | Wedding non-proofs job INSERT | ✅ | 2026-04-25 |
 | m25 | `m25_video_order_in` | Video Order In | `trg_flip_m25_on_video_order` → `flip_m25_on_video_order()` | `video_orders` | INSERT | ✅ | 2026-04-25 |
-| m26 | `m26_photo_order_to_lab` | Photo Order to Lab | ❌ MISSING (WO-897) | `jobs` | ON UPDATE WHERE `category = 'wedding' AND job_type NOT LIKE '%PROOFS%' AND NEW.status = 'at_lab'` | ❌ | 2026-04-25 |
+| m26 | `m26_photo_order_to_lab` | Photo Order to Lab | `trg_flip_wedding_lab_milestones` → `fn_flip_wedding_lab_milestones()` | `jobs` | AFTER UPDATE wedding non-proofs → at_lab (first) | ✅ | 2026-04-25 |
 | m27 | `m27_video_long_form` | Video Long Form | ❌ MISSING (WO-898) | `video_jobs` | ON UPDATE WHERE `job_type = 'FULL' AND NEW.status = 'complete'` | ❌ | 2026-04-25 |
 | m28 | `m28_recap_edited` | Recap Edited | ❌ MISSING (WO-898) | `video_jobs` | ON UPDATE WHERE `job_type = 'RECAP' AND NEW.status = 'complete'` | ❌ | 2026-04-25 |
-| m29 | `m29_lab_order_back` | Lab Order Back | ❌ MISSING (WO-897) | `jobs` | ON UPDATE WHERE `category = 'wedding' AND job_type NOT LIKE '%PROOFS%' AND NEW.status = 'at_studio'` | ❌ | 2026-04-25 |
+| m29 | `m29_lab_order_back` | Lab Order Back | `trg_flip_wedding_lab_milestones` → `fn_flip_wedding_lab_milestones()` | `jobs` | AFTER UPDATE wedding non-proofs → at_studio (first) | ✅ | 2026-04-25 |
 | m30 | `m30_hires_on_usb` | Hi-Res Delivered | ❌ MISSING (WO-899) | `jobs` | Same trigger as m34 — fires when ALL wedding jobs for couple have status = 'picked_up' | ❌ | 2026-04-25 |
 | m31 | `m31_video_on_usb` | Video Delivered | ❌ MISSING (WO-899) | `jobs` | Same trigger as m34 — fires when ALL wedding jobs for couple have status = 'picked_up' | ❌ | 2026-04-25 |
-| m32 | `m32_ready_at_studio` | Ready at Studio | ❌ MISSING (WO-897) | `jobs` | ON UPDATE → CHECK all wedding non-proofs jobs for couple have status IN ('at_studio', 'picked_up', 'completed'). If yes, flip m32. | ❌ | 2026-04-25 |
+| m32 | `m32_ready_at_studio` | Ready at Studio | `trg_flip_wedding_lab_milestones` → `fn_flip_wedding_lab_milestones()` | `jobs` | AFTER UPDATE — ALL wedding non-proofs at_studio/picked_up | ✅ | 2026-04-25 |
 
 **Consequences:**
 - **m19:** Couple enters post-wedding phase. Pre-wedding milestones stop mattering. Production workflow begins. Dashboard shows couple in post-wedding pipeline. **DECISION:** Supabase Edge Function cron, daily at 00:01 America/Toronto.
@@ -201,6 +201,7 @@ If any of these four are missing, the trigger is not ready to build.
 | `fn_flip_m19_wedding_day` | pg_cron daily 04:01 UTC | Flips m19 for all booked couples whose wedding_date < CURRENT_DATE |
 | `fn_flip_m20_on_proofs_insert` | `jobs` INSERT (wedding WED_PROOFS) | Flips m20 |
 | `fn_flip_m22_on_proofs_complete` | `jobs` UPDATE (wedding WED_PROOFS → completed) | Flips m22 |
+| `fn_flip_wedding_lab_milestones` | `jobs` UPDATE (wedding non-proofs) | Flips m26 (first at_lab), m29 (first at_studio), m32 (ALL at_studio/picked_up) |
 | `fn_auto_complete_couple_on_proofs` | `jobs` INSERT/UPDATE | Flips couples.status → completed when PROD-WED-PROOFS exists and wedding_date passed |
 | `fn_autofill_vendor_from_catalog` | `jobs` INSERT | Auto-fills vendor from product_catalog.default_vendor |
 | `score_lead_on_insert` | `ballots` INSERT | Calculates lead score 0-300 |
@@ -216,7 +217,7 @@ If any of these four are missing, the trigger is not ready to build.
 | ~~WO-894~~ | ~~m16~~ | ~~`crew_call_sheets`~~ | ✅ DONE — trigger built + backfilled (38 couples) April 25, 2026 |
 | ~~WO-895~~ | ~~m19~~ | ~~Edge Function cron~~ | ✅ DONE — pg_cron daily 04:01 UTC + backfilled (37 couples) April 25, 2026 |
 | ~~WO-896~~ | ~~m20, m22~~ | ~~`jobs`~~ | ✅ DONE — triggers built + backfilled (m20=36, m22=36) April 25, 2026 |
-| WO-897 | m26, m29, m32 | `jobs` | m26: first wedding non-proofs → at_lab. m29: first → at_studio. m32: ALL non-proofs → at_studio+ |
+| ~~WO-897~~ | ~~m26, m29, m32~~ | ~~`jobs`~~ | ✅ DONE — single trigger + backfilled (m26=29, m29=28, m32=29) April 25, 2026 |
 | WO-898 | m27, m28 | `video_jobs` | m27: FULL → complete. m28: RECAP → complete |
 | WO-899 | m30, m31, m34 | `jobs` | ALL wedding non-proofs jobs → picked_up flips m34 + m30 + m31 |
 | WO-900 | m36 | `couple_milestones` | ALL m01-m35 = true → flip m36, set couples.status = 'completed' |

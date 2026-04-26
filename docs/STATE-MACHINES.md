@@ -55,8 +55,8 @@ stateDiagram-v2
 | `completed` | Editing finished | m07 (engagement only) |
 | `waiting_approval` | Client reviewing | — |
 | `on_hold` | Paused | — |
-| `at_lab` | Sent to CCI/UAF/Best Canvas | m08 (engagement proofs), m12 (engagement non-proofs), m26 (wedding — NO TRIGGER) |
-| `at_studio` | Received back from vendor | m09 + m13 (engagement — auto-paired), m29 (wedding — NO TRIGGER) |
+| `at_lab` | Sent to CCI/UAF/Best Canvas | m08 (engagement proofs), m12 (engagement non-proofs), m26 (wedding non-proofs — first item) |
+| `at_studio` | Received back from vendor | m09 + m13 (engagement — auto-paired), m29 (wedding — first item), m32 (wedding — when ALL non-proofs ready) |
 | `picked_up` | Client collected | m14 (engagement), m34 (wedding — NO TRIGGER) |
 
 **Note:** Engagement jobs have full milestone trigger coverage. Wedding jobs do NOT — this is the gap that needs fixing in Project 2.
