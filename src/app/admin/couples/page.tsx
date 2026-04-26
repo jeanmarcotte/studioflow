@@ -89,6 +89,14 @@ function computeLifecyclePhase(m: MilestoneRow | undefined): string {
   return 'New Client'
 }
 
+/** Supabase returns joined relations as array OR object — handle both */
+function getMilestones(row: any): MilestoneRow | undefined {
+  const m = row.couple_milestones
+  if (!m) return undefined
+  if (Array.isArray(m)) return m[0] || undefined
+  return m
+}
+
 function computeEngPipeline(m: MilestoneRow | undefined): string {
   if (!m) return 'pending'
   if (m.m06_declined) return 'declined'
@@ -144,10 +152,10 @@ export default function CouplesPage() {
       const today = new Date().toISOString().split('T')[0]
       const in14 = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-      const [couplesRes, financialsRes, paymentCountsRes, milestonesRes, upcomingRes] = await Promise.all([
+      const [couplesRes, financialsRes, paymentCountsRes, upcomingRes] = await Promise.all([
         supabase
           .from('couples')
-          .select('id, couple_name, bride_first_name, bride_last_name, groom_first_name, groom_last_name, phone, email, wedding_date, wedding_year, package_type, status, contracts(reception_venue)')
+          .select(`id, couple_name, bride_first_name, bride_last_name, groom_first_name, groom_last_name, phone, email, wedding_date, wedding_year, package_type, status, contracts(reception_venue), couple_milestones(m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_sale_results_pdf, m11_no_sale, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in, m34_items_picked_up)`)
           .order('wedding_date', { ascending: true }),
         supabase
           .from('couple_financial_summary')
@@ -155,9 +163,6 @@ export default function CouplesPage() {
         supabase
           .from('payments')
           .select('couple_id'),
-        supabase
-          .from('couple_milestones')
-          .select('couple_id, m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_sale_results_pdf, m11_no_sale, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in, m34_items_picked_up'),
         supabase
           .from('couples')
           .select('bride_first_name, groom_first_name, wedding_date')
@@ -182,14 +187,6 @@ export default function CouplesPage() {
         }
       }
 
-      // Map milestones
-      const milestonesMap: Record<string, MilestoneRow> = {}
-      if (milestonesRes.data) {
-        for (const row of milestonesRes.data as MilestoneRow[]) {
-          milestonesMap[row.couple_id] = row
-        }
-      }
-
       // Set upcoming weddings for Next 14 Days widget
       setUpcomingWeddings((upcomingRes.data || []).map((r: any) => ({
         bride_first_name: r.bride_first_name || '',
@@ -200,7 +197,7 @@ export default function CouplesPage() {
       if (!couplesRes.error && couplesRes.data) {
         setCouples(couplesRes.data.map((row: any) => {
           const contract = Array.isArray(row.contracts) ? row.contracts[0] : row.contracts
-          const ms = milestonesMap[row.id]
+          const ms = getMilestones(row) as MilestoneRow | undefined
           const fin = financialMap[row.id]
 
           return {
