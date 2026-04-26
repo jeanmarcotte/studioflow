@@ -66,6 +66,7 @@
 | `/admin/production/editing/new` | Add Editing Job | couples, product_catalog, meeting_points | jobs (INSERT), client_orders (INSERT) | `on_wedding_job_created`, `trg_autofill_vendor`, `trg_auto_complete_couple_on_proofs` |
 | `/admin/production/equipment` | Equipment Management | equipment-related tables | — | None |
 | `/admin/production/report` | Production Report | jobs, video_jobs, couples | None (read-only) | None |
+| `/admin/production/couples/[id]` | Couple Production Hub | couples, contracts, couple_milestones, jobs, video_jobs, job_checklist_items, communication_log | jobs.status, video_jobs.status + sections, communication_log (INSERT), job_checklist_items (CRUD) | All milestone triggers on status change |
 | `/admin/production/archive` | Archive Dashboard | jobs (completed/picked_up), archive tables | None | None |
 | `/admin/production/archive/backup` | Archive Backup | archive_drives, drive_contents | archive_drives | None |
 | `/admin/production/archive/drive/[driveNumber]` | Drive Detail | drive_contents, archive_drives | None | None |
