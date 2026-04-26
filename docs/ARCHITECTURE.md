@@ -214,12 +214,13 @@ See [TRIGGERS.md](TRIGGERS.md) for the complete trigger registry.
 
 | Status | Count |
 |--------|-------|
-| Active triggers | 22 |
-| Milestone triggers (working) | 11 |
-| Milestone triggers (missing) | 16 |
-| Duplicate triggers (same function, two triggers) | 2 (m15, m25) |
+| Active triggers | 38 |
+| Milestone triggers (working) | 12 (m01-m09, m14-m15, m24-m25, m33 + m10/m11) |
+| Milestone triggers (missing) | 14 |
+| Duplicate triggers | 0 (cleaned up April 25, 2026) |
 | Auto-complete triggers | 1 (couples.status on proofs job) |
 | Utility triggers | 3 (vendor auto-fill, lead scoring, timestamp) |
+| Timestamp triggers | 21 |
 
 ---
 

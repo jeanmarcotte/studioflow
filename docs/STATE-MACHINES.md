@@ -110,11 +110,11 @@ stateDiagram-v2
 
 | Value | Meaning | Triggers Milestone |
 |-------|---------|-------------------|
-| `pending` | Quote created, awaiting couple | m10 (NO TRIGGER) |
-| `signed` | Deal closed | m11 (NO TRIGGER) |
+| `pending` | Quote created, awaiting couple | m10 (`trg_flip_m10_on_extras_insert` — fires on INSERT) |
+| `signed` | Deal closed | m11 (`trg_flip_m11_on_extras_status`) |
 | `paid` | Fully paid | — |
 | `completed` | Products delivered | — |
-| `declined` | Couple declined | m11 (NO TRIGGER) |
+| `declined` | Couple declined | m11 (`trg_flip_m11_on_extras_status`) |
 | `no_sale` | No quote sent | — |
 
 **DEPRECATED:** `active` — do not use. Migrate to `pending` or `signed`.

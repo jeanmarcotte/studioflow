@@ -28,8 +28,8 @@ If any of these four are missing, the trigger is not ready to build.
 
 | Status | Count |
 |--------|-------|
-| ✅ Has working trigger | 14 |
-| ❌ Missing trigger | 16 |
+| ✅ Has working trigger | 16 |
+| ❌ Missing trigger | 14 |
 | 🚫 Intentionally manual | 1 (m06_declined) |
 | 🗑️ Deleted (gap numbers) | 4 (m17, m18, m21, m23) |
 | ⏸️ Blocked | 1 (m35 → blocks m36) |
@@ -64,8 +64,8 @@ If any of these four are missing, the trigger is not ready to build.
 | m07 | `m07_eng_photos_edited` | Eng Photos Edited | `flip_engagement_milestones` | `jobs` | engagement job status → `completed` | ✅ | 2026-04-25 |
 | m08 | `m08_eng_proofs_to_lab` | Eng Proofs to Lab | `flip_engagement_milestones` | `jobs` | engagement job status → `at_lab` | ✅ | 2026-04-25 |
 | m09 | `m09_eng_prints_picked_up` | Eng Prints at Studio | `flip_engagement_milestones` | `jobs` | engagement job status → `at_studio` | ✅ | 2026-04-25 |
-| m10 | `m10_frame_sale_quote` | Frame Sale Quoted | ❌ MISSING (WO-892) | `extras_orders` | Should fire on extras_orders INSERT for this couple | ❌ | 2026-04-25 |
-| m11 | `m11_frame_sale_complete` | Frame Sale Complete | ❌ MISSING (WO-892) | `extras_orders` | Should fire on extras_orders.status → `signed` or `declined` | ❌ | 2026-04-25 |
+| m10 | `m10_frame_sale_quote` | Frame Sale Quoted | `trg_flip_m10_on_extras_insert` → `fn_flip_m10_on_extras_insert()` | `extras_orders` | AFTER INSERT | ✅ | 2026-04-25 |
+| m11 | `m11_frame_sale_complete` | Frame Sale Complete | `trg_flip_m11_on_extras_status` → `fn_flip_m11_on_extras_status()` | `extras_orders` | AFTER UPDATE status → signed/declined | ✅ | 2026-04-25 |
 | m12 | `m12_eng_order_to_lab` | Eng Order to Lab | ❌ MISSING (WO-893) | `jobs` | engagement non-proofs job status → `at_lab` | ❌ | 2026-04-25 |
 | m13 | `m13_eng_items_framed` | Eng Items Framed | ❌ PENDING (WO-893) | `jobs` | Auto-flip with m09 — same trigger, one extra line | ❌ | 2026-04-25 |
 | m14 | `m14_eng_items_picked_up` | Eng Items Picked Up | `flip_engagement_milestones` | `jobs` | engagement job status → `picked_up` | ✅ | 2026-04-25 |
@@ -193,6 +193,8 @@ If any of these four are missing, the trigger is not ready to build.
 | `flip_engagement_milestones` | `jobs` UPDATE (engagement category) | Flips m06/m07/m08/m09/m13/m14 based on status |
 | `trigger_m24_photo_order_in` | `jobs` INSERT (wedding, non-proofs) | Flips m24 |
 | `flip_m25_on_video_order` | `video_orders` INSERT | Flips m25 |
+| `fn_flip_m10_on_extras_insert` | `extras_orders` INSERT | Flips m10 |
+| `fn_flip_m11_on_extras_status` | `extras_orders` UPDATE (status → signed/declined) | Flips m11 |
 | `flip_m15_on_form_submit` | `wedding_day_forms` INSERT | Flips m15 |
 | `check_and_flip_m33` | `payments` INSERT/UPDATE/DELETE | Checks balance_due, flips m33 if <= 0 |
 | `fn_auto_complete_couple_on_proofs` | `jobs` INSERT/UPDATE | Flips couples.status → completed when PROD-WED-PROOFS exists and wedding_date passed |
@@ -205,7 +207,7 @@ If any of these four are missing, the trigger is not ready to build.
 
 | WO | Milestones | Table | Trigger Spec |
 |----|-----------|-------|-------------|
-| WO-892 | m10, m11 | `extras_orders` | INSERT flips m10; UPDATE status → signed/declined flips m11 |
+| ~~WO-892~~ | ~~m10, m11~~ | ~~`extras_orders`~~ | ✅ DONE — triggers built + backfilled April 25, 2026 |
 | WO-893 | m12, m13 | `jobs` | m12: engagement non-proofs → at_lab. m13: add line to `flip_engagement_milestones` to auto-flip with m09 |
 | WO-894 | m16 | `crew_call_sheets` | INSERT flips m16 |
 | WO-895 | m19 | Edge Function cron | Daily 00:01 Toronto — flip m19 for couples where wedding_date < CURRENT_DATE |

@@ -10,11 +10,11 @@
 
 | Category | Count |
 |----------|-------|
-| Milestone triggers | 10 (8 unique functions, 0 duplicates) |
+| Milestone triggers | 12 (10 unique functions, 0 duplicates) |
 | Business logic triggers | 3 (auto-complete, vendor fill, quote conversion) |
 | Lead scoring triggers | 2 |
 | Timestamp triggers | 23 (3 existing + 18 added April 25 + milestones + video_jobs) |
-| **Total** | **36** |
+| **Total** | **38** |
 
 **Cleanup (April 25, 2026):** Orphaned functions removed (`flip_m24_on_photo_order`, `set_photo_order_milestone`, `update_editing_jobs_timestamp`, `update_photo_jobs_updated_at`). Duplicate triggers removed (`trigger_day_form_milestone` on m15, `video_order_submitted_trigger` on m25). 18 `updated_at` auto-triggers added.
 
@@ -53,6 +53,13 @@
 | `trigger_score_lead_on_insert` | INSERT | BEFORE | `score_lead_on_insert` | Calculates lead score 0-300 on ballot creation |
 | `trigger_update_lead_score` | UPDATE | BEFORE | `update_lead_score_on_change` | Recalculates score when ballot fields change |
 | `update_ballots_updated_at` | UPDATE | BEFORE | `update_updated_at_column` | Sets `updated_at = NOW()` |
+
+### `extras_orders`
+
+| Trigger | Event | Timing | Function | Purpose |
+|---------|-------|--------|----------|---------|
+| `trg_flip_m10_on_extras_insert` | INSERT | AFTER | `fn_flip_m10_on_extras_insert` | Flips m10 when extras_order created for couple |
+| `trg_flip_m11_on_extras_status` | UPDATE | AFTER | `fn_flip_m11_on_extras_status` | Flips m11 when status → signed or declined |
 
 ### `client_orders`
 
@@ -194,7 +201,7 @@
 | No wedding production triggers | Critical | `jobs` | m19, m20, m22, m26, m29, m32 have no triggers. See WO-895, WO-896, WO-897. |
 | No video production triggers | Critical | `video_jobs` | m27, m28 have no triggers. See WO-898. |
 | No delivery triggers | High | `jobs` | m30, m31, m34 have no trigger. See WO-899. |
-| No sales milestone triggers | High | `extras_orders` | m10, m11 have no triggers. See WO-892. |
+| ~~No sales milestone triggers~~ | ~~High~~ | ~~`extras_orders`~~ | ✅ RESOLVED WO-892 — m10/m11 triggers built April 25, 2026 |
 | No engagement physical triggers | Medium | `jobs` | m12 has no trigger. m13 needs auto-flip with m09. See WO-893. |
 | No crew milestone trigger | Medium | `crew_call_sheets` | m16 has no trigger. See WO-894. |
 | No completion trigger | Medium | `couple_milestones` | m36 has no trigger. See WO-900. |
