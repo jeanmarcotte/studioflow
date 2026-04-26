@@ -28,8 +28,8 @@ If any of these four are missing, the trigger is not ready to build.
 
 | Status | Count |
 |--------|-------|
-| ✅ Has working trigger | 19 |
-| ❌ Missing trigger | 11 |
+| ✅ Has working trigger | 20 |
+| ❌ Missing trigger | 10 |
 | 🚫 Intentionally manual | 1 (m06_declined) |
 | 🗑️ Deleted (gap numbers) | 4 (m17, m18, m21, m23) |
 | ⏸️ Blocked | 1 (m35 → blocks m36) |
@@ -115,7 +115,7 @@ If any of these four are missing, the trigger is not ready to build.
 
 | # | Column | Name | Trigger | Table | Event | Status | Verified |
 |---|--------|------|---------|-------|-------|--------|----------|
-| m19 | `m19_wedding_day` | Wedding Day | ❌ MISSING (WO-895) | `couples` | Supabase Edge Function cron, daily 00:01 America/Toronto | ❌ | 2026-04-25 |
+| m19 | `m19_wedding_day` | Wedding Day | `fn_flip_m19_wedding_day` (pg_cron daily 04:01 UTC / 00:01 EDT) | `couples` | Cron checks wedding_date < CURRENT_DATE | ✅ | 2026-04-25 |
 | m20 | `m20_files_backed_up` | Files Backed Up | ❌ MISSING (WO-896) | `jobs` | ON INSERT WHERE `category = 'wedding' AND job_type IN ('WED_PROOFS', 'wedding_proofs')` | ❌ | 2026-04-25 |
 | m22 | `m22_proofs_edited` | Proofs Edited | ❌ MISSING (WO-896) | `jobs` | ON UPDATE WHERE `category = 'wedding' AND job_type IN ('WED_PROOFS', 'wedding_proofs') AND NEW.status = 'completed'` | ❌ | 2026-04-25 |
 | m24 | `m24_photo_order_in` | Photo Order In | `on_wedding_job_created` → `trigger_m24_photo_order_in()` | `jobs` | Wedding non-proofs job INSERT | ✅ | 2026-04-25 |
@@ -198,6 +198,7 @@ If any of these four are missing, the trigger is not ready to build.
 | `fn_flip_m16_on_crew_call` | `crew_call_sheets` INSERT | Flips m16 |
 | `flip_m15_on_form_submit` | `wedding_day_forms` INSERT | Flips m15 |
 | `check_and_flip_m33` | `payments` INSERT/UPDATE/DELETE | Checks balance_due, flips m33 if <= 0 |
+| `fn_flip_m19_wedding_day` | pg_cron daily 04:01 UTC | Flips m19 for all booked couples whose wedding_date < CURRENT_DATE |
 | `fn_auto_complete_couple_on_proofs` | `jobs` INSERT/UPDATE | Flips couples.status → completed when PROD-WED-PROOFS exists and wedding_date passed |
 | `fn_autofill_vendor_from_catalog` | `jobs` INSERT | Auto-fills vendor from product_catalog.default_vendor |
 | `score_lead_on_insert` | `ballots` INSERT | Calculates lead score 0-300 |
@@ -211,7 +212,7 @@ If any of these four are missing, the trigger is not ready to build.
 | ~~WO-892~~ | ~~m10, m11~~ | ~~`extras_orders`~~ | ✅ DONE — triggers built + backfilled April 25, 2026 |
 | ~~WO-893~~ | ~~m12, m13~~ | ~~`jobs`~~ | ✅ DONE — added to `flip_engagement_milestones` + backfilled April 25, 2026 |
 | ~~WO-894~~ | ~~m16~~ | ~~`crew_call_sheets`~~ | ✅ DONE — trigger built + backfilled (38 couples) April 25, 2026 |
-| WO-895 | m19 | Edge Function cron | Daily 00:01 Toronto — flip m19 for couples where wedding_date < CURRENT_DATE |
+| ~~WO-895~~ | ~~m19~~ | ~~Edge Function cron~~ | ✅ DONE — pg_cron daily 04:01 UTC + backfilled (37 couples) April 25, 2026 |
 | WO-896 | m20, m22 | `jobs` | m20: INSERT WED_PROOFS job flips m20. m22: UPDATE WED_PROOFS → completed flips m22 |
 | WO-897 | m26, m29, m32 | `jobs` | m26: first wedding non-proofs → at_lab. m29: first → at_studio. m32: ALL non-proofs → at_studio+ |
 | WO-898 | m27, m28 | `video_jobs` | m27: FULL → complete. m28: RECAP → complete |

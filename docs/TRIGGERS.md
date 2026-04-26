@@ -61,6 +61,12 @@
 | `trg_flip_m10_on_extras_insert` | INSERT | AFTER | `fn_flip_m10_on_extras_insert` | Flips m10 when extras_order created for couple |
 | `trg_flip_m11_on_extras_status` | UPDATE | AFTER | `fn_flip_m11_on_extras_status` | Flips m11 when status → signed or declined |
 
+### `cron` (pg_cron scheduled jobs)
+
+| Job Name | Schedule (UTC) | Function | Purpose |
+|----------|---------------|----------|---------|
+| `flip-m19-wedding-day` | `1 4 * * *` (00:01 EDT) | `fn_flip_m19_wedding_day` | Daily — flips m19 for booked couples whose wedding_date < CURRENT_DATE |
+
 ### `crew_call_sheets`
 
 | Trigger | Event | Timing | Function | Purpose |
@@ -204,7 +210,7 @@
 
 | Issue | Severity | Tables | Details |
 |-------|----------|--------|---------|
-| No wedding production triggers | Critical | `jobs` | m19, m20, m22, m26, m29, m32 have no triggers. See WO-895, WO-896, WO-897. |
+| No wedding production triggers | Critical | `jobs` | m20, m22, m26, m29, m32 have no triggers. See WO-896, WO-897. (m19 resolved via pg_cron WO-895) |
 | No video production triggers | Critical | `video_jobs` | m27, m28 have no triggers. See WO-898. |
 | No delivery triggers | High | `jobs` | m30, m31, m34 have no trigger. See WO-899. |
 | ~~No sales milestone triggers~~ | ~~High~~ | ~~`extras_orders`~~ | ✅ RESOLVED WO-892 — m10/m11 triggers built April 25, 2026 |
