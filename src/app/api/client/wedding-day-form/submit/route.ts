@@ -168,6 +168,7 @@ export async function POST(request: Request) {
       if (couple) {
         sendFormNotification({
           formType: 'wedding-day',
+          coupleId: body.couple_id,
           coupleName: couple.couple_name,
           weddingDate: couple.wedding_date,
         }).catch(err => console.error('Email notification failed:', err))
@@ -206,6 +207,7 @@ export async function POST(request: Request) {
       if (couple) {
         sendFormNotification({
           formType: 'wedding-day',
+          coupleId: body.couple_id,
           coupleName: couple.couple_name,
           weddingDate: couple.wedding_date,
         }).catch(err => console.error('Email notification failed:', err))

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { differenceInDays, parseISO } from 'date-fns'
-import { ChevronDown, ChevronRight, Search, Copy, ExternalLink, Check, Send, X, Loader2, Printer, Download } from 'lucide-react'
+import { ChevronDown, ChevronRight, Search, Copy, ExternalLink, Check, Send, X, Loader2, Download } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { supabase } from '@/lib/supabase'
 import { ProductionPills, ProductionSidebar } from '@/components/shared'
@@ -200,16 +200,16 @@ export default function WeddingDayFormsPage() {
             <Download className="h-3 w-3" />
             PDF
           </a>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              window.open(`/admin/wedding-day/forms/${row.original.couple_id}/print`, '_blank')
-            }}
+          <a
+            href={`/admin/documents/wedding-day-form/${row.original.couple_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-input bg-background hover:bg-muted transition-colors"
           >
-            <Printer className="h-3 w-3" />
-            Print
-          </button>
+            <ExternalLink className="h-3 w-3" />
+            View
+          </a>
         </div>
       ),
     },

@@ -12,10 +12,12 @@ type FormType = 'wedding-day' | 'photo-order' | 'video-order'
 
 export async function sendFormNotification({
   formType,
+  coupleId,
   coupleName,
   weddingDate,
 }: {
   formType: FormType
+  coupleId?: string
   coupleName: string
   weddingDate: string
 }) {
@@ -47,7 +49,7 @@ export async function sendFormNotification({
             <p><strong>Wedding Date:</strong> ${weddingDate}</p>
             <p><strong>Submitted:</strong> ${new Date().toLocaleString('en-US', { timeZone: 'America/Toronto' })}</p>
             <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;" />
-            <p><a href="https://studioflow-zeta.vercel.app/admin/couples" style="color: #0d9488; text-decoration: none;">View in StudioFlow \u2192</a></p>
+            <p><a href="https://studioflow-zeta.vercel.app${coupleId && formType === 'wedding-day' ? `/admin/wedding-day/forms/${coupleId}/print` : '/admin/couples'}" style="color: #0d9488; text-decoration: none;">View in StudioFlow \u2192</a></p>
           </div>
         </div>
       `,
@@ -172,7 +174,7 @@ export async function sendTeamWeddingDayNotification(data: TeamNotifyData) {
       </div>`
   }
 
-  const viewUrl = `https://studioflow-zeta.vercel.app/client/wedding-day-form/${coupleId}`
+  const viewUrl = `https://studioflow-zeta.vercel.app/admin/wedding-day/forms/${coupleId}/print`
   const pdfUrl = `https://studioflow-zeta.vercel.app/api/wedding-form-pdf/${coupleId}`
 
   const subject = `\u{1F4CB} Wedding Day Form Received \u2014 ${coupleName} (${dateFormatted})`
