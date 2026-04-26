@@ -11,6 +11,10 @@
     {
       "path": "/api/reports/sales-email",
       "schedule": "30 9 * * 1,4"
+    },
+    {
+      "path": "/api/production-email",
+      "schedule": "0 12 * * 1"
     }
   ]
 }
