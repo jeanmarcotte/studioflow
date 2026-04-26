@@ -49,8 +49,7 @@ interface MilestoneRow {
   m06_eng_session_shot: boolean
   m06_declined: boolean
   m10_frame_sale_quote: boolean
-  m11_sale_results_pdf: boolean
-  m11_no_sale: boolean
+  m11_frame_sale_complete: boolean
   m15_day_form_approved: boolean
   m19_wedding_day: boolean
   m22_proofs_edited: boolean
@@ -62,7 +61,7 @@ interface MilestoneRow {
 const YEARS = [2028, 2027, 2026, 2025]
 
 const ENG_SORT_ORDER: Record<string, number> = {
-  quoted: 0, shot: 1, no_sale: 2, declined: 3, pending: 4, sold: 5,
+  pending: 0, shot: 1, quoted: 2, sold: 3, declined: 4,
 }
 
 const PHASE_SORT_ORDER: Record<string, number> = {
@@ -127,25 +126,22 @@ function computeEngPipeline(m: MilestoneRow | undefined): string {
   if (m.m06_declined) return 'declined'
   if (!m.m06_eng_session_shot) return 'pending'
   if (!m.m10_frame_sale_quote) return 'shot'
-  if (m.m11_no_sale) return 'no_sale'
-  if (m.m11_sale_results_pdf) return 'sold'
+  if (m.m11_frame_sale_complete) return 'sold'
   return 'quoted'
 }
 
 function engBadge(state: string) {
   switch (state) {
     case 'pending':
-      return <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-600 px-2 py-0.5 text-xs font-medium">Pending</span>
+      return <span className="inline-flex items-center rounded-full bg-yellow-100 text-yellow-700 px-2 py-0.5 text-xs font-medium">Pending</span>
     case 'declined':
-      return <span className="inline-flex items-center rounded-full bg-red-50 text-red-600 px-2 py-0.5 text-xs font-medium">Declined</span>
+      return <span className="inline-flex items-center rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-medium">Declined</span>
     case 'shot':
-      return <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-600 px-2 py-0.5 text-xs font-medium">Shot</span>
+      return <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-medium">Shot</span>
     case 'quoted':
-      return <span className="inline-flex items-center rounded-full bg-amber-50 text-amber-600 px-2 py-0.5 text-xs font-medium">Quoted</span>
-    case 'no_sale':
-      return <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-400 px-2 py-0.5 text-xs font-medium line-through">No Sale</span>
+      return <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-medium">Quoted</span>
     case 'sold':
-      return <span className="inline-flex items-center rounded-full bg-green-50 text-green-600 px-2 py-0.5 text-xs font-medium">Sold</span>
+      return <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-medium">Sold</span>
     default:
       return null
   }
@@ -180,7 +176,7 @@ export default function CouplesPage() {
       const [couplesRes, upcomingRes] = await Promise.all([
         supabase
           .from('couples')
-          .select(`id, couple_name, bride_first_name, bride_last_name, groom_first_name, groom_last_name, phone, email, wedding_date, wedding_year, package_type, status, contracts(reception_venue, total), couple_milestones(m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_sale_results_pdf, m11_no_sale, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in, m34_items_picked_up), extras_orders(extras_sale_amount), c3_line_items(total), payments(amount)`)
+          .select(`id, couple_name, bride_first_name, bride_last_name, groom_first_name, groom_last_name, phone, email, wedding_date, wedding_year, package_type, status, contracts(reception_venue, total), couple_milestones(m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_frame_sale_complete, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in, m34_items_picked_up), extras_orders(extras_sale_amount), c3_line_items(total), payments(amount)`)
           .order('wedding_date', { ascending: true }),
         supabase
           .from('couples')
@@ -599,11 +595,10 @@ export default function CouplesPage() {
             >
               <option value="all">All</option>
               <option value="pending">Pending</option>
-              <option value="declined">Declined</option>
               <option value="shot">Shot</option>
               <option value="quoted">Quoted</option>
-              <option value="no_sale">No Sale</option>
               <option value="sold">Sold</option>
+              <option value="declined">Declined</option>
             </select>
           </div>
         </div>
