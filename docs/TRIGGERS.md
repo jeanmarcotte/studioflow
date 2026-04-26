@@ -10,11 +10,11 @@
 
 | Category | Count |
 |----------|-------|
-| Milestone triggers | 17 (15 unique functions, 0 duplicates) |
+| Milestone triggers | 18 (16 unique functions, 0 duplicates) |
 | Business logic triggers | 3 (auto-complete, vendor fill, quote conversion) |
 | Lead scoring triggers | 2 |
 | Timestamp triggers | 23 (3 existing + 18 added April 25 + milestones + video_jobs) |
-| **Total** | **43** |
+| **Total** | **44** |
 
 **Cleanup (April 25, 2026):** Orphaned functions removed (`flip_m24_on_photo_order`, `set_photo_order_milestone`, `update_editing_jobs_timestamp`, `update_photo_jobs_updated_at`). Duplicate triggers removed (`trigger_day_form_milestone` on m15, `video_order_submitted_trigger` on m25). 18 `updated_at` auto-triggers added.
 
@@ -122,6 +122,7 @@
 | `trg_flip_m20_on_proofs_insert` | INSERT | AFTER | `fn_flip_m20_on_proofs_insert` | Flips m20 when wedding WED_PROOFS job created |
 | `trg_flip_m22_on_proofs_complete` | UPDATE | AFTER | `fn_flip_m22_on_proofs_complete` | Flips m22 when wedding WED_PROOFS job → completed |
 | `trg_flip_wedding_lab_milestones` | UPDATE | AFTER | `fn_flip_wedding_lab_milestones` | Flips m26 (first at_lab), m29 (first at_studio), m32 (ALL at_studio/picked_up) for wedding non-proofs |
+| `trg_flip_m30_m31_digital_delivery` | UPDATE | AFTER | `fn_flip_m30_m31_digital_delivery` | Flips m30 + m31 when ALL wedding jobs for couple are picked_up |
 | `update_jobs_updated_at` | UPDATE | BEFORE | `update_updated_at_column` | Sets `updated_at = NOW()` |
 
 ### `payer_links`
@@ -216,7 +217,7 @@
 |-------|----------|--------|---------|
 | ~~No wedding production triggers~~ | ~~Critical~~ | ~~`jobs`~~ | ✅ RESOLVED — m19 (WO-895), m20/m22 (WO-896), m26/m29/m32 (WO-897) all done |
 | ~~No video production triggers~~ | ~~Critical~~ | ~~`video_jobs`~~ | ✅ RESOLVED WO-898 — m27/m28 triggers built April 25, 2026 |
-| No delivery triggers | High | `jobs` | m30, m31, m34 have no trigger. See WO-899. |
+| No delivery triggers | High | `jobs` | m34 has no trigger. m30/m31 resolved WO-899. See WO-900 for m34/m36. |
 | ~~No sales milestone triggers~~ | ~~High~~ | ~~`extras_orders`~~ | ✅ RESOLVED WO-892 — m10/m11 triggers built April 25, 2026 |
 | ~~No engagement physical triggers~~ | ~~Medium~~ | ~~`jobs`~~ | ✅ RESOLVED WO-893 — m12/m13 added to `flip_engagement_milestones` April 25, 2026 |
 | ~~No crew milestone trigger~~ | ~~Medium~~ | ~~`crew_call_sheets`~~ | ✅ RESOLVED WO-894 — m16 trigger built April 25, 2026 |
