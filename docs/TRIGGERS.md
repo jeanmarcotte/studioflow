@@ -10,11 +10,11 @@
 
 | Category | Count |
 |----------|-------|
-| Milestone triggers | 16 (14 unique functions, 0 duplicates) |
+| Milestone triggers | 17 (15 unique functions, 0 duplicates) |
 | Business logic triggers | 3 (auto-complete, vendor fill, quote conversion) |
 | Lead scoring triggers | 2 |
 | Timestamp triggers | 23 (3 existing + 18 added April 25 + milestones + video_jobs) |
-| **Total** | **42** |
+| **Total** | **43** |
 
 **Cleanup (April 25, 2026):** Orphaned functions removed (`flip_m24_on_photo_order`, `set_photo_order_milestone`, `update_editing_jobs_timestamp`, `update_photo_jobs_updated_at`). Duplicate triggers removed (`trigger_day_form_milestone` on m15, `video_order_submitted_trigger` on m25). 18 `updated_at` auto-triggers added.
 
@@ -173,6 +173,7 @@
 
 | Trigger | Event | Timing | Function | Purpose |
 |---------|-------|--------|----------|---------|
+| `trg_flip_video_milestones` | UPDATE | AFTER | `fn_flip_video_milestones` | Flips m27 (FULL → complete) and m28 (RECAP → complete) |
 | `video_jobs_updated_at` | UPDATE | BEFORE | `update_video_jobs_updated_at` | Sets `updated_at = NOW()` |
 
 ### `video_orders`
@@ -214,7 +215,7 @@
 | Issue | Severity | Tables | Details |
 |-------|----------|--------|---------|
 | ~~No wedding production triggers~~ | ~~Critical~~ | ~~`jobs`~~ | ✅ RESOLVED — m19 (WO-895), m20/m22 (WO-896), m26/m29/m32 (WO-897) all done |
-| No video production triggers | Critical | `video_jobs` | m27, m28 have no triggers. See WO-898. |
+| ~~No video production triggers~~ | ~~Critical~~ | ~~`video_jobs`~~ | ✅ RESOLVED WO-898 — m27/m28 triggers built April 25, 2026 |
 | No delivery triggers | High | `jobs` | m30, m31, m34 have no trigger. See WO-899. |
 | ~~No sales milestone triggers~~ | ~~High~~ | ~~`extras_orders`~~ | ✅ RESOLVED WO-892 — m10/m11 triggers built April 25, 2026 |
 | ~~No engagement physical triggers~~ | ~~Medium~~ | ~~`jobs`~~ | ✅ RESOLVED WO-893 — m12/m13 added to `flip_engagement_milestones` April 25, 2026 |

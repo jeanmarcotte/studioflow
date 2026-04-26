@@ -89,7 +89,7 @@ stateDiagram-v2
 | `waiting_on_recap` | Full video done, recap pending | — |
 | `raw_video_output` | Raw export completed | — |
 | `video_proofs_out` | Video proofs sent to couple | — |
-| `complete` | Final video delivered | m27 (NO TRIGGER), m28 (NO TRIGGER) |
+| `complete` | Final video delivered | m27 (`trg_flip_video_milestones` — FULL), m28 (`trg_flip_video_milestones` — RECAP) |
 | `archived` | Raw footage archived | — |
 
 **Note:** Video jobs have ZERO milestone triggers. This is a critical gap.
