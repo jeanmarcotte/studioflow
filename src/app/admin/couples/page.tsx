@@ -97,6 +97,31 @@ function getMilestones(row: any): MilestoneRow | undefined {
   return m
 }
 
+/** Compute C1/C2/C3/Invoiced/Received/Balance from joined data */
+function getFinancials(row: any) {
+  // C1 — contract total (1:1 or 1:many)
+  const contract = Array.isArray(row.contracts) ? row.contracts[0] : row.contracts
+  const c1 = parseFloat(contract?.total) || 0
+
+  // C2 — frames & albums (1:many, take first)
+  const extras = Array.isArray(row.extras_orders) ? row.extras_orders[0] : row.extras_orders
+  const c2 = parseFloat(extras?.extras_sale_amount) || 0
+
+  // C3 — extras line items (1:many — sum all)
+  const c3Items = Array.isArray(row.c3_line_items) ? row.c3_line_items : []
+  const c3 = c3Items.reduce((sum: number, item: any) => sum + (parseFloat(item.total) || 0), 0)
+
+  // Payments (1:many — sum all)
+  const paymentItems = Array.isArray(row.payments) ? row.payments : []
+  const received = paymentItems.reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0)
+  const pmtCount = paymentItems.length
+
+  const invoiced = c1 + c2 + c3
+  const balance = invoiced - received
+
+  return { c1, c2, c3, invoiced, received, pmtCount, balance }
+}
+
 function computeEngPipeline(m: MilestoneRow | undefined): string {
   if (!m) return 'pending'
   if (m.m06_declined) return 'declined'
@@ -152,17 +177,11 @@ export default function CouplesPage() {
       const today = new Date().toISOString().split('T')[0]
       const in14 = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-      const [couplesRes, financialsRes, paymentCountsRes, upcomingRes] = await Promise.all([
+      const [couplesRes, upcomingRes] = await Promise.all([
         supabase
           .from('couples')
-          .select(`id, couple_name, bride_first_name, bride_last_name, groom_first_name, groom_last_name, phone, email, wedding_date, wedding_year, package_type, status, contracts(reception_venue), couple_milestones(m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_sale_results_pdf, m11_no_sale, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in, m34_items_picked_up)`)
+          .select(`id, couple_name, bride_first_name, bride_last_name, groom_first_name, groom_last_name, phone, email, wedding_date, wedding_year, package_type, status, contracts(reception_venue, total), couple_milestones(m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_sale_results_pdf, m11_no_sale, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in, m34_items_picked_up), extras_orders(extras_sale_amount), c3_line_items(total), payments(amount)`)
           .order('wedding_date', { ascending: true }),
-        supabase
-          .from('couple_financial_summary')
-          .select('couple_id, c1_owed, c2_owed, c3_owed, total_owed, total_paid, balance_due'),
-        supabase
-          .from('payments')
-          .select('couple_id'),
         supabase
           .from('couples')
           .select('bride_first_name, groom_first_name, wedding_date')
@@ -170,22 +189,6 @@ export default function CouplesPage() {
           .lte('wedding_date', in14)
           .order('wedding_date', { ascending: true }),
       ])
-
-      // Map financials from VIEW
-      const financialMap: Record<string, any> = {}
-      if (financialsRes.data) {
-        for (const row of financialsRes.data) {
-          financialMap[row.couple_id] = row
-        }
-      }
-
-      // Count payments by couple
-      const paymentCounts: Record<string, number> = {}
-      if (paymentCountsRes.data) {
-        for (const row of paymentCountsRes.data) {
-          paymentCounts[row.couple_id] = (paymentCounts[row.couple_id] || 0) + 1
-        }
-      }
 
       // Set upcoming weddings for Next 14 Days widget
       setUpcomingWeddings((upcomingRes.data || []).map((r: any) => ({
@@ -198,7 +201,7 @@ export default function CouplesPage() {
         setCouples(couplesRes.data.map((row: any) => {
           const contract = Array.isArray(row.contracts) ? row.contracts[0] : row.contracts
           const ms = getMilestones(row) as MilestoneRow | undefined
-          const fin = financialMap[row.id]
+          const fin = getFinancials(row)
 
           return {
             id: row.id,
@@ -214,13 +217,13 @@ export default function CouplesPage() {
             wedding_year: row.wedding_year,
             package_type: row.package_type,
             reception_venue: contract?.reception_venue || null,
-            c1_contract: Number(fin?.c1_owed) || 0,
-            c2_frames_albums: Number(fin?.c2_owed) || 0,
-            c3_extras: Number(fin?.c3_owed) || 0,
-            total_invoiced: Number(fin?.total_owed) || 0,
-            total_received: Number(fin?.total_paid) || 0,
-            balance_due: Number(fin?.balance_due) || 0,
-            payments_count: paymentCounts[row.id] || 0,
+            c1_contract: fin.c1,
+            c2_frames_albums: fin.c2,
+            c3_extras: fin.c3,
+            total_invoiced: fin.invoiced,
+            total_received: fin.received,
+            balance_due: fin.balance,
+            payments_count: fin.pmtCount,
             eng_pipeline: computeEngPipeline(ms),
             is_shot: ms?.m19_wedding_day || false,
             m06_eng_session_shot: ms?.m06_eng_session_shot || false,
