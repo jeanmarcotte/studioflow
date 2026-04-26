@@ -38,8 +38,10 @@ interface CoupleRow {
   m15_day_form_approved: boolean
   m19_wedding_day: boolean
   m22_proofs_edited: boolean
+  m34_items_picked_up: boolean
   m24_photo_order_in: boolean
   m25_video_order_in: boolean
+  lifecycle_phase: string
 }
 
 interface MilestoneRow {
@@ -54,12 +56,37 @@ interface MilestoneRow {
   m22_proofs_edited: boolean
   m24_photo_order_in: boolean
   m25_video_order_in: boolean
+  m34_items_picked_up: boolean
 }
 
 const YEARS = [2028, 2027, 2026, 2025]
 
 const ENG_SORT_ORDER: Record<string, number> = {
   quoted: 0, shot: 1, no_sale: 2, declined: 3, pending: 4, sold: 5,
+}
+
+const PHASE_SORT_ORDER: Record<string, number> = {
+  'New Client': 0, 'Post-Engagement': 1, 'Pre-Wedding': 2, 'Post-Wedding': 3, 'Post-Production': 4, 'Completed': 5,
+}
+
+const PHASE_COLORS: Record<string, string> = {
+  'Completed': 'bg-blue-100 text-blue-700',
+  'Post-Production': 'bg-purple-100 text-purple-700',
+  'Post-Wedding': 'bg-orange-100 text-orange-700',
+  'Pre-Wedding': 'bg-teal-100 text-teal-700',
+  'Post-Engagement': 'bg-green-100 text-green-700',
+  'New Client': 'bg-gray-100 text-gray-700',
+}
+
+function computeLifecyclePhase(m: MilestoneRow | undefined): string {
+  if (!m) return 'New Client'
+  if (m.m34_items_picked_up) return 'Completed'
+  if (m.m22_proofs_edited) return 'Post-Production'
+  if (m.m19_wedding_day) return 'Post-Wedding'
+  if (m.m15_day_form_approved) return 'Pre-Wedding'
+  if (m.m06_eng_session_shot) return 'Post-Engagement'
+  if (m.m06_declined) return 'Pre-Wedding'
+  return 'New Client'
 }
 
 function computeEngPipeline(m: MilestoneRow | undefined): string {
@@ -130,7 +157,7 @@ export default function CouplesPage() {
           .select('couple_id'),
         supabase
           .from('couple_milestones')
-          .select('couple_id, m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_sale_results_pdf, m11_no_sale, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in'),
+          .select('couple_id, m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_sale_results_pdf, m11_no_sale, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in, m34_items_picked_up'),
         supabase
           .from('couples')
           .select('bride_first_name, groom_first_name, wedding_date')
@@ -204,8 +231,10 @@ export default function CouplesPage() {
             m15_day_form_approved: ms?.m15_day_form_approved || false,
             m19_wedding_day: ms?.m19_wedding_day || false,
             m22_proofs_edited: ms?.m22_proofs_edited || false,
+            m34_items_picked_up: ms?.m34_items_picked_up || false,
             m24_photo_order_in: ms?.m24_photo_order_in || false,
             m25_video_order_in: ms?.m25_video_order_in || false,
+            lifecycle_phase: computeLifecyclePhase(ms),
           }
         }))
       }
@@ -367,19 +396,13 @@ export default function CouplesPage() {
       ),
     },
     {
-      accessorKey: "status",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      accessorKey: "lifecycle_phase",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Phase" />,
       cell: ({ row }) => {
-        const s = row.original.status
-        const colors: Record<string, string> = {
-          booked: 'bg-green-100 text-green-700',
-          completed: 'bg-blue-100 text-blue-700',
-          cancelled: 'bg-red-100 text-red-700',
-          lead: 'bg-gray-100 text-gray-700',
-          quoted: 'bg-yellow-100 text-yellow-700',
-        }
-        return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colors[s] || 'bg-gray-100 text-gray-700'}`}>{s}</span>
+        const phase = row.original.lifecycle_phase
+        return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${PHASE_COLORS[phase] || 'bg-gray-100 text-gray-700'}`}>{phase}</span>
       },
+      sortingFn: (a, b) => (PHASE_SORT_ORDER[a.original.lifecycle_phase] ?? 99) - (PHASE_SORT_ORDER[b.original.lifecycle_phase] ?? 99),
     },
     {
       accessorKey: "eng_pipeline",
