@@ -28,8 +28,8 @@ If any of these four are missing, the trigger is not ready to build.
 
 | Status | Count |
 |--------|-------|
-| ✅ Has working trigger | 16 |
-| ❌ Missing trigger | 14 |
+| ✅ Has working trigger | 18 |
+| ❌ Missing trigger | 12 |
 | 🚫 Intentionally manual | 1 (m06_declined) |
 | 🗑️ Deleted (gap numbers) | 4 (m17, m18, m21, m23) |
 | ⏸️ Blocked | 1 (m35 → blocks m36) |
@@ -66,8 +66,8 @@ If any of these four are missing, the trigger is not ready to build.
 | m09 | `m09_eng_prints_picked_up` | Eng Prints at Studio | `flip_engagement_milestones` | `jobs` | engagement job status → `at_studio` | ✅ | 2026-04-25 |
 | m10 | `m10_frame_sale_quote` | Frame Sale Quoted | `trg_flip_m10_on_extras_insert` → `fn_flip_m10_on_extras_insert()` | `extras_orders` | AFTER INSERT | ✅ | 2026-04-25 |
 | m11 | `m11_frame_sale_complete` | Frame Sale Complete | `trg_flip_m11_on_extras_status` → `fn_flip_m11_on_extras_status()` | `extras_orders` | AFTER UPDATE status → signed/declined | ✅ | 2026-04-25 |
-| m12 | `m12_eng_order_to_lab` | Eng Order to Lab | ❌ MISSING (WO-893) | `jobs` | engagement non-proofs job status → `at_lab` | ❌ | 2026-04-25 |
-| m13 | `m13_eng_items_framed` | Eng Items Framed | ❌ PENDING (WO-893) | `jobs` | Auto-flip with m09 — same trigger, one extra line | ❌ | 2026-04-25 |
+| m12 | `m12_eng_order_to_lab` | Eng Order to Lab | `flip_engagement_milestones` | `jobs` | engagement non-proofs job status → `at_lab` | ✅ | 2026-04-25 |
+| m13 | `m13_eng_items_framed` | Eng Items Framed | `flip_engagement_milestones` | `jobs` | Auto-flips with m09 on status → `at_studio` | ✅ | 2026-04-25 |
 | m14 | `m14_eng_items_picked_up` | Eng Items Picked Up | `flip_engagement_milestones` | `jobs` | engagement job status → `picked_up` | ✅ | 2026-04-25 |
 
 **Consequences:**
@@ -190,7 +190,7 @@ If any of these four are missing, the trigger is not ready to build.
 |---------------|---------|--------------|
 | `convert_quote_to_contract` | `client_quotes` UPDATE (status → booked) | Creates couple, contract, installments. Seeds m01-m05. |
 | `fn_flip_m05_on_first_payment` | `payments` INSERT | Flips m05 if not already true |
-| `flip_engagement_milestones` | `jobs` UPDATE (engagement category) | Flips m06/m07/m08/m09/m13/m14 based on status |
+| `flip_engagement_milestones` | `jobs` UPDATE (engagement category) | Flips m06/m07/m08/m09/m12/m13/m14 based on status |
 | `trigger_m24_photo_order_in` | `jobs` INSERT (wedding, non-proofs) | Flips m24 |
 | `flip_m25_on_video_order` | `video_orders` INSERT | Flips m25 |
 | `fn_flip_m10_on_extras_insert` | `extras_orders` INSERT | Flips m10 |
@@ -208,7 +208,7 @@ If any of these four are missing, the trigger is not ready to build.
 | WO | Milestones | Table | Trigger Spec |
 |----|-----------|-------|-------------|
 | ~~WO-892~~ | ~~m10, m11~~ | ~~`extras_orders`~~ | ✅ DONE — triggers built + backfilled April 25, 2026 |
-| WO-893 | m12, m13 | `jobs` | m12: engagement non-proofs → at_lab. m13: add line to `flip_engagement_milestones` to auto-flip with m09 |
+| ~~WO-893~~ | ~~m12, m13~~ | ~~`jobs`~~ | ✅ DONE — added to `flip_engagement_milestones` + backfilled April 25, 2026 |
 | WO-894 | m16 | `crew_call_sheets` | INSERT flips m16 |
 | WO-895 | m19 | Edge Function cron | Daily 00:01 Toronto — flip m19 for couples where wedding_date < CURRENT_DATE |
 | WO-896 | m20, m22 | `jobs` | m20: INSERT WED_PROOFS job flips m20. m22: UPDATE WED_PROOFS → completed flips m22 |

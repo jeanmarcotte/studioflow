@@ -106,7 +106,7 @@
 | `on_wedding_job_created` | INSERT | AFTER | `trigger_m24_photo_order_in` | Flips m24 when wedding non-proofs job created |
 | `trg_auto_complete_couple_on_proofs` | INSERT | AFTER | `fn_auto_complete_couple_on_proofs` | Flips `couples.status` → `completed` when PROD-WED-PROOFS exists + wedding_date passed |
 | `trg_auto_complete_couple_on_proofs` | UPDATE | AFTER | `fn_auto_complete_couple_on_proofs` | Same as above, also fires on status update |
-| `trg_flip_engagement_milestones` | UPDATE | AFTER | `flip_engagement_milestones` | Flips m06/m07/m08/m09/m14 based on engagement job status changes |
+| `trg_flip_engagement_milestones` | UPDATE | AFTER | `flip_engagement_milestones` | Flips m06/m07/m08/m09/m12/m13/m14 based on engagement job status changes |
 | `update_jobs_updated_at` | UPDATE | BEFORE | `update_updated_at_column` | Sets `updated_at = NOW()` |
 
 ### `payer_links`
@@ -202,7 +202,7 @@
 | No video production triggers | Critical | `video_jobs` | m27, m28 have no triggers. See WO-898. |
 | No delivery triggers | High | `jobs` | m30, m31, m34 have no trigger. See WO-899. |
 | ~~No sales milestone triggers~~ | ~~High~~ | ~~`extras_orders`~~ | ✅ RESOLVED WO-892 — m10/m11 triggers built April 25, 2026 |
-| No engagement physical triggers | Medium | `jobs` | m12 has no trigger. m13 needs auto-flip with m09. See WO-893. |
+| ~~No engagement physical triggers~~ | ~~Medium~~ | ~~`jobs`~~ | ✅ RESOLVED WO-893 — m12/m13 added to `flip_engagement_milestones` April 25, 2026 |
 | No crew milestone trigger | Medium | `crew_call_sheets` | m16 has no trigger. See WO-894. |
 | No completion trigger | Medium | `couple_milestones` | m36 has no trigger. See WO-900. |
 
