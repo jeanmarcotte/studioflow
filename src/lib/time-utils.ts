@@ -165,8 +165,8 @@ export function calculateHoursValidation(
   if (contract?.start_time && contract?.end_time) {
     const [sh, sm] = contract.start_time.split(':').map(Number)
     const [ehRaw, em] = contract.end_time.split(':').map(Number)
-    // If end hour < start hour, it's PM — add 12
-    const eh = ehRaw < sh ? ehRaw + 12 : ehRaw
+    // If end hour <= start hour, it crosses midnight — add 24
+    const eh = ehRaw <= sh ? ehRaw + 24 : ehRaw
     const startMin = sh * 60 + (sm || 0)
     const endMin = eh * 60 + (em || 0)
     contractedHours = Math.round((endMin - startMin) / 60 * 10) / 10
@@ -183,7 +183,7 @@ export function calculateHoursValidation(
   if (contract?.start_time && contract?.end_time) {
     const [csh, csm] = contract.start_time.split(':').map(Number)
     const [cehRaw, cem] = contract.end_time.split(':').map(Number)
-    const ceh = cehRaw < csh ? cehRaw + 12 : cehRaw
+    const ceh = cehRaw <= csh ? cehRaw + 24 : cehRaw
     contractStartMin = csh * 60 + (csm || 0)
     contractEndMin = ceh * 60 + (cem || 0)
   }

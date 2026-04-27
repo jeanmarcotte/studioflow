@@ -473,9 +473,22 @@ function WeddingDayFormPage() {
           if (ct.end_time.toLowerCase().includes('pm') && eh < 12) eh += 12
           if (ct.start_time.toLowerCase().includes('am') && sh === 12) sh = 0
           if (ct.end_time.toLowerCase().includes('am') && eh === 12) eh = 0
-          if (eh < sh) eh += 12
+          if (eh <= sh) eh += 24
           const hours = Math.round(((eh * 60 + em) - (sh * 60 + sm)) / 60 * 10) / 10
           setContractedHours(hours > 0 ? hours : null)
+
+          // Auto-set photographer arrival and finish times from contract
+          const fmt12 = (h24: number, min: number) => {
+            const h = h24 % 24
+            const period = h >= 12 ? 'PM' : 'AM'
+            const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h
+            return `${h12}:${min.toString().padStart(2, '0')} ${period}`
+          }
+          setForm(prev => ({
+            ...prev,
+            venue_arrival_time: prev.venue_arrival_time || fmt12(sh, sm),
+            photo_video_end_time: prev.photo_video_end_time || fmt12(eh % 24, em),
+          }))
         }
       }
 
@@ -619,14 +632,7 @@ function WeddingDayFormPage() {
       setError('Please select the location type for Bride Prep.')
       return
     }
-    if (!form.venue_arrival_time) {
-      setError('Please select what time photographers should arrive.')
-      return
-    }
-    if (!form.photo_video_end_time) {
-      setError('Please select what time photographers will finish.')
-      return
-    }
+    // venue_arrival_time and photo_video_end_time auto-set from contract
     if (form.has_first_look === null) {
       setError('Please select whether you will have a First Look.')
       return
@@ -1018,110 +1024,7 @@ function WeddingDayFormPage() {
               </div>
             </div>
 
-            {/* ── Photographer Times (prominent at top) ───────────── */}
-            <div className="bg-card rounded-xl border p-6 shadow-sm border-l-4 border-l-teal-600">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>📸</span> Photographer Times
-              </h2>
-              {contractedHours && (
-                <p className="text-sm text-muted-foreground mb-4">
-                  <span className="font-semibold text-foreground">Contracted Hours:</span> {contractedHours} hours
-                </p>
-              )}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">What time should photographers arrive? <span className="text-red-500">*</span></label>
-                  <select
-                    value={form.venue_arrival_time}
-                    onChange={e => {
-                      const newStart = e.target.value
-                      updateField('venue_arrival_time', newStart)
-                      // Auto-calculate finish time when start changes
-                      if (newStart && contractedHours) {
-                        const match = newStart.match(/^(\d+):(\d+)\s*(AM|PM)$/i)
-                        if (match) {
-                          let h = parseInt(match[1])
-                          const m = parseInt(match[2])
-                          const period = match[3].toUpperCase()
-                          if (period === 'PM' && h < 12) h += 12
-                          if (period === 'AM' && h === 12) h = 0
-                          const endMin = (h * 60 + m) + (contractedHours * 60)
-                          const endH = Math.floor(endMin / 60) % 24
-                          const endM = endMin % 60
-                          const endPeriod = endH >= 12 ? 'PM' : 'AM'
-                          const endH12 = endH > 12 ? endH - 12 : endH === 0 ? 12 : endH
-                          const endLabel = `${endH12}:${endM.toString().padStart(2, '0')} ${endPeriod}`
-                          updateField('photo_video_end_time', endLabel)
-                        }
-                      }
-                    }}
-                    required
-                  >
-                    <option value="">Select a time</option>
-                    {Array.from({ length: 33 }, (_, i) => {
-                      const totalMin = 6 * 60 + i * 30
-                      const h = Math.floor(totalMin / 60)
-                      const m = totalMin % 60
-                      const period = h >= 12 ? 'PM' : 'AM'
-                      const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h
-                      const timeLabel = `${h12}:${m.toString().padStart(2, '0')} ${period}`
-                      return <option key={timeLabel} value={timeLabel}>{timeLabel}</option>
-                    })}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">What time will photographers finish? <span className="text-red-500">*</span></label>
-                  <select
-                    value={form.photo_video_end_time}
-                    onChange={e => updateField('photo_video_end_time', e.target.value)}
-                    required
-                  >
-                    <option value="">Select a time</option>
-                    {Array.from({ length: 37 }, (_, i) => {
-                      const totalMin = 12 * 60 + i * 30 // 12:00 PM to 6:00 AM
-                      const h = Math.floor(totalMin / 60) % 24
-                      const m = totalMin % 60
-                      const period = h >= 12 ? 'PM' : 'AM'
-                      const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h
-                      const timeLabel = `${h12}:${m.toString().padStart(2, '0')} ${period}`
-                      return <option key={timeLabel} value={timeLabel}>{timeLabel}</option>
-                    })}
-                  </select>
-                </div>
-              </div>
-              {form.venue_arrival_time && form.photo_video_end_time && (
-                <p className="text-sm text-muted-foreground mt-3">
-                  💡 Your coverage: {form.venue_arrival_time} – {form.photo_video_end_time}
-                  {contractedHours ? ` (${contractedHours} hours contracted)` : ''}
-                </p>
-              )}
-              {(() => {
-                if (!form.venue_arrival_time || !form.photo_video_end_time || !contractedHours) return null
-                const parseTime = (t: string) => {
-                  const m = t.match(/^(\d+):(\d+)\s*(AM|PM)$/i)
-                  if (!m) return null
-                  let h = parseInt(m[1])
-                  const min = parseInt(m[2])
-                  if (m[3].toUpperCase() === 'PM' && h < 12) h += 12
-                  if (m[3].toUpperCase() === 'AM' && h === 12) h = 0
-                  return h * 60 + min
-                }
-                const startMin = parseTime(form.venue_arrival_time)
-                let endMin = parseTime(form.photo_video_end_time)
-                if (startMin === null || endMin === null) return null
-                if (endMin <= startMin) endMin += 24 * 60
-                const actualH = (endMin - startMin) / 60
-                const exceeds = actualH - contractedHours
-                if (exceeds <= 0) return null
-                return (
-                  <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-                    <p className="text-sm font-semibold text-red-700">
-                      ⚠️ This exceeds your contracted {contractedHours} hours by {Math.round(exceeds * 10) / 10} hours. Additional coverage is charged per hour. Please contact Marianna before the wedding day.
-                    </p>
-                  </div>
-                )
-              })()}
-            </div>
+            {/* Photographer times auto-set from contract — no UI needed */}
 
             {form.has_first_look !== null && (
               <>
