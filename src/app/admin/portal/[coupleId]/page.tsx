@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Upload, Trash2, ExternalLink, Image as ImageIcon, Video, LayoutGrid, Type, Eye, Share2 } from 'lucide-react'
+import { Loader2, Upload, Trash2, ExternalLink, Image as ImageIcon, Video, LayoutGrid, Type, Eye, Share2, Send, Copy, Mail } from 'lucide-react'
 import { formatWeddingDate } from '@/lib/formatters'
 import { toast } from 'sonner'
 import Image from 'next/image'
@@ -16,7 +16,11 @@ interface CouplePortalData {
   bride_first_name: string
   groom_first_name: string
   wedding_date: string | null
+  email: string | null
   portal_slug: string | null
+  portal_invite_sent_at: string | null
+  portal_first_login_at: string | null
+  portal_last_login_at: string | null
   hero_image_url: string | null
   portal_video_url: string | null
   portal_video_type: string | null
@@ -68,7 +72,7 @@ export default function PortalEditorPage() {
   async function fetchCouple() {
     const { data } = await supabase
       .from('couples')
-      .select('id, bride_first_name, groom_first_name, wedding_date, portal_slug, hero_image_url, portal_video_url, portal_video_type, collage_img_left, collage_img_center, collage_img_right, collage_caption, share_enabled, share_token')
+      .select('id, bride_first_name, groom_first_name, wedding_date, email, portal_slug, portal_invite_sent_at, portal_first_login_at, portal_last_login_at, hero_image_url, portal_video_url, portal_video_type, collage_img_left, collage_img_center, collage_img_right, collage_caption, share_enabled, share_token')
       .eq('id', coupleId)
       .limit(1)
 
@@ -183,6 +187,75 @@ export default function PortalEditorPage() {
         <h1 className="text-xl md:text-2xl font-bold">{coupleName} — Portal Editor</h1>
         <p className="text-sm text-muted-foreground">{formatWeddingDate(couple.wedding_date)}</p>
       </div>
+
+      {/* Portal Access */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <Mail className="w-4 h-4" /> Portal Access
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="text-sm">
+            <span className="font-medium">Status: </span>
+            {couple.portal_first_login_at ? (
+              <span className="text-green-700">Active — last login {couple.portal_last_login_at ? new Date(couple.portal_last_login_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</span>
+            ) : couple.portal_invite_sent_at ? (
+              <span className="text-amber-700">Invited {new Date(couple.portal_invite_sent_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+            ) : (
+              <span className="text-gray-500">Never invited</span>
+            )}
+          </div>
+          {couple.email && <div className="text-sm text-muted-foreground">Email: {couple.email}</div>}
+          {couple.portal_slug && (
+            <div className="text-xs text-muted-foreground break-all">
+              Portal URL: https://studioflow-zeta.vercel.app/portal/{couple.portal_slug}
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="default"
+              disabled={!couple.email}
+              onClick={async () => {
+                if (!couple.email) { toast.error('No email on file'); return }
+                const res = await fetch('/api/portal/send-magic-link', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ email: couple.email }),
+                })
+                if (res.ok) {
+                  await supabase.from('couples').update({ portal_invite_sent_at: new Date().toISOString() }).eq('id', coupleId)
+                  toast.success(`Portal invite sent to ${couple.email}`)
+                  fetchCouple()
+                } else {
+                  toast.error('Failed to send invite')
+                }
+              }}
+              className="bg-teal-600 hover:bg-teal-700"
+            >
+              <Send className="w-3.5 h-3.5 mr-1.5" />
+              Send Portal Invite
+            </Button>
+            {couple.portal_slug && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(`https://studioflow-zeta.vercel.app/portal/${couple.portal_slug}`)
+                  toast.success('Portal link copied!')
+                }}
+              >
+                <Copy className="w-3.5 h-3.5 mr-1.5" />
+                Copy Portal Link
+              </Button>
+            )}
+          </div>
+          {!couple.email && (
+            <p className="text-xs text-amber-600">Add an email to this couple&apos;s record to send portal invites.</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* 3A: Hero Photo */}
       <Card>

@@ -155,11 +155,12 @@
 
 | Route | Page | Reads From | Writes To | Triggers |
 |-------|------|-----------|----------|----------|
-| `/admin/portal/[coupleId]` | Portal Admin Editor | couples (hero_image_url, collage fields, portal_video_url) | couples (portal fields) | None |
+| `/admin/portal/[coupleId]` | Portal Admin Editor | couples (hero_image_url, collage fields, portal_video_url, email, invite/login timestamps) | couples (portal fields, portal_invite_sent_at) | None |
 | `/portal/login` | Client Portal Login | — | Supabase Auth | None |
 | `/portal/[slug]` | Client Portal Home | couples, contracts, extras_orders, extras_installments (via portal_slug) | None | None |
-| `/portal/[slug]/wedding-day` | Wedding Day Planner (placeholder) | — | — | None |
-| `/portal/[slug]/payments` | Financial Vault (placeholder) | — | — | None |
+| `/portal/[slug]/wedding-day` | Wedding Day Planner | wedding_day_forms, couples | wedding_day_forms (upsert) | `trg_flip_m15_on_form` |
+| `/portal/[slug]/payments` | Financial Vault | contracts, extras_orders, c3_line_items, payments, extras_installments | None (read-only) | None |
+| `/portal/share/[token]` | Public Share Page | couples (via share_token, share_enabled) | couples.share_view_count | None |
 
 ### Client Admin Pages
 
