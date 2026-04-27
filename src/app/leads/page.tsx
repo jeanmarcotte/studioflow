@@ -65,6 +65,19 @@ export default function LeadsPage() {
   const [allLeads, setAllLeads] = useState<Lead[]>([])  // includes hidden, for search
   const [recalculating, setRecalculating] = useState(false)
 
+  // Default to most recent lead source on mount
+  useEffect(() => {
+    async function fetchDefaultSource() {
+      const { data } = await supabase
+        .from('lead_sources')
+        .select('id')
+        .order('created_at', { ascending: false })
+        .limit(1)
+      if (data && data[0]) setSelectedSourceId(data[0].id)
+    }
+    fetchDefaultSource()
+  }, [])
+
   // Persist sidebar collapsed state
   useEffect(() => {
     const saved = localStorage.getItem('bridalflow-sidebar-collapsed')
@@ -190,6 +203,9 @@ export default function LeadsPage() {
       // When showDead is ON: only show dead leads
       } else if (showDead && filters.status.length === 0) {
         if (l.status !== 'dead') return false
+      // Default view (no status filters): exclude pipeline leads
+      } else if (filters.status.length === 0) {
+        if (['meeting_booked', 'quoted', 'booked'].includes(l.status)) return false
       } else if (filters.status.length > 0) {
         const matchesStatus = filters.status.some(s => {
           switch (s) {

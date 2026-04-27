@@ -174,7 +174,7 @@
 
 | Route | Page | Reads From | Writes To | Triggers |
 |-------|------|-----------|----------|----------|
-| `/leads` | BridalFlow Lead List | ballots, lead_contacts, shows, lead_sources | ballots (INSERT with lead_source_id auto-set from active filter) | `trigger_score_lead_on_insert` |
+| `/leads` | BridalFlow Lead List | ballots, lead_contacts, shows, lead_sources | ballots (INSERT with lead_source_id auto-set from active filter) | `trigger_score_lead_on_insert` — defaults to most recent lead source, excludes appt/booked/quoted from main grid |
 | `/leads/[id]/compose` | Lead Email Compose | ballots, lead_contacts | — | None |
 | `/leads/analytics` | Lead Analytics | ballots, shows | None (read-only) | None |
 | `/leads/settings` | BridalFlow Script Editor | message_templates, chase_templates | message_templates, chase_templates | None |
