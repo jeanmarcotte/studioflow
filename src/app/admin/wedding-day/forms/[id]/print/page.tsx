@@ -128,17 +128,31 @@ export default function WeddingDayFormPrintPage() {
   const coverageStart = form.groom_start_time || form.bride_start_time || ''
   const coverageEnd = form.photo_video_end_time || ''
 
-  // Calculate total hours
+  // Calculate total hours — handles AM/PM + overnight (past midnight)
+  function parseTimeToMinutes(time: string): number {
+    const cleaned = time.trim().toLowerCase().replace(/\s+/g, '')
+    const match = cleaned.match(/^(\d{1,2}):(\d{2})(am|pm)?$/)
+    if (!match) return 0
+    let hours = parseInt(match[1])
+    const minutes = parseInt(match[2])
+    const period = match[3]
+    if (period) {
+      if (period === 'am' && hours === 12) hours = 0
+      if (period === 'pm' && hours !== 12) hours += 12
+    }
+    return hours * 60 + minutes
+  }
+
   function calcHours(start: string, end: string): string {
     if (!start || !end) return ''
-    const toMin = (t: string) => {
-      const [h, m] = t.split(':').map(Number)
-      return h * 60 + (m || 0)
-    }
-    const diff = toMin(end) - toMin(start)
-    if (diff <= 0) return ''
-    const hrs = Math.floor(diff / 60)
-    const mins = diff % 60
+    const startMin = parseTimeToMinutes(start)
+    const endMin = parseTimeToMinutes(end)
+    const totalMinutes = endMin >= startMin
+      ? endMin - startMin
+      : (24 * 60 - startMin) + endMin
+    if (totalMinutes <= 0) return ''
+    const hrs = Math.floor(totalMinutes / 60)
+    const mins = totalMinutes % 60
     return mins > 0 ? `${hrs}h ${mins}m` : `${hrs} hours`
   }
 
@@ -206,20 +220,22 @@ export default function WeddingDayFormPrintPage() {
       : form.ceremony_photo_arrival_time
         ? `Arrive: ${form.ceremony_photo_arrival_time}`
         : form.ceremony_start_time || ''
+    const ceremonyName = form.ceremony_location_name || contract?.ceremony_location
     stops.push({
-      label: 'CEREMONY',
+      label: ceremonyName ? `CEREMONY — ${ceremonyName}` : 'CEREMONY',
       timeDisplay: ceremonyTime,
-      name: form.ceremony_location_name || contract?.ceremony_location,
+      name: null,
       address: buildAddress(form.ceremony_address, form.ceremony_city, form.ceremony_postal_code),
     })
   }
 
   // Reception
   if (form.reception_start_time || form.reception_address) {
+    const receptionName = form.reception_venue_name || contract?.reception_venue
     stops.push({
-      label: 'RECEPTION',
+      label: receptionName ? `RECEPTION — ${receptionName}` : 'RECEPTION',
       timeDisplay: [form.reception_start_time, form.reception_finish_time].filter(Boolean).join(' \u2013 '),
-      name: form.reception_venue_name || contract?.reception_venue,
+      name: null,
       address: buildAddress(form.reception_address, form.reception_city, form.reception_postal_code),
     })
   }
@@ -393,6 +409,96 @@ export default function WeddingDayFormPrintPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Vendors */}
+        {(() => {
+          const vendors = [
+            { label: 'Wedding Planner', name: form.vendor_wedding_planner, ig: form.vendor_wedding_planner_instagram },
+            { label: 'Officiant', name: form.vendor_officiant, ig: form.vendor_officiant_instagram },
+            { label: 'Makeup', name: form.vendor_makeup, ig: form.vendor_makeup_instagram },
+            { label: 'Hair', name: form.vendor_hair, ig: form.vendor_hair_instagram },
+            { label: 'Floral', name: form.vendor_floral, ig: form.vendor_floral_instagram },
+            { label: 'Event Design', name: form.vendor_event_design, ig: form.vendor_event_design_instagram },
+            { label: 'DJ / MC', name: form.vendor_dj_mc, ig: form.vendor_dj_mc_instagram },
+            { label: 'Transportation', name: form.vendor_transportation, ig: form.vendor_transportation_instagram },
+          ].filter(v => v.name)
+          return vendors.length > 0 ? (
+            <Card className="mt-4">
+              <CardHeader className="pb-2 px-4 pt-4">
+                <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">VENDORS</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 px-4 pb-4">
+                {vendors.map((v, i) => (
+                  <div key={i} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{v.label}</span>
+                    <span className="font-medium text-right">{v.name}{v.ig ? ` @${v.ig}` : ''}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null
+        })()}
+
+        {/* Couple Social */}
+        {(form.couple_instagram || form.wedding_hashtag) && (
+          <Card className="mt-4">
+            <CardHeader className="pb-2 px-4 pt-4">
+              <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">SOCIAL</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1 px-4 pb-4 text-sm">
+              {form.couple_instagram && <div className="flex justify-between"><span className="text-muted-foreground">Instagram</span><span className="font-medium">@{form.couple_instagram}</span></div>}
+              {form.wedding_hashtag && <div className="flex justify-between"><span className="text-muted-foreground">Hashtag</span><span className="font-medium">#{form.wedding_hashtag}</span></div>}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bridal Party, Parent Info, Honeymoon */}
+        {(form.bridal_party_count || form.parent_info || form.honeymoon_details) && (
+          <Card className="mt-4">
+            <CardHeader className="pb-2 px-4 pt-4">
+              <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">DETAILS</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 px-4 pb-4 text-sm">
+              {form.bridal_party_count && <div className="flex justify-between"><span className="text-muted-foreground">Bridal Party</span><span className="font-medium">{form.bridal_party_count}</span></div>}
+              {form.parent_info && <div><span className="text-muted-foreground block mb-0.5">Parent Info</span><p className="whitespace-pre-wrap">{form.parent_info}</p></div>}
+              {form.honeymoon_details && <div><span className="text-muted-foreground block mb-0.5">Honeymoon</span><p className="whitespace-pre-wrap">{form.honeymoon_details}</p></div>}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Drive Times */}
+        {(() => {
+          const drives = form.has_first_look
+            ? [
+                { label: 'Groom → Bride', time: form.drive_time_groom_to_bride },
+                { label: 'Bride → First Look', time: form.drive_time_bride_to_first_look },
+                { label: 'First Look → Park', time: form.drive_time_first_look_to_park },
+                { label: 'Park → Reception', time: form.drive_time_park_to_reception },
+              ]
+            : [
+                { label: 'Groom → Bride', time: form.drive_time_groom_to_bride },
+                { label: 'Bride → Ceremony', time: form.drive_time_bride_to_ceremony },
+                { label: 'Ceremony → Park', time: form.drive_time_ceremony_to_park },
+                { label: 'Park → Reception', time: form.drive_time_park_to_reception },
+                { label: 'Ceremony → Reception', time: form.drive_time_ceremony_to_reception },
+              ]
+          const filled = drives.filter(d => d.time)
+          return filled.length > 0 ? (
+            <Card className="mt-4">
+              <CardHeader className="pb-2 px-4 pt-4">
+                <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">DRIVE TIMES</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1 px-4 pb-4">
+                {filled.map((d, i) => (
+                  <div key={i} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{d.label}</span>
+                    <span className="font-medium">{d.time}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null
+        })()}
 
         {/* Notes */}
         {(form.additional_notes || form.final_notes) && (
