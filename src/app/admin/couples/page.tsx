@@ -439,7 +439,7 @@ export default function CouplesPage() {
       cell: ({ row }) => {
         const hasForm = row.original.m15_day_form_approved
         return (
-          <Link href={`/client/wedding-day-form/${row.original.id}`}>
+          <Link href={`/admin/production/couples/${row.original.id}`}>
             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${hasForm ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
               {hasForm ? '✓' : 'Missing'}
             </span>
