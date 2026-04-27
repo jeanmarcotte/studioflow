@@ -12,7 +12,7 @@ function getServiceClient() {
 }
 
 interface PageProps {
-  params: { coupleId: string }
+  params: Promise<{ coupleId: string }>
 }
 
 // ─── Helper: Google Maps URL ────────────────────────────────────────────────
@@ -149,14 +149,18 @@ function CallSheetRow({ time, event, location, mapHref, odd }: {
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default async function WeddingDayFormViewPage({ params }: PageProps) {
-  const { coupleId } = params
+  const { coupleId } = await params
   const supabase = getServiceClient()
 
-  const [{ data: form, error: formError }, { data: couple, error: coupleError }, { data: contract }] = await Promise.all([
-    supabase.from('wedding_day_forms').select('*').eq('couple_id', coupleId).single(),
-    supabase.from('couples').select('couple_name, wedding_date, package_type, contracts(reception_venue)').eq('id', coupleId).single(),
-    supabase.from('contracts').select('start_time, end_time').eq('couple_id', coupleId).single(),
+  const [formRes, coupleRes, contractRes] = await Promise.all([
+    supabase.from('wedding_day_forms').select('*').eq('couple_id', coupleId).limit(1),
+    supabase.from('couples').select('couple_name, wedding_date, package_type, contracts(reception_venue)').eq('id', coupleId).limit(1),
+    supabase.from('contracts').select('start_time, end_time').eq('couple_id', coupleId).limit(1),
   ])
+  const form = formRes.data?.[0] ?? null
+  const formError = formRes.error
+  const couple = coupleRes.data?.[0] ?? null
+  const contract = contractRes.data?.[0] ?? null
 
   // ─── No Form Found ─────────────────────────────────────────────────────────
   if (!form || formError) {

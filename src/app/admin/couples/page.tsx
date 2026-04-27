@@ -438,8 +438,11 @@ export default function CouplesPage() {
       header: ({ column }) => <DataTableColumnHeader column={column} title="WD Form" />,
       cell: ({ row }) => {
         const hasForm = row.original.m15_day_form_approved
+        const href = hasForm
+          ? `/client/wedding-day-form/${row.original.id}`
+          : `/admin/production/couples/${row.original.id}`
         return (
-          <Link href={`/admin/production/couples/${row.original.id}`}>
+          <Link href={href}>
             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${hasForm ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
               {hasForm ? '✓' : 'Missing'}
             </span>
