@@ -157,7 +157,9 @@
 |-------|------|-----------|----------|----------|
 | `/admin/portal/[coupleId]` | Portal Admin Editor | couples (hero_image_url, collage fields, portal_video_url) | couples (portal fields) | None |
 | `/portal/login` | Client Portal Login | — | Supabase Auth | None |
-| `/portal/[slug]` | Client Portal Page | couples (via portal_slug) | couples.portal_view_count | None |
+| `/portal/[slug]` | Client Portal Home | couples, contracts, extras_orders, extras_installments (via portal_slug) | None | None |
+| `/portal/[slug]/wedding-day` | Wedding Day Planner (placeholder) | — | — | None |
+| `/portal/[slug]/payments` | Financial Vault (placeholder) | — | — | None |
 
 ### Client Admin Pages
 
