@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Printer, X, AlertTriangle } from 'lucide-react'
+import { Printer, X } from 'lucide-react'
 import { formatPackage } from '@/lib/formatters'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface FormData { [key: string]: any }
 interface CoupleData {
@@ -24,7 +23,40 @@ interface ContractData {
   end_time: string | null
 }
 
-const CIRCLE_NUMBERS = ['\u2460', '\u2461', '\u2462', '\u2463', '\u2464', '\u2465', '\u2466', '\u2467', '\u2468', '\u2469']
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function parseTimeToMinutes(time: string): number {
+  const cleaned = time.trim().toLowerCase().replace(/\s+/g, '')
+  const match = cleaned.match(/^(\d{1,2}):(\d{2})(am|pm)?$/)
+  if (!match) return 0
+  let hours = parseInt(match[1])
+  const minutes = parseInt(match[2])
+  const period = match[3]
+  if (period) {
+    if (period === 'am' && hours === 12) hours = 0
+    if (period === 'pm' && hours !== 12) hours += 12
+  }
+  return hours * 60 + minutes
+}
+
+function calcHours(start: string, end: string): string {
+  if (!start || !end) return ''
+  const startMin = parseTimeToMinutes(start)
+  const endMin = parseTimeToMinutes(end)
+  const totalMinutes = endMin >= startMin ? endMin - startMin : (24 * 60 - startMin) + endMin
+  if (totalMinutes <= 0) return ''
+  const hrs = Math.floor(totalMinutes / 60)
+  const mins = totalMinutes % 60
+  return mins > 0 ? `${hrs}h ${mins}m` : `${hrs} hours`
+}
+
+function calcOvertimeHours(receptionEnd: string, coverageEnd: string): number {
+  if (!receptionEnd || !coverageEnd) return 0
+  const recMin = parseTimeToMinutes(receptionEnd)
+  const covMin = parseTimeToMinutes(coverageEnd)
+  const diff = recMin > covMin ? recMin - covMin : recMin < covMin ? (24 * 60 - covMin) + recMin : 0
+  return diff / 60
+}
 
 function buildAddress(...parts: (string | null | undefined)[]): string {
   return parts.filter(Boolean).join(', ')
@@ -34,63 +66,74 @@ function mapsUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
 }
 
-// ─── Stop Card (iPhone field document) ───────────────────────────────────────
+function igUrl(handle: string): string {
+  const clean = handle.replace(/^@/, '')
+  return `https://instagram.com/${clean}`
+}
 
-function StopCard({ number, label, timeDisplay, name, address, phone }: {
-  number: string
+// ─── Section Components ───────────────────────────────────────────────────────
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 mt-6 px-1">{children}</h2>
+}
+
+function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) return null
+  return (
+    <div className="flex justify-between py-1.5 text-sm">
+      <span className="text-slate-500">{label}</span>
+      <span className="font-medium text-slate-900 text-right">{value}</span>
+    </div>
+  )
+}
+
+function LocationCard({ startTime, label, venueName, personName, address, directions, phone }: {
+  startTime: string
   label: string
-  timeDisplay: string
-  name?: string | null
+  venueName?: string | null
+  personName?: string | null
   address: string
+  directions?: string | null
   phone?: string | null
 }) {
   return (
-    <Card className="mb-3">
-      <CardHeader className="pb-2 px-4 pt-4">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <span className="text-xl">{number}</span>
-          <span className="uppercase tracking-wide">{label}</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 px-4 pb-4">
-        {/* Time bar */}
-        {timeDisplay && (
-          <div className="bg-slate-100 rounded-md py-2.5 px-3 text-center">
-            <span className="text-lg font-bold tabular-nums">{timeDisplay}</span>
-          </div>
-        )}
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-3">
+      {/* Time + Label header */}
+      <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border-b border-slate-200">
+        <span className="text-lg font-bold text-teal-700 tabular-nums min-w-[60px]">{startTime}</span>
+        <span className="text-sm font-semibold uppercase tracking-wide text-slate-700">{label}</span>
+      </div>
+      <div className="px-4 py-3 space-y-3">
+        {venueName && <p className="font-bold text-slate-900">{venueName}</p>}
+        {personName && <p className="font-semibold text-slate-800">{personName}</p>}
+        {address && <p className="text-sm text-slate-500">{address}</p>}
+        {directions && <p className="text-xs text-slate-400 italic">{directions}</p>}
 
-        {/* Name + address */}
-        {name && <p className="font-semibold text-slate-900">{name}</p>}
-        {address && <p className="text-sm text-muted-foreground">{address}</p>}
-
-        {/* Open in Maps */}
         {address && (
           <a
             href={mapsUrl(address)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center w-full h-11 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors"
+            className="flex items-center justify-center w-full py-3 rounded-lg bg-teal-600 text-white font-medium text-sm hover:bg-teal-700 active:bg-teal-800 transition-colors"
           >
             OPEN IN MAPS
           </a>
         )}
 
-        {/* Call */}
         {phone && (
           <a
             href={`tel:${phone.replace(/[^0-9+]/g, '')}`}
-            className="flex items-center justify-center w-full h-11 rounded-lg border border-border font-medium text-sm hover:bg-accent transition-colors"
+            className="flex items-center justify-center w-full py-3 rounded-lg border border-slate-300 text-slate-700 font-medium text-sm hover:bg-slate-50 active:bg-slate-100 transition-colors"
           >
             {phone}
           </a>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function WeddingDayFormPrintPage() {
   const params = useParams()
@@ -122,137 +165,126 @@ export default function WeddingDayFormPrintPage() {
     ? new Date(couple.wedding_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()
     : 'TBD'
 
-  const brideFull = [couple.bride_first_name, couple.bride_last_name].filter(Boolean).join(' ') || 'Bride'
-  const groomFull = [couple.groom_first_name, couple.groom_last_name].filter(Boolean).join(' ') || 'Groom'
-
   const coverageStart = form.groom_start_time || form.bride_start_time || ''
   const coverageEnd = form.photo_video_end_time || ''
-
-  // Calculate total hours — handles AM/PM + overnight (past midnight)
-  function parseTimeToMinutes(time: string): number {
-    const cleaned = time.trim().toLowerCase().replace(/\s+/g, '')
-    const match = cleaned.match(/^(\d{1,2}):(\d{2})(am|pm)?$/)
-    if (!match) return 0
-    let hours = parseInt(match[1])
-    const minutes = parseInt(match[2])
-    const period = match[3]
-    if (period) {
-      if (period === 'am' && hours === 12) hours = 0
-      if (period === 'pm' && hours !== 12) hours += 12
-    }
-    return hours * 60 + minutes
-  }
-
-  function calcHours(start: string, end: string): string {
-    if (!start || !end) return ''
-    const startMin = parseTimeToMinutes(start)
-    const endMin = parseTimeToMinutes(end)
-    const totalMinutes = endMin >= startMin
-      ? endMin - startMin
-      : (24 * 60 - startMin) + endMin
-    if (totalMinutes <= 0) return ''
-    const hrs = Math.floor(totalMinutes / 60)
-    const mins = totalMinutes % 60
-    return mins > 0 ? `${hrs}h ${mins}m` : `${hrs} hours`
-  }
-
   const totalHours = calcHours(coverageStart, coverageEnd)
+  const overtime = calcOvertimeHours(form.reception_finish_time, coverageEnd)
 
-  // ─── Build stops dynamically ─────────────────────────────────────────────
-  const stops: { label: string; timeDisplay: string; name?: string | null; address: string; phone?: string | null }[] = []
+  // Build location stops sorted by time
+  const stops: { startTime: string; sortMin: number; label: string; venueName?: string | null; personName?: string | null; address: string; directions?: string | null; phone?: string | null; overtime?: number }[] = []
 
-  // Groom
   if (form.groom_start_time || form.groom_address) {
     stops.push({
-      label: 'GROOM',
-      timeDisplay: [form.groom_start_time, form.groom_finish_time].filter(Boolean).join(' \u2013 '),
-      name: couple.groom_first_name,
+      startTime: form.groom_start_time || '—',
+      sortMin: parseTimeToMinutes(form.groom_start_time || '0:00'),
+      label: 'Groom Prep',
+      personName: couple.groom_first_name,
       address: buildAddress(form.groom_address, form.groom_city, form.groom_postal_code),
+      directions: form.groom_directions || form.groom_intersection,
       phone: form.groom_phone,
     })
   }
 
-  // Bride
   if (form.bride_start_time || form.bride_address) {
     stops.push({
-      label: 'BRIDE',
-      timeDisplay: [form.bride_start_time, form.bride_finish_time].filter(Boolean).join(' \u2013 '),
-      name: couple.bride_first_name,
+      startTime: form.bride_start_time || '—',
+      sortMin: parseTimeToMinutes(form.bride_start_time || '0:00'),
+      label: 'Bride Prep',
+      personName: couple.bride_first_name,
       address: buildAddress(form.bride_address, form.bride_city, form.bride_postal_code),
+      directions: form.bride_directions || form.bride_intersection,
       phone: form.bride_phone,
     })
   }
 
-  // First Look
   if (form.has_first_look && (form.first_look_time || form.first_look_address)) {
     stops.push({
-      label: 'FIRST LOOK',
-      timeDisplay: form.first_look_time || '',
-      name: form.first_look_location_name,
+      startTime: form.first_look_time || '—',
+      sortMin: parseTimeToMinutes(form.first_look_time || '0:00'),
+      label: 'First Look',
+      venueName: form.first_look_location_name,
       address: buildAddress(form.first_look_address, form.first_look_city),
     })
   }
 
-  // Park / Photos
   if (form.park_name || form.park_address) {
     stops.push({
-      label: 'PARK / PHOTOS',
-      timeDisplay: [form.park_start_time, form.park_finish_time].filter(Boolean).join(' \u2013 '),
-      name: form.park_name,
+      startTime: form.park_start_time || '—',
+      sortMin: parseTimeToMinutes(form.park_start_time || '0:00'),
+      label: 'Park / Photos',
+      venueName: form.park_name,
       address: buildAddress(form.park_address, form.park_city, form.park_postal_code),
+      directions: form.park_directions || form.park_intersection,
     })
   }
 
-  // Extra Location
   if (form.extra_location_name || form.extra_address) {
     stops.push({
-      label: 'EXTRA LOCATION',
-      timeDisplay: [form.extra_start_time, form.extra_finish_time].filter(Boolean).join(' \u2013 '),
-      name: form.extra_location_name,
-      address: buildAddress(form.extra_address, form.extra_city),
+      startTime: form.extra_start_time || '—',
+      sortMin: parseTimeToMinutes(form.extra_start_time || '0:00'),
+      label: 'Extra Location',
+      venueName: form.extra_location_name,
+      address: buildAddress(form.extra_address, form.extra_city, form.extra_postal_code),
+      directions: form.extra_directions || form.extra_location_notes,
     })
   }
 
-  // Ceremony
   if (form.ceremony_start_time || form.ceremony_address) {
-    const ceremonyTime = form.ceremony_photo_arrival_time && form.ceremony_start_time
-      ? `Arrive: ${form.ceremony_photo_arrival_time} | Starts: ${form.ceremony_start_time}`
-      : form.ceremony_photo_arrival_time
-        ? `Arrive: ${form.ceremony_photo_arrival_time}`
-        : form.ceremony_start_time || ''
-    const ceremonyName = form.ceremony_location_name || contract?.ceremony_location
     stops.push({
-      label: ceremonyName ? `CEREMONY — ${ceremonyName}` : 'CEREMONY',
-      timeDisplay: ceremonyTime,
-      name: null,
+      startTime: form.ceremony_photo_arrival_time || form.ceremony_start_time || '—',
+      sortMin: parseTimeToMinutes(form.ceremony_photo_arrival_time || form.ceremony_start_time || '0:00'),
+      label: 'Ceremony',
+      venueName: form.ceremony_location_name || contract?.ceremony_location,
       address: buildAddress(form.ceremony_address, form.ceremony_city, form.ceremony_postal_code),
+      directions: form.ceremony_directions || form.ceremony_intersection,
     })
   }
 
-  // Reception
   if (form.reception_start_time || form.reception_address) {
-    const receptionName = form.reception_venue_name || contract?.reception_venue
     stops.push({
-      label: receptionName ? `RECEPTION — ${receptionName}` : 'RECEPTION',
-      timeDisplay: [form.reception_start_time, form.reception_finish_time].filter(Boolean).join(' \u2013 '),
-      name: null,
+      startTime: form.reception_start_time || '—',
+      sortMin: parseTimeToMinutes(form.reception_start_time || '0:00'),
+      label: 'Reception',
+      venueName: form.reception_venue_name || contract?.reception_venue,
       address: buildAddress(form.reception_address, form.reception_city, form.reception_postal_code),
+      directions: form.reception_directions || form.reception_intersection,
+      overtime,
     })
   }
 
-  // Build timeline entries for the Day Timeline card
-  const timelineEntries: { label: string; time: string; address?: string }[] = []
-  timelineEntries.push({ label: 'Photography', time: [coverageStart, coverageEnd].filter(Boolean).join(' \u2013 ') })
-  for (const stop of stops) {
-    if (stop.timeDisplay) {
-      timelineEntries.push({ label: stop.label.charAt(0) + stop.label.slice(1).toLowerCase(), time: stop.timeDisplay, address: stop.address })
-    }
-  }
+  stops.sort((a, b) => a.sortMin - b.sortMin)
 
   const inspirationLinks = [form.inspiration_link_1, form.inspiration_link_2, form.inspiration_link_3, form.inspiration_link_4, form.inspiration_link_5].filter(Boolean)
 
+  const vendors = [
+    { label: 'Planner', name: form.vendor_wedding_planner, ig: form.vendor_wedding_planner_instagram },
+    { label: 'Officiant', name: form.vendor_officiant, ig: form.vendor_officiant_instagram },
+    { label: 'DJ/MC', name: form.vendor_dj_mc, ig: form.vendor_dj_mc_instagram },
+    { label: 'Makeup', name: form.vendor_makeup, ig: form.vendor_makeup_instagram },
+    { label: 'Hair', name: form.vendor_hair, ig: form.vendor_hair_instagram },
+    { label: 'Floral', name: form.vendor_floral, ig: form.vendor_floral_instagram },
+    { label: 'Event Design', name: form.vendor_event_design, ig: form.vendor_event_design_instagram },
+    { label: 'Transportation', name: form.vendor_transportation, ig: form.vendor_transportation_instagram },
+  ].filter(v => v.name)
+
+  const drives = (form.has_first_look
+    ? [
+        { label: 'Groom \u2192 Bride', time: form.drive_time_groom_to_bride },
+        { label: 'Bride \u2192 First Look', time: form.drive_time_bride_to_first_look },
+        { label: 'First Look \u2192 Park', time: form.drive_time_first_look_to_park },
+        { label: 'Park \u2192 Reception', time: form.drive_time_park_to_reception },
+      ]
+    : [
+        { label: 'Groom \u2192 Bride', time: form.drive_time_groom_to_bride },
+        { label: 'Bride \u2192 Ceremony', time: form.drive_time_bride_to_ceremony },
+        { label: 'Ceremony \u2192 Park', time: form.drive_time_ceremony_to_park },
+        { label: 'Park \u2192 Reception', time: form.drive_time_park_to_reception },
+        { label: 'Ceremony \u2192 Reception', time: form.drive_time_ceremony_to_reception },
+      ]
+  ).filter(d => d.time)
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-100">
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -274,249 +306,174 @@ export default function WeddingDayFormPrintPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-[66%] mx-auto py-6">
+      <div className="max-w-lg mx-auto px-4 py-6">
 
-        {/* Header — Full Names */}
-        <div className="text-center mb-5">
-          <h1 className="text-2xl font-bold text-slate-900">{brideFull} & {groomFull}</h1>
-          <p className="text-muted-foreground text-sm">{weddingDate}</p>
+        {/* Header */}
+        <div className="text-center mb-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-teal-700 mb-1">SIGS Photography</p>
+          <h1 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Playfair Display, serif' }}>
+            {couple.bride_first_name || 'Bride'} & {couple.groom_first_name || 'Groom'}
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">{weddingDate}</p>
           {(coverageStart || coverageEnd) && (
-            <p className="text-sm font-medium mt-1">Coverage: {coverageStart}{coverageEnd ? ` \u2013 ${coverageEnd}` : ''}</p>
+            <p className="text-sm font-semibold text-slate-700 mt-1">
+              Coverage: {coverageStart} \u2013 {coverageEnd}{totalHours ? ` (${totalHours})` : ''}
+            </p>
           )}
         </div>
 
-        {/* Contract Details Card */}
-        <Card className="mb-4">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm uppercase tracking-wider">CONTRACT DETAILS</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {coverageStart && (
-              <div className="flex justify-between">
-                <span className="text-sm">Coverage Start:</span>
-                <span className="text-sm font-medium">{coverageStart}</span>
-              </div>
-            )}
-            {coverageEnd && (
-              <div className="flex justify-between">
-                <span className="text-sm">Coverage End:</span>
-                <span className="text-sm font-medium">{coverageEnd}</span>
-              </div>
-            )}
-            {totalHours && (
-              <div className="flex justify-between">
-                <span className="text-sm">Total:</span>
-                <span className="text-sm font-medium">{totalHours}</span>
-              </div>
-            )}
-            {couple.package_type && (
-              <div className="flex justify-between">
-                <span className="text-sm">Package:</span>
-                <span className="text-sm font-medium">{formatPackage(couple.package_type)}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Notes */}
+        <SectionHeader>Notes</SectionHeader>
+        <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 mb-1">
+          <p className="text-sm text-slate-700 whitespace-pre-wrap">{form.additional_notes || 'None provided'}</p>
+        </div>
 
-        {/* Day Timeline Card */}
-        {timelineEntries.length > 0 && (
-          <Card className="mb-4">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm uppercase tracking-wider">DAY TIMELINE</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              {timelineEntries.map((entry, i) => (
-                <div key={i}>
-                  <div className="flex justify-between">
-                    <span>{entry.label}</span>
-                    <span className="font-medium">{entry.time}</span>
-                  </div>
-                  {entry.address && (
-                    <div className="text-muted-foreground ml-4 text-xs">{entry.address}</div>
-                  )}
-                </div>
+        {/* Inspiration */}
+        <SectionHeader>Wedding Inspiration</SectionHeader>
+        <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 mb-1">
+          {inspirationLinks.length > 0 ? (
+            <div className="space-y-2">
+              {inspirationLinks.map((link: string, i: number) => (
+                <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="block text-sm text-teal-700 hover:underline truncate">{link}</a>
               ))}
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400">None provided</p>
+          )}
+        </div>
 
-        {/* Stops */}
-        {stops.map((stop, index) => (
-          <StopCard
-            key={stop.label}
-            number={CIRCLE_NUMBERS[index] || `${index + 1}`}
-            {...stop}
-          />
+        {/* Contract */}
+        <SectionHeader>Contract</SectionHeader>
+        <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 mb-1">
+          <InfoRow label="Coverage" value={coverageStart && coverageEnd ? `${coverageStart} \u2013 ${coverageEnd}` : null} />
+          <InfoRow label="Hours" value={totalHours || null} />
+          <InfoRow label="Package" value={couple.package_type ? formatPackage(couple.package_type) : null} />
+          <InfoRow label="Bridal Party" value={form.bridal_party_count ? String(form.bridal_party_count) : null} />
+        </div>
+
+        {/* Day Timeline */}
+        <SectionHeader>Day Timeline</SectionHeader>
+        {stops.map((stop, i) => (
+          <div key={i}>
+            <LocationCard
+              startTime={stop.startTime}
+              label={stop.label}
+              venueName={stop.venueName}
+              personName={stop.personName}
+              address={stop.address}
+              directions={stop.directions}
+              phone={stop.phone}
+            />
+            {stop.label === 'Reception' && stop.overtime && stop.overtime > 0.25 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 mb-3 text-sm text-red-700 font-medium">
+                Party ends {form.reception_finish_time} \u2014 {stop.overtime.toFixed(1)} hrs AFTER contract coverage
+              </div>
+            )}
+          </div>
         ))}
 
-        {/* Inspiration Links */}
-        {inspirationLinks.length > 0 && (
-          <Card className="mb-4">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm uppercase tracking-wider">INSPIRATION</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {inspirationLinks.map((link: string, i: number) => (
-                <a
-                  key={i}
-                  href={link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center w-full h-9 rounded-md border border-input bg-background hover:bg-muted text-sm font-medium transition-colors truncate px-3"
-                >
-                  {link}
-                </a>
+        {/* Drive Times */}
+        {drives.length > 0 && (
+          <>
+            <SectionHeader>Drive Times</SectionHeader>
+            <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 mb-1">
+              {drives.map((d, i) => (
+                <InfoRow key={i} label={d.label} value={d.time} />
               ))}
-            </CardContent>
-          </Card>
+            </div>
+          </>
         )}
 
         {/* Emergency Contacts */}
-        {(form.emergency_contact_1_name || form.emergency_contact_2_name || form.venue_contact_phone) && (
-          <Card className="mt-6 border-red-200">
-            <CardHeader className="pb-2 px-4 pt-4">
-              <CardTitle className="text-red-600 flex items-center gap-2 text-base">
-                <AlertTriangle className="h-4 w-4" />
-                EMERGENCY
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 px-4 pb-4">
+        {(form.emergency_contact_1_name || form.emergency_contact_2_name) && (
+          <>
+            <SectionHeader>Emergency Contacts</SectionHeader>
+            <div className="space-y-2 mb-1">
               {form.emergency_contact_1_name && (
                 <a
                   href={`tel:${(form.emergency_contact_1_phone || '').replace(/[^0-9+]/g, '')}`}
-                  className="flex items-center justify-center w-full h-11 rounded-lg bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition-colors"
+                  className="flex items-center justify-center w-full py-3 rounded-xl bg-red-600 text-white font-medium text-sm hover:bg-red-700 active:bg-red-800 transition-colors"
                 >
-                  {form.emergency_contact_1_name}{form.contact1_relationship ? ` (${form.contact1_relationship})` : ''} {form.emergency_contact_1_phone ? `\u2014 ${form.emergency_contact_1_phone}` : ''}
+                  {form.emergency_contact_1_name}{form.contact1_relationship ? ` (${form.contact1_relationship})` : ''}{form.emergency_contact_1_phone ? ` \u2014 ${form.emergency_contact_1_phone}` : ''}
                 </a>
               )}
               {form.emergency_contact_2_name && (
                 <a
                   href={`tel:${(form.emergency_contact_2_phone || '').replace(/[^0-9+]/g, '')}`}
-                  className="flex items-center justify-center w-full h-11 rounded-lg bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition-colors"
+                  className="flex items-center justify-center w-full py-3 rounded-xl bg-red-600 text-white font-medium text-sm hover:bg-red-700 active:bg-red-800 transition-colors"
                 >
-                  {form.emergency_contact_2_name}{form.contact2_relationship ? ` (${form.contact2_relationship})` : ''} {form.emergency_contact_2_phone ? `\u2014 ${form.emergency_contact_2_phone}` : ''}
+                  {form.emergency_contact_2_name}{form.contact2_relationship ? ` (${form.contact2_relationship})` : ''}{form.emergency_contact_2_phone ? ` \u2014 ${form.emergency_contact_2_phone}` : ''}
                 </a>
               )}
-              {form.venue_contact_phone && (
-                <a
-                  href={`tel:${form.venue_contact_phone.replace(/[^0-9+]/g, '')}`}
-                  className="flex items-center justify-center w-full h-11 rounded-lg bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition-colors"
-                >
-                  {form.venue_contact_name || 'Venue'} ({form.venue_contact_phone})
-                </a>
-              )}
-            </CardContent>
-          </Card>
+            </div>
+          </>
         )}
 
         {/* Vendors */}
-        {(() => {
-          const vendors = [
-            { label: 'Wedding Planner', name: form.vendor_wedding_planner, ig: form.vendor_wedding_planner_instagram },
-            { label: 'Officiant', name: form.vendor_officiant, ig: form.vendor_officiant_instagram },
-            { label: 'Makeup', name: form.vendor_makeup, ig: form.vendor_makeup_instagram },
-            { label: 'Hair', name: form.vendor_hair, ig: form.vendor_hair_instagram },
-            { label: 'Floral', name: form.vendor_floral, ig: form.vendor_floral_instagram },
-            { label: 'Event Design', name: form.vendor_event_design, ig: form.vendor_event_design_instagram },
-            { label: 'DJ / MC', name: form.vendor_dj_mc, ig: form.vendor_dj_mc_instagram },
-            { label: 'Transportation', name: form.vendor_transportation, ig: form.vendor_transportation_instagram },
-          ].filter(v => v.name)
-          return vendors.length > 0 ? (
-            <Card className="mt-4">
-              <CardHeader className="pb-2 px-4 pt-4">
-                <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">VENDORS</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 px-4 pb-4">
-                {vendors.map((v, i) => (
-                  <div key={i} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{v.label}</span>
-                    <span className="font-medium text-right">{v.name}{v.ig ? ` @${v.ig}` : ''}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ) : null
-        })()}
+        {vendors.length > 0 && (
+          <>
+            <SectionHeader>Vendors</SectionHeader>
+            <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 mb-1">
+              {vendors.map((v, i) => (
+                <div key={i} className="flex justify-between py-1.5 text-sm">
+                  <span className="text-slate-500">{v.label}</span>
+                  <span className="font-medium text-slate-900 text-right">
+                    {v.name}
+                    {v.ig && (
+                      <> <a href={igUrl(v.ig)} target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">@{v.ig.replace(/^@/, '')}</a></>
+                    )}
+                  </span>
+                </div>
+              ))}
+              {(form.venue_contact_name || form.venue_contact_phone) && (
+                <div className="flex justify-between py-1.5 text-sm border-t border-slate-100 mt-1 pt-2">
+                  <span className="text-slate-500">Venue Contact</span>
+                  <span className="font-medium text-slate-900">
+                    {form.venue_contact_name}
+                    {form.venue_contact_phone && (
+                      <> \u2014 <a href={`tel:${form.venue_contact_phone.replace(/[^0-9+]/g, '')}`} className="text-teal-600">{form.venue_contact_phone}</a></>
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
-        {/* Couple Social */}
+        {/* Social */}
         {(form.couple_instagram || form.wedding_hashtag) && (
-          <Card className="mt-4">
-            <CardHeader className="pb-2 px-4 pt-4">
-              <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">SOCIAL</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1 px-4 pb-4 text-sm">
-              {form.couple_instagram && <div className="flex justify-between"><span className="text-muted-foreground">Instagram</span><span className="font-medium">@{form.couple_instagram}</span></div>}
-              {form.wedding_hashtag && <div className="flex justify-between"><span className="text-muted-foreground">Hashtag</span><span className="font-medium">#{form.wedding_hashtag}</span></div>}
-            </CardContent>
-          </Card>
+          <>
+            <SectionHeader>Social</SectionHeader>
+            <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 mb-1">
+              {form.couple_instagram && <InfoRow label="Couple IG" value={`@${form.couple_instagram}`} />}
+              {form.wedding_hashtag && <InfoRow label="Hashtag" value={`#${form.wedding_hashtag}`} />}
+            </div>
+          </>
         )}
 
-        {/* Bridal Party, Parent Info, Honeymoon */}
-        {(form.bridal_party_count || form.parent_info || form.honeymoon_details) && (
-          <Card className="mt-4">
-            <CardHeader className="pb-2 px-4 pt-4">
-              <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">DETAILS</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 px-4 pb-4 text-sm">
-              {form.bridal_party_count && <div className="flex justify-between"><span className="text-muted-foreground">Bridal Party</span><span className="font-medium">{form.bridal_party_count}</span></div>}
-              {form.parent_info && <div><span className="text-muted-foreground block mb-0.5">Parent Info</span><p className="whitespace-pre-wrap">{form.parent_info}</p></div>}
-              {form.honeymoon_details && <div><span className="text-muted-foreground block mb-0.5">Honeymoon</span><p className="whitespace-pre-wrap">{form.honeymoon_details}</p></div>}
-            </CardContent>
-          </Card>
+        {/* Family */}
+        {(form.parent_info || form.honeymoon_details) && (
+          <>
+            <SectionHeader>Family</SectionHeader>
+            <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 mb-1">
+              {form.parent_info && <div className="text-sm"><span className="text-slate-500">Parents:</span> <span className="text-slate-700">{form.parent_info}</span></div>}
+              {form.honeymoon_details && <div className="text-sm mt-1"><span className="text-slate-500">Honeymoon:</span> <span className="text-slate-700">{form.honeymoon_details}</span></div>}
+            </div>
+          </>
         )}
 
-        {/* Drive Times */}
-        {(() => {
-          const drives = form.has_first_look
-            ? [
-                { label: 'Groom → Bride', time: form.drive_time_groom_to_bride },
-                { label: 'Bride → First Look', time: form.drive_time_bride_to_first_look },
-                { label: 'First Look → Park', time: form.drive_time_first_look_to_park },
-                { label: 'Park → Reception', time: form.drive_time_park_to_reception },
-              ]
-            : [
-                { label: 'Groom → Bride', time: form.drive_time_groom_to_bride },
-                { label: 'Bride → Ceremony', time: form.drive_time_bride_to_ceremony },
-                { label: 'Ceremony → Park', time: form.drive_time_ceremony_to_park },
-                { label: 'Park → Reception', time: form.drive_time_park_to_reception },
-                { label: 'Ceremony → Reception', time: form.drive_time_ceremony_to_reception },
-              ]
-          const filled = drives.filter(d => d.time)
-          return filled.length > 0 ? (
-            <Card className="mt-4">
-              <CardHeader className="pb-2 px-4 pt-4">
-                <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">DRIVE TIMES</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1 px-4 pb-4">
-                {filled.map((d, i) => (
-                  <div key={i} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{d.label}</span>
-                    <span className="font-medium">{d.time}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ) : null
-        })()}
-
-        {/* Notes */}
-        {(form.additional_notes || form.final_notes) && (
-          <Card className="mt-4">
-            <CardHeader className="pb-2 px-4 pt-4">
-              <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">NOTES</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm space-y-2 px-4 pb-4">
-              {form.additional_notes && <p className="whitespace-pre-wrap">{form.additional_notes}</p>}
-              {form.final_notes && <p className="whitespace-pre-wrap">{form.final_notes}</p>}
-            </CardContent>
-          </Card>
+        {/* Final Notes */}
+        {form.final_notes && (
+          <>
+            <SectionHeader>Final Notes</SectionHeader>
+            <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 mb-1">
+              <p className="text-sm text-slate-700 whitespace-pre-wrap">{form.final_notes}</p>
+            </div>
+          </>
         )}
 
         {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground mt-6 mb-4">
-          SIGS Photography — Wedding Day Form
-        </p>
+        <p className="text-center text-xs text-slate-400 mt-8 mb-4">SIGS Photography — Wedding Day Form</p>
       </div>
     </div>
   )
