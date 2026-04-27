@@ -148,15 +148,14 @@ export function calculateHoursValidation(
     parseTimeToMinutes(form.venue_arrival_time, 'venue_arrival'),
   ].filter((v): v is number => v !== null)
 
-  const endCandidatesRaw = [
-    parseEndTimeToMinutes(form.reception_finish_time, 'reception_end'),
-    parseEndTimeToMinutes(form.photo_video_end_time, 'photo_video_end'),
-  ].filter((v): v is number => v !== null)
+  // Use photo_video_end_time (when photographer leaves), NOT reception_finish_time (when party ends)
+  // Fall back to reception_finish_time only if photo_video_end_time is not set
+  const endTimeRaw = parseEndTimeToMinutes(form.photo_video_end_time, 'photo_video_end')
+    ?? parseEndTimeToMinutes(form.reception_finish_time, 'reception_end')
 
   const earliestMin = startCandidates.length > 0 ? Math.min(...startCandidates) : null
   // If an end time is before 6 AM (360 min), treat as next day
-  const endCandidates = endCandidatesRaw.map(m => m < 360 ? m + 1440 : m)
-  const latestMin = endCandidates.length > 0 ? Math.max(...endCandidates) : null
+  const latestMin = endTimeRaw !== null ? (endTimeRaw < 360 ? endTimeRaw + 1440 : endTimeRaw) : null
 
   // Contract hours from contracts table (source of truth)
   let contractedHours: number | null = null
