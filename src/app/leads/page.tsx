@@ -65,17 +65,9 @@ export default function LeadsPage() {
   const [allLeads, setAllLeads] = useState<Lead[]>([])  // includes hidden, for search
   const [recalculating, setRecalculating] = useState(false)
 
-  // Default to most recent lead source on mount
+  // Default to NBS Apr 2026 — hardcoded until August
   useEffect(() => {
-    async function fetchDefaultSource() {
-      const { data } = await supabase
-        .from('lead_sources')
-        .select('id')
-        .order('created_at', { ascending: false })
-        .limit(1)
-      if (data && data[0]) setSelectedSourceId(data[0].id)
-    }
-    fetchDefaultSource()
+    setSelectedSourceId('1dc09445-3714-42ec-9c7f-b97bb2f039a4')
   }, [])
 
   // Persist sidebar collapsed state
