@@ -42,6 +42,7 @@ interface CoupleRow {
   m24_photo_order_in: boolean
   m25_video_order_in: boolean
   lifecycle_phase: string
+  has_wd_form: boolean
 }
 
 interface MilestoneRow {
@@ -179,7 +180,7 @@ export default function CouplesPage() {
       const [couplesRes, upcomingRes] = await Promise.all([
         supabase
           .from('couples')
-          .select(`id, couple_name, bride_first_name, bride_last_name, groom_first_name, groom_last_name, phone, email, wedding_date, wedding_year, package_type, status, contracts(reception_venue, total), couple_milestones(m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_frame_sale_complete, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in, m34_items_picked_up), extras_orders(extras_sale_amount, status), c3_line_items(total), payments(amount)`)
+          .select(`id, couple_name, bride_first_name, bride_last_name, groom_first_name, groom_last_name, phone, email, wedding_date, wedding_year, package_type, status, contracts(reception_venue, total), couple_milestones(m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_frame_sale_complete, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in, m34_items_picked_up), extras_orders(extras_sale_amount, status), c3_line_items(total), payments(amount), wedding_day_forms(id)`)
           .order('wedding_date', { ascending: true }),
         supabase
           .from('couples')
@@ -234,6 +235,12 @@ export default function CouplesPage() {
             m24_photo_order_in: ms?.m24_photo_order_in || false,
             m25_video_order_in: ms?.m25_video_order_in || false,
             lifecycle_phase: computeLifecyclePhase(ms, fin.balance),
+            has_wd_form: (() => {
+              const wdf = row.wedding_day_forms
+              if (!wdf) return false
+              if (Array.isArray(wdf)) return wdf.length > 0 && !!wdf[0]?.id
+              return !!wdf.id
+            })(),
           }
         }))
       }
@@ -434,10 +441,10 @@ export default function CouplesPage() {
         : <span className="text-muted-foreground/40">—</span>,
     },
     {
-      accessorKey: "m15_day_form_approved",
+      accessorKey: "has_wd_form",
       header: ({ column }) => <DataTableColumnHeader column={column} title="WD Form" />,
       cell: ({ row }) => {
-        const hasForm = row.original.m15_day_form_approved
+        const hasForm = row.original.has_wd_form
         const href = hasForm
           ? `/client/wedding-day-form/${row.original.id}`
           : `/admin/production/couples/${row.original.id}`

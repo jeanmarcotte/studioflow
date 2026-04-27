@@ -55,11 +55,11 @@ export default function WeddingDayFormsPage() {
 
   useEffect(() => {
     async function fetchData() {
-      // Fetch ALL booked couples + ALL forms separately (no date filter in query)
-      const [couplesRes, formsRes] = await Promise.all([
+      // Fetch booked couples + ALL forms + couples who have forms (any status)
+      const [bookedRes, formsRes] = await Promise.all([
         supabase
           .from('couples')
-          .select('id, couple_name, wedding_date, email')
+          .select('id, couple_name, wedding_date, email, status')
           .eq('status', 'booked')
           .order('wedding_date', { ascending: true }),
         supabase
@@ -75,7 +75,23 @@ export default function WeddingDayFormsPage() {
         }
       }
 
-      const merged: WeddingFormCouple[] = (couplesRes.data ?? []).map((c: any) => {
+      // Find couple_ids with forms that are NOT in the booked set
+      const bookedIds = new Set((bookedRes.data ?? []).map((c: any) => c.id))
+      const nonBookedWithForms = Array.from(formMap.keys()).filter(id => !bookedIds.has(id))
+
+      // Fetch those non-booked couples
+      let extraCouples: any[] = []
+      if (nonBookedWithForms.length > 0) {
+        const { data } = await supabase
+          .from('couples')
+          .select('id, couple_name, wedding_date, email, status')
+          .in('id', nonBookedWithForms)
+        extraCouples = data ?? []
+      }
+
+      const allCouples = [...(bookedRes.data ?? []), ...extraCouples]
+
+      const merged: WeddingFormCouple[] = allCouples.map((c: any) => {
         const form = formMap.get(c.id) ?? null
         return {
           couple_id: c.id,
@@ -201,7 +217,7 @@ export default function WeddingDayFormsPage() {
             PDF
           </a>
           <a
-            href={`/admin/documents/wedding-day-form/${row.original.couple_id}`}
+            href={row.original.form_id ? `/admin/documents/wedding-day-form/${row.original.form_id}` : `/client/wedding-day-form/${row.original.couple_id}`}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
