@@ -89,6 +89,26 @@ export async function middleware(request: NextRequest) {
     return crewResponse
   }
 
+  // BridalFlow routes: allow access with PIN cookie OR Supabase auth
+  if (pathname.startsWith('/leads') && !pathname.startsWith('/leads/login')) {
+    const pinSession = request.cookies.get('bridalflow_pin_session')
+    if (!user && !pinSession?.value) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/leads/login'
+      const redirectResponse = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value)
+      })
+      return redirectResponse
+    }
+    return supabaseResponse
+  }
+
+  // Leads login: always accessible
+  if (pathname.startsWith('/leads/login')) {
+    return supabaseResponse
+  }
+
   // Admin routes: no session and not on a public route → redirect to /login
   if (
     !user &&

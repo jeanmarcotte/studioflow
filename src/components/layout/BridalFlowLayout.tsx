@@ -2,7 +2,8 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { ClipboardList, Camera, Ticket, Users, MoreHorizontal, ExternalLink, Home, BarChart3, FileText } from 'lucide-react'
+import { ClipboardList, Camera, Ticket, Users, MoreHorizontal, ExternalLink, Home, BarChart3, FileText, LogOut } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useState, useEffect } from 'react'
@@ -23,6 +24,7 @@ const moreSheetLinks = [
 
 export function BridalFlowLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [moreOpen, setMoreOpen] = useState(false)
 
   useEffect(() => {
@@ -95,6 +97,19 @@ export function BridalFlowLayout({ children }: { children: React.ReactNode }) {
                 <span className="text-xs text-center text-muted-foreground">{link.label}</span>
               </Link>
             ))}
+          </div>
+          <div className="px-4 pb-4 border-t pt-3">
+            <button
+              onClick={async () => {
+                await fetch('/api/leads/pin-signout', { method: 'POST' })
+                setMoreOpen(false)
+                router.push('/leads/login')
+              }}
+              className="flex items-center gap-2 w-full rounded-lg p-3 text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="text-sm font-medium">Sign Out</span>
+            </button>
           </div>
         </SheetContent>
       </Sheet>
