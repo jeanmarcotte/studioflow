@@ -434,6 +434,20 @@ export default function CouplesPage() {
         : <span className="text-muted-foreground/40">—</span>,
     },
     {
+      accessorKey: "m15_day_form_approved",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="WD Form" />,
+      cell: ({ row }) => {
+        const hasForm = row.original.m15_day_form_approved
+        return (
+          <Link href={`/client/wedding-day-form/${row.original.id}`}>
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${hasForm ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+              {hasForm ? '✓' : 'Missing'}
+            </span>
+          </Link>
+        )
+      },
+    },
+    {
       accessorKey: "c1_contract",
       header: ({ column }) => <div style={{ textAlign: 'right' }}><DataTableColumnHeader column={column} title="C1 Contract" /></div>,
       cell: ({ row }) => row.original.c1_contract > 0
@@ -467,13 +481,6 @@ export default function CouplesPage() {
       cell: ({ row }) => row.original.total_received > 0
         ? <span className="text-muted-foreground" style={{ textAlign: 'right', display: 'block' }}>{formatCurrency(Math.round(row.original.total_received))}</span>
         : <span className="text-muted-foreground/40" style={{ textAlign: 'right', display: 'block' }}>—</span>,
-    },
-    {
-      accessorKey: "payments_count",
-      header: ({ column }) => <div style={{ textAlign: 'right' }}><DataTableColumnHeader column={column} title="Pmts" /></div>,
-      cell: ({ row }) => row.original.payments_count > 0
-        ? <span className="text-muted-foreground" style={{ textAlign: 'center', display: 'block' }}>{row.original.payments_count}</span>
-        : <span className="text-muted-foreground/50" style={{ textAlign: 'center', display: 'block' }}>—</span>,
     },
     {
       accessorKey: "balance_due",
