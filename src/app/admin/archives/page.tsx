@@ -328,7 +328,8 @@ export default function ArchiveDashboard() {
             columns={columns}
             data={filtered}
             emptyMessage="No archives found matching your filters."
-            pageSize={50}
+            pageSize={20}
+            initialSorting={[{ id: 'wedding_date', desc: false }]}
             onRowClick={(row) => router.push(`/admin/archives/${row.couple_id}`)}
             rowClassName={(row) =>
               ['complete', 'verified'].includes(row.archive_status)

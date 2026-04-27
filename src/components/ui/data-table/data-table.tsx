@@ -37,6 +37,7 @@ interface DataTableProps<TData, TValue> {
   emptyMessage?: string
   className?: string
   rowClassName?: (row: TData) => string
+  initialSorting?: SortingState
 }
 
 export function DataTable<TData, TValue>({
@@ -51,8 +52,9 @@ export function DataTable<TData, TValue>({
   emptyMessage = "No results.",
   className,
   rowClassName,
+  initialSorting,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([])
+  const [sorting, setSorting] = useState<SortingState>(initialSorting || [])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
