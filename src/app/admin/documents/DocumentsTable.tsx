@@ -177,7 +177,9 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
       id: 'dayForm',
       accessorFn: (row) => row.wdf_ids.length > 0 ? 1 : 0,
       header: ({ column }) => <DataTableColumnHeader column={column} title="Day Form" />,
-      cell: ({ row }) => <DocStatus ids={row.original.wdf_ids} baseUrl="/admin/documents/wedding-day-form" title="View Day Form" />,
+      cell: ({ row }) => row.original.wdf_ids.length > 0
+        ? <a href={`/client/wedding-day-form/${row.original.id}`} target="_blank" rel="noopener noreferrer" title="View Day Form" className="text-blue-600 hover:text-blue-800 flex justify-center"><FileText size={16} /></a>
+        : <Minus size={16} className="text-gray-300 mx-auto" />,
       size: 50,
     },
     {
@@ -251,8 +253,8 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
           printLinks.push({ label: 'Print Extras', href: `/admin/extras/${c.id}/view?print=true` })
         }
         if (c.wdf_ids.length > 0) {
-          viewLinks.push({ label: 'View Day Form', href: `/admin/documents/wedding-day-form/${c.wdf_ids[0]}` })
-          printLinks.push({ label: 'Print Day Form', href: `/admin/documents/wedding-day-form/${c.wdf_ids[0]}?print=true` })
+          viewLinks.push({ label: 'View Day Form', href: `/client/wedding-day-form/${c.id}` })
+          printLinks.push({ label: 'Print Day Form', href: `/client/wedding-day-form/${c.id}` })
         }
         if (c.pof_ids.length > 0) {
           viewLinks.push({ label: 'View Photo Order', href: `/admin/documents/photo-order/${c.pof_ids[0]}` })

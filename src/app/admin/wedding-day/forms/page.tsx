@@ -199,16 +199,6 @@ export default function WeddingDayFormsPage() {
       cell: ({ row }) => (
         <div className="flex gap-1">
           <a
-            href={`/admin/wedding-day/forms/${row.original.couple_id}/print`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-input bg-background hover:bg-muted transition-colors"
-          >
-            <ExternalLink className="h-3 w-3" />
-            Mobile
-          </a>
-          <a
             href={`/api/wedding-form-pdf/${row.original.couple_id}`}
             onClick={(e) => e.stopPropagation()}
             className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-input bg-background hover:bg-muted transition-colors"
@@ -217,7 +207,7 @@ export default function WeddingDayFormsPage() {
             PDF
           </a>
           <a
-            href={row.original.form_id ? `/admin/documents/wedding-day-form/${row.original.form_id}` : `/client/wedding-day-form/${row.original.couple_id}`}
+            href={`/client/wedding-day-form/${row.original.couple_id}`}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}

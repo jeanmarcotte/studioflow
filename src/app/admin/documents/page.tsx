@@ -215,7 +215,7 @@ export default function DocumentsPage() {
       case 'contracts': return couple.contract_ids[0] ? `/admin/contracts/${couple.contract_ids[0]}/view` : '#'
       case 'frames': return couple.extras_order_ids[0] ? `/admin/albums/${couple.extras_order_ids[0]}/view` : '#'
       case 'extras': return `/admin/extras/${couple.id}/view`
-      case 'dayForms': return couple.wdf_ids[0] ? `/admin/documents/wedding-day-form/${couple.wdf_ids[0]}` : '#'
+      case 'dayForms': return couple.wdf_ids[0] ? `/client/wedding-day-form/${couple.id}` : '#'
       case 'photoOrders': return couple.pof_ids[0] ? `/admin/documents/photo-order/${couple.pof_ids[0]}` : '#'
       case 'videoOrders': return couple.vof_ids[0] ? `/admin/documents/video-order/${couple.vof_ids[0]}` : '#'
       case 'photoProdOrders': return couple.photo_order_ids[0] ? `/admin/orders/${couple.photo_order_ids[0]}/view` : '#'
