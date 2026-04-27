@@ -121,6 +121,7 @@ export const studioflowAdminConfig: SidebarConfig = {
           ],
         },
         { title: 'Documents', href: '/admin/documents', icon: FileText },
+        { title: 'Archives', href: '/admin/archives', icon: Archive },
         {
           title: 'Finance',
           icon: DollarSign,

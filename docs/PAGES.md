@@ -28,7 +28,8 @@
 | Client-Facing Forms | `/client` | 9 |
 | Crew Portal | `/crew` | 3 |
 | Other | `/analytics`, `/ballot`, `/scanner`, `/test-quote` | 4 |
-| **Total** | | **83** |
+| Archives | `/admin/archives` | 2 |
+| **Total** | | **85** |
 
 ---
 
@@ -97,6 +98,13 @@
 | `/admin/contracts/generate` | Contract Generator | couples, contracts | contracts (INSERT) | None |
 | `/admin/albums/[id]/view` | C2 Retro View | extras_orders, couples | None (read-only, print) | None |
 | `/admin/extras/[id]/view` | C3 Extras View | c3_line_items, product_catalog, couples | None (read-only, print) | None |
+
+### Archives
+
+| Route | Page | Reads From | Writes To | Triggers |
+|-------|------|-----------|----------|----------|
+| `/admin/archives` | Archive Dashboard | couple_archives | None (read-only) | None |
+| `/admin/archives/[coupleId]` | Couple Archive Detail | couple_archives, couples | couple_archives (UPDATE — locations, sizes, status, notes, distribution) | None |
 
 ### Finance
 
