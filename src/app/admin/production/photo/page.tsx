@@ -31,6 +31,8 @@ interface Job {
   at_lab_date: string | null
   notes: string | null
   completed_date: string | null
+  sent_for_review_date: string | null
+  approval_round: number | null
   created_at: string
   updated_at: string
   couples?: { couple_name: string; wedding_date: string | null } | null
@@ -63,21 +65,15 @@ const JOB_TYPE_LABELS: Record<string, string> = {
 }
 
 const VENDOR_LABELS: Record<string, string> = {
-  cci: 'CCI',
-  uaf: 'UAF',
   best_canvas: 'Best Canvas',
-  best: 'Best',
-  custom: 'Custom',
-  in_house: 'In-house',
+  cci: 'CCI (Custom Colour Imaging)',
+  uaf: 'UAF',
 }
 
 const VENDOR_COLORS: Record<string, string> = {
+  best_canvas: 'bg-amber-100 text-amber-700',
   cci: 'bg-blue-100 text-blue-700',
   uaf: 'bg-purple-100 text-purple-700',
-  best_canvas: 'bg-amber-100 text-amber-700',
-  best: 'bg-amber-100 text-amber-700',
-  custom: 'bg-slate-100 text-slate-700',
-  in_house: 'bg-green-100 text-green-700',
 }
 
 // Normalize vendor values (handles lowercase with hyphens like "in-house")
@@ -125,10 +121,26 @@ const POPUP_LABELS: Record<string, string> = {
 }
 
 const STATUS_OPTIONS = [
-  ...LANES.map(l => ({ value: l.key, label: l.label })),
+  { value: 'not_started', label: 'Ready to Start' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'waiting_approval', label: 'Waiting for Bride' },
+  { value: 'on_hold', label: 'On Hold' },
   { value: 'completed', label: 'Completed' },
+  { value: 'at_lab', label: 'At Lab' },
+  { value: 'at_studio', label: 'At Studio' },
   { value: 'picked_up', label: 'Picked Up' },
 ]
+
+const STATUS_DROPDOWN_COLORS: Record<string, string> = {
+  not_started: 'bg-gray-100 text-gray-700',
+  in_progress: 'bg-teal-100 text-teal-700',
+  waiting_approval: 'bg-yellow-100 text-yellow-700',
+  on_hold: 'bg-gray-100 text-gray-700',
+  completed: 'bg-blue-100 text-blue-700',
+  at_lab: 'bg-yellow-100 text-yellow-700',
+  at_studio: 'bg-green-100 text-green-700',
+  picked_up: 'bg-blue-100 text-blue-700',
+}
 
 // ══════════════════════════════════════════════════════════════════
 // PAGE
@@ -169,6 +181,9 @@ export default function PhotoProductionPage() {
 
   // Waiting for Photo Order section
   const [waitingPhotoOrderOpen, setWaitingPhotoOrderOpen] = useState(true)
+
+  // Waiting on Client banner
+  const [waitingBannerOpen, setWaitingBannerOpen] = useState(true)
 
   // Cemetery (completed & picked up)
   const [cemeteryJobs, setCemeteryJobs] = useState<Job[]>([])
@@ -290,7 +305,8 @@ export default function PhotoProductionPage() {
   // ── Status update ─────────────────────────────────────────────
 
   const updateStatus = async (jobId: string, newStatus: string) => {
-    const updates: Record<string, string> = {
+    const job = jobs.find(j => j.id === jobId)
+    const updates: Record<string, any> = {
       status: newStatus,
       updated_at: new Date().toISOString(),
     }
@@ -300,6 +316,12 @@ export default function PhotoProductionPage() {
       updates.at_lab_date = new Date().toISOString().split('T')[0]
     }
 
+    // Auto-set sent_for_review_date and increment approval_round when moving to waiting_approval
+    if (newStatus === 'waiting_approval') {
+      updates.sent_for_review_date = new Date().toISOString().split('T')[0]
+      updates.approval_round = (job?.approval_round || 0) + 1
+    }
+
     const { error } = await supabase
       .from('jobs')
       .update(updates)
@@ -307,6 +329,12 @@ export default function PhotoProductionPage() {
 
     if (!error) {
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j))
+      const statusLabel = STATUS_OPTIONS.find(s => s.value === newStatus)?.label || newStatus
+      setToast(`Status updated to ${statusLabel}`)
+      setTimeout(() => setToast(''), 3000)
+    } else {
+      setToast('Error updating status')
+      setTimeout(() => setToast(''), 3000)
     }
   }
 
@@ -453,6 +481,26 @@ export default function PhotoProductionPage() {
     }
   }, [ytdData])
 
+  // Waiting on Client banner data
+  const waitingOnClientData = useMemo(() => {
+    const waitingJobs = jobs.filter(j => j.status === 'waiting_approval')
+    if (waitingJobs.length === 0) return []
+    const grouped = new Map<string, { coupleId: string; coupleName: string; count: number }>()
+    waitingJobs.forEach(j => {
+      const existing = grouped.get(j.couple_id)
+      if (existing) {
+        existing.count++
+      } else {
+        grouped.set(j.couple_id, {
+          coupleId: j.couple_id,
+          coupleName: j.couples?.couple_name || 'Unknown',
+          count: 1,
+        })
+      }
+    })
+    return Array.from(grouped.values())
+  }, [jobs])
+
   const getPopupJobs = (key: string): Job[] => {
     switch (key) {
       case 'active': return jobs
@@ -548,15 +596,29 @@ export default function PhotoProductionPage() {
       id: 'status_select',
       header: 'Status',
       cell: ({ row }) => (
-        <select
-          value={row.original.status}
-          onChange={(e) => updateStatus(row.original.id, e.target.value)}
-          className="text-xs rounded-lg border border-input bg-background px-2 py-1.5 outline-none transition-colors focus:border-ring cursor-pointer"
-        >
-          {STATUS_OPTIONS.map(s => (
-            <option key={s.value} value={s.value}>{s.label}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-1">
+          <select
+            value={row.original.status}
+            onChange={(e) => updateStatus(row.original.id, e.target.value)}
+            className={`text-xs rounded-lg border border-input px-2 py-1.5 outline-none transition-colors focus:border-ring cursor-pointer ${STATUS_DROPDOWN_COLORS[row.original.status] || 'bg-background'}`}
+          >
+            {STATUS_OPTIONS.map(s => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+          {row.original.status === 'at_lab' && (
+            <select
+              value={row.original.vendor || ''}
+              onChange={(e) => updateVendor(row.original.id, e.target.value)}
+              className="text-xs rounded-lg border border-input bg-background px-1.5 py-1.5 outline-none transition-colors focus:border-ring cursor-pointer"
+            >
+              <option value="">Vendor...</option>
+              <option value="best_canvas">Best Canvas</option>
+              <option value="cci">CCI</option>
+              <option value="uaf">UAF</option>
+            </select>
+          )}
+        </div>
       ),
       enableSorting: false,
     },
@@ -588,12 +650,9 @@ export default function PhotoProductionPage() {
           className="text-xs rounded-lg border border-input bg-background px-2 py-1.5 outline-none transition-colors focus:border-ring cursor-pointer"
         >
           <option value="">—</option>
+          <option value="best_canvas">Best Canvas</option>
           <option value="cci">CCI</option>
           <option value="uaf">UAF</option>
-          <option value="best">Best</option>
-          <option value="best_canvas">Best Canvas</option>
-          <option value="custom">Custom</option>
-          <option value="in-house">In-House</option>
         </select>
       ),
     },
@@ -604,7 +663,7 @@ export default function PhotoProductionPage() {
         <select
           value={row.original.status}
           onChange={(e) => updateStatus(row.original.id, e.target.value)}
-          className="text-xs rounded-lg border border-input bg-background px-2 py-1.5 outline-none transition-colors focus:border-ring cursor-pointer"
+          className={`text-xs rounded-lg border border-input px-2 py-1.5 outline-none transition-colors focus:border-ring cursor-pointer ${STATUS_DROPDOWN_COLORS[row.original.status] || 'bg-background'}`}
         >
           {STATUS_OPTIONS.map(s => (
             <option key={s.value} value={s.value}>{s.label}</option>
@@ -791,6 +850,39 @@ export default function PhotoProductionPage() {
         ))}
       </div>
 
+      {/* Waiting on Client Banner */}
+      {waitingOnClientData.length > 0 && (
+        <div className="px-6 pb-4">
+          <div className="rounded-lg border border-yellow-200 bg-yellow-50">
+            <button
+              onClick={() => setWaitingBannerOpen(!waitingBannerOpen)}
+              className="w-full px-4 py-3 flex items-center gap-2 text-left"
+            >
+              {waitingBannerOpen
+                ? <ChevronDown className="h-4 w-4 text-yellow-700 shrink-0" />
+                : <ChevronRight className="h-4 w-4 text-yellow-700 shrink-0" />
+              }
+              <span className="text-sm font-semibold text-yellow-800">
+                Waiting on Client ({jobs.filter(j => j.status === 'waiting_approval').length})
+              </span>
+            </button>
+            {waitingBannerOpen && (
+              <div className="px-4 pb-3 text-sm text-yellow-700">
+                {waitingOnClientData.map((c, i) => (
+                  <span key={c.coupleId}>
+                    {i > 0 && <span className="mx-1">&middot;</span>}
+                    <a href={`/admin/production/couples/${c.coupleId}`} className="font-medium hover:underline">
+                      {c.coupleName}
+                    </a>
+                    <span className="text-yellow-600"> ({c.count} item{c.count !== 1 ? 's' : ''})</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Content area: jobs panel + stats sidebar */}
       <div className="flex">
         {/* Job List Panel */}
@@ -971,7 +1063,7 @@ export default function PhotoProductionPage() {
                               <select
                                 value={job.status}
                                 onChange={(e) => updateStatus(job.id, e.target.value)}
-                                className={`${nunito.className} text-xs rounded-lg border border-border bg-background px-2 py-1.5 outline-none transition-colors focus:border-primary cursor-pointer`}
+                                className={`${nunito.className} text-xs rounded-lg border border-border px-2 py-1.5 outline-none transition-colors focus:border-primary cursor-pointer ${STATUS_DROPDOWN_COLORS[job.status] || 'bg-background'}`}
                               >
                                 {STATUS_OPTIONS.map(s => (
                                   <option key={s.value} value={s.value}>{s.label}</option>
