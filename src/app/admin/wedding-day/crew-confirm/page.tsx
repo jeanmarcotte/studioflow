@@ -1370,7 +1370,7 @@ export default function CrewCallSheetPage() {
 
               let coverageText = ''
               if (selectedContract?.start_time && selectedContract?.end_time) {
-                coverageText = `${selectedContract.start_time} – ${selectedContract.end_time}`
+                coverageText = `${formatTime12h(selectedContract.start_time)} – ${formatTime12h(selectedContract.end_time)}`
                 const parseT = (t: string) => {
                   const m = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
                   if (!m) return null

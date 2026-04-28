@@ -9,6 +9,7 @@ import {
   XCircle, DollarSign, FileText, MapPin, Camera, Video,
   Globe, Users, Calendar, Pen, CreditCard
 } from 'lucide-react'
+import { formatTime12h } from '@/lib/formatters'
 
 type PageState = 'upload' | 'parsing' | 'review' | 'saving' | 'done' | 'error'
 
@@ -256,8 +257,8 @@ export default function UploadContractPage() {
             </Section>
             <Section icon={Calendar} title="Wedding">
               <Field label="Date" value={data.wedding.wedding_date} />
-              <Field label="Start" value={data.wedding.start_time} />
-              <Field label="End" value={data.wedding.end_time} />
+              <Field label="Start" value={formatTime12h(data.wedding.start_time)} />
+              <Field label="End" value={formatTime12h(data.wedding.end_time)} />
             </Section>
           </div>
 
