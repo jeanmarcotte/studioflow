@@ -207,7 +207,6 @@ export default function PdfImporter({ onImportComplete, defaultOpen = false }: P
             wedding_date: data.weddingDate,
             wedding_year: data.weddingYear,
             balance_owing: data.total,
-            status: 'booked',
             lead_source: 'pdf_import',
             notes: `Imported from ${data.fileName}`,
           }

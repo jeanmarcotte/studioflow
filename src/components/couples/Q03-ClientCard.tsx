@@ -105,7 +105,7 @@ export function Q03ClientCard({ couple, contract, extrasOrders }: Q03ClientCardP
 
   const pkgLabel = couple.package_type ? formatPackage(couple.package_type) : null;
 
-  const status = (couple.status || 'booked').toLowerCase();
+  const phase = couple.phase || 'new_client';
 
   const meta: string[] = [];
   if (signedStr) meta.push(`Signed ${signedStr}`);
@@ -127,8 +127,7 @@ export function Q03ClientCard({ couple, contract, extrasOrders }: Q03ClientCardP
           {couple.couple_name} <span style={{ fontSize: '1.1rem', opacity: 0.8 }}>— {nV > 0 ? 'Photo & Video' : 'Photo Only'}</span>
         </h1>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <Badge v="accent">{status}</Badge>
-          {isPast ? <Badge v="success">Post-Wedding</Badge> : <Badge v="success">Pre-Wedding</Badge>}
+          <Badge v="accent">{phase.replace(/_/g, ' ').replace(/\b\w/g, (ch: string) => ch.toUpperCase())}</Badge>
         </div>
       </div>
 

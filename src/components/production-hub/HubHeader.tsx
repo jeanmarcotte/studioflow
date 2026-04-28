@@ -5,24 +5,24 @@ import { ArrowLeft } from 'lucide-react'
 import { formatWeddingDate } from '@/lib/formatters'
 import { HubCouple, HubContract, HubMilestones } from './types'
 
-function computePhase(m: HubMilestones | null): string {
-  if (!m) return 'New Client'
-  if (m.m34_items_picked_up) return 'Completed'
-  if (m.m22_proofs_edited) return 'Post-Production'
-  if (m.m19_wedding_day) return 'Post-Wedding'
-  if (m.m15_day_form_approved) return 'Pre-Wedding'
-  if (m.m06_eng_session_shot) return 'Post-Engagement'
-  if (m.m06_declined) return 'Pre-Wedding'
-  return 'New Client'
+const PHASE_LABELS: Record<string, string> = {
+  'new_client': 'New Client',
+  'pre_engagement': 'Pre-Engagement',
+  'post_engagement': 'Post-Engagement',
+  'pre_wedding': 'Pre-Wedding',
+  'post_wedding': 'Post-Wedding',
+  'post_production': 'Post-Production',
+  'completed': 'Completed',
 }
 
 const PHASE_COLORS: Record<string, string> = {
-  'Completed': 'bg-blue-100 text-blue-700',
-  'Post-Production': 'bg-purple-100 text-purple-700',
-  'Post-Wedding': 'bg-orange-100 text-orange-700',
-  'Pre-Wedding': 'bg-teal-100 text-teal-700',
-  'Post-Engagement': 'bg-green-100 text-green-700',
-  'New Client': 'bg-gray-100 text-gray-700',
+  'new_client': 'bg-gray-100 text-gray-700',
+  'pre_engagement': 'bg-yellow-100 text-yellow-700',
+  'post_engagement': 'bg-blue-100 text-blue-700',
+  'pre_wedding': 'bg-green-100 text-green-700',
+  'post_wedding': 'bg-yellow-100 text-yellow-700',
+  'post_production': 'bg-blue-100 text-blue-700',
+  'completed': 'bg-green-100 text-green-700',
 }
 
 interface Props {
@@ -32,7 +32,7 @@ interface Props {
 }
 
 export function HubHeader({ couple, contract, milestones }: Props) {
-  const phase = computePhase(milestones)
+  const phase = couple.phase || 'new_client'
 
   return (
     <div className="space-y-1">
@@ -46,7 +46,7 @@ export function HubHeader({ couple, contract, milestones }: Props) {
         </h1>
         <span className="text-muted-foreground text-sm">{formatWeddingDate(couple.wedding_date)}</span>
         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${PHASE_COLORS[phase] || 'bg-gray-100 text-gray-700'}`}>
-          {phase}
+          {PHASE_LABELS[phase] || phase}
         </span>
       </div>
       <div className="flex flex-wrap gap-x-4 text-sm text-muted-foreground">

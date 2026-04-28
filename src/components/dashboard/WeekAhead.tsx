@@ -63,7 +63,7 @@ export default function WeekAhead() {
         supabase
           .from('couples')
           .select('id, bride_first_name, groom_first_name, wedding_date, contracts(reception_venue, ceremony_location)')
-          .eq('status', 'booked')
+          .eq('is_cancelled', false)
           .gte('wedding_date', todayStr)
           .lte('wedding_date', twoWeeksStr)
           .order('wedding_date', { ascending: true }),

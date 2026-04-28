@@ -30,7 +30,7 @@ export default function ProductionHubPage() {
 
   const fetchData = useCallback(async () => {
     const [coupleRes, contractRes, msRes, jobsRes, vidRes, commRes] = await Promise.all([
-      supabase.from('couples').select('id, couple_name, bride_first_name, groom_first_name, wedding_date, status').eq('id', coupleId).limit(1),
+      supabase.from('couples').select('id, couple_name, bride_first_name, groom_first_name, wedding_date, phase, is_cancelled').eq('id', coupleId).limit(1),
       supabase.from('contracts').select('package_name, reception_venue').eq('couple_id', coupleId).limit(1),
       supabase.from('couple_milestones').select('*').eq('couple_id', coupleId).limit(1),
       supabase.from('jobs').select('id, couple_id, job_type, category, description, photos_taken, photos_selected, edited_so_far, total_proofs, status, vendor, order_date, at_lab_date, pickup_date, completed_date, assigned_to, notes').eq('couple_id', coupleId).order('order_date', { ascending: true }),

@@ -218,7 +218,7 @@ See [TRIGGERS.md](TRIGGERS.md) for the complete trigger registry.
 | Milestone triggers (working) | 31 (all m01-m36 except m06_declined/m35_archived) |
 | Milestone triggers (missing) | 0 |
 | Duplicate triggers | 0 (cleaned up April 25, 2026) |
-| Auto-complete triggers | 1 (couples.status on proofs job) |
+| Phase advance trigger | 1 (trg_advance_couple_phase — advances couples.phase on milestone changes) |
 | Utility triggers | 3 (vendor auto-fill, lead scoring, timestamp) |
 | Timestamp triggers | 21 |
 

@@ -62,8 +62,8 @@ export const getCouplesWithQuotes = async () => {
   // Fetch leads (new from quote builder) and booked (to enrich static list with coupleId)
   const { data: couples, error: couplesError } = await supabase
     .from('couples')
-    .select('id, couple_name, wedding_date, lead_source, status, contract_total, created_at')
-    .in('status', ['booked', 'completed'])
+    .select('id, couple_name, wedding_date, lead_source, phase, is_cancelled, contract_total, created_at')
+    .eq('is_cancelled', false)
     .order('created_at', { ascending: true })
 
   if (couplesError || !couples) {
@@ -168,7 +168,6 @@ export const findOrCreateCouple = async (coupleInfo: {
       wedding_year: weddingYear,
       ceremony_venue: coupleInfo.ceremonyVenue || null,
       lead_source: coupleInfo.leadSource || null,
-      status: 'booked',
     })
     .select()
     .single()
@@ -316,16 +315,16 @@ export const findOrCreateCoupleFromPipeline = async (params: {
   // Try exact match on couple_name + wedding_date
   const { data: exact } = await supabase
     .from('couples')
-    .select('id, status')
+    .select('id, is_cancelled')
     .eq('wedding_date', weddingDate)
     .ilike('couple_name', coupleName)
     .limit(1)
 
   if (exact && exact.length > 0) {
     const match = exact[0]
-    if (match.status !== 'booked') {
+    if (match.is_cancelled) {
       await supabase.from('couples')
-        .update({ status: 'booked', booked_date: bookedDate, contract_total: contractTotal })
+        .update({ is_cancelled: false, booked_date: bookedDate, contract_total: contractTotal })
         .eq('id', match.id)
     }
     return { id: match.id as string, created: false }
@@ -360,7 +359,6 @@ export const findOrCreateCoupleFromPipeline = async (params: {
       wedding_year: weddingYear,
       contract_total: contractTotal || null,
       booked_date: bookedDate || new Date().toISOString().split('T')[0],
-      status: 'booked',
       lead_source: leadSource || null,
     })
     .select('id')

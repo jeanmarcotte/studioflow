@@ -170,20 +170,15 @@ export default function CoupleDetailPage() {
 
   const coupleName = couple.couple_name || 'Unknown'
   const packageType = couple.package_type || 'Photo + Video'
-  const status = couple.status || 'lead'
+  const phase = couple.phase || 'new_client'
   const weddingDate = couple.wedding_date ? parseISO(couple.wedding_date) : null
   const daysUntil = weddingDate ? differenceInDays(weddingDate, new Date()) : 0
   const weddingDateFormatted = weddingDate ? format(weddingDate, 'MMMM d, yyyy') : 'TBD'
   const signedDate = contract?.signed_date ? format(parseISO(contract.signed_date), 'MMM d, yyyy') : 'N/A'
   const bookedDate = couple.booked_date ? format(parseISO(couple.booked_date), 'MMM d, yyyy') : signedDate
 
-  // Determine phase from milestones
+  // Phase comes directly from DB
   const ms = milestones || {}
-  const phase = ms.m36_complete ? 'Complete'
-    : ms.m35_archived ? 'Archived'
-    : ms.m19_wedding_day ? 'Post-Production'
-    : ms.m04_contract_signed ? 'Pre-Wedding'
-    : 'Onboarding'
 
   // Milestone phases for ClientJourney
   const journeyPhases = buildPhases(ms, couple.package_type)
@@ -385,7 +380,7 @@ export default function CoupleDetailPage() {
       {contract && (
         <ContractPackageCard
           signedDate={signedDate}
-          isActive={status === 'booked'}
+          isActive={!couple.is_cancelled}
           coverage={{
             package: formatPackage(couple.package_type),
             hours: coverageHours,

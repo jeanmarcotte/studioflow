@@ -22,7 +22,8 @@ interface Couple {
   package_type: string | null
   coverage_hours: number | null
   photographer: string | null
-  status: string | null
+  phase: string | null
+  is_cancelled: boolean
   engagement_status: string | null
   engagement_date: string | null
   contract_total: number | null
@@ -269,7 +270,7 @@ export default function AdminDashboardPage() {
   const yearCardsMap = new Map<number, { year: number; count: number; completedCount: number; sub: string }>()
 
   for (const year of [2025, 2026, 2027]) {
-    const yearCouples = couples.filter(c => c.wedding_year === year && c.status === 'booked')
+    const yearCouples = couples.filter(c => c.wedding_year === year && !c.is_cancelled)
     const completedCount = yearCouples.filter(c => {
       if (!c.wedding_date) return false
       return parseISO(c.wedding_date) < today
@@ -322,7 +323,7 @@ export default function AdminDashboardPage() {
   // Upcoming weddings (all future booked)
   const upcoming = couples
     .filter(c => {
-      if (!c.wedding_date || c.status !== 'booked') return false
+      if (!c.wedding_date || c.is_cancelled) return false
       return differenceInDays(parseISO(c.wedding_date), today) >= 0
     })
     .sort((a, b) => a.wedding_date!.localeCompare(b.wedding_date!))
@@ -333,14 +334,14 @@ export default function AdminDashboardPage() {
       if (!c.wedding_date) return false
       const wDate = parseISO(c.wedding_date)
       const daysSince = differenceInDays(today, wDate)
-      return daysSince >= 0 && daysSince <= 30 && c.status === 'booked'
+      return daysSince >= 0 && daysSince <= 30 && !c.is_cancelled
     })
     .sort((a, b) => b.wedding_date!.localeCompare(a.wedding_date!))
 
   // Modal data
   const modalCouples = modalYear
     ? couples
-        .filter(c => c.wedding_year === modalYear && c.status === 'booked')
+        .filter(c => c.wedding_year === modalYear && !c.is_cancelled)
         .sort((a, b) => (a.wedding_date || '').localeCompare(b.wedding_date || ''))
     : []
 
@@ -377,7 +378,7 @@ export default function AdminDashboardPage() {
 
   // BOX 3: Missing Wedding Forms
   const missingForms = couples.filter(c => {
-    if (!c.wedding_date || c.status !== 'booked') return false
+    if (!c.wedding_date || c.is_cancelled) return false
     return !formCoupleIds.has(c.id) && c.wedding_date >= todayStr && c.wedding_date <= in60days
   })
 
@@ -474,7 +475,7 @@ export default function AdminDashboardPage() {
 
   // === ENGAGEMENT PIPELINE ===
   const msMap = new Map(engMilestones.map(m => [m.couple_id, m]))
-  const bookedCouples = couples.filter(c => c.status === 'booked')
+  const bookedCouples = couples.filter(c => !c.is_cancelled)
 
   const engShotCount = engMilestones.filter(m => m.m06_eng_session_shot === true).length
   const engDeclinedCount = engMilestones.filter(m => m.m06_declined === true).length

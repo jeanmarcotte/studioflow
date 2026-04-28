@@ -69,8 +69,8 @@ export default function RevenuePerClientDashboard() {
       const [couplesRes, contractsRes, extrasOrdersRes, clientExtrasRes, milestonesRes] = await Promise.all([
         supabase
           .from('couples')
-          .select('id, bride_first_name, groom_first_name, wedding_date, wedding_year, status')
-          .in('status', ['booked', 'completed']),
+          .select('id, bride_first_name, groom_first_name, wedding_date, wedding_year, phase, is_cancelled')
+          .eq('is_cancelled', false),
         supabase
           .from('contracts')
           .select('couple_id, total'),

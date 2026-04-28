@@ -83,7 +83,7 @@ export function ClientCard({ couple, contract, extrasOrders }: ClientCardProps) 
 
   const pkgLabel = couple.package_type ? formatPackage(couple.package_type) : null;
 
-  const status = (couple.status || 'booked').toLowerCase();
+  const phase = couple.phase || 'new_client';
 
   const meta: string[] = [];
   if (signedStr) meta.push(`Signed ${signedStr}`);
@@ -144,9 +144,8 @@ export function ClientCard({ couple, contract, extrasOrders }: ClientCardProps) 
 
       {/* ── Badges ────────────────────────────────────────── */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.25rem' }}>
-        <Badge v="accent">{status}</Badge>
+        <Badge v="accent">{phase.replace(/_/g, ' ').replace(/\b\w/g, (ch: string) => ch.toUpperCase())}</Badge>
         <Badge>{nV > 0 ? 'Photo + Video' : 'Photo Only'}</Badge>
-        <Badge v="success">{isPast ? 'Post-Wedding' : 'Pre-Wedding'}</Badge>
         {extrasOrders.length > 0 && <Badge v="warning">Extras Purchased</Badge>}
       </div>
 

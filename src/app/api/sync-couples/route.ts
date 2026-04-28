@@ -36,16 +36,16 @@ export async function POST(req: NextRequest) {
     // Try exact match on couple_name + wedding_date
     const { data: exact } = await supabaseAdmin
       .from('couples')
-      .select('id, status')
+      .select('id, is_cancelled')
       .eq('wedding_date', c.weddingDate)
       .ilike('couple_name', c.coupleName)
       .limit(1)
 
     if (exact && exact.length > 0) {
       const match = exact[0]
-      if (match.status !== 'booked') {
+      if (match.is_cancelled) {
         await supabaseAdmin.from('couples')
-          .update({ status: 'booked', booked_date: c.bookedDate, contract_total: c.contractTotal })
+          .update({ is_cancelled: false, booked_date: c.bookedDate, contract_total: c.contractTotal })
           .eq('id', match.id)
       }
       results.push({ coupleName: c.coupleName, id: match.id, created: false })
@@ -82,7 +82,6 @@ export async function POST(req: NextRequest) {
         wedding_year: weddingYear,
         contract_total: c.contractTotal || null,
         booked_date: c.bookedDate || new Date().toISOString().split('T')[0],
-        status: 'booked',
         lead_source: c.leadSource || null,
       })
       .select('id')

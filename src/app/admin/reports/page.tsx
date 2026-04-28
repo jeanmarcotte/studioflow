@@ -49,7 +49,7 @@ export default function ReportsPage() {
       const todayStr = new Date().toISOString().split('T')[0]
 
       const [couplesRes, contractsRes, financialsRes, jobsRes] = await Promise.all([
-        supabase.from('couples').select('id, status, wedding_date, video_stage').gte('wedding_date', yearStart).lte('wedding_date', yearEnd),
+        supabase.from('couples').select('id, phase, is_cancelled, wedding_date, video_stage').gte('wedding_date', yearStart).lte('wedding_date', yearEnd),
         supabase.from('contracts').select('couple_id, total'),
         supabase.from('couple_financial_summary').select('couple_id, balance_due'),
         supabase.from('jobs').select('id, couple_id, status, category'),
@@ -60,17 +60,17 @@ export default function ReportsPage() {
       const financials = financialsRes.data ?? []
       const jobs = jobsRes.data ?? []
 
-      const bookedCouples = couples.filter(c => c.status === 'booked')
-      const bookedIds = new Set(bookedCouples.map(c => c.id))
+      const activeCouples = couples.filter(c => !c.is_cancelled)
+      const activeIds = new Set(activeCouples.map(c => c.id))
       const yearCoupleIds = new Set(couples.map(c => c.id))
 
-      const revenue = contracts.filter(c => bookedIds.has(c.couple_id)).reduce((sum, c) => sum + (Number(c.total) ?? 0), 0)
-      const remaining = bookedCouples.filter(c => c.wedding_date && c.wedding_date >= todayStr).length
-      const outstanding = financials.filter(f => bookedIds.has(f.couple_id)).reduce((sum, f) => sum + Math.max(0, Number(f.balance_due) ?? 0), 0)
+      const revenue = contracts.filter(c => activeIds.has(c.couple_id)).reduce((sum, c) => sum + (Number(c.total) ?? 0), 0)
+      const remaining = activeCouples.filter(c => c.wedding_date && c.wedding_date >= todayStr).length
+      const outstanding = financials.filter(f => activeIds.has(f.couple_id)).reduce((sum, f) => sum + Math.max(0, Number(f.balance_due) ?? 0), 0)
       const videoBacklog = couples.filter(c => c.video_stage === 'editing' || c.video_stage === 're_editing').length
       const photoPipeline = jobs.filter(j => yearCoupleIds.has(j.couple_id) && !['picked_up', 'completed'].includes(j.status)).length
-      const bookedContracts = contracts.filter(c => bookedIds.has(c.couple_id))
-      const avgPackage = bookedContracts.length > 0 ? bookedContracts.reduce((sum, c) => sum + (Number(c.total) ?? 0), 0) / bookedContracts.length : 0
+      const activeContracts = contracts.filter(c => activeIds.has(c.couple_id))
+      const avgPackage = activeContracts.length > 0 ? activeContracts.reduce((sum, c) => sum + (Number(c.total) ?? 0), 0) / activeContracts.length : 0
 
       setKpi({ revenue, remaining, outstanding, videoBacklog, photoPipeline, avgPackage })
       setLoading(false)
@@ -87,7 +87,7 @@ export default function ReportsPage() {
     const today = new Date()
 
     const [couplesRes, jobsRes] = await Promise.all([
-      supabase.from('couples').select('id, couple_name, wedding_date, status, video_stage').gte('wedding_date', yearStart).lte('wedding_date', yearEnd).in('status', ['booked', 'completed']).order('wedding_date', { ascending: true }),
+      supabase.from('couples').select('id, couple_name, wedding_date, phase, is_cancelled, video_stage').gte('wedding_date', yearStart).lte('wedding_date', yearEnd).eq('is_cancelled', false).order('wedding_date', { ascending: true }),
       supabase.from('jobs').select('id, couple_id, status'),
     ])
 
@@ -103,7 +103,7 @@ export default function ReportsPage() {
       const cJobs = jobsByCouple.get(c.id) ?? []
       const activeJobs = cJobs.filter(j => !['picked_up', 'completed'].includes(j.status)).length
       const daysSince = c.wedding_date ? differenceInDays(today, parseISO(c.wedding_date)) : ''
-      return [c.couple_name, c.wedding_date ?? '', c.status, String(cJobs.length), String(activeJobs), c.video_stage ?? '—', String(daysSince)]
+      return [c.couple_name, c.wedding_date ?? '', c.phase || 'new_client', String(cJobs.length), String(activeJobs), c.video_stage ?? '—', String(daysSince)]
     })
 
     downloadCSV(`sigs-production-report-${selectedYear}.csv`, headers, rows)
@@ -117,7 +117,7 @@ export default function ReportsPage() {
     const yearEnd = `${selectedYear}-12-31`
 
     const [couplesRes, contractsRes, financialsRes, milestonesRes, extrasRes] = await Promise.all([
-      supabase.from('couples').select('id, couple_name, wedding_date, status, package_type').gte('wedding_date', yearStart).lte('wedding_date', yearEnd).order('wedding_date', { ascending: true }),
+      supabase.from('couples').select('id, couple_name, wedding_date, phase, is_cancelled, package_type').gte('wedding_date', yearStart).lte('wedding_date', yearEnd).order('wedding_date', { ascending: true }),
       supabase.from('contracts').select('couple_id, reception_venue, total'),
       supabase.from('couple_financial_summary').select('couple_id, total_paid, balance_due'),
       supabase.from('couple_milestones').select('couple_id, m06_eng_session_shot, m06_declined'),
@@ -142,7 +142,7 @@ export default function ReportsPage() {
       const ms = msMap.get(c.id) as any
       const eng = ms?.m06_eng_session_shot ? 'Shot' : ms?.m06_declined ? 'Declined' : 'Pending'
       return [
-        c.couple_name, c.wedding_date ?? '', c.status, c.package_type ?? '', con?.reception_venue ?? '',
+        c.couple_name, c.wedding_date ?? '', c.phase || 'new_client', c.package_type ?? '', con?.reception_venue ?? '',
         fmtCurrency(Number(con?.total) ?? 0), fmtCurrency(Number(fin?.total_paid) ?? 0), fmtCurrency(Number(fin?.balance_due) ?? 0),
         eng, extrasMap.get(c.id) ?? '—',
       ]
@@ -159,7 +159,7 @@ export default function ReportsPage() {
     const yearEnd = `${selectedYear}-12-31`
 
     const [couplesRes, contractsRes, financialsRes, paymentsRes, extrasRes] = await Promise.all([
-      supabase.from('couples').select('id, couple_name, wedding_date, package_type').eq('status', 'booked').gte('wedding_date', yearStart).lte('wedding_date', yearEnd),
+      supabase.from('couples').select('id, couple_name, wedding_date, package_type').eq('is_cancelled', false).gte('wedding_date', yearStart).lte('wedding_date', yearEnd),
       supabase.from('contracts').select('couple_id, total'),
       supabase.from('couple_financial_summary').select('couple_id, total_paid, balance_due'),
       supabase.from('payments').select('couple_id'),
@@ -200,7 +200,7 @@ export default function ReportsPage() {
     const yearEnd = `${selectedYear}-12-31`
 
     const [couplesRes, contractsRes] = await Promise.all([
-      supabase.from('couples').select('id, couple_name, wedding_date, package_type').eq('status', 'booked').gte('wedding_date', todayStr).lte('wedding_date', yearEnd).order('wedding_date', { ascending: true }),
+      supabase.from('couples').select('id, couple_name, wedding_date, package_type').eq('is_cancelled', false).gte('wedding_date', todayStr).lte('wedding_date', yearEnd).order('wedding_date', { ascending: true }),
       supabase.from('contracts').select('couple_id, ceremony_location, reception_venue, start_time, end_time, appointment_notes'),
     ])
 
@@ -260,7 +260,7 @@ export default function ReportsPage() {
       const yearEnd = `${year}-12-31`
 
       const [couplesRes, contractsRes, milestonesRes, extrasRes] = await Promise.all([
-        supabase.from('couples').select('id, status, package_type').gte('wedding_date', yearStart).lte('wedding_date', yearEnd),
+        supabase.from('couples').select('id, phase, is_cancelled, package_type').gte('wedding_date', yearStart).lte('wedding_date', yearEnd),
         supabase.from('contracts').select('couple_id, total'),
         supabase.from('couple_milestones').select('couple_id, m06_eng_session_shot'),
         supabase.from('extras_orders').select('couple_id, status, extras_sale_amount').in('status', ['signed', 'completed']),
@@ -271,22 +271,22 @@ export default function ReportsPage() {
       const milestones = milestonesRes.data ?? []
       const extras = extrasRes.data ?? []
 
-      const booked = couples.filter(c => c.status === 'booked')
-      const bookedIds = new Set(booked.map(c => c.id))
+      const active = couples.filter(c => !c.is_cancelled)
+      const activeIds = new Set(active.map(c => c.id))
       const coupleIds = new Set(couples.map(c => c.id))
-      const bookedContracts = contracts.filter(c => bookedIds.has(c.couple_id))
-      const revenue = bookedContracts.reduce((s, c) => s + (Number(c.total) ?? 0), 0)
-      const avg = bookedContracts.length > 0 ? revenue / bookedContracts.length : 0
-      const photoVideo = booked.filter(c => c.package_type?.toLowerCase().includes('photo') && c.package_type?.toLowerCase().includes('video')).length
-      const photoOnly = booked.filter(c => c.package_type?.toLowerCase().includes('photo') && !c.package_type?.toLowerCase().includes('video')).length
+      const activeContracts = contracts.filter(c => activeIds.has(c.couple_id))
+      const revenue = activeContracts.reduce((s, c) => s + (Number(c.total) ?? 0), 0)
+      const avg = activeContracts.length > 0 ? revenue / activeContracts.length : 0
+      const photoVideo = active.filter(c => c.package_type?.toLowerCase().includes('photo') && c.package_type?.toLowerCase().includes('video')).length
+      const photoOnly = active.filter(c => c.package_type?.toLowerCase().includes('photo') && !c.package_type?.toLowerCase().includes('video')).length
       const engShot = milestones.filter(m => coupleIds.has(m.couple_id) && m.m06_eng_session_shot === true).length
       const c2Sold = extras.filter(e => coupleIds.has(e.couple_id)).length
       const finRes = await supabase.from('couple_financial_summary').select('couple_id, balance_due')
-      const avgBalance = booked.length > 0
-        ? (finRes.data ?? []).filter((f: any) => bookedIds.has(f.couple_id)).reduce((s: number, f: any) => s + Math.max(0, Number(f.balance_due) ?? 0), 0) / booked.length
+      const avgBalance = active.length > 0
+        ? (finRes.data ?? []).filter((f: any) => activeIds.has(f.couple_id)).reduce((s: number, f: any) => s + Math.max(0, Number(f.balance_due) ?? 0), 0) / active.length
         : 0
 
-      return { weddings: booked.length, revenue, avg, photoVideo, photoOnly, engShot, c2Sold, avgBalance }
+      return { weddings: active.length, revenue, avg, photoVideo, photoOnly, engShot, c2Sold, avgBalance }
     }
 
     const [curr, prev] = await Promise.all([getYearStats(selectedYear), getYearStats(prevYear)])

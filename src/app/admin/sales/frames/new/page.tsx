@@ -42,7 +42,7 @@ export default function FrameSaleCoupleSelector() {
       const { data: allCouples } = await supabase
         .from('couples')
         .select('id, bride_first_name, groom_first_name, wedding_date, total_paid, balance_owing')
-        .eq('status', 'booked')
+        .eq('is_cancelled', false)
         .order('wedding_date', { ascending: true })
 
       const { data: existingOrders } = await supabase

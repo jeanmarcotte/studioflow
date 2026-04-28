@@ -43,12 +43,24 @@ function formatWeddingDateWithDow(date: string): string {
   }
 }
 
-const statusColors: Record<string, string> = {
-  lead: 'bg-gray-100 text-gray-700',
-  quoted: 'bg-yellow-100 text-yellow-700',
-  booked: 'bg-green-100 text-green-700',
-  completed: 'bg-blue-100 text-blue-700',
-  cancelled: 'bg-red-100 text-red-700',
+const PHASE_LABELS: Record<string, string> = {
+  'new_client': 'New Client',
+  'pre_engagement': 'Pre-Engagement',
+  'post_engagement': 'Post-Engagement',
+  'pre_wedding': 'Pre-Wedding',
+  'post_wedding': 'Post-Wedding',
+  'post_production': 'Post-Production',
+  'completed': 'Completed',
+}
+
+const phaseColors: Record<string, string> = {
+  'new_client': 'bg-gray-100 text-gray-700',
+  'pre_engagement': 'bg-yellow-100 text-yellow-700',
+  'post_engagement': 'bg-blue-100 text-blue-700',
+  'pre_wedding': 'bg-green-100 text-green-700',
+  'post_wedding': 'bg-yellow-100 text-yellow-700',
+  'post_production': 'bg-blue-100 text-blue-700',
+  'completed': 'bg-green-100 text-green-700',
 }
 
 function DocLink({ href, title }: { href: string; title: string }) {
@@ -136,14 +148,14 @@ export function DocumentsTable({ data }: DocumentsTableProps) {
       size: 160,
     },
     {
-      id: 'status',
-      accessorKey: 'status',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      id: 'phase',
+      accessorKey: 'phase',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Phase" />,
       cell: ({ row }) => {
-        const s = row.original.status
+        const p = row.original.phase
         return (
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[s] || 'bg-gray-100 text-gray-700'}`}>
-            {s}
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${phaseColors[p] || 'bg-gray-100 text-gray-700'}`}>
+            {PHASE_LABELS[p] || p}
           </span>
         )
       },

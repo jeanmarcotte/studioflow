@@ -195,14 +195,14 @@ export default function VideoProductionPage() {
           .eq('section', 'waiting_photo'),
         supabase
           .from('couples')
-          .select('id, couple_name, wedding_date, status, contracts(num_videographers), couple_milestones(m24_photo_order_in)')
+          .select('id, couple_name, wedding_date, phase, is_cancelled, contracts(num_videographers), couple_milestones(m24_photo_order_in)')
           .lte('wedding_date', today)
-          .not('status', 'in', '("declined","cancelled")')
+          .eq('is_cancelled', false)
           .order('wedding_date', { ascending: true }),
         supabase
           .from('couples')
           .select('id', { count: 'exact', head: true })
-          .eq('status', 'booked')
+          .eq('is_cancelled', false)
           .gte('wedding_date', '2026-01-01')
           .lte('wedding_date', '2026-12-31')
           .in('package_type', ['photo_video']),
@@ -212,7 +212,7 @@ export default function VideoProductionPage() {
       if (!photoRes.error && photoRes.data) setPhotoWaitingJobs(photoRes.data as unknown as PhotoWaitingJob[])
       if (!awaitingRes.error && awaitingRes.data) {
         const filtered = (awaitingRes.data as any[]).filter((c) => {
-          if (['declined', 'cancelled'].includes(c.status)) return false
+          if (c.is_cancelled) return false
           const contract = Array.isArray(c.contracts) ? c.contracts[0] : c.contracts
           if (!contract || (contract.num_videographers || 0) <= 0) return false
           const milestone = Array.isArray(c.couple_milestones) ? c.couple_milestones[0] : c.couple_milestones

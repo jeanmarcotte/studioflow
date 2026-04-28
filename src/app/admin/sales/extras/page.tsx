@@ -454,7 +454,7 @@ export default function ExtrasSalesPage() {
     supabase
       .from('couples')
       .select('id, couple_name, wedding_date')
-      .eq('status', 'booked')
+      .eq('is_cancelled', false)
       .order('wedding_date', { ascending: true })
       .then(({ data }) => setCouples(data || []))
   }, [])

@@ -19,7 +19,8 @@ interface CoupleRow {
   groom_last_name: string | null
   phone: string | null
   email: string | null
-  status: string
+  phase: string
+  is_cancelled: boolean
   wedding_date: string | null
   wedding_year: number | null
   package_type: string | null
@@ -65,28 +66,28 @@ const ENG_SORT_ORDER: Record<string, number> = {
   pending: 0, shot: 1, quoted: 2, sold: 3, declined: 4,
 }
 
+const PHASE_LABELS: Record<string, string> = {
+  'new_client': 'New Client',
+  'pre_engagement': 'Pre-Engagement',
+  'post_engagement': 'Post-Engagement',
+  'pre_wedding': 'Pre-Wedding',
+  'post_wedding': 'Post-Wedding',
+  'post_production': 'Post-Production',
+  'completed': 'Completed',
+}
+
 const PHASE_SORT_ORDER: Record<string, number> = {
-  'New Client': 0, 'Post-Engagement': 1, 'Pre-Wedding': 2, 'Post-Wedding': 3, 'Post-Production': 4, 'Completed': 5,
+  'new_client': 0, 'pre_engagement': 1, 'post_engagement': 2, 'pre_wedding': 3, 'post_wedding': 4, 'post_production': 5, 'completed': 6,
 }
 
 const PHASE_COLORS: Record<string, string> = {
-  'Completed': 'bg-blue-100 text-blue-700',
-  'Post-Production': 'bg-purple-100 text-purple-700',
-  'Post-Wedding': 'bg-orange-100 text-orange-700',
-  'Pre-Wedding': 'bg-teal-100 text-teal-700',
-  'Post-Engagement': 'bg-green-100 text-green-700',
-  'New Client': 'bg-gray-100 text-gray-700',
-}
-
-function computeLifecyclePhase(m: MilestoneRow | undefined, balance: number = 0): string {
-  if (!m) return 'New Client'
-  if (m.m34_items_picked_up && Math.abs(balance) < 50) return 'Completed'
-  if (m.m22_proofs_edited) return 'Post-Production'
-  if (m.m19_wedding_day) return 'Post-Wedding'
-  if (m.m15_day_form_approved) return 'Pre-Wedding'
-  if (m.m06_eng_session_shot) return 'Post-Engagement'
-  if (m.m06_declined) return 'Pre-Wedding'
-  return 'New Client'
+  'new_client': 'bg-gray-100 text-gray-700',
+  'pre_engagement': 'bg-yellow-100 text-yellow-700',
+  'post_engagement': 'bg-blue-100 text-blue-700',
+  'pre_wedding': 'bg-green-100 text-green-700',
+  'post_wedding': 'bg-yellow-100 text-yellow-700',
+  'post_production': 'bg-blue-100 text-blue-700',
+  'completed': 'bg-green-100 text-green-700',
 }
 
 /** Supabase returns joined relations as array OR object — handle both */
@@ -180,7 +181,7 @@ export default function CouplesPage() {
       const [couplesRes, upcomingRes] = await Promise.all([
         supabase
           .from('couples')
-          .select(`id, couple_name, bride_first_name, bride_last_name, groom_first_name, groom_last_name, phone, email, wedding_date, wedding_year, package_type, status, contracts(reception_venue, total), couple_milestones(m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_frame_sale_complete, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in, m34_items_picked_up), extras_orders(extras_sale_amount, status), c3_line_items(total), payments(amount), wedding_day_forms(id)`)
+          .select(`id, couple_name, bride_first_name, bride_last_name, groom_first_name, groom_last_name, phone, email, wedding_date, wedding_year, package_type, phase, is_cancelled, contracts(reception_venue, total), couple_milestones(m06_eng_session_shot, m06_declined, m10_frame_sale_quote, m11_frame_sale_complete, m15_day_form_approved, m19_wedding_day, m22_proofs_edited, m24_photo_order_in, m25_video_order_in, m34_items_picked_up), extras_orders(extras_sale_amount, status), c3_line_items(total), payments(amount), wedding_day_forms(id)`)
           .order('wedding_date', { ascending: true }),
         supabase
           .from('couples')
@@ -212,7 +213,8 @@ export default function CouplesPage() {
             groom_last_name: row.groom_last_name || null,
             phone: row.phone || null,
             email: row.email || null,
-            status: row.status || 'lead',
+            phase: row.phase || 'new_client',
+            is_cancelled: row.is_cancelled || false,
             wedding_date: row.wedding_date,
             wedding_year: row.wedding_year,
             package_type: row.package_type,
@@ -234,7 +236,7 @@ export default function CouplesPage() {
             m34_items_picked_up: ms?.m34_items_picked_up || false,
             m24_photo_order_in: ms?.m24_photo_order_in || false,
             m25_video_order_in: ms?.m25_video_order_in || false,
-            lifecycle_phase: computeLifecyclePhase(ms, fin.balance),
+            lifecycle_phase: row.phase || 'new_client',
             has_wd_form: (() => {
               const wdf = row.wedding_day_forms
               if (!wdf) return false
@@ -326,7 +328,7 @@ export default function CouplesPage() {
       }
 
       // Pending engagements (booked only)
-      if (c.status === 'booked' && !c.m06_eng_session_shot && !c.m06_declined) pendingEng++
+      if (!c.is_cancelled && !c.m06_eng_session_shot && !c.m06_declined) pendingEng++
 
       // Remaining (not shot) by year
       if (!c.m19_wedding_day && year && year in remainingByYear) remainingByYear[year]++
@@ -382,7 +384,7 @@ export default function CouplesPage() {
 
   // Engagement status for sidebar (booked couples only)
   const engSidebar = useMemo(() => {
-    const booked = couples.filter(c => c.status === 'booked')
+    const booked = couples.filter(c => !c.is_cancelled)
     const shot = booked.filter(c => c.m06_eng_session_shot).length
     const declined = booked.filter(c => c.m06_declined).length
     const pending = booked.filter(c => !c.m06_eng_session_shot && !c.m06_declined).length
@@ -418,7 +420,7 @@ export default function CouplesPage() {
       header: ({ column }) => <DataTableColumnHeader column={column} title="Phase" />,
       cell: ({ row }) => {
         const phase = row.original.lifecycle_phase
-        return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${PHASE_COLORS[phase] || 'bg-gray-100 text-gray-700'}`}>{phase}</span>
+        return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${PHASE_COLORS[phase] || 'bg-gray-100 text-gray-700'}`}>{PHASE_LABELS[phase] || phase}</span>
       },
       sortingFn: (a, b) => (PHASE_SORT_ORDER[a.original.lifecycle_phase] ?? 99) - (PHASE_SORT_ORDER[b.original.lifecycle_phase] ?? 99),
     },
@@ -654,7 +656,7 @@ export default function CouplesPage() {
             data={filtered}
             emptyMessage="No couples found matching your filters."
             pageSize={50}
-            rowClassName={(row) => row.lifecycle_phase === 'Completed' ? 'bg-gray-100 text-gray-400 [&_span]:text-gray-400' : ''}
+            rowClassName={(row) => row.lifecycle_phase === 'completed' ? 'bg-gray-100 text-gray-400 [&_span]:text-gray-400' : ''}
           />
         </div>
 

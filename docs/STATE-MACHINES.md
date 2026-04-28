@@ -6,29 +6,45 @@
 
 ---
 
-## couples.status
+## couples.phase (7-Phase Lifecycle)
+
+Phase is the single source of truth for where a couple is in their journey. It only moves forward, never backward. The `trg_advance_couple_phase` trigger auto-advances phase when milestones change.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> lead : Ballot submitted (BridalFlow)
-    lead --> quoted : Quote sent
-    quoted --> booked : Contract signed + deposit
-    booked --> completed : PROD-WED-PROOFS job created + wedding_date passed (auto-trigger)
-    booked --> cancelled : Couple cancels
+    [*] --> new_client : Couple created
+    new_client --> pre_engagement : Contract signed (m04)
+    pre_engagement --> post_engagement : Engagement session shot (m06)
+    post_engagement --> pre_wedding : Day form approved (m15)
+    pre_wedding --> post_wedding : Wedding day (m19)
+    post_wedding --> post_production : Proofs edited (m22)
+    post_production --> completed : Items picked up (m34)
     completed --> [*]
-    cancelled --> [*]
 ```
 
-| Value | Meaning | Set By |
-|-------|---------|--------|
-| `lead` | Initial inquiry | Manual or BridalFlow |
-| `quoted` | Quote sent | Quote page |
-| `booked` | Contract signed, active client | `convert_quote_to_contract` |
-| `completed` | All deliverables done | `trg_auto_complete_couple_on_proofs` (auto) |
-| `cancelled` | Cancelled/refunded | Manual |
+| Value | Meaning | Advanced By |
+|-------|---------|------------|
+| `new_client` | Initial state after creation | Default |
+| `pre_engagement` | Contract signed, awaiting engagement | m04 milestone |
+| `post_engagement` | Engagement shot, entering production | m06 milestone |
+| `pre_wedding` | Day form approved, wedding upcoming | m15 milestone |
+| `post_wedding` | Wedding day occurred | m19 milestone |
+| `post_production` | Proofs edited, orders in progress | m22 milestone |
+| `completed` | All items picked up, journey complete | m34 milestone |
 
-**Rule:** `couples.status` is always lowercase. Never `'Booked'`, always `'booked'`.
-**Rule:** `completed` should NEVER be set manually — only via auto-trigger.
+**Rule:** Phase only moves forward. Never set phase to an earlier value.
+**Rule:** Phase is advanced by the `trg_advance_couple_phase` database trigger — never manually updated in frontend code.
+
+### couples.is_cancelled (Separate Flag)
+
+Cancellation is independent of phase. A couple at any phase can be cancelled.
+
+| Value | Meaning |
+|-------|---------|
+| `false` (default) | Active couple |
+| `true` | Cancelled/refunded |
+
+**Rule:** Cancelled couples are hidden from all listings by default (filter `is_cancelled = false`). They only appear when explicitly requested.
 
 ---
 
@@ -167,7 +183,7 @@ stateDiagram-v2
 | `Booked` | Consultation happened, couple booked |
 | `Failed` | Consultation happened, couple did not book |
 
-**Note:** Title Case (not lowercase like couples.status).
+**Note:** Title Case (not lowercase like couples.phase).
 
 ---
 

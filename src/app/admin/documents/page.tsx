@@ -18,7 +18,8 @@ export interface CoupleDocRow {
   bride_first_name: string
   groom_first_name: string
   wedding_date: string
-  status: string
+  phase: string
+  is_cancelled: boolean
   email: string | null
   contract_ids: string[]
   extras_order_ids: string[]
@@ -131,7 +132,8 @@ export default function DocumentsPage() {
           bride_first_name: c.bride_first_name || '',
           groom_first_name: c.groom_first_name || '',
           wedding_date: c.wedding_date || '',
-          status: c.status || 'lead',
+          phase: c.phase || 'new_client',
+          is_cancelled: c.is_cancelled || false,
           email: c.email || null,
           contract_ids: contractMap.get(c.id) || [],
           extras_order_ids: extrasOrderMap.get(c.id) || [],

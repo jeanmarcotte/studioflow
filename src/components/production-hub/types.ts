@@ -4,7 +4,8 @@ export interface HubCouple {
   bride_first_name: string | null
   groom_first_name: string | null
   wedding_date: string | null
-  status: string
+  phase: string
+  is_cancelled: boolean
 }
 
 export interface HubContract {
