@@ -28,16 +28,16 @@ export function ClientJourney({ phases, totalMilestones, completedMilestones }: 
   return (
     <Card>
       <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between pb-2 gap-1">
-        <CardTitle className="text-base font-medium">Client Journey</CardTitle>
-        <span className="text-xs md:text-sm text-gray-500">
+        <CardTitle className="text-lg font-semibold text-slate-900">Client Journey</CardTitle>
+        <span className="text-xs md:text-sm text-slate-500">
           {Math.round(progress)}% complete — {completedMilestones} of {totalMilestones} milestones
         </span>
       </CardHeader>
       <CardContent>
         {/* Animated Progress Bar */}
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-6">
+        <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-6">
           <motion.div
-            className="h-full bg-teal-500"
+            className="h-full bg-slate-700"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 1, ease: 'easeOut' }}
@@ -56,13 +56,13 @@ export function ClientJourney({ phases, totalMilestones, completedMilestones }: 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: phaseIndex * 0.1, duration: 0.4 }}
-                className="border rounded-lg p-4"
+                className="border border-slate-100 rounded-lg p-4 bg-slate-50/50"
               >
                 <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     {phase.title}
                   </h4>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-slate-400">
                     {phaseCompleted} of {phaseTotal}
                   </span>
                 </div>
@@ -77,11 +77,11 @@ export function ClientJourney({ phases, totalMilestones, completedMilestones }: 
                       className="flex items-center gap-2"
                     >
                       {milestone.completed ? (
-                        <Check className="w-4 h-4 text-teal-500" />
+                        <Check className="w-4 h-4 text-green-600" />
                       ) : (
-                        <Circle className="w-4 h-4 text-gray-300" />
+                        <Circle className="w-4 h-4 text-slate-300" />
                       )}
-                      <span className={`text-sm ${milestone.completed ? 'text-gray-900' : 'text-gray-400'}`}>
+                      <span className={`text-sm ${milestone.completed ? 'text-slate-700' : 'text-slate-400'}`}>
                         {milestone.label}
                       </span>
                     </motion.li>

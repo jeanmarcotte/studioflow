@@ -18,14 +18,14 @@ export function NotesCard({ coupleNotes, weddingDayNotes }: NotesCardProps) {
       </CardHeader>
       <CardContent>
         {!hasAnyNotes ? (
-          <p className="text-sm text-gray-400 italic">No notes</p>
+          <p className="text-sm text-slate-400 italic">No notes</p>
         ) : (
           <div className="space-y-4">
             {/* Couple notes */}
             {coupleNotes && (
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">General</p>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{coupleNotes}</p>
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{coupleNotes}</p>
               </div>
             )}
 
@@ -33,7 +33,7 @@ export function NotesCard({ coupleNotes, weddingDayNotes }: NotesCardProps) {
             {weddingDayNotes?.additional && (
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Wedding Day Notes</p>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{weddingDayNotes.additional}</p>
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{weddingDayNotes.additional}</p>
               </div>
             )}
 
@@ -41,7 +41,7 @@ export function NotesCard({ coupleNotes, weddingDayNotes }: NotesCardProps) {
             {weddingDayNotes?.final && (
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Final Notes from Couple</p>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{weddingDayNotes.final}</p>
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{weddingDayNotes.final}</p>
               </div>
             )}
           </div>

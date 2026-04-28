@@ -8,4 +8,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #7582 | 5:54 PM | ✅ | Crew call sheet summary email enhanced with confirmation tracking | ~377 |
+
+### Apr 28, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #8037 | 3:07 PM | 🔴 | Consistent 12-Hour Time Formatting in Contract Displays | ~406 |
 </claude-mem-context>

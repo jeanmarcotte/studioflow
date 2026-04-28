@@ -13,6 +13,15 @@ interface CoupleHeaderProps {
   bookedDate: string
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  booked: 'bg-green-500/20 text-green-300 border border-green-500/30',
+  post_production: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
+  completed: 'bg-slate-500/20 text-slate-300 border border-slate-500/30',
+  cancelled: 'bg-red-500/20 text-red-300 border border-red-500/30',
+  lead: 'bg-slate-500/20 text-slate-300 border border-slate-500/30',
+  quoted: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30',
+}
+
 export function CoupleHeader({
   coupleName,
   packageType,
@@ -23,31 +32,29 @@ export function CoupleHeader({
   signedDate,
   bookedDate
 }: CoupleHeaderProps) {
-  const statusColor = {
-    booked: 'bg-green-600 hover:bg-green-600',
-    completed: 'bg-blue-600 hover:bg-blue-600',
-    cancelled: 'bg-red-600 hover:bg-red-600',
-    lead: 'bg-gray-500 hover:bg-gray-500',
-    quoted: 'bg-yellow-500 hover:bg-yellow-500'
-  }[status] ?? 'bg-gray-500'
+  const statusBadge = STATUS_COLORS[status] ?? 'bg-slate-500/20 text-slate-300 border border-slate-500/30'
+  const daysColor = daysUntil < 0 ? 'text-amber-400' : 'text-emerald-400'
+  const daysText = daysUntil < 0
+    ? `${Math.abs(daysUntil)} days ago`
+    : daysUntil === 0 ? 'Today!' : `${daysUntil} days until wedding`
 
   return (
-    <div className="bg-teal-600 rounded-lg p-4 md:p-6 text-white">
+    <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-900 rounded-xl p-6 md:p-8 text-white">
       <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 md:gap-0">
         <div>
-          <h1 className="text-xl md:text-2xl font-semibold">
-            {coupleName} <span className="text-teal-200 font-normal">— {packageType}</span>
+          <h1 className="text-xl md:text-2xl font-bold">
+            {coupleName} <span className="text-slate-300 text-lg font-normal">— {packageType}</span>
           </h1>
-          <p className="mt-2 text-teal-100 text-sm md:text-base">
-            {weddingDate} · <span className="text-teal-200">{daysUntil} days until wedding</span>
+          <p className="mt-2 text-slate-300 text-sm md:text-base">
+            {weddingDate} · <span className={daysColor}>{daysText}</span>
           </p>
-          <p className="text-sm text-teal-200">
+          <p className="text-sm text-slate-400">
             Signed {signedDate} · Booked {bookedDate}
           </p>
         </div>
         <div className="flex gap-2">
-          <Badge className={statusColor}>{status}</Badge>
-          <Badge variant="outline" className="border-white text-white">{phase}</Badge>
+          <Badge className={statusBadge}>{status}</Badge>
+          <Badge variant="outline" className="border-slate-400 text-slate-300">{phase}</Badge>
         </div>
       </div>
     </div>

@@ -23,24 +23,24 @@ export function TeamCard({ assignment }: TeamCardProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Lead Photographer - Always show */}
-        <div className="border rounded-lg p-4">
-          <p className="text-xs font-medium text-teal-600 uppercase tracking-wider mb-1">Lead Photographer</p>
-          <p className="text-lg font-medium text-gray-900">{leadPhotographer}</p>
+        <div className="border border-slate-100 rounded-lg p-3">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Lead Photographer</p>
+          <p className="text-base font-medium text-slate-900">{leadPhotographer}</p>
         </div>
 
         {/* Second Photographer - Only show if assigned */}
         {secondPhotographer && (
-          <div className="border rounded-lg p-4">
-            <p className="text-xs font-medium text-teal-600 uppercase tracking-wider mb-1">Second Photographer</p>
-            <p className="text-lg font-medium text-gray-900">{secondPhotographer}</p>
+          <div className="border border-slate-100 rounded-lg p-3">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Second Photographer</p>
+            <p className="text-base font-medium text-slate-900">{secondPhotographer}</p>
           </div>
         )}
 
         {/* Videographer - Only show if assigned */}
         {videographer && (
-          <div className="border rounded-lg p-4">
-            <p className="text-xs font-medium text-teal-600 uppercase tracking-wider mb-1">Videographer</p>
-            <p className="text-lg font-medium text-gray-900">{videographer}</p>
+          <div className="border border-slate-100 rounded-lg p-3">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Videographer</p>
+            <p className="text-base font-medium text-slate-900">{videographer}</p>
           </div>
         )}
 

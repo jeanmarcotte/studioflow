@@ -297,7 +297,7 @@ export default function CoupleDetailPage() {
       />
 
       {/* 2. Info Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border rounded-lg p-4 md:p-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white border border-slate-200 rounded-xl shadow-sm p-5">
         <InfoGrid
           title="Couple"
           items={[

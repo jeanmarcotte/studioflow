@@ -7,6 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #8037 | 3:07 PM | 🔴 | Consistent 12-Hour Time Formatting in Contract Displays | ~406 |
 | #7986 | 1:06 PM | ✅ | WO-957 completed and deployed to main branch | ~313 |
 | #7985 | 1:05 PM | 🔄 | Completed Zone 2 UI migration to database-driven line items display | ~349 |
 | #7984 | 1:04 PM | 🔴 | Refactored Zone 2 extras data source to use couple's actual line items | ~338 |
