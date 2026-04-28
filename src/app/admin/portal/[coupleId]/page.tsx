@@ -22,6 +22,8 @@ interface CouplePortalData {
   portal_first_login_at: string | null
   portal_last_login_at: string | null
   hero_image_url: string | null
+  hero_focal_x: number | null
+  hero_focal_y: number | null
   portal_video_url: string | null
   portal_video_type: string | null
   collage_img_left: string | null
@@ -55,6 +57,8 @@ export default function PortalEditorPage() {
   const [videoUrl, setVideoUrl] = useState('')
   const [caption, setCaption] = useState('')
   const [cacheBust, setCacheBust] = useState<Record<string, number>>({})
+  const [focalX, setFocalX] = useState(50)
+  const [focalY, setFocalY] = useState(50)
   const heroInputRef = useRef<HTMLInputElement>(null)
   const collageLeftRef = useRef<HTMLInputElement>(null)
   const collageCenterRef = useRef<HTMLInputElement>(null)
@@ -72,7 +76,7 @@ export default function PortalEditorPage() {
   async function fetchCouple() {
     const { data } = await supabase
       .from('couples')
-      .select('id, bride_first_name, groom_first_name, wedding_date, email, portal_slug, portal_invite_sent_at, portal_first_login_at, portal_last_login_at, hero_image_url, portal_video_url, portal_video_type, collage_img_left, collage_img_center, collage_img_right, collage_caption, share_enabled, share_token')
+      .select('id, bride_first_name, groom_first_name, wedding_date, email, portal_slug, portal_invite_sent_at, portal_first_login_at, portal_last_login_at, hero_image_url, hero_focal_x, hero_focal_y, portal_video_url, portal_video_type, collage_img_left, collage_img_center, collage_img_right, collage_caption, share_enabled, share_token')
       .eq('id', coupleId)
       .limit(1)
 
@@ -81,6 +85,8 @@ export default function PortalEditorPage() {
     if (c) {
       setVideoUrl(c.portal_video_url ?? '')
       setCaption(c.collage_caption ?? '')
+      setFocalX(c.hero_focal_x ?? 50)
+      setFocalY(c.hero_focal_y ?? 50)
     }
     setLoading(false)
   }
@@ -149,6 +155,16 @@ export default function PortalEditorPage() {
     setVideoUrl('')
     toast.success('Video removed')
     fetchCouple()
+  }
+
+  async function handleFocalClick(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = Math.round(((e.clientX - rect.left) / rect.width) * 100)
+    const y = Math.round(((e.clientY - rect.top) / rect.height) * 100)
+    setFocalX(x)
+    setFocalY(y)
+    await supabase.from('couples').update({ hero_focal_x: x, hero_focal_y: y }).eq('id', coupleId)
+    toast.success(`Focal point set to ${x}%, ${y}%`)
   }
 
   async function saveCaption() {
@@ -266,8 +282,47 @@ export default function PortalEditorPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {couple.hero_image_url && (
-            <div className="relative w-full max-w-md">
-              <Image src={`${couple.hero_image_url}${cacheBust.hero_image_url ? `?t=${cacheBust.hero_image_url}` : ''}`} alt="Hero" width={480} height={270} className="rounded-lg object-cover" />
+            <div className="w-full max-w-md space-y-3">
+              <div
+                className="relative cursor-crosshair rounded-lg overflow-hidden"
+                onClick={handleFocalClick}
+                style={{ aspectRatio: '16/9' }}
+              >
+                <Image
+                  src={`${couple.hero_image_url}${cacheBust.hero_image_url ? `?t=${cacheBust.hero_image_url}` : ''}`}
+                  alt="Hero"
+                  fill
+                  className="object-cover"
+                  style={{ objectPosition: `${focalX}% ${focalY}%` }}
+                />
+                <div
+                  className="absolute w-5 h-5 rounded-full border-2 border-white pointer-events-none"
+                  style={{
+                    backgroundColor: '#0F6E56',
+                    left: `${focalX}%`,
+                    top: `${focalY}%`,
+                    transform: 'translate(-50%, -50%)',
+                    boxShadow: '0 1px 6px rgba(0,0,0,0.4)',
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">Click to set focal point — Focal: {focalX}%, {focalY}%</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[{ label: 'Wide', ratio: '16/7' }, { label: 'Square', ratio: '1/1' }, { label: 'Portrait', ratio: '3/4' }].map(({ label, ratio }) => (
+                  <div key={label}>
+                    <p className="text-[10px] text-muted-foreground mb-1">{label}</p>
+                    <div className="relative rounded overflow-hidden" style={{ aspectRatio: ratio }}>
+                      <Image
+                        src={`${couple.hero_image_url}${cacheBust.hero_image_url ? `?t=${cacheBust.hero_image_url}` : ''}`}
+                        alt={`${label} preview`}
+                        fill
+                        className="object-cover"
+                        style={{ objectPosition: `${focalX}% ${focalY}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           <div className="flex items-center gap-3">

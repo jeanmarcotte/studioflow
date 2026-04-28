@@ -26,6 +26,7 @@ import {
   Wrench,
   Archive,
   ArrowLeftRight,
+  Eye,
 } from 'lucide-react'
 
 export interface SidebarItem {
@@ -74,6 +75,7 @@ export const studioflowAdminConfig: SidebarConfig = {
           children: [
             { title: 'SIGS SEO', href: '/admin/marketing/sigs-seo', icon: Search },
             { title: 'BridalFlow', href: 'https://studioflow-zeta.vercel.app/leads', icon: Globe, external: true },
+            { title: 'Portal Admin', href: '/admin/portal', icon: Eye },
           ],
         },
         {

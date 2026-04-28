@@ -45,6 +45,29 @@ export function PortalShell({ couple, children }: Props) {
     return pathname.startsWith(href)
   }
 
+  const isHome = pathname === `/portal/${slug}`
+
+  // Home page gets a full-width, scroll-snap layout — no header/tabs
+  if (isHome) {
+    return (
+      <div className={dmSans.className} style={{ height: '100vh', overflow: 'hidden' }}>
+        {children}
+        {/* Mobile Bottom Nav */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-3 sm:hidden z-50" style={{ borderColor: '#e8e5df' }}>
+          {tabs.map(tab => {
+            const active = isActive(tab.href)
+            return (
+              <Link key={tab.href} href={tab.href} className="flex flex-col items-center gap-0.5">
+                <tab.icon size={22} color={active ? '#0d9488' : '#aaa'} />
+                <span className="text-[10px] font-medium" style={{ color: active ? '#0d9488' : '#aaa' }}>{tab.label}</span>
+              </Link>
+            )
+          })}
+        </nav>
+      </div>
+    )
+  }
+
   return (
     <div className={dmSans.className} style={{ backgroundColor: BG, minHeight: '100vh' }}>
       {/* Header */}
