@@ -6,7 +6,7 @@ import { buildCrewEmailHtml } from '@/lib/crew-email-html'
 import { Send, X, ChevronDown, ChevronRight, Plus, Eye, Check, Clock, Mail, Upload, FileText, Trash2, Download, ExternalLink } from 'lucide-react'
 import { Playfair_Display, Nunito } from 'next/font/google'
 import { format } from 'date-fns'
-import { formatPackage } from '@/lib/formatters'
+import { formatPackage, formatTime12h } from '@/lib/formatters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
@@ -152,6 +152,8 @@ function minutesToTimeStr(mins: number): string {
   while (mins < 0) mins += 24 * 60
   const h = Math.floor(mins / 60) % 24
   const m = mins % 60
+  if (h === 0 && m === 0) return 'Midnight'
+  if (h === 12 && m === 0) return 'Noon'
   const ampm = h >= 12 ? 'PM' : 'AM'
   const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
   return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`
@@ -581,10 +583,10 @@ export default function CrewCallSheetPage() {
           weather: weatherStr,
           schedule: schedule.length > 0 ? schedule : (selectedContract ? (() => {
             const minimal: ScheduleEvent[] = []
-            if (selectedContract.start_time) minimal.push({ time: selectedContract.start_time, label: 'Coverage Begins', address: '', maps_url: '' })
+            if (selectedContract.start_time) minimal.push({ time: formatTime12h(selectedContract.start_time), label: 'Coverage Begins', address: '', maps_url: '' })
             if (selectedContract.ceremony_location) minimal.push({ time: '', label: 'Ceremony', address: selectedContract.ceremony_location, maps_url: mapsUrl(selectedContract.ceremony_location) })
             if (selectedContract.reception_venue) minimal.push({ time: '', label: 'Reception', address: selectedContract.reception_venue, maps_url: mapsUrl(selectedContract.reception_venue) })
-            if (selectedContract.end_time) minimal.push({ time: selectedContract.end_time, label: 'Coverage Ends', address: '', maps_url: '' })
+            if (selectedContract.end_time) minimal.push({ time: formatTime12h(selectedContract.end_time), label: 'Coverage Ends', address: '', maps_url: '' })
             return minimal
           })() : []),
           attachments: uploadedDocs.filter(d => d.attachToEmail).map(d => ({ filename: d.name, path: d.path })),
@@ -654,7 +656,7 @@ export default function CrewCallSheetPage() {
 
   const calcCoverage = () => {
     if (!selectedContract?.start_time || !selectedContract?.end_time) return null
-    return `${selectedContract.start_time} to ${selectedContract.end_time}`
+    return `${formatTime12h(selectedContract.start_time)} to ${formatTime12h(selectedContract.end_time)}`
   }
 
   const teamRequired = () => {
@@ -869,7 +871,7 @@ export default function CrewCallSheetPage() {
                   <div style={{ position: 'relative', marginBottom: '16px', paddingLeft: '16px' }}>
                     <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--background)', boxShadow: '0 0 0 1px var(--primary)' }} />
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', minWidth: '80px' }}>{selectedContract.start_time}</span>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', minWidth: '80px' }}>{formatTime12h(selectedContract.start_time)}</span>
                       <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>Coverage Begins</span>
                     </div>
                   </div>
@@ -896,7 +898,7 @@ export default function CrewCallSheetPage() {
                   <div style={{ position: 'relative', paddingLeft: '16px' }}>
                     <div style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--background)', boxShadow: '0 0 0 1px var(--primary)' }} />
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', minWidth: '80px' }}>{selectedContract.end_time}</span>
+                      <span style={{ fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', minWidth: '80px' }}>{formatTime12h(selectedContract.end_time)}</span>
                       <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>Coverage Ends</span>
                     </div>
                   </div>
@@ -1394,10 +1396,10 @@ export default function CrewCallSheetPage() {
                 .map(([k, v]) => ({ key: vendorLabels[k] || k, value: v }))
 
               const previewSchedule = schedule.length > 0 ? schedule : [
-                ...(selectedContract?.start_time ? [{ time: selectedContract.start_time, label: 'Coverage Begins', address: '', maps_url: '' }] : []),
+                ...(selectedContract?.start_time ? [{ time: formatTime12h(selectedContract.start_time), label: 'Coverage Begins', address: '', maps_url: '' }] : []),
                 ...(selectedContract?.ceremony_location ? [{ time: '', label: 'Ceremony', address: selectedContract.ceremony_location, maps_url: mapsUrl(selectedContract.ceremony_location) }] : []),
                 ...(selectedContract?.reception_venue ? [{ time: '', label: 'Reception', address: selectedContract.reception_venue, maps_url: mapsUrl(selectedContract.reception_venue) }] : []),
-                ...(selectedContract?.end_time ? [{ time: selectedContract.end_time, label: 'Coverage Ends', address: '', maps_url: '' }] : []),
+                ...(selectedContract?.end_time ? [{ time: formatTime12h(selectedContract.end_time), label: 'Coverage Ends', address: '', maps_url: '' }] : []),
               ]
 
               const mp = meetingPoints.find(p => p.name === entry.meeting_location)
