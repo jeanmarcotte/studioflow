@@ -28,9 +28,21 @@ interface ExtrasRow {
   paid_date: string | null
   invoice_date: string | null
   couple_name: string
+  couple_phase: string
   wedding_date: string | null
   wedding_year: number | null
 }
+
+const PHASE_OPTIONS = [
+  { value: 'all', label: 'All Phases' },
+  { value: 'new_client', label: 'New Client' },
+  { value: 'pre_engagement', label: 'Pre-Engagement' },
+  { value: 'post_engagement', label: 'Post-Engagement' },
+  { value: 'pre_wedding', label: 'Pre-Wedding' },
+  { value: 'post_wedding', label: 'Post-Wedding' },
+  { value: 'post_production', label: 'Post-Production' },
+  { value: 'completed', label: 'Completed' },
+]
 
 interface CoupleOption {
   id: string
@@ -401,6 +413,7 @@ export default function ExtrasSalesPage() {
   const [rows, setRows] = useState<ExtrasRow[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [phaseFilter, setPhaseFilter] = useState<string>('all')
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
   const [showNewSale, setShowNewSale] = useState(false)
   const [couples, setCouples] = useState<CoupleOption[]>([])
@@ -410,7 +423,7 @@ export default function ExtrasSalesPage() {
     try {
       const { data, error } = await supabase
         .from('client_extras')
-        .select('id, couple_id, item_type, description, quantity, unit_price, subtotal, hst, total, discount_type, discount_value, payment_note, status, paid_date, invoice_date, couples(couple_name, wedding_date, wedding_year)')
+        .select('id, couple_id, item_type, description, quantity, unit_price, subtotal, hst, total, discount_type, discount_value, payment_note, status, paid_date, invoice_date, couples(couple_name, wedding_date, wedding_year, phase)')
         .order('invoice_date', { ascending: false })
 
       if (error) {
@@ -437,6 +450,7 @@ export default function ExtrasSalesPage() {
           paid_date: r.paid_date,
           invoice_date: r.invoice_date,
           couple_name: r.couples?.couple_name || '—',
+          couple_phase: r.couples?.phase || 'new_client',
           wedding_date: r.couples?.wedding_date || null,
           wedding_year: r.couples?.wedding_year || null,
         }))
@@ -470,10 +484,16 @@ export default function ExtrasSalesPage() {
 
   // Filter by search
   const filteredRows = useMemo(() => {
-    if (!searchQuery) return rows
-    const q = searchQuery.toLowerCase()
-    return rows.filter(r => r.couple_name.toLowerCase().includes(q) || (r.item_type || '').toLowerCase().includes(q))
-  }, [rows, searchQuery])
+    let result = rows
+    if (phaseFilter !== 'all') {
+      result = result.filter(r => r.couple_phase === phaseFilter)
+    }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(r => r.couple_name.toLowerCase().includes(q) || (r.item_type || '').toLowerCase().includes(q))
+    }
+    return result
+  }, [rows, searchQuery, phaseFilter])
 
   // Group by year
   const rows2026 = useMemo(() => filteredRows.filter(r => r.wedding_year === 2026), [filteredRows])
@@ -611,17 +631,28 @@ export default function ExtrasSalesPage() {
             ))}
           </div>
 
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search couples or item types..."
-              className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
-              style={{ paddingLeft: '2.25rem' }}
-            />
+          {/* Search + Phase Filter */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search couples or item types..."
+                className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-sm outline-none transition-colors focus:border-ring"
+                style={{ paddingLeft: '2.25rem' }}
+              />
+            </div>
+            <select
+              value={phaseFilter}
+              onChange={(e) => setPhaseFilter(e.target.value)}
+              className="text-sm rounded-md border border-input bg-background px-3 py-2.5"
+            >
+              {PHASE_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
           </div>
 
           {renderSection('section-2026', '2026 SALES', rows2026, 'bg-teal-100 text-teal-700')}

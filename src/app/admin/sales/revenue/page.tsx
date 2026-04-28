@@ -27,12 +27,24 @@ interface CoupleRow {
   couple_name: string
   wedding_date: string | null
   wedding_year: number | null
+  phase: string
   c1: number
   c2: number
   c2_status: string | null
   c3: number
   total: number
 }
+
+const PHASE_OPTIONS = [
+  { value: 'all', label: 'All Phases' },
+  { value: 'new_client', label: 'New Client' },
+  { value: 'pre_engagement', label: 'Pre-Engagement' },
+  { value: 'post_engagement', label: 'Post-Engagement' },
+  { value: 'pre_wedding', label: 'Pre-Wedding' },
+  { value: 'post_wedding', label: 'Post-Wedding' },
+  { value: 'post_production', label: 'Post-Production' },
+  { value: 'completed', label: 'Completed' },
+]
 
 interface ProductBreakdown {
   item_type: string
@@ -53,6 +65,7 @@ export default function RevenuePerClientDashboard() {
   const [coupleRows, setCoupleRows] = useState<CoupleRow[]>([])
   const [productData, setProductData] = useState<ProductBreakdown[]>([])
   const [yearFilter, setYearFilter] = useState<string>('2026')
+  const [phaseFilter, setPhaseFilter] = useState<string>('all')
 
   // C2 conversion metrics
   const [c2Eligible, setC2Eligible] = useState(0)
@@ -127,6 +140,7 @@ export default function RevenuePerClientDashboard() {
           couple_name: `${c.bride_first_name} & ${c.groom_first_name}`,
           wedding_date: c.wedding_date,
           wedding_year: c.wedding_year,
+          phase: c.phase || 'new_client',
           c1,
           c2,
           c2_status: c2Entry?.status ?? null,
@@ -187,12 +201,18 @@ export default function RevenuePerClientDashboard() {
     fetchData()
   }, [])
 
-  // Filtered rows by year
+  // Filtered rows by year + phase
   const filteredRows = useMemo(() => {
-    if (yearFilter === 'all') return coupleRows
-    const yr = parseInt(yearFilter)
-    return coupleRows.filter((r) => r.wedding_year === yr)
-  }, [coupleRows, yearFilter])
+    let result = coupleRows
+    if (yearFilter !== 'all') {
+      const yr = parseInt(yearFilter)
+      result = result.filter((r) => r.wedding_year === yr)
+    }
+    if (phaseFilter !== 'all') {
+      result = result.filter((r) => r.phase === phaseFilter)
+    }
+    return result
+  }, [coupleRows, yearFilter, phaseFilter])
 
   // Scorecard metrics
   const totalC2 = useMemo(() => filteredRows.reduce((s, r) => s + r.c2, 0), [filteredRows])
@@ -287,18 +307,33 @@ export default function RevenuePerClientDashboard() {
               Contract + Frames & Albums + Extras
             </p>
           </div>
-          <div className="relative">
-            <select
-              value={yearFilter}
-              onChange={(e) => setYearFilter(e.target.value)}
-              className="appearance-none rounded-xl px-5 py-2.5 pr-10 text-sm font-medium outline-none cursor-pointer"
-              style={{ backgroundColor: CHARCOAL, color: WHITE, border: `1px solid ${DARK_BORDER}`, minWidth: 140 }}
-            >
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-              <option value="all">All Years</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: GOLD }} />
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <select
+                value={phaseFilter}
+                onChange={(e) => setPhaseFilter(e.target.value)}
+                className="appearance-none rounded-xl px-5 py-2.5 pr-10 text-sm font-medium outline-none cursor-pointer"
+                style={{ backgroundColor: CHARCOAL, color: WHITE, border: `1px solid ${DARK_BORDER}`, minWidth: 160 }}
+              >
+                {PHASE_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: GOLD }} />
+            </div>
+            <div className="relative">
+              <select
+                value={yearFilter}
+                onChange={(e) => setYearFilter(e.target.value)}
+                className="appearance-none rounded-xl px-5 py-2.5 pr-10 text-sm font-medium outline-none cursor-pointer"
+                style={{ backgroundColor: CHARCOAL, color: WHITE, border: `1px solid ${DARK_BORDER}`, minWidth: 140 }}
+              >
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+                <option value="all">All Years</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: GOLD }} />
+            </div>
           </div>
         </div>
       </div>
