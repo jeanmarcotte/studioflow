@@ -25,6 +25,7 @@ import {
   FileCheck,
   Wrench,
   Archive,
+  LayoutDashboard,
   ArrowLeftRight,
   Eye,
 } from 'lucide-react'
@@ -92,10 +93,10 @@ export const studioflowAdminConfig: SidebarConfig = {
           title: 'Production',
           icon: Package,
           children: [
+            { title: 'Dashboard', href: '/admin/production/dashboard', icon: LayoutDashboard },
+            { title: 'Couple Hub', href: '/admin/production/couples', icon: Users },
             { title: 'Photo Editing', href: '/admin/production/photo', icon: Camera },
             { title: 'Video Editing', href: '/admin/production/video', icon: Video },
-            { title: 'Client Orders', href: '/admin/orders', icon: FileCheck },
-            { title: 'Add Editing Job', href: '/admin/production/editing/new', icon: Scissors },
             { title: 'Archive', href: '/admin/production/archive', icon: Archive },
           ],
         },
