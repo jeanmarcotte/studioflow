@@ -53,11 +53,19 @@ export function PortalShell({ couple, children }: Props) {
       <div className={dmSans.className} style={{ height: '100vh', overflow: 'hidden' }}>
         {children}
         {/* Mobile Bottom Nav */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-3 sm:hidden z-50" style={{ borderColor: '#e8e5df' }}>
+        <nav
+          className="fixed bottom-0 left-0 right-0 border-t flex justify-around py-3 sm:hidden z-50"
+          style={{
+            borderColor: '#e8e5df',
+            background: 'rgba(245, 240, 235, 0.9)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
+        >
           {tabs.map(tab => {
             const active = isActive(tab.href)
             return (
-              <Link key={tab.href} href={tab.href} className="flex flex-col items-center gap-0.5">
+              <Link key={tab.href} href={tab.href} className="flex flex-col items-center gap-0.5" style={{ minHeight: 44, justifyContent: 'center' }}>
                 <tab.icon size={22} color={active ? '#0d9488' : '#aaa'} />
                 <span className="text-[10px] font-medium" style={{ color: active ? '#0d9488' : '#aaa' }}>{tab.label}</span>
               </Link>
@@ -122,11 +130,19 @@ export function PortalShell({ couple, children }: Props) {
       </main>
 
       {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-3 sm:hidden z-50" style={{ borderColor: '#e8e5df' }}>
+      <nav
+        className="fixed bottom-0 left-0 right-0 border-t flex justify-around py-3 sm:hidden z-50"
+        style={{
+          borderColor: '#e8e5df',
+          background: 'rgba(245, 240, 235, 0.9)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}
+      >
         {tabs.map(tab => {
           const active = isActive(tab.href)
           return (
-            <Link key={tab.href} href={tab.href} className="flex flex-col items-center gap-0.5">
+            <Link key={tab.href} href={tab.href} className="flex flex-col items-center gap-0.5" style={{ minHeight: 44, justifyContent: 'center' }}>
               <tab.icon size={22} color={active ? '#0d9488' : '#aaa'} />
               <span className="text-[10px] font-medium" style={{ color: active ? '#0d9488' : '#aaa' }}>{tab.label}</span>
             </Link>

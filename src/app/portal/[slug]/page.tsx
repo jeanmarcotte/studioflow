@@ -51,6 +51,9 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
   const groom = couple.groom_first_name ?? ''
   const weddingDate = couple.wedding_date ? parseISO(couple.wedding_date) : null
   const daysUntil = weddingDate ? differenceInDays(weddingDate, new Date()) : null
+  const countdownText = daysUntil !== null
+    ? daysUntil > 0 ? `${daysUntil} days to go` : daysUntil === 0 ? 'Today is the day!' : `Married ${Math.abs(daysUntil)} days`
+    : null
 
   const { data: contracts } = await supabase
     .from('contracts')
@@ -110,7 +113,6 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
   const hasCollage = couple.collage_img_left || couple.collage_img_center || couple.collage_img_right
   const showZone2 = hasCollage || contract
 
-  // Coverage hours
   const coverageStart = contract?.start_time ?? ''
   const coverageEnd = contract?.end_time ?? ''
   let coverageHours = 0
@@ -123,7 +125,6 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
     coverageHours = Math.round((endMin - startMin) / 60)
   }
 
-  // Package items for Zone 2
   const packageItems: string[] = []
   if (contract) {
     packageItems.push('Engagement proofs, digital download')
@@ -136,18 +137,17 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
     }
   }
 
-  // Schedule from wedding day form
-  const schedule: { time: string; endTime?: string; label: string; location: string; address?: string }[] = []
+  // Schedule with phone numbers for mobile tap-to-call
+  const schedule: { time: string; endTime?: string; label: string; location: string; address?: string; phone?: string }[] = []
   if (wdForm) {
-    if (wdForm.groom_start_time) schedule.push({ time: wdForm.groom_start_time, endTime: wdForm.groom_finish_time, label: 'Groom Prep', location: [wdForm.groom_address, wdForm.groom_city].filter(Boolean).join(', '), address: wdForm.groom_address })
-    if (wdForm.bride_start_time) schedule.push({ time: wdForm.bride_start_time, endTime: wdForm.bride_finish_time, label: 'Bride Prep', location: [wdForm.bride_address, wdForm.bride_city].filter(Boolean).join(', '), address: wdForm.bride_address })
+    if (wdForm.groom_start_time) schedule.push({ time: wdForm.groom_start_time, endTime: wdForm.groom_finish_time, label: 'Groom Prep', location: [wdForm.groom_address, wdForm.groom_city].filter(Boolean).join(', '), address: wdForm.groom_address, phone: wdForm.groom_phone })
+    if (wdForm.bride_start_time) schedule.push({ time: wdForm.bride_start_time, endTime: wdForm.bride_finish_time, label: 'Bride Prep', location: [wdForm.bride_address, wdForm.bride_city].filter(Boolean).join(', '), address: wdForm.bride_address, phone: wdForm.bride_phone })
     if (wdForm.has_first_look && wdForm.first_look_time) schedule.push({ time: wdForm.first_look_time, label: 'First Look', location: wdForm.first_look_location_name ?? '', address: wdForm.first_look_address })
     if (wdForm.ceremony_start_time) schedule.push({ time: wdForm.ceremony_start_time, endTime: wdForm.ceremony_finish_time, label: 'Ceremony', location: wdForm.ceremony_location_name ?? '', address: wdForm.ceremony_address })
     if (wdForm.park_start_time) schedule.push({ time: wdForm.park_start_time, endTime: wdForm.park_finish_time, label: 'Photos', location: wdForm.park_name ?? '', address: wdForm.park_address })
-    if (wdForm.reception_start_time) schedule.push({ time: wdForm.reception_start_time, endTime: wdForm.reception_finish_time, label: 'Reception', location: wdForm.reception_venue_name ?? '', address: wdForm.reception_address })
+    if (wdForm.reception_start_time) schedule.push({ time: wdForm.reception_start_time, endTime: wdForm.reception_finish_time, label: 'Reception', location: wdForm.reception_venue_name ?? '', address: wdForm.reception_address, phone: wdForm.venue_contact_phone })
   }
 
-  // Installment status helper
   function getInstallmentStatus(inst: any): 'paid' | 'due' | 'future' {
     if (inst.paid) return 'paid'
     if (inst.due_date && parseISO(inst.due_date) <= new Date()) return 'due'
@@ -155,213 +155,389 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
   }
 
   return (
-    <div
-      style={{
-        height: '100vh',
-        overflowY: 'auto',
-        scrollSnapType: 'y proximity',
-        WebkitOverflowScrolling: 'touch',
-      }}
-    >
-      {/* ═══════════════════════════════════════════
-          ZONE 1 — Landing
-          ═══════════════════════════════════════════ */}
-      <section
-        style={{
-          minHeight: '100vh',
-          scrollSnapAlign: 'start',
-          backgroundColor: BEIGE,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <div style={{ maxWidth: 680 }} className="mx-auto w-full px-5 pt-8 flex-1 flex flex-col">
-          {/* Header card */}
-          <div className="flex items-start justify-between mb-8">
-            <div>
-              <h1 className={`${playfair.className} text-2xl sm:text-3xl`} style={{ color: '#1a1a1a' }}>
+    <>
+      {/* Scroll snap only on desktop — mobile flows naturally */}
+      <style>{`
+        .portal-scroll { overflow-y: auto; height: 100vh; -webkit-overflow-scrolling: touch; }
+        @media (min-width: 640px) { .portal-scroll { scroll-snap-type: y proximity; } }
+        @media (min-width: 640px) { .portal-snap { scroll-snap-align: start; } }
+      `}</style>
+
+      <div className="portal-scroll">
+        {/* ═══════════════════════════════════════════
+            ZONE 1 — Landing
+            ═══════════════════════════════════════════ */}
+        <section
+          className="portal-snap"
+          style={{ minHeight: '100vh', backgroundColor: BEIGE, display: 'flex', flexDirection: 'column' }}
+        >
+          <div className="mx-auto w-full px-5 sm:px-10 pt-8 flex-1 flex flex-col" style={{ maxWidth: 680 }}>
+            {/* Mobile header — stacked centered */}
+            <div className="sm:hidden text-center mb-8">
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: '#aaa' }}>
+                SIGS Photography Ltd.
+              </p>
+              <h1 className={`${playfair.className} text-2xl`} style={{ color: '#1a1a1a' }}>
                 {bride} & {groom}
               </h1>
               <p className="text-sm mt-1.5" style={{ color: '#777' }}>
                 {formatWeddingDate(couple.wedding_date)}
               </p>
-            </div>
-            <div className="text-right shrink-0 ml-4">
-              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: '#aaa' }}>
-                SIGS Photography Ltd.
-              </p>
-              {daysUntil !== null && (
-                <p className="text-sm font-medium mt-1.5" style={{ color: TEAL }}>
-                  {daysUntil > 0 ? `${daysUntil} days to go` : daysUntil === 0 ? 'Today is the day!' : `Married ${Math.abs(daysUntil)} days`}
-                </p>
+              {countdownText && (
+                <p className="text-sm font-medium mt-2" style={{ color: TEAL }}>{countdownText}</p>
               )}
             </div>
-          </div>
-
-          {/* Hero image */}
-          {couple.hero_image_url ? (
-            <div
-              className="relative w-full rounded-xl overflow-hidden mb-6"
-              style={{ aspectRatio: '16/9', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}
-            >
-              <Image
-                src={couple.hero_image_url}
-                alt={`${bride} & ${groom}`}
-                fill
-                sizes="(max-width: 768px) 100vw, 680px"
-                style={{
-                  objectFit: 'cover',
-                  objectPosition: `${couple.hero_focal_x ?? 50}% ${couple.hero_focal_y ?? 50}%`,
-                }}
-                priority
-              />
+            {/* Desktop header — side by side */}
+            <div className="hidden sm:flex items-start justify-between mb-8">
+              <div>
+                <h1 className={`${playfair.className} text-3xl`} style={{ color: '#1a1a1a' }}>
+                  {bride} & {groom}
+                </h1>
+                <p className="text-sm mt-1.5" style={{ color: '#777' }}>
+                  {formatWeddingDate(couple.wedding_date)}
+                </p>
+              </div>
+              <div className="text-right shrink-0 ml-4">
+                <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: '#aaa' }}>
+                  SIGS Photography Ltd.
+                </p>
+                {countdownText && (
+                  <p className="text-sm font-medium mt-1.5" style={{ color: TEAL }}>{countdownText}</p>
+                )}
+              </div>
             </div>
-          ) : (
-            <div
-              className="relative w-full rounded-xl overflow-hidden mb-6 flex items-center justify-center"
-              style={{ aspectRatio: '16/9', backgroundColor: '#ebe5de' }}
-            >
-              <span
-                className={`${playfair.className} text-6xl sm:text-7xl`}
-                style={{ color: '#d4c9b8', letterSpacing: '0.1em' }}
-              >
-                {bride?.[0] ?? ''}&{groom?.[0] ?? ''}
-              </span>
-            </div>
-          )}
 
-          {/* Video */}
-          {videoId && (
-            <div className="mb-6 rounded-xl overflow-hidden" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
-              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
-                <iframe
-                  src={`https://www.youtube.com/embed/${videoId}`}
-                  title="Wedding Film"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+            {/* Hero image — 4:5 portrait on mobile, 16:9 on desktop */}
+            {couple.hero_image_url ? (
+              <div className="relative w-full rounded-xl overflow-hidden mb-6 aspect-[4/5] sm:aspect-video" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}>
+                <Image
+                  src={couple.hero_image_url}
+                  alt={`${bride} & ${groom}`}
+                  fill
+                  sizes="(max-width: 640px) 100vw, 680px"
+                  style={{
+                    objectFit: 'cover',
+                    objectPosition: `${couple.hero_focal_x ?? 50}% ${couple.hero_focal_y ?? 50}%`,
+                  }}
+                  priority
                 />
               </div>
-            </div>
-          )}
-
-          {/* Quick link buttons */}
-          <div className="flex gap-3 justify-center flex-wrap mb-8">
-            <a
-              href={`/portal/${slug}/wedding-day`}
-              className="inline-flex items-center px-6 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
-              style={{ border: `1.5px solid ${TEAL}`, color: TEAL }}
-            >
-              Wedding Day Form
-            </a>
-            <a
-              href="mailto:info@sigsphoto.ca"
-              className="inline-flex items-center px-6 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
-              style={{ border: `1.5px solid ${TEAL}`, color: TEAL }}
-            >
-              Contact SIGS
-            </a>
-          </div>
-
-          {/* Scroll indicator */}
-          <div className="flex flex-col items-center mt-auto pb-8 gap-2">
-            <div style={{ width: 1, height: 28, backgroundColor: '#ccc' }} />
-            <ChevronDown className="w-4 h-4" style={{ color: '#bbb' }} />
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════
-          ZONE 2 — Theatre
-          ═══════════════════════════════════════════ */}
-      {showZone2 && (
-        <section
-          style={{
-            minHeight: '100vh',
-            scrollSnapAlign: 'start',
-            backgroundColor: DARK,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div style={{ maxWidth: 680 }} className="mx-auto w-full px-5 py-16">
-            {/* Collage */}
-            {hasCollage && (
-              <>
-                <p
-                  className="text-center text-[10px] font-semibold tracking-[0.25em] uppercase mb-8"
-                  style={{ color: 'rgba(255,255,255,0.35)' }}
-                >
-                  YOUR ENGAGEMENT
-                </p>
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  {[couple.collage_img_left, couple.collage_img_center, couple.collage_img_right].map((url: string | null, i: number) =>
-                    url ? (
-                      <div key={i} className="rounded-lg overflow-hidden" style={{ aspectRatio: '1', backgroundColor: '#2a2a2a' }}>
-                        <Image src={url} alt={`Collage ${i + 1}`} width={220} height={220} className="object-cover w-full h-full" />
-                      </div>
-                    ) : (
-                      <div key={i} className="rounded-lg" style={{ aspectRatio: '1', backgroundColor: '#2a2a2a' }} />
-                    )
-                  )}
-                </div>
-                {couple.collage_caption && (
-                  <p className="text-center text-sm italic mb-10" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                    {couple.collage_caption}
-                  </p>
-                )}
-              </>
-            )}
-
-            {/* Divider */}
-            {hasCollage && packageItems.length > 0 && (
-              <div className="flex justify-center my-10">
-                <div style={{ width: '40%', height: 1, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+            ) : (
+              <div className="relative w-full rounded-xl overflow-hidden mb-6 flex items-center justify-center aspect-[4/5] sm:aspect-video" style={{ backgroundColor: '#ebe5de' }}>
+                <span className={`${playfair.className} text-6xl sm:text-7xl`} style={{ color: '#d4c9b8', letterSpacing: '0.1em' }}>
+                  {bride?.[0] ?? ''}&{groom?.[0] ?? ''}
+                </span>
               </div>
             )}
 
-            {/* Package includes */}
-            {packageItems.length > 0 && (
-              <div className="text-center">
-                <p className={`${playfair.className} text-xl mb-6`} style={{ color: 'rgba(255,255,255,0.85)' }}>
-                  Your package includes
-                </p>
-                <div className="space-y-3">
-                  {packageItems.map((item, i) => (
-                    <p key={i} className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                      — {item}
+            {/* Video */}
+            {videoId && (
+              <div className="mb-6 rounded-xl overflow-hidden" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+                <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    title="Wedding Film"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Quick link buttons — stack on mobile, row on desktop */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-center mb-8">
+              <a
+                href={`/portal/${slug}/wedding-day`}
+                className="flex items-center justify-center px-6 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
+                style={{ border: `1.5px solid ${TEAL}`, color: TEAL, minHeight: 48 }}
+              >
+                Wedding Day Form
+              </a>
+              <a
+                href="mailto:info@sigsphoto.ca"
+                className="flex items-center justify-center px-6 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
+                style={{ border: `1.5px solid ${TEAL}`, color: TEAL, minHeight: 48 }}
+              >
+                Contact SIGS
+              </a>
+            </div>
+
+            {/* Scroll indicator */}
+            <div className="flex flex-col items-center mt-auto pb-8 gap-2">
+              <div style={{ width: 1, height: 28, backgroundColor: '#ccc' }} />
+              <ChevronDown className="w-4 h-4" style={{ color: '#bbb' }} />
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════
+            ZONE 2 — Theatre
+            ═══════════════════════════════════════════ */}
+        {showZone2 && (
+          <section
+            className="portal-snap"
+            style={{ minHeight: '100vh', backgroundColor: DARK, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <div className="mx-auto w-full px-5 sm:px-10 py-16" style={{ maxWidth: 680 }}>
+              {/* Collage — 3:4 on mobile, 1:1 on desktop */}
+              {hasCollage && (
+                <>
+                  <p className="text-center text-[10px] font-semibold tracking-[0.25em] uppercase mb-8" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    YOUR ENGAGEMENT
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+                    {[couple.collage_img_left, couple.collage_img_center, couple.collage_img_right].map((url: string | null, i: number) =>
+                      url ? (
+                        <div key={i} className="rounded-lg overflow-hidden aspect-[3/4] sm:aspect-square" style={{ backgroundColor: '#2a2a2a' }}>
+                          <Image src={url} alt={`Collage ${i + 1}`} width={220} height={293} sizes="33vw" className="object-cover w-full h-full" />
+                        </div>
+                      ) : (
+                        <div key={i} className="rounded-lg aspect-[3/4] sm:aspect-square" style={{ backgroundColor: '#2a2a2a' }} />
+                      )
+                    )}
+                  </div>
+                  {couple.collage_caption && (
+                    <p className="text-center text-sm italic mb-10" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                      {couple.collage_caption}
                     </p>
+                  )}
+                </>
+              )}
+
+              {hasCollage && packageItems.length > 0 && (
+                <div className="flex justify-center my-10">
+                  <div style={{ width: '40%', height: 1, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+                </div>
+              )}
+
+              {packageItems.length > 0 && (
+                <div className="text-center">
+                  <p className={`${playfair.className} text-xl mb-6`} style={{ color: 'rgba(255,255,255,0.85)' }}>
+                    Your package includes
+                  </p>
+                  <div className="space-y-3">
+                    {packageItems.map((item, i) => (
+                      <p key={i} className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                        — {item}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col items-center mt-16 gap-2">
+                <div style={{ width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.12)' }} />
+                <ChevronDown className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.18)' }} />
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ═══════════════════════════════════════════
+            ZONE 3 — Dashboard
+            ═══════════════════════════════════════════ */}
+        <section
+          className="portal-snap"
+          style={{ minHeight: '100vh', backgroundColor: BEIGE, display: 'flex', flexDirection: 'column' }}
+        >
+          <div className="mx-auto w-full px-5 sm:px-10 pt-8 flex-1 flex flex-col" style={{ maxWidth: 680 }}>
+            {/* Mobile header */}
+            <div className="sm:hidden text-center mb-8">
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: '#aaa' }}>
+                SIGS Photography Ltd.
+              </p>
+              <h2 className={`${playfair.className} text-2xl`} style={{ color: '#1a1a1a' }}>
+                {bride} & {groom}
+              </h2>
+              <p className="text-sm mt-1" style={{ color: '#777' }}>
+                {formatWeddingDate(couple.wedding_date)}
+              </p>
+            </div>
+            {/* Desktop header */}
+            <div className="hidden sm:flex items-start justify-between mb-8">
+              <div>
+                <h2 className={`${playfair.className} text-2xl`} style={{ color: '#1a1a1a' }}>
+                  {bride} & {groom}
+                </h2>
+                <p className="text-sm mt-1" style={{ color: '#777' }}>{formatWeddingDate(couple.wedding_date)}</p>
+              </div>
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase shrink-0 ml-4" style={{ color: '#aaa' }}>
+                SIGS Photography Ltd.
+              </p>
+            </div>
+
+            {/* Contract bar */}
+            {contract && (
+              <div className="rounded-xl overflow-hidden mb-6" style={{ backgroundColor: DARK_TEAL }}>
+                <div className="px-5 py-4">
+                  <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    CONTRACT
+                  </p>
+                  <p className="text-sm font-medium" style={{ color: '#fff' }}>
+                    Coverage: {coverageStart} → {coverageEnd}
+                    {coverageHours > 0 ? ` (${coverageHours} hours)` : ''}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Schedule — card stack on mobile, table on desktop */}
+            {wdForm && schedule.length > 0 ? (
+              <>
+                {/* Mobile: card stack with Maps + phone buttons */}
+                <div className="sm:hidden space-y-3 mb-6">
+                  {schedule.map((item, i) => (
+                    <div key={i} className="bg-white rounded-xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                      <p className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>
+                        {item.time}{item.endTime ? ` → ${item.endTime}` : ''}
+                      </p>
+                      <p className="text-sm font-medium mt-1" style={{ color: '#1a1a1a' }}>{item.label}</p>
+                      {item.location && (
+                        <p className="text-xs mt-1" style={{ color: '#777' }}>{item.location}</p>
+                      )}
+                      {item.address && (
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location || item.address)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full text-white text-center rounded-lg font-medium mt-3"
+                          style={{ backgroundColor: TEAL, minHeight: 48, lineHeight: '48px' }}
+                        >
+                          Open in Maps
+                        </a>
+                      )}
+                      {item.phone && (
+                        <a
+                          href={`tel:${item.phone.replace(/[^\d+]/g, '')}`}
+                          className="block w-full text-center rounded-lg font-medium mt-2"
+                          style={{ border: '1px solid #ddd', color: '#1a1a1a', minHeight: 48, lineHeight: '48px' }}
+                        >
+                          {item.phone}
+                        </a>
+                      )}
+                    </div>
                   ))}
+                </div>
+
+                {/* Desktop: compact table */}
+                <div className="hidden sm:block bg-white rounded-xl overflow-hidden mb-6" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                  <div className="px-5 py-3" style={{ borderBottom: '1px solid #f0ede8' }}>
+                    <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#999' }}>Schedule</p>
+                  </div>
+                  {schedule.map((item, i) => (
+                    <div key={i} className="flex items-start gap-4 px-5 py-3" style={{ borderBottom: i < schedule.length - 1 ? '1px solid #f5f2ed' : 'none' }}>
+                      <div className="text-sm font-medium whitespace-nowrap" style={{ color: '#1a1a1a', minWidth: 110 }}>
+                        {item.time}{item.endTime ? ` → ${item.endTime}` : ''}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{item.label}</p>
+                        {item.location && (
+                          <p className="text-xs mt-0.5 truncate">
+                            {item.address ? (
+                              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location)}`} target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: TEAL }}>
+                                {item.location}
+                              </a>
+                            ) : (
+                              <span style={{ color: TEAL }}>{item.location}</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="bg-white rounded-xl p-6 mb-6 text-center" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                <p className="text-sm" style={{ color: '#999' }}>Your wedding day schedule will appear here</p>
+                <a
+                  href={`/portal/${slug}/wedding-day`}
+                  className="inline-flex items-center justify-center w-full sm:w-auto mt-3 text-sm font-medium rounded-lg sm:px-0"
+                  style={{ color: TEAL, minHeight: 48 }}
+                >
+                  Fill out your Wedding Day Planner →
+                </a>
+              </div>
+            )}
+
+            {/* Emergency contacts + Form status */}
+            {wdForm && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                {(wdForm.emergency_contact_1_name || wdForm.emergency_contact_2_name) && (
+                  <div className="bg-white rounded-xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                    <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: '#999' }}>Emergency Contacts</p>
+                    {wdForm.emergency_contact_1_name && (
+                      <div className="mb-3">
+                        <p className="text-sm font-medium mb-1">{wdForm.emergency_contact_1_name}</p>
+                        {wdForm.emergency_contact_1_phone && (
+                          <a
+                            href={`tel:${wdForm.emergency_contact_1_phone.replace(/[^\d+]/g, '')}`}
+                            className="block w-full text-center rounded-lg font-medium sm:inline sm:w-auto sm:text-left sm:rounded-none sm:border-0"
+                            style={{ border: '1px solid #ddd', color: TEAL, minHeight: 48, lineHeight: '48px' }}
+                          >
+                            <span className="sm:hidden">{wdForm.emergency_contact_1_phone}</span>
+                            <span className="hidden sm:inline">{wdForm.emergency_contact_1_phone}</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    {wdForm.emergency_contact_2_name && (
+                      <div>
+                        <p className="text-sm font-medium mb-1">{wdForm.emergency_contact_2_name}</p>
+                        {wdForm.emergency_contact_2_phone && (
+                          <a
+                            href={`tel:${wdForm.emergency_contact_2_phone.replace(/[^\d+]/g, '')}`}
+                            className="block w-full text-center rounded-lg font-medium sm:inline sm:w-auto sm:text-left sm:rounded-none sm:border-0"
+                            style={{ border: '1px solid #ddd', color: TEAL, minHeight: 48, lineHeight: '48px' }}
+                          >
+                            <span className="sm:hidden">{wdForm.emergency_contact_2_phone}</span>
+                            <span className="hidden sm:inline">{wdForm.emergency_contact_2_phone}</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="bg-white rounded-xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                  <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: '#999' }}>Wedding Day Form</p>
+                  <p className="text-sm mb-3" style={{ color: '#666' }}>
+                    Submitted {wdForm.updated_at ? format(parseISO(wdForm.updated_at), 'MMM d') : '—'}
+                  </p>
+                  <a
+                    href={`/portal/${slug}/wedding-day`}
+                    className="block w-full text-center rounded-lg font-medium sm:inline sm:w-auto sm:text-left sm:rounded-none"
+                    style={{ border: '1px solid #ddd', color: TEAL, minHeight: 48, lineHeight: '48px' }}
+                  >
+                    <span className="sm:hidden">Edit Form</span>
+                    <span className="hidden sm:inline">Edit Form →</span>
+                  </a>
                 </div>
               </div>
             )}
 
             {/* Scroll indicator */}
-            <div className="flex flex-col items-center mt-16 gap-2">
-              <div style={{ width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.12)' }} />
-              <ChevronDown className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.18)' }} />
+            <div className="flex flex-col items-center mt-auto pb-8 gap-2">
+              <div style={{ width: 1, height: 28, backgroundColor: '#ccc' }} />
+              <ChevronDown className="w-4 h-4" style={{ color: '#bbb' }} />
             </div>
           </div>
         </section>
-      )}
 
-      {/* ═══════════════════════════════════════════
-          ZONE 3 — Dashboard
-          ═══════════════════════════════════════════ */}
-      <section
-        style={{
-          minHeight: '100vh',
-          scrollSnapAlign: 'start',
-          backgroundColor: BEIGE,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <div style={{ maxWidth: 680 }} className="mx-auto w-full px-5 pt-8 flex-1 flex flex-col">
-          {/* Header card */}
-          <div className="flex items-start justify-between mb-8">
-            <div>
+        {/* ═══════════════════════════════════════════
+            ZONE 4 — Vault
+            ═══════════════════════════════════════════ */}
+        <section
+          className="portal-snap"
+          style={{ minHeight: '100vh', backgroundColor: BEIGE, display: 'flex', flexDirection: 'column' }}
+        >
+          <div className="mx-auto w-full px-5 sm:px-10 pt-8 flex-1 flex flex-col pb-20 sm:pb-0" style={{ maxWidth: 680 }}>
+            {/* Mobile header */}
+            <div className="sm:hidden text-center mb-8">
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: '#aaa' }}>
+                SIGS Photography Ltd.
+              </p>
               <h2 className={`${playfair.className} text-2xl`} style={{ color: '#1a1a1a' }}>
                 {bride} & {groom}
               </h2>
@@ -369,223 +545,134 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
                 {formatWeddingDate(couple.wedding_date)}
               </p>
             </div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase shrink-0 ml-4" style={{ color: '#aaa' }}>
-              SIGS Photography Ltd.
-            </p>
-          </div>
+            {/* Desktop header */}
+            <div className="hidden sm:flex items-start justify-between mb-8">
+              <div>
+                <h2 className={`${playfair.className} text-2xl`} style={{ color: '#1a1a1a' }}>
+                  {bride} & {groom}
+                </h2>
+                <p className="text-sm mt-1" style={{ color: '#777' }}>{formatWeddingDate(couple.wedding_date)}</p>
+              </div>
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase shrink-0 ml-4" style={{ color: '#aaa' }}>
+                SIGS Photography Ltd.
+              </p>
+            </div>
 
-          {/* Contract bar */}
-          {contract && (
-            <div className="rounded-xl overflow-hidden mb-6" style={{ backgroundColor: DARK_TEAL }}>
-              <div className="px-5 py-4">
-                <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  CONTRACT
-                </p>
-                <p className="text-sm font-medium" style={{ color: '#fff' }}>
-                  Coverage: {coverageStart} → {coverageEnd}
-                  {coverageHours > 0 ? ` (${coverageHours} hours)` : ''}
-                </p>
+            {/* Financial cards — stacked on mobile, 3-across on desktop */}
+            {/* Mobile: single card with rows */}
+            <div className="sm:hidden bg-white rounded-xl overflow-hidden mb-6" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #f0ede8' }}>
+                <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#999' }}>Contract Total</p>
+                <p className="text-lg font-bold" style={{ color: '#1a1a1a' }}>{formatCurrency(invoiced)}</p>
+              </div>
+              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #f0ede8' }}>
+                <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#999' }}>Total Paid</p>
+                <p className="text-lg font-bold" style={{ color: received > 0 ? TEAL : '#1a1a1a' }}>{formatCurrency(received)}</p>
+              </div>
+              <div className="flex items-center justify-between px-5 py-4">
+                <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#999' }}>Balance</p>
+                <p className="text-lg font-bold" style={{ color: balance > 0 ? '#D85A30' : TEAL }}>{formatCurrency(balance)}</p>
               </div>
             </div>
-          )}
-
-          {/* Schedule */}
-          {wdForm && schedule.length > 0 ? (
-            <div className="bg-white rounded-xl overflow-hidden mb-6" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-              <div className="px-5 py-3" style={{ borderBottom: '1px solid #f0ede8' }}>
-                <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#999' }}>Schedule</p>
+            {/* Desktop: 3 cards */}
+            <div className="hidden sm:grid grid-cols-3 gap-3 mb-6">
+              <div className="bg-white rounded-xl p-4 text-center" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                <p className="text-[10px] font-semibold tracking-wider uppercase mb-1" style={{ color: '#999' }}>Contract Total</p>
+                <p className="text-lg font-bold" style={{ color: '#1a1a1a' }}>{formatCurrency(invoiced)}</p>
               </div>
-              {schedule.map((item, i) => (
-                <div
-                  key={i}
-                  className="flex items-start gap-4 px-5 py-3"
-                  style={{ borderBottom: i < schedule.length - 1 ? '1px solid #f5f2ed' : 'none' }}
+              <div className="bg-white rounded-xl p-4 text-center" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                <p className="text-[10px] font-semibold tracking-wider uppercase mb-1" style={{ color: '#999' }}>Total Paid</p>
+                <p className="text-lg font-bold" style={{ color: received > 0 ? TEAL : '#1a1a1a' }}>{formatCurrency(received)}</p>
+              </div>
+              <div className="bg-white rounded-xl p-4 text-center" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                <p className="text-[10px] font-semibold tracking-wider uppercase mb-1" style={{ color: '#999' }}>Balance</p>
+                <p className="text-lg font-bold" style={{ color: balance > 0 ? '#D85A30' : TEAL }}>{formatCurrency(balance)}</p>
+              </div>
+            </div>
+
+            {/* Payment schedule */}
+            {extrasInstallments.length > 0 && (
+              <div className="bg-white rounded-xl overflow-hidden mb-8" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                <div className="px-5 py-3" style={{ borderBottom: '1px solid #f0ede8' }}>
+                  <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#999' }}>Payment Schedule</p>
+                </div>
+                {extrasInstallments.map((inst: any, i: number) => {
+                  const status = getInstallmentStatus(inst)
+                  return (
+                    <div
+                      key={inst.id}
+                      className="px-5 py-3"
+                      style={{ borderBottom: i < extrasInstallments.length - 1 ? '1px solid #f5f2ed' : 'none', minHeight: 48 }}
+                    >
+                      {/* Mobile: stacked */}
+                      <div className="sm:hidden">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium" style={{ color: '#1a1a1a' }}>
+                            #{inst.installment_number} — {inst.due_description ?? 'Payment'}
+                          </p>
+                          {status === 'paid' && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#e6f5f0', color: TEAL }}>Paid</span>
+                          )}
+                          {status === 'due' && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#fef3ee', color: '#D85A30' }}>Due</span>
+                          )}
+                        </div>
+                        <p className="text-sm font-semibold mt-0.5" style={{ color: '#1a1a1a' }}>{formatCurrency(inst.amount)}</p>
+                      </div>
+                      {/* Desktop: single row */}
+                      <div className="hidden sm:flex items-center justify-between">
+                        <p className="text-sm font-medium flex-1" style={{ color: '#1a1a1a' }}>
+                          #{inst.installment_number} — {inst.due_description ?? 'Payment'}
+                        </p>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>{formatCurrency(inst.amount)}</span>
+                          {status === 'paid' && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#e6f5f0', color: TEAL }}>Paid</span>
+                          )}
+                          {status === 'due' && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#fef3ee', color: '#D85A30' }}>Due</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Contact line — tap-friendly on mobile */}
+            <div className="text-center text-sm mb-8" style={{ color: '#888' }}>
+              <p className="mb-3">If you have any questions</p>
+              <div className="flex flex-col sm:flex-row sm:justify-center gap-2 sm:gap-1">
+                <span className="hidden sm:inline">text Marianna at{' '}</span>
+                <a
+                  href="tel:4168318942"
+                  className="block sm:inline w-full sm:w-auto text-center rounded-lg font-medium sm:rounded-none sm:border-0"
+                  style={{ border: '1px solid #ddd', color: TEAL, minHeight: 48, lineHeight: '48px' }}
                 >
-                  <div className="text-sm font-medium whitespace-nowrap" style={{ color: '#1a1a1a', minWidth: 110 }}>
-                    {item.time}{item.endTime ? ` → ${item.endTime}` : ''}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{item.label}</p>
-                    {item.location && (
-                      <p className="text-xs mt-0.5 truncate">
-                        {item.address ? (
-                          <a
-                            href={`https://maps.google.com/?q=${encodeURIComponent(item.location)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:underline"
-                            style={{ color: TEAL }}
-                          >
-                            {item.location}
-                          </a>
-                        ) : (
-                          <span style={{ color: TEAL }}>{item.location}</span>
-                        )}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl p-6 mb-6 text-center" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-              <p className="text-sm" style={{ color: '#999' }}>Your wedding day schedule will appear here</p>
-              <a
-                href={`/portal/${slug}/wedding-day`}
-                className="inline-block mt-3 text-sm font-medium"
-                style={{ color: TEAL }}
-              >
-                Fill out your Wedding Day Planner →
-              </a>
-            </div>
-          )}
-
-          {/* Emergency contacts + Form status */}
-          {wdForm && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              {(wdForm.emergency_contact_1_name || wdForm.emergency_contact_2_name) && (
-                <div className="bg-white rounded-xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-                  <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: '#999' }}>Emergency Contacts</p>
-                  {wdForm.emergency_contact_1_name && (
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">{wdForm.emergency_contact_1_name}</span>
-                      {wdForm.emergency_contact_1_phone && (
-                        <a href={`tel:${wdForm.emergency_contact_1_phone.replace(/\D/g, '')}`} className="text-sm font-medium" style={{ color: TEAL }}>
-                          {wdForm.emergency_contact_1_phone}
-                        </a>
-                      )}
-                    </div>
-                  )}
-                  {wdForm.emergency_contact_2_name && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{wdForm.emergency_contact_2_name}</span>
-                      {wdForm.emergency_contact_2_phone && (
-                        <a href={`tel:${wdForm.emergency_contact_2_phone.replace(/\D/g, '')}`} className="text-sm font-medium" style={{ color: TEAL }}>
-                          {wdForm.emergency_contact_2_phone}
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="bg-white rounded-xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-                <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: '#999' }}>Wedding Day Form</p>
-                <p className="text-sm mb-2" style={{ color: '#666' }}>
-                  Submitted {wdForm.updated_at ? format(parseISO(wdForm.updated_at), 'MMM d') : '—'}
-                </p>
-                <a href={`/portal/${slug}/wedding-day`} className="text-sm font-medium" style={{ color: TEAL }}>
-                  Edit Form →
+                  <span className="sm:hidden">Text Marianna — (416) 831-8942</span>
+                  <span className="hidden sm:inline">(416) 831-8942</span>
+                </a>
+                <span className="hidden sm:inline">{' '}or email Jean at{' '}</span>
+                <a
+                  href="mailto:info@sigsphoto.ca"
+                  className="block sm:inline w-full sm:w-auto text-center rounded-lg font-medium sm:rounded-none sm:border-0"
+                  style={{ border: '1px solid #ddd', color: TEAL, minHeight: 48, lineHeight: '48px' }}
+                >
+                  <span className="sm:hidden">Email Jean — info@sigsphoto.ca</span>
+                  <span className="hidden sm:inline">info@sigsphoto.ca</span>
                 </a>
               </div>
             </div>
-          )}
 
-          {/* Scroll indicator */}
-          <div className="flex flex-col items-center mt-auto pb-8 gap-2">
-            <div style={{ width: 1, height: 28, backgroundColor: '#ccc' }} />
-            <ChevronDown className="w-4 h-4" style={{ color: '#bbb' }} />
+            {/* Footer */}
+            <footer className="mt-auto pb-4 sm:pb-8 text-center">
+              <p className="text-xs" style={{ color: '#bbb' }}>&copy; 2026 SIGS Photography Ltd.</p>
+              <p className="text-xs mt-1" style={{ color: '#bbb' }}>sigsphoto.ca</p>
+            </footer>
           </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════
-          ZONE 4 — Vault
-          ═══════════════════════════════════════════ */}
-      <section
-        style={{
-          minHeight: '100vh',
-          scrollSnapAlign: 'start',
-          backgroundColor: BEIGE,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <div style={{ maxWidth: 680 }} className="mx-auto w-full px-5 pt-8 flex-1 flex flex-col">
-          {/* Header card */}
-          <div className="flex items-start justify-between mb-8">
-            <div>
-              <h2 className={`${playfair.className} text-2xl`} style={{ color: '#1a1a1a' }}>
-                {bride} & {groom}
-              </h2>
-              <p className="text-sm mt-1" style={{ color: '#777' }}>
-                {formatWeddingDate(couple.wedding_date)}
-              </p>
-            </div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase shrink-0 ml-4" style={{ color: '#aaa' }}>
-              SIGS Photography Ltd.
-            </p>
-          </div>
-
-          {/* Financial cards */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-white rounded-xl p-4 text-center" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-              <p className="text-[10px] font-semibold tracking-wider uppercase mb-1" style={{ color: '#999' }}>Contract Total</p>
-              <p className="text-lg font-bold" style={{ color: '#1a1a1a' }}>{formatCurrency(invoiced)}</p>
-            </div>
-            <div className="bg-white rounded-xl p-4 text-center" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-              <p className="text-[10px] font-semibold tracking-wider uppercase mb-1" style={{ color: '#999' }}>Total Paid</p>
-              <p className="text-lg font-bold" style={{ color: received > 0 ? TEAL : '#1a1a1a' }}>{formatCurrency(received)}</p>
-            </div>
-            <div className="bg-white rounded-xl p-4 text-center" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-              <p className="text-[10px] font-semibold tracking-wider uppercase mb-1" style={{ color: '#999' }}>Balance</p>
-              <p className="text-lg font-bold" style={{ color: balance > 0 ? '#D85A30' : TEAL }}>{formatCurrency(balance)}</p>
-            </div>
-          </div>
-
-          {/* Payment schedule */}
-          {extrasInstallments.length > 0 && (
-            <div className="bg-white rounded-xl overflow-hidden mb-8" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-              <div className="px-5 py-3" style={{ borderBottom: '1px solid #f0ede8' }}>
-                <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#999' }}>Payment Schedule</p>
-              </div>
-              {extrasInstallments.map((inst: any, i: number) => {
-                const status = getInstallmentStatus(inst)
-                return (
-                  <div
-                    key={inst.id}
-                    className="flex items-center justify-between px-5 py-3"
-                    style={{ borderBottom: i < extrasInstallments.length - 1 ? '1px solid #f5f2ed' : 'none' }}
-                  >
-                    <p className="text-sm font-medium flex-1" style={{ color: '#1a1a1a' }}>
-                      #{inst.installment_number} — {inst.due_description ?? 'Payment'}
-                    </p>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>
-                        {formatCurrency(inst.amount)}
-                      </span>
-                      {status === 'paid' && (
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#e6f5f0', color: TEAL }}>
-                          Paid
-                        </span>
-                      )}
-                      {status === 'due' && (
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#fef3ee', color: '#D85A30' }}>
-                          Due
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {/* Contact line */}
-          <p className="text-center text-sm mb-8" style={{ color: '#888' }}>
-            If you have any questions text Marianna at{' '}
-            <a href="tel:4168318942" style={{ color: TEAL }} className="font-medium">(416) 831-8942</a>
-            {' '}or email Jean at{' '}
-            <a href="mailto:info@sigsphoto.ca" style={{ color: TEAL }} className="font-medium">info@sigsphoto.ca</a>
-          </p>
-
-          {/* Footer */}
-          <footer className="mt-auto pb-24 sm:pb-8 text-center">
-            <p className="text-xs" style={{ color: '#bbb' }}>&copy; 2026 SIGS Photography Ltd.</p>
-            <p className="text-xs mt-1" style={{ color: '#bbb' }}>sigsphoto.ca</p>
-          </footer>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </>
   )
 }
