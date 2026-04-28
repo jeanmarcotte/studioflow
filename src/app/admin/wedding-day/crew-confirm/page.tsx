@@ -251,6 +251,55 @@ export default function CrewCallSheetPage() {
   const selectedAssignment = useMemo(() => assignments.find(a => a.couple_id === selectedCoupleId) || null, [assignments, selectedCoupleId])
   const selectedMilestone = useMemo(() => milestones.find(m => m.couple_id === selectedCoupleId) || null, [milestones, selectedCoupleId])
 
+  // ── Auto-generate call sheet from wedding_assignments ─────────
+
+  const ensureCallSheet = useCallback(async (coupleId: string, assignment: Assignment) => {
+    // Check if call sheet already exists
+    const { data: existing } = await supabase.from('crew_call_sheets')
+      .select('id').eq('couple_id', coupleId).limit(1)
+
+    if (existing?.length) return // Already has a call sheet — do nothing
+
+    // Create new call sheet
+    const { data: newSheet, error: sheetError } = await supabase.from('crew_call_sheets')
+      .insert({ couple_id: coupleId })
+      .select('id')
+      .limit(1)
+
+    if (sheetError || !newSheet?.length) {
+      console.error('Failed to create call sheet:', sheetError)
+      return
+    }
+
+    const callSheetId = newSheet[0].id
+
+    // Build members from assignment slots
+    const slots: { name: string | null; role: string }[] = [
+      { name: assignment.photo_1, role: 'photo_1' },
+      { name: assignment.photo_2, role: 'photo_2' },
+      { name: assignment.video_1, role: 'video_1' },
+    ]
+
+    const members: { call_sheet_id: string; team_member_id: string | null; member_name: string; member_email: string | null; role: string }[] = []
+    for (const slot of slots) {
+      if (!slot.name) continue
+      const matched = teamMembers.find(m => m.first_name.toLowerCase() === slot.name!.toLowerCase())
+      members.push({
+        call_sheet_id: callSheetId,
+        team_member_id: matched?.id || null,
+        member_name: matched ? `${matched.first_name}${matched.last_name ? ' ' + matched.last_name : ''}` : slot.name,
+        member_email: matched?.email || null,
+        role: slot.role,
+      })
+    }
+
+    if (members.length > 0) {
+      const { error: membersError } = await supabase.from('crew_call_sheet_members')
+        .insert(members)
+      if (membersError) console.error('Failed to create call sheet members:', membersError)
+    }
+  }, [teamMembers])
+
   // ── Fetch weather for selected couple ──────────────────────────
 
   const fetchWeather = useCallback(async (weddingDate: string) => {
@@ -435,8 +484,11 @@ export default function CrewCallSheetPage() {
     setCrewEntries(entries)
 
     setSentTimestamp(null); setSendError('')
-    fetchHistory(selectedCoupleId)
-    fetchConfirmationStatuses(selectedCoupleId)
+    // Auto-generate call sheet from wedding_assignments if none exists
+    ensureCallSheet(selectedCoupleId, selectedAssignment).then(() => {
+      fetchHistory(selectedCoupleId)
+      fetchConfirmationStatuses(selectedCoupleId)
+    })
     fetchUploadedDocs(selectedCoupleId)
     fetchWeddingDayForm(selectedCoupleId)
 

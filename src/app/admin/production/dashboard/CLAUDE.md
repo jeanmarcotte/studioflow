@@ -7,6 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #8061 | 5:23 PM | ✅ | WO-966 implementation committed successfully | ~476 |
-| #8059 | 5:21 PM | 🟣 | Portal Zone 4 replaced Financial Vault with Gallery | ~809 |
+| #8066 | 5:27 PM | 🔴 | Production Dashboard Video Jobs Count Correction | ~326 |
+| #8065 | " | ✅ | Production Dashboard Layout Adjustment — Wider Container with Auto Margin | ~204 |
 </claude-mem-context>

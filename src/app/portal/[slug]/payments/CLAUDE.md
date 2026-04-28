@@ -7,6 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #8061 | 5:23 PM | ✅ | WO-966 implementation committed successfully | ~476 |
 | #8060 | 5:22 PM | ✅ | Payments route replaced with redirect to home page | ~490 |
 | #8059 | 5:21 PM | 🟣 | Portal Zone 4 replaced Financial Vault with Gallery | ~809 |
 </claude-mem-context>
