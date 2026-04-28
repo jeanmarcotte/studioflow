@@ -29,7 +29,36 @@ interface ArchiveRow {
   on_marketing_drive: boolean
   on_aws: boolean
   archive_status: string
+  couple_phase: string
 }
+
+const PHASE_LABELS: Record<string, string> = {
+  'new_client': 'New Client',
+  'pre_engagement': 'Pre-Engagement',
+  'post_engagement': 'Post-Engagement',
+  'pre_wedding': 'Pre-Wedding',
+  'post_wedding': 'Post-Wedding',
+  'post_production': 'Post-Production',
+  'completed': 'Completed',
+}
+
+const PHASE_COLORS: Record<string, string> = {
+  'new_client': 'bg-gray-100 text-gray-700',
+  'pre_engagement': 'bg-yellow-100 text-yellow-700',
+  'post_engagement': 'bg-blue-100 text-blue-700',
+  'pre_wedding': 'bg-green-100 text-green-700',
+  'post_wedding': 'bg-yellow-100 text-yellow-700',
+  'post_production': 'bg-blue-100 text-blue-700',
+  'completed': 'bg-green-100 text-green-700',
+}
+
+const PHASE_FILTER_OPTIONS = [
+  { value: 'all', label: 'All Phases' },
+  { value: 'post_production', label: 'Post-Production (archive queue)' },
+  { value: 'post_wedding', label: 'Post-Wedding' },
+  { value: 'pre_wedding', label: 'Pre-Wedding' },
+  { value: 'completed', label: 'Completed' },
+]
 
 const DELIVERABLES = [
   { key: 'wed_photo_project', videoOnly: false, engOnly: false },
@@ -77,15 +106,21 @@ export default function ArchiveDashboard() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [phaseFilter, setPhaseFilter] = useState<string>('all')
   const [yearFilter, setYearFilter] = useState<number | 'all'>('all')
 
   useEffect(() => {
     async function fetch() {
       const { data } = await supabase
         .from('couple_archives')
-        .select('*')
+        .select('*, couples(phase)')
         .order('wedding_date', { ascending: false })
-      if (data) setArchives(data as ArchiveRow[])
+      if (data) {
+        setArchives(data.map((a: any) => ({
+          ...a,
+          couple_phase: a.couples?.phase || 'new_client',
+        })) as ArchiveRow[])
+      }
       setLoading(false)
     }
     fetch()
@@ -105,7 +140,8 @@ export default function ArchiveDashboard() {
     const notStarted = archives.filter(a => a.archive_status === 'not_started').length
     const onMarketing = archives.filter(a => a.on_marketing_drive).length
     const onAws = archives.filter(a => a.on_aws).length
-    return { archived, partial, notStarted, onMarketing, onAws, total: archives.length }
+    const readyToArchive = archives.filter(a => a.couple_phase === 'post_production').length
+    return { archived, partial, notStarted, onMarketing, onAws, readyToArchive, total: archives.length }
   }, [archives])
 
   const filtered = useMemo(() => {
@@ -115,6 +151,7 @@ export default function ArchiveDashboard() {
         const name = `${a.bride_name || ''} ${a.groom_name || ''}`.toLowerCase()
         if (!name.includes(q)) return false
       }
+      if (phaseFilter !== 'all' && a.couple_phase !== phaseFilter) return false
       if (statusFilter !== 'all' && a.archive_status !== statusFilter) return false
       if (yearFilter !== 'all' && a.wedding_date) {
         const yr = parseInt(a.wedding_date.substring(0, 4))
@@ -122,7 +159,7 @@ export default function ArchiveDashboard() {
       }
       return true
     })
-  }, [archives, search, statusFilter, yearFilter])
+  }, [archives, search, statusFilter, phaseFilter, yearFilter])
 
   const filteredStats = useMemo(() => {
     const remaining = filtered.filter(a => !['complete', 'verified'].includes(a.archive_status)).length
@@ -139,9 +176,14 @@ export default function ArchiveDashboard() {
       cell: ({ row }) => {
         const a = row.original
         return (
-          <span className="font-medium text-blue-700 dark:text-blue-400">
-            {a.bride_name} & {a.groom_name}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-blue-700 dark:text-blue-400">
+              {a.bride_name} & {a.groom_name}
+            </span>
+            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${PHASE_COLORS[a.couple_phase] || 'bg-gray-100 text-gray-700'}`}>
+              {PHASE_LABELS[a.couple_phase] || a.couple_phase}
+            </span>
+          </div>
         )
       },
       sortingFn: (rowA, rowB) => {
@@ -253,7 +295,7 @@ export default function ArchiveDashboard() {
         </div>
 
         {/* Top Row — Stat Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Archive Progress — spans 2 */}
           <div className="col-span-2 rounded-xl border bg-white p-4" style={{ borderTop: '3px solid #f59e0b' }}>
             <div className="flex items-center justify-between mb-3">
@@ -286,6 +328,13 @@ export default function ArchiveDashboard() {
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Not Started</div>
             <div className="text-3xl font-bold text-gray-500">{stats.notStarted}</div>
           </div>
+
+          {/* Ready to Archive */}
+          <div className="rounded-xl border bg-white p-4" style={{ borderTop: '3px solid #3b82f6' }}>
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Ready to Archive</div>
+            <div className="text-3xl font-bold text-blue-600">{stats.readyToArchive}</div>
+            <div className="text-xs text-muted-foreground">post-production</div>
+          </div>
         </div>
 
         {/* Search + Filter */}
@@ -302,6 +351,15 @@ export default function ArchiveDashboard() {
                 style={{ paddingLeft: '2.25rem' }}
               />
             </div>
+            <select
+              value={phaseFilter}
+              onChange={(e) => setPhaseFilter(e.target.value)}
+              className="text-sm rounded-md border border-input bg-background px-3 py-2"
+            >
+              {PHASE_FILTER_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
