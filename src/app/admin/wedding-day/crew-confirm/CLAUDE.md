@@ -8,4 +8,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #7475 | 6:07 AM | 🟣 | Meeting dropdown enhancement - leveraging meeting_points database | ~506 |
+
+### Apr 28, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #8067 | 5:33 PM | 🟣 | Crew confirm auto-generates call sheet from wedding_assignments | ~511 |
 </claude-mem-context>

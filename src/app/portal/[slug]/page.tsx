@@ -112,8 +112,7 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
   /* ─── Derived data ─── */
 
   const videoId = couple.portal_video_url ? extractYouTubeId(couple.portal_video_url) : null
-  const hasCollage = couple.collage_img_left || couple.collage_img_center || couple.collage_img_right
-  const showZone2 = hasCollage || lineItems.length > 0
+  const showZone2 = lineItems.length > 0
 
   const coverageStart = contract?.start_time ?? ''
   const coverageEnd = contract?.end_time ?? ''
@@ -230,21 +229,14 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
               </div>
             )}
 
-            {/* Quick link buttons — stack on mobile, row on desktop */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:justify-center mb-8">
+            {/* Quick link button */}
+            <div className="flex justify-center mb-8">
               <a
                 href={`/portal/${slug}/wedding-day`}
                 className="flex items-center justify-center px-6 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
                 style={{ border: `1.5px solid ${TEAL}`, color: TEAL, minHeight: 48 }}
               >
                 Wedding Day Form
-              </a>
-              <a
-                href="mailto:info@sigsphoto.ca"
-                className="hidden sm:flex items-center justify-center px-6 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
-                style={{ border: `1.5px solid ${TEAL}`, color: TEAL, minHeight: 48 }}
-              >
-                Contact SIGS
               </a>
             </div>
 
@@ -265,37 +257,6 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
             style={{ minHeight: '100vh', backgroundColor: DARK, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <div className="mx-auto w-full px-5 sm:px-10 py-16" style={{ maxWidth: 680 }}>
-              {/* Collage — 3:4 on mobile, 1:1 on desktop */}
-              {hasCollage && (
-                <>
-                  <p className="text-center text-[10px] font-semibold tracking-[0.25em] uppercase mb-8" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                    YOUR ENGAGEMENT
-                  </p>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
-                    {[couple.collage_img_left, couple.collage_img_center, couple.collage_img_right].map((url: string | null, i: number) =>
-                      url ? (
-                        <div key={i} className="rounded-lg overflow-hidden aspect-[3/4] sm:aspect-square" style={{ backgroundColor: '#2a2a2a' }}>
-                          <Image src={url} alt={`Collage ${i + 1}`} width={220} height={293} sizes="33vw" className="object-cover w-full h-full" />
-                        </div>
-                      ) : (
-                        <div key={i} className="rounded-lg aspect-[3/4] sm:aspect-square" style={{ backgroundColor: '#2a2a2a' }} />
-                      )
-                    )}
-                  </div>
-                  {couple.collage_caption && (
-                    <p className="text-center text-sm italic mb-10" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                      {couple.collage_caption}
-                    </p>
-                  )}
-                </>
-              )}
-
-              {hasCollage && lineItems.length > 0 && (
-                <div className="flex justify-center my-10">
-                  <div style={{ width: '40%', height: 1, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-                </div>
-              )}
-
               {lineItems.length > 0 && (
                 <div className="text-center">
                   <p className={`${playfair.className} text-xl mb-6`} style={{ color: 'rgba(255,255,255,0.85)' }}>

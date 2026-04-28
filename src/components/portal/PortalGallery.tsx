@@ -46,71 +46,43 @@ export function PortalGallery({ heroUrl, leftUrl, centerUrl, rightUrl, caption, 
         <div className="mx-auto mt-3" style={{ maxWidth: 200, height: 1, backgroundColor: '#d6d3d1' }} />
       </div>
 
-      {/* Desktop: 3-up collage row + hero below */}
-      <div className="hidden sm:block">
-        {collageImages.length > 0 && (
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            {collageImages.map((url, i) => (
-              <button
-                key={i}
-                onClick={() => setLightboxSrc(url)}
-                className="relative aspect-[3/4] rounded-lg overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform duration-300"
-                style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
-              >
-                <Image src={url} alt={`${bride} & ${groom} — ${i + 1}`} fill sizes="33vw" className="object-cover" />
-              </button>
-            ))}
-          </div>
-        )}
-
-        {caption && (
-          <p className="text-center text-sm italic mb-6" style={{ color: '#78716c' }}>
-            {caption}
-          </p>
-        )}
-
-        {heroUrl && (
-          <div className="flex justify-center">
+      {/* Collage row — adapts to container width via auto-fit grid */}
+      {collageImages.length > 0 && (
+        <div
+          className="gap-3 mb-2"
+          style={{ display: 'grid', gridTemplateColumns: `repeat(${collageImages.length}, 1fr)` }}
+        >
+          {collageImages.map((url, i) => (
             <button
-              onClick={() => setLightboxSrc(heroUrl)}
-              className="relative w-full rounded-lg overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform duration-300"
-              style={{ maxWidth: 480, aspectRatio: '4/3', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
+              key={i}
+              onClick={() => setLightboxSrc(url)}
+              className="relative aspect-[3/4] rounded-lg overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform duration-300"
+              style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
             >
-              <Image src={heroUrl} alt={`${bride} & ${groom}`} fill sizes="480px" className="object-cover" />
+              <Image src={url} alt={`${bride} & ${groom} — ${i + 1}`} fill sizes="33vw" className="object-cover" />
             </button>
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* Mobile: single column — Hero first, then collage */}
-      <div className="sm:hidden space-y-4">
-        {heroUrl && (
+      {caption && (
+        <p className="text-center text-sm italic mb-6" style={{ color: '#78716c' }}>
+          {caption}
+        </p>
+      )}
+
+      {/* Hero image — centered, slightly larger */}
+      {heroUrl && (
+        <div className="flex justify-center mt-4">
           <button
             onClick={() => setLightboxSrc(heroUrl)}
-            className="relative w-full aspect-[4/5] rounded-lg overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform duration-300"
-            style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
+            className="relative w-full rounded-lg overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform duration-300"
+            style={{ maxWidth: 480, aspectRatio: '4/3', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
           >
-            <Image src={heroUrl} alt={`${bride} & ${groom}`} fill sizes="100vw" className="object-cover" />
+            <Image src={heroUrl} alt={`${bride} & ${groom}`} fill sizes="480px" className="object-cover" />
           </button>
-        )}
-
-        {collageImages.map((url, i) => (
-          <button
-            key={i}
-            onClick={() => setLightboxSrc(url)}
-            className="relative w-full aspect-[4/5] rounded-lg overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform duration-300"
-            style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
-          >
-            <Image src={url} alt={`${bride} & ${groom} — ${i + 1}`} fill sizes="100vw" className="object-cover" />
-          </button>
-        ))}
-
-        {caption && (
-          <p className="text-center text-sm italic" style={{ color: '#78716c' }}>
-            {caption}
-          </p>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightboxSrc && (
