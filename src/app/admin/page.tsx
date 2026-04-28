@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Calendar, Camera, Clock, X, Video, ClipboardList, DollarSign, BookOpen, Pencil, Phone } from 'lucide-react'
 import { format, differenceInDays, parseISO, addDays } from 'date-fns'
-import { formatWeddingDate, formatDateCompact, formatDate, formatCurrency } from '@/lib/formatters'
+import { formatWeddingDate, formatDateCompact, formatDate, formatCurrency, formatTime12h } from '@/lib/formatters'
 import * as d3 from 'd3'
 import WeekAhead from '@/components/dashboard/WeekAhead'
 import ProductionFloor from '@/components/dashboard/ProductionFloor'
@@ -328,16 +328,6 @@ export default function AdminDashboardPage() {
     })
     .sort((a, b) => a.wedding_date!.localeCompare(b.wedding_date!))
 
-  // Recent weddings (past 30 days, still "booked")
-  const recentlyPast = couples
-    .filter(c => {
-      if (!c.wedding_date) return false
-      const wDate = parseISO(c.wedding_date)
-      const daysSince = differenceInDays(today, wDate)
-      return daysSince >= 0 && daysSince <= 30 && !c.is_cancelled
-    })
-    .sort((a, b) => b.wedding_date!.localeCompare(a.wedding_date!))
-
   // Modal data
   const modalCouples = modalYear
     ? couples
@@ -505,39 +495,6 @@ export default function AdminDashboardPage() {
         <p className="text-muted-foreground">SIGS Photography — {formatDate(today)}</p>
       </div>
 
-      {/* Needs Attention — Wedding Passed, Still Booked */}
-      {recentlyPast.length > 0 && (
-        <div className="rounded-lg border-l-4 border-orange-500 bg-orange-50 p-4">
-          <div className="flex items-start gap-3">
-            <span className="text-orange-500 text-xl">⚠️</span>
-            <div className="flex-1">
-              <h3 className="font-semibold text-orange-800 text-sm uppercase tracking-wide">
-                Needs Attention — Wedding Passed, Still "Booked"
-              </h3>
-              <p className="text-orange-700 text-xs mt-1">
-                These couples had their wedding but status was not updated. Update each couple's status to "completed".
-              </p>
-              <div className="mt-3 space-y-2">
-                {recentlyPast.map((couple) => {
-                  const wDate = parseISO(couple.wedding_date!)
-                  const dateStr = `${format(wDate, 'EEE').toUpperCase()} ${format(wDate, 'MMM d, yyyy')}`
-                  return (
-                    <div key={couple.id} className="flex items-center justify-between bg-white rounded-md px-3 py-2 border border-orange-200">
-                      <div>
-                        <span className="font-medium text-sm text-gray-900">{couple.couple_name}</span>
-                        <span className="text-xs text-orange-600 ml-2">Wedding was {dateStr}</span>
-                      </div>
-                      <a href={`/admin/couples/${couple.id}`} className="text-xs font-medium text-orange-700 hover:underline">
-                        Update →
-                      </a>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Dashboard Boxes */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -580,7 +537,7 @@ export default function AdminDashboardPage() {
                   const bride = (a.couples as any)?.bride_first_name || ''
                   const groom = (a.couples as any)?.groom_first_name || ''
                   const names = [bride, groom].filter(Boolean).join(' & ')
-                  const time = a.start_time ? a.start_time.slice(0, 5) : ''
+                  const time = a.start_time ? formatTime12h(a.start_time) : ''
                   return (
                     <div key={a.id} className="flex items-center gap-2 text-sm py-1">
                       <span className="font-medium text-gray-700 w-28">{dow} {dateStr}</span>
