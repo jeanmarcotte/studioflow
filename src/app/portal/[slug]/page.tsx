@@ -2,7 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { Playfair_Display } from 'next/font/google'
-import { formatWeddingDate, formatCurrency, formatMilitaryTime } from '@/lib/formatters'
+import { formatWeddingDate, formatMilitaryTime } from '@/lib/formatters'
+import { PortalGallery } from '@/components/portal/PortalGallery'
 import { differenceInDays, parseISO, format } from 'date-fns'
 import { ChevronDown } from 'lucide-react'
 
@@ -67,33 +68,12 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
     .select('id, extras_sale_amount, status, collage_type, collage_size, album_qty')
     .eq('couple_id', couple.id)
 
-  const orderIds = (extrasOrders ?? []).map((o: any) => o.id)
-  let extrasInstallments: any[] = []
-  if (orderIds.length > 0) {
-    const { data } = await supabase
-      .from('extras_installments')
-      .select('*')
-      .in('extras_order_id', orderIds)
-      .order('installment_number', { ascending: true })
-    extrasInstallments = data ?? []
-  }
-
   const { data: wdForms } = await supabase
     .from('wedding_day_forms')
     .select('*')
     .eq('couple_id', couple.id)
     .limit(1)
   const wdForm = wdForms?.[0]
-
-  const { data: payments } = await supabase
-    .from('payments')
-    .select('amount')
-    .eq('couple_id', couple.id)
-
-  const { data: c3Items } = await supabase
-    .from('c3_line_items')
-    .select('total')
-    .eq('couple_id', couple.id)
 
   /* ─── C2 line items for Zone 2 "Your extras include" ─── */
   const activeOrderIds = (extrasOrders ?? [])
@@ -129,18 +109,6 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
     }
   }
 
-  /* ─── Financial calculations ─── */
-
-  const c1 = contract?.total ?? 0
-  const c2 = (extrasOrders ?? [])
-    .filter((o: any) => ['signed', 'completed'].includes(o.status))
-    .reduce((sum: number, o: any) => sum + (o.extras_sale_amount ?? 0), 0)
-  const c3 = (c3Items ?? []).reduce((sum: number, item: any) => sum + (item.total ?? 0), 0)
-  const invoiced = c1 + c2 + c3
-  const received = (payments ?? []).reduce((sum: number, p: any) => sum + (p.amount ?? 0), 0)
-  let balance = invoiced - received
-  if (Math.abs(balance) <= 50) balance = 0
-
   /* ─── Derived data ─── */
 
   const videoId = couple.portal_video_url ? extractYouTubeId(couple.portal_video_url) : null
@@ -169,12 +137,6 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
     if (wdForm.ceremony_start_time) schedule.push({ time: wdForm.ceremony_start_time, endTime: wdForm.ceremony_finish_time, label: 'Ceremony', location: wdForm.ceremony_location_name ?? '', address: wdForm.ceremony_address })
     if (wdForm.park_start_time) schedule.push({ time: wdForm.park_start_time, endTime: wdForm.park_finish_time, label: 'Photos', location: wdForm.park_name ?? '', address: wdForm.park_address })
     if (wdForm.reception_start_time) schedule.push({ time: wdForm.reception_start_time, endTime: wdForm.reception_finish_time, label: 'Reception', location: wdForm.reception_venue_name ?? '', address: wdForm.reception_address, phone: wdForm.venue_contact_phone })
-  }
-
-  function getInstallmentStatus(inst: any): 'paid' | 'due' | 'future' {
-    if (inst.paid) return 'paid'
-    if (inst.due_date && parseISO(inst.due_date) <= new Date()) return 'due'
-    return 'future'
   }
 
   return (
@@ -556,144 +518,23 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
         </section>
 
         {/* ═══════════════════════════════════════════
-            ZONE 4 — Vault
+            ZONE 4 — Gallery
             ═══════════════════════════════════════════ */}
         <section
+          id="gallery"
           className="portal-snap"
           style={{ minHeight: '100vh', backgroundColor: BEIGE, display: 'flex', flexDirection: 'column' }}
         >
-          <div className="mx-auto w-full px-5 sm:px-10 pt-8 flex-1 flex flex-col pb-20 sm:pb-0" style={{ maxWidth: 680 }}>
-            {/* Mobile header */}
-            <div className="sm:hidden text-center mb-8">
-              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: '#aaa' }}>
-                SIGS Photography Ltd.
-              </p>
-              <h2 className={`${playfair.className} text-2xl`} style={{ color: '#1a1a1a' }}>
-                {bride} & {groom}
-              </h2>
-              <p className="text-sm mt-1" style={{ color: '#777' }}>
-                {formatWeddingDate(couple.wedding_date)}
-              </p>
-            </div>
-            {/* Desktop header */}
-            <div className="hidden sm:flex items-start justify-between mb-8">
-              <div>
-                <h2 className={`${playfair.className} text-2xl`} style={{ color: '#1a1a1a' }}>
-                  {bride} & {groom}
-                </h2>
-                <p className="text-sm mt-1" style={{ color: '#777' }}>{formatWeddingDate(couple.wedding_date)}</p>
-              </div>
-              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase shrink-0 ml-4" style={{ color: '#aaa' }}>
-                SIGS Photography Ltd.
-              </p>
-            </div>
-
-            {/* Financial cards — stacked on mobile, 3-across on desktop */}
-            {/* Mobile: single card with rows */}
-            <div className="sm:hidden bg-white rounded-xl overflow-hidden mb-6" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #f0ede8' }}>
-                <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#999' }}>Contract Total</p>
-                <p className="text-lg font-bold" style={{ color: '#1a1a1a' }}>{formatCurrency(invoiced)}</p>
-              </div>
-              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #f0ede8' }}>
-                <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#999' }}>Total Paid</p>
-                <p className="text-lg font-bold" style={{ color: received > 0 ? TEAL : '#1a1a1a' }}>{formatCurrency(received)}</p>
-              </div>
-              <div className="flex items-center justify-between px-5 py-4">
-                <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#999' }}>Balance</p>
-                <p className="text-lg font-bold" style={{ color: balance > 0 ? '#D85A30' : TEAL }}>{formatCurrency(balance)}</p>
-              </div>
-            </div>
-            {/* Desktop: 3 cards */}
-            <div className="hidden sm:grid grid-cols-3 gap-3 mb-6">
-              <div className="bg-white rounded-xl p-4 text-center" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-                <p className="text-[10px] font-semibold tracking-wider uppercase mb-1" style={{ color: '#999' }}>Contract Total</p>
-                <p className="text-lg font-bold" style={{ color: '#1a1a1a' }}>{formatCurrency(invoiced)}</p>
-              </div>
-              <div className="bg-white rounded-xl p-4 text-center" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-                <p className="text-[10px] font-semibold tracking-wider uppercase mb-1" style={{ color: '#999' }}>Total Paid</p>
-                <p className="text-lg font-bold" style={{ color: received > 0 ? TEAL : '#1a1a1a' }}>{formatCurrency(received)}</p>
-              </div>
-              <div className="bg-white rounded-xl p-4 text-center" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-                <p className="text-[10px] font-semibold tracking-wider uppercase mb-1" style={{ color: '#999' }}>Balance</p>
-                <p className="text-lg font-bold" style={{ color: balance > 0 ? '#D85A30' : TEAL }}>{formatCurrency(balance)}</p>
-              </div>
-            </div>
-
-            {/* Payment schedule */}
-            {extrasInstallments.length > 0 && (
-              <div className="bg-white rounded-xl overflow-hidden mb-8" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-                <div className="px-5 py-3" style={{ borderBottom: '1px solid #f0ede8' }}>
-                  <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#999' }}>Payment Schedule</p>
-                </div>
-                {extrasInstallments.map((inst: any, i: number) => {
-                  const status = getInstallmentStatus(inst)
-                  return (
-                    <div
-                      key={inst.id}
-                      className="px-5 py-3"
-                      style={{ borderBottom: i < extrasInstallments.length - 1 ? '1px solid #f5f2ed' : 'none', minHeight: 48 }}
-                    >
-                      {/* Mobile: stacked */}
-                      <div className="sm:hidden">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium" style={{ color: '#1a1a1a' }}>
-                            #{inst.installment_number} — {inst.due_description ?? 'Payment'}
-                          </p>
-                          {status === 'paid' && (
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#e6f5f0', color: TEAL }}>Paid</span>
-                          )}
-                          {status === 'due' && (
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#fef3ee', color: '#D85A30' }}>Due</span>
-                          )}
-                        </div>
-                        <p className="text-sm font-semibold mt-0.5" style={{ color: '#1a1a1a' }}>{formatCurrency(inst.amount)}</p>
-                      </div>
-                      {/* Desktop: single row */}
-                      <div className="hidden sm:flex items-center justify-between">
-                        <p className="text-sm font-medium flex-1" style={{ color: '#1a1a1a' }}>
-                          #{inst.installment_number} — {inst.due_description ?? 'Payment'}
-                        </p>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>{formatCurrency(inst.amount)}</span>
-                          {status === 'paid' && (
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#e6f5f0', color: TEAL }}>Paid</span>
-                          )}
-                          {status === 'due' && (
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#fef3ee', color: '#D85A30' }}>Due</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Contact line — tap-friendly on mobile */}
-            <div className="text-center text-sm mb-8" style={{ color: '#888' }}>
-              <p className="mb-3">If you have any questions</p>
-              <div className="flex flex-col sm:flex-row sm:justify-center gap-2 sm:gap-1">
-                <span className="hidden sm:inline">text Marianna at{' '}</span>
-                <a
-                  href="tel:4168318942"
-                  className="block sm:inline w-full sm:w-auto text-center rounded-lg font-medium sm:rounded-none sm:border-0"
-                  style={{ border: '1px solid #ddd', color: TEAL, minHeight: 48, lineHeight: '48px' }}
-                >
-                  <span className="sm:hidden">Text Marianna — (416) 831-8942</span>
-                  <span className="hidden sm:inline">(416) 831-8942</span>
-                </a>
-                <span className="hidden sm:inline">{' '}or email Jean at{' '}</span>
-                <a
-                  href="mailto:info@sigsphoto.ca"
-                  className="block sm:inline w-full sm:w-auto text-center rounded-lg font-medium sm:rounded-none sm:border-0"
-                  style={{ border: '1px solid #ddd', color: TEAL, minHeight: 48, lineHeight: '48px' }}
-                >
-                  <span className="sm:hidden">Email Jean — info@sigsphoto.ca</span>
-                  <span className="hidden sm:inline">info@sigsphoto.ca</span>
-                </a>
-              </div>
-            </div>
+          <div className="mx-auto w-full px-6 sm:px-10 py-10 sm:py-16 flex-1 flex flex-col pb-20 sm:pb-0" style={{ maxWidth: 680 }}>
+            <PortalGallery
+              heroUrl={couple.hero_image_url}
+              leftUrl={couple.collage_img_left}
+              centerUrl={couple.collage_img_center}
+              rightUrl={couple.collage_img_right}
+              caption={couple.collage_caption}
+              bride={bride}
+              groom={groom}
+            />
 
             {/* Footer */}
             <footer className="mt-auto pb-4 sm:pb-8 text-center">

@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Home, CalendarDays, Wallet } from 'lucide-react'
+import { Home, CalendarDays, Images } from 'lucide-react'
 import { Playfair_Display, DM_Sans } from 'next/font/google'
 import { differenceInDays, parseISO } from 'date-fns'
 import { formatWeddingDate } from '@/lib/formatters'
@@ -37,10 +37,11 @@ export function PortalShell({ couple, children }: Props) {
   const tabs = [
     { label: 'Home', href: `/portal/${slug}`, icon: Home },
     { label: 'Wedding Day', href: `/portal/${slug}/wedding-day`, icon: CalendarDays },
-    { label: 'Payments', href: `/portal/${slug}/payments`, icon: Wallet },
+    { label: 'Gallery', href: `/portal/${slug}#gallery`, icon: Images },
   ]
 
   const isActive = (href: string) => {
+    if (href.includes('#')) return false
     if (href === `/portal/${slug}`) return pathname === `/portal/${slug}`
     return pathname.startsWith(href)
   }
