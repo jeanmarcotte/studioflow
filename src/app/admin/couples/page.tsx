@@ -171,6 +171,7 @@ export default function CouplesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [yearFilter, setYearFilter] = useState<number | 'all'>(new Date().getFullYear())
+  const [phaseFilter, setPhaseFilter] = useState<string>('all')
   const [engFilter, setEngFilter] = useState<string>('all')
 
   useEffect(() => {
@@ -290,11 +291,51 @@ export default function CouplesPage() {
       result = result.filter(c => c.wedding_year === yearFilter)
     }
 
+    if (phaseFilter !== 'all') {
+      result = result.filter(c => c.lifecycle_phase === phaseFilter)
+    }
+
     if (engFilter !== 'all') {
       result = result.filter(c => c.eng_pipeline === engFilter)
     }
 
     return result
+  }, [couples, search, yearFilter, phaseFilter, engFilter])
+
+  // Phase counts (computed from year-filtered + search-filtered data, excluding phase filter itself)
+  const phaseCounts = useMemo(() => {
+    let base = [...couples]
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      const qDigits = q.replace(/\D/g, '')
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+      const dayAbbrevs = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+      let matchDayIndex = -1
+      for (let i = 0; i < 7; i++) {
+        if (dayNames[i].startsWith(q) || dayAbbrevs[i] === q) { matchDayIndex = i; break }
+      }
+      base = base.filter(c => {
+        if (c.couple_name.toLowerCase().includes(q)) return true
+        if (c.bride_first_name?.toLowerCase().includes(q)) return true
+        if (c.bride_last_name?.toLowerCase().includes(q)) return true
+        if (c.groom_first_name?.toLowerCase().includes(q)) return true
+        if (c.groom_last_name?.toLowerCase().includes(q)) return true
+        if (c.reception_venue?.toLowerCase().includes(q)) return true
+        if (c.email?.toLowerCase().includes(q)) return true
+        if (qDigits && c.phone?.replace(/\D/g, '').includes(qDigits)) return true
+        if (matchDayIndex >= 0 && c.wedding_date) {
+          const wd = new Date(c.wedding_date + 'T12:00:00')
+          if (wd.getDay() === matchDayIndex) return true
+        }
+        return false
+      })
+    }
+    if (yearFilter !== 'all') base = base.filter(c => c.wedding_year === yearFilter)
+    if (engFilter !== 'all') base = base.filter(c => c.eng_pipeline === engFilter)
+    const counts: Record<string, number> = {}
+    Object.keys(PHASE_LABELS).forEach(k => { counts[k] = 0 })
+    base.forEach(c => { counts[c.lifecycle_phase] = (counts[c.lifecycle_phase] || 0) + 1 })
+    return counts
   }, [couples, search, yearFilter, engFilter])
 
   // Stats
@@ -620,20 +661,37 @@ export default function CouplesPage() {
             />
           </div>
           {/* Filters */}
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-muted-foreground">Eng:</label>
-            <select
-              value={engFilter}
-              onChange={(e) => setEngFilter(e.target.value)}
-              className="!w-auto text-sm rounded-md border border-input bg-background px-2 py-1"
-            >
-              <option value="all">All</option>
-              <option value="pending">Pending</option>
-              <option value="shot">Shot</option>
-              <option value="quoted">Quoted</option>
-              <option value="sold">Sold</option>
-              <option value="declined">Declined</option>
-            </select>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-muted-foreground">Phase:</label>
+              <select
+                value={phaseFilter}
+                onChange={(e) => setPhaseFilter(e.target.value)}
+                className="!w-auto text-sm rounded-md border border-input bg-background px-2 py-1"
+              >
+                <option value="all">All Phases</option>
+                {Object.entries(PHASE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label} ({phaseCounts[value] || 0})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-muted-foreground">Eng:</label>
+              <select
+                value={engFilter}
+                onChange={(e) => setEngFilter(e.target.value)}
+                className="!w-auto text-sm rounded-md border border-input bg-background px-2 py-1"
+              >
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="shot">Shot</option>
+                <option value="quoted">Quoted</option>
+                <option value="sold">Sold</option>
+                <option value="declined">Declined</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -641,7 +699,7 @@ export default function CouplesPage() {
         <div className="rounded-xl border bg-card">
           {/* Table Header Stats */}
           <div className="px-4 py-3 border-b flex flex-wrap items-center gap-4 text-sm">
-            <span className="font-semibold">{filteredStats.total} couples</span>
+            <span className="font-semibold">{filteredStats.total} couples{phaseFilter !== 'all' ? ` — ${PHASE_LABELS[phaseFilter]}` : ''}</span>
             <span className="text-muted-foreground">{filteredStats.remaining} remaining</span>
             <span className="text-muted-foreground/60">{filteredStats.shot} shot</span>
             {filteredStats.totalBalance > 0 && (
