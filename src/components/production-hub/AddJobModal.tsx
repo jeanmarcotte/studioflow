@@ -58,6 +58,7 @@ export function AddJobModal({ coupleId, products, onClose, onCreated }: Props) {
   const [category, setCategory] = useState<Category>('wedding')
   const [selectedProductCode, setSelectedProductCode] = useState('')
   const [description, setDescription] = useState('')
+  const [images, setImages] = useState<number | ''>('')
   const [notes, setNotes] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [submitting, setSubmitting] = useState(false)
@@ -71,7 +72,7 @@ export function AddJobModal({ coupleId, products, onClose, onCreated }: Props) {
     if (!selectedProductCode) return
     setSubmitting(true)
 
-    const { error } = await supabase.from('jobs').insert({
+    const insertData: Record<string, any> = {
       couple_id: coupleId,
       category,
       job_type: selectedProductCode,
@@ -80,7 +81,11 @@ export function AddJobModal({ coupleId, products, onClose, onCreated }: Props) {
       description: description.trim() || null,
       notes: notes.trim() || null,
       status: 'not_started',
-    })
+    }
+    if (images !== '' && !selectedProductCode.startsWith('PROD-VID-')) {
+      insertData.photos_taken = Number(images)
+    }
+    const { error } = await supabase.from('jobs').insert(insertData)
 
     setSubmitting(false)
 
@@ -155,6 +160,21 @@ export function AddJobModal({ coupleId, products, onClose, onCreated }: Props) {
               className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring"
             />
           </div>
+
+          {/* Images (non-video only) */}
+          {!selectedProductCode.startsWith('PROD-VID-') && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-2">Images</div>
+              <input
+                type="number"
+                min={0}
+                value={images}
+                onChange={e => setImages(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
+                placeholder="Number of images"
+                className="w-32 rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring"
+              />
+            </div>
+          )}
 
           {/* Notes */}
           <div>

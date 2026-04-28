@@ -94,8 +94,8 @@ export default function ProductionHubPage() {
     return <div className="p-8 text-center text-muted-foreground">Couple not found</div>
   }
 
-  const engJobs = photoJobs.filter(j => j.category === 'engagement')
-  const wedJobs = photoJobs.filter(j => j.category === 'wedding')
+  const engJobs = photoJobs.filter(j => j.category === 'engagement' && (j as any).product_code === 'PROD-ENG-PROOFS')
+  const wedJobs = photoJobs.filter(j => j.category === 'wedding' && (j as any).product_code === 'PROD-WED-PROOFS')
 
   return (
     <div className="space-y-5 max-w-6xl">

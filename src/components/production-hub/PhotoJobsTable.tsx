@@ -38,7 +38,7 @@ export function PhotoJobsTable({ jobs, title, onRefresh }: Props) {
           <tr className="border-b text-left text-xs text-muted-foreground uppercase tracking-wide">
             <th className="py-2 px-2 font-medium">Type</th>
             <th className="py-2 px-2 font-medium">Status</th>
-            <th className="py-2 px-2 font-medium" style={{ textAlign: 'right' }}>Taken</th>
+            <th className="py-2 px-2 font-medium" style={{ textAlign: 'right' }}>Images</th>
             <th className="py-2 px-2 font-medium" style={{ textAlign: 'right' }}>Selected</th>
             <th className="py-2 px-2 font-medium">Vendor</th>
             <th className="py-2 px-2 font-medium">At Lab</th>
