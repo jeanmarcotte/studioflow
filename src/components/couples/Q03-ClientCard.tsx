@@ -25,7 +25,7 @@
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { DM_Serif_Display } from 'next/font/google';
 import { T, card, sectionLabel, fieldLabel, pillBase, badge } from './designTokens';
-import { formatPackage } from '@/lib/formatters';
+import { formatPackage, formatTime12h } from '@/lib/formatters';
 
 const display = DM_Serif_Display({ weight: '400', subsets: ['latin'], display: 'swap' });
 
@@ -85,19 +85,14 @@ export function Q03ClientCard({ couple, contract, extrasOrders }: Q03ClientCardP
       if (parts.length < 2 || parts.some(isNaN)) return NaN;
       return parts[0] * 60 + parts[1];
     };
-    const fmtT = (t: string) => {
-      const parts = t.split(':').map(Number);
-      if (parts.length < 2 || parts.some(isNaN)) return 'TBD';
-      const [h, m] = parts;
-      return `${h > 12 ? h - 12 : h || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-    };
     const startMin = toMin(contract.start_time);
     const endMin = toMin(contract.end_time);
-    const hrs = (endMin - startMin) / 60;
-    const startFmt = fmtT(contract.start_time);
-    const endFmt = fmtT(contract.end_time);
-    if (isNaN(hrs) || startFmt === 'TBD' || endFmt === 'TBD') {
-      coverage = startFmt !== 'TBD' && endFmt !== 'TBD' ? `${startFmt} \u2013 ${endFmt}` : 'TBD';
+    let hrs = (endMin - startMin) / 60;
+    if (hrs < 0) hrs += 24; // overnight
+    const startFmt = formatTime12h(contract.start_time);
+    const endFmt = formatTime12h(contract.end_time);
+    if (isNaN(hrs) || !startFmt || !endFmt) {
+      coverage = startFmt && endFmt ? `${startFmt} \u2013 ${endFmt}` : 'TBD';
     } else {
       coverage = `${startFmt} \u2013 ${endFmt} (${hrs}h)`;
     }

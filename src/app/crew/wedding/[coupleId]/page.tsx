@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { crewSupabase } from '@/lib/supabase-crew'
 import { ArrowLeft, MapPin, Clock, Building2, PartyPopper, Package, StickyNote, ExternalLink } from 'lucide-react'
+import { formatTime12h } from '@/lib/formatters'
 
 interface WeddingDetail {
   brideName: string
@@ -229,14 +230,14 @@ export default function CrewWeddingDetail() {
                 <VenueRow
                   label="Ceremony"
                   name={detail.ceremonyLocation}
-                  time={detail.startTime}
+                  time={formatTime12h(detail.startTime)}
                 />
               )}
               {detail.receptionVenue && (
                 <VenueRow
                   label="Reception"
                   name={detail.receptionVenue}
-                  time={detail.endTime ? `Ends ${formatTime(detail.endTime)}` : null}
+                  time={detail.endTime ? `Ends ${formatTime12h(detail.endTime)}` : null}
                 />
               )}
             </div>

@@ -57,6 +57,24 @@ export function formatTime(time: string | null | undefined): string {
   }
 }
 
+/**
+ * Format a 24h time string (HH:MM) to 12h AM/PM format
+ * "00:00" → "Midnight"
+ * "12:00" → "Noon"
+ * "11:00" → "11:00 AM"
+ * "13:30" → "1:30 PM"
+ */
+export function formatTime12h(time: string | null | undefined): string {
+  if (!time) return '';
+  const [h, m] = time.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return time;
+  if (h === 0 && m === 0) return 'Midnight';
+  if (h === 12 && m === 0) return 'Noon';
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
 /** Date + Time combined: "April 3, 2026 14:30" */
 export function formatDateTime(date: string | Date | null | undefined): string {
   const parsed = parseDateSafe(date);
