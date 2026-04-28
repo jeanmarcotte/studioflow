@@ -95,6 +95,40 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
     .select('total')
     .eq('couple_id', couple.id)
 
+  /* ─── C2 line items for Zone 2 "Your extras include" ─── */
+  const activeOrderIds = (extrasOrders ?? [])
+    .filter((o: any) => ['signed', 'paid', 'completed'].includes(o.status))
+    .map((o: any) => o.id)
+  let lineItems: { product_code: string; quantity: number; notes: string | null; item_name: string; category: string; retail_price: number; sort_order: number }[] = []
+  if (activeOrderIds.length > 0) {
+    const { data: liData } = await supabase
+      .from('c2_line_items')
+      .select('product_code, quantity, notes, extras_order_id')
+      .in('extras_order_id', activeOrderIds)
+    if (liData && liData.length > 0) {
+      const codes = Array.from(new Set(liData.map((li: any) => li.product_code)))
+      const { data: catalog } = await supabase
+        .from('product_catalog')
+        .select('product_code, item_name, category, retail_price, sort_order')
+        .in('product_code', codes)
+      const catalogMap = new Map((catalog ?? []).map((c: any) => [c.product_code, c]))
+      lineItems = liData
+        .map((li: any) => {
+          const cat = catalogMap.get(li.product_code)
+          return {
+            product_code: li.product_code,
+            quantity: li.quantity ?? 1,
+            notes: li.notes,
+            item_name: cat?.item_name ?? li.product_code,
+            category: cat?.category ?? '',
+            retail_price: cat?.retail_price ?? 0,
+            sort_order: cat?.sort_order ?? 999,
+          }
+        })
+        .sort((a: any, b: any) => a.sort_order - b.sort_order)
+    }
+  }
+
   /* ─── Financial calculations ─── */
 
   const c1 = contract?.total ?? 0
@@ -111,7 +145,7 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
 
   const videoId = couple.portal_video_url ? extractYouTubeId(couple.portal_video_url) : null
   const hasCollage = couple.collage_img_left || couple.collage_img_center || couple.collage_img_right
-  const showZone2 = hasCollage || contract
+  const showZone2 = hasCollage || lineItems.length > 0
 
   const coverageStart = contract?.start_time ?? ''
   const coverageEnd = contract?.end_time ?? ''
@@ -125,17 +159,6 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
     coverageHours = Math.round((endMin - startMin) / 60)
   }
 
-  const packageItems: string[] = []
-  if (contract) {
-    packageItems.push('Engagement proofs, digital download')
-    const hasAlbum = (extrasOrders ?? []).some((o: any) => o.album_qty > 0)
-    if (hasAlbum) packageItems.push('Wedding album, 28×11 layflat')
-    packageItems.push('Hi-res wedding files, 16×24 300dpi')
-    const collageOrder = (extrasOrders ?? []).find((o: any) => o.collage_type)
-    if (collageOrder) {
-      packageItems.push(`Canvas collage, ${collageOrder.collage_type} ${collageOrder.collage_size} float frames`)
-    }
-  }
 
   // Schedule with phone numbers for mobile tap-to-call
   const schedule: { time: string; endTime?: string; label: string; location: string; address?: string; phone?: string }[] = []
@@ -256,7 +279,7 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
               </a>
               <a
                 href="mailto:info@sigsphoto.ca"
-                className="flex items-center justify-center px-6 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
+                className="hidden sm:flex items-center justify-center px-6 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
                 style={{ border: `1.5px solid ${TEAL}`, color: TEAL, minHeight: 48 }}
               >
                 Contact SIGS
@@ -305,22 +328,29 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
                 </>
               )}
 
-              {hasCollage && packageItems.length > 0 && (
+              {hasCollage && lineItems.length > 0 && (
                 <div className="flex justify-center my-10">
                   <div style={{ width: '40%', height: 1, backgroundColor: 'rgba(255,255,255,0.08)' }} />
                 </div>
               )}
 
-              {packageItems.length > 0 && (
+              {lineItems.length > 0 && (
                 <div className="text-center">
                   <p className={`${playfair.className} text-xl mb-6`} style={{ color: 'rgba(255,255,255,0.85)' }}>
-                    Your package includes
+                    Your extras include
                   </p>
                   <div className="space-y-3">
-                    {packageItems.map((item, i) => (
-                      <p key={i} className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                        — {item}
-                      </p>
+                    {lineItems.map((item, i) => (
+                      <div key={i}>
+                        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                          — {item.item_name}{item.quantity > 1 ? ` × ${item.quantity}` : ''}
+                        </p>
+                        {item.notes && (
+                          <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                            {item.notes}
+                          </p>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
