@@ -89,6 +89,57 @@ export interface VideoJob {
   notes: string | null
 }
 
+export interface OrderJob {
+  id: string
+  couple_id: string
+  job_type: string
+  category: string
+  product_code: string | null
+  description: string | null
+  quantity: number | null
+  status: string
+  vendor: string | null
+  approval_round: number | null
+  sent_for_review_date: string | null
+  reedit_count: number | null
+  completed_date: string | null
+  notes: string | null
+}
+
+export interface ProductItem {
+  product_code: string
+  item_name: string
+  category: string
+}
+
+export const EXCLUDED_ORDER_CODES = [
+  'PROD-ENG-PROOFS', 'PROD-WED-PROOFS',
+  'PROD-VID-LONGFORM', 'PROD-VID-RECAP', 'PROD-VID-SLIDESHOW', 'PROD-VID-SOCIAL',
+  'PROD-BACKUP-PHOTO', 'PROD-BACKUP-VIDEO',
+]
+
+export const ORDER_STATUSES = [
+  { value: 'not_started', label: 'Ready to Start' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'waiting_approval', label: 'Waiting for Bride' },
+  { value: 'on_hold', label: 'On Hold' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'at_lab', label: 'At Lab' },
+  { value: 'at_studio', label: 'At Studio' },
+  { value: 'picked_up', label: 'Picked Up' },
+] as const
+
+export const ORDER_STATUS_COLORS: Record<string, string> = {
+  not_started: 'bg-gray-100 text-gray-700',
+  in_progress: 'bg-teal-100 text-teal-700',
+  waiting_approval: 'bg-yellow-100 text-yellow-700',
+  on_hold: 'bg-gray-100 text-gray-700',
+  completed: 'bg-blue-100 text-blue-700',
+  at_lab: 'bg-yellow-100 text-yellow-700',
+  at_studio: 'bg-green-100 text-green-700',
+  picked_up: 'bg-blue-100 text-blue-700',
+}
+
 export interface CommLogEntry {
   id: string
   couple_id: string
