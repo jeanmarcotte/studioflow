@@ -94,7 +94,6 @@ export const studioflowAdminConfig: SidebarConfig = {
           icon: Package,
           children: [
             { title: 'Dashboard', href: '/admin/production/dashboard', icon: LayoutDashboard },
-            { title: 'Couple Hub', href: '/admin/production/couples', icon: Users },
             { title: 'Photo Editing', href: '/admin/production/photo', icon: Camera },
             { title: 'Video Editing', href: '/admin/production/video', icon: Video },
             { title: 'Archive', href: '/admin/production/archive', icon: Archive },
