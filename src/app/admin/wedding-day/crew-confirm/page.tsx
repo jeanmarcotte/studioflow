@@ -280,7 +280,7 @@ export default function CrewCallSheetPage() {
       { name: assignment.video_1, role: 'video_1' },
     ]
 
-    const members: { call_sheet_id: string; team_member_id: string | null; member_name: string; member_email: string | null; role: string }[] = []
+    const members: { call_sheet_id: string; team_member_id: string | null; member_name: string; member_email: string; role: string }[] = []
     for (const slot of slots) {
       if (!slot.name) continue
       const matched = teamMembers.find(m => m.first_name.toLowerCase() === slot.name!.toLowerCase())
@@ -288,7 +288,7 @@ export default function CrewCallSheetPage() {
         call_sheet_id: callSheetId,
         team_member_id: matched?.id || null,
         member_name: matched ? `${matched.first_name}${matched.last_name ? ' ' + matched.last_name : ''}` : slot.name,
-        member_email: matched?.email || null,
+        member_email: matched?.email || '',
         role: slot.role,
       })
     }
@@ -441,10 +441,47 @@ export default function CrewCallSheetPage() {
     } catch { setUploadedDocs([]) }
   }, [])
 
+  // ── Load crew entries from DB call sheet members ────────────────
+
+  const loadCrewFromDb = useCallback(async (coupleId: string) => {
+    const { data: sheets } = await supabase.from('crew_call_sheets')
+      .select('id').eq('couple_id', coupleId).order('created_at', { ascending: false }).limit(1)
+    if (!sheets?.length) return null
+
+    const { data: members } = await supabase.from('crew_call_sheet_members')
+      .select('team_member_id, member_name, member_email, role, call_time, meeting_point, special_notes')
+      .eq('call_sheet_id', sheets[0].id)
+    if (!members?.length) return null
+
+    const contract = contracts.find(c => c.couple_id === coupleId)
+    const startMins = contract?.start_time ? parseTimeStr(contract.start_time) : null
+    const defaultCallTime = startMins !== null ? minutesToTimeStr(startMins - 60) : ''
+
+    const roleLabels: Record<string, string> = {
+      photo_1: 'Lead Photographer', photo_2: '2nd Photographer', video_1: 'Videographer',
+    }
+
+    return members.map(m => ({
+      team_member_id: m.team_member_id || '',
+      member_name: m.member_name || '',
+      member_email: m.member_email || '',
+      role: roleLabels[m.role] || m.role || '',
+      checked: true,
+      call_time: m.call_time || defaultCallTime,
+      meeting_location: m.meeting_point || (() => {
+        // Auto-select meeting point if usual_for matches crew member's first name
+        const firstName = (m.member_name || '').split(' ')[0]
+        const usualMp = meetingPoints.find(mp => mp.usual_for && mp.usual_for.toLowerCase() === firstName.toLowerCase())
+        return usualMp ? usualMp.name : ''
+      })(),
+      special_notes: m.special_notes || '',
+    })) as CrewEntry[]
+  }, [contracts, meetingPoints])
+
   // ── Build crew entries when couple changes ─────────────────────
 
   useEffect(() => {
-    if (!selectedCoupleId || !selectedAssignment) {
+    if (!selectedCoupleId) {
       setCrewEntries([]); setSentTimestamp(null); setHistory([]); setConfirmationStatuses([]); setSendError('')
       setDressCode(''); setBridesmaids(''); setGroomsmen('')
       setVendors({ dj_mc: '', florist: '', makeup: '', hair: '', planner: '', transport: '' })
@@ -455,40 +492,56 @@ export default function CrewCallSheetPage() {
       return
     }
 
-    const contract = contracts.find(c => c.couple_id === selectedCoupleId)
     const couple = couples.find(c => c.id === selectedCoupleId)
 
-    const startMins = contract?.start_time ? parseTimeStr(contract.start_time) : null
-    const defaultCallTime = startMins !== null ? minutesToTimeStr(startMins - 60) : ''
+    // Build crew: ensure call sheet exists in DB, then load from DB
+    const buildCrew = async () => {
+      // If we have an assignment, ensure a call sheet exists
+      if (selectedAssignment) {
+        await ensureCallSheet(selectedCoupleId, selectedAssignment)
+      }
 
-    const entries: CrewEntry[] = []
-    const addEntry = (name: string | null, role: string) => {
-      if (!name) return
-      const member = teamMembers.find(m => m.first_name === name)
-      if (!member) return
-      // Auto-select meeting point if usual_for matches crew member's first name
-      const usualMp = meetingPoints.find(mp => mp.usual_for && mp.usual_for.toLowerCase() === name.toLowerCase())
-      entries.push({
-        team_member_id: member.id,
-        member_name: `${member.first_name} ${member.last_name || ''}`.trim(),
-        member_email: member.email || '', role, checked: true,
-        call_time: defaultCallTime,
-        meeting_location: usualMp ? usualMp.name : '',
-        special_notes: '',
-      })
-    }
+      // Try loading from DB (crew_call_sheet_members)
+      const dbEntries = await loadCrewFromDb(selectedCoupleId)
+      if (dbEntries && dbEntries.length > 0) {
+        setCrewEntries(dbEntries)
+      } else if (selectedAssignment) {
+        // Fallback: build in-memory from wedding_assignments
+        const contract = contracts.find(c => c.couple_id === selectedCoupleId)
+        const startMins = contract?.start_time ? parseTimeStr(contract.start_time) : null
+        const defaultCallTime = startMins !== null ? minutesToTimeStr(startMins - 60) : ''
 
-    addEntry(selectedAssignment.photo_1, 'Lead Photographer')
-    addEntry(selectedAssignment.photo_2, '2nd Photographer')
-    addEntry(selectedAssignment.video_1, 'Videographer')
-    setCrewEntries(entries)
+        const entries: CrewEntry[] = []
+        const addEntry = (name: string | null, role: string) => {
+          if (!name) return
+          const member = teamMembers.find(m => m.first_name === name)
+          if (!member) return
+          const usualMp = meetingPoints.find(mp => mp.usual_for && mp.usual_for.toLowerCase() === name.toLowerCase())
+          entries.push({
+            team_member_id: member.id,
+            member_name: `${member.first_name} ${member.last_name || ''}`.trim(),
+            member_email: member.email || '', role, checked: true,
+            call_time: defaultCallTime,
+            meeting_location: usualMp ? usualMp.name : '',
+            special_notes: '',
+          })
+        }
 
-    setSentTimestamp(null); setSendError('')
-    // Auto-generate call sheet from wedding_assignments if none exists
-    ensureCallSheet(selectedCoupleId, selectedAssignment).then(() => {
+        addEntry(selectedAssignment.photo_1, 'Lead Photographer')
+        addEntry(selectedAssignment.photo_2, '2nd Photographer')
+        addEntry(selectedAssignment.video_1, 'Videographer')
+        setCrewEntries(entries)
+      } else {
+        setCrewEntries([])
+      }
+
       fetchHistory(selectedCoupleId)
       fetchConfirmationStatuses(selectedCoupleId)
-    })
+    }
+
+    buildCrew()
+
+    setSentTimestamp(null); setSendError('')
     fetchUploadedDocs(selectedCoupleId)
     fetchWeddingDayForm(selectedCoupleId)
 
