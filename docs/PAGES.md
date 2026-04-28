@@ -155,6 +155,7 @@
 
 | Route | Page | Reads From | Writes To | Triggers |
 |-------|------|-----------|----------|----------|
+| `/admin/portal` | Portal Admin List | couples (portal fields, hero_image_url, wedding_year), contracts (inner join) | None | None |
 | `/admin/portal/[coupleId]` | Portal Admin Editor | couples (hero_image_url, collage fields, portal_video_url, email, invite/login timestamps) | couples (portal fields, portal_invite_sent_at) | None |
 | `/portal/login` | Client Portal Login | — | Supabase Auth | None |
 | `/portal/[slug]` | Client Portal Home | couples, contracts, extras_orders, extras_installments (via portal_slug) | None | None |
