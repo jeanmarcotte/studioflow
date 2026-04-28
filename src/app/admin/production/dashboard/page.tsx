@@ -85,7 +85,7 @@ export default function ProductionDashboardPage() {
     const fetchAll = async () => {
       const [jobsRes, videoRes, productsRes, couplesRes] = await Promise.all([
         supabase.from('jobs').select('id, couple_id, product_code, job_type, status, vendor, created_at, sent_for_review_date, approval_round, reedit_count'),
-        supabase.from('video_jobs').select('id, couple_id, status, sent_for_review_date'),
+        supabase.from('video_jobs').select('id, couple_id, status, section, job_type, sent_for_review_date').eq('job_type', 'FULL').eq('section', 'editing'),
         supabase.from('product_catalog').select('product_code, item_name'),
         supabase.from('couples').select('id, couple_name, wedding_date'),
       ])
@@ -112,9 +112,10 @@ export default function ProductionDashboardPage() {
   const orderJobs = useMemo(() => jobs.filter(j => !EXCLUDED_ORDER_CODES.includes(j.product_code || j.job_type || '')), [jobs])
 
   const photoStats = useMemo(() => {
-    const total = photoJobs.length
-    const editing = photoJobs.filter(j => j.status === 'in_progress').length
-    const atLab = photoJobs.filter(j => j.status === 'at_lab').length
+    const active = photoJobs.filter(j => j.status !== 'completed' && j.status !== 'picked_up')
+    const total = active.length
+    const editing = active.filter(j => j.status === 'in_progress').length
+    const atLab = active.filter(j => j.status === 'at_lab').length
     return { total, editing, atLab }
   }, [photoJobs])
 
@@ -122,7 +123,8 @@ export default function ProductionDashboardPage() {
     const total = videoJobs.length
     const editing = videoJobs.filter(j => j.status === 'in_progress').length
     const notStarted = videoJobs.filter(j => j.status === 'not_started').length
-    return { total, editing, notStarted }
+    const proofsOut = videoJobs.filter(j => j.status === 'video_proofs_out').length
+    return { total, editing, notStarted, proofsOut }
   }, [videoJobs])
 
   const orderStats = useMemo(() => {
@@ -285,7 +287,7 @@ export default function ProductionDashboardPage() {
   // ── Render ──────────────────────────────────────────────────────
 
   return (
-    <div className={`space-y-6 max-w-4xl ${nunito.className}`}>
+    <div className={`space-y-6 max-w-5xl mx-auto ${nunito.className}`}>
       {/* Header */}
       <div className="px-4 md:px-6 pt-4 md:pt-6">
         <h1 className={`text-xl md:text-2xl font-bold ${playfair.className}`}>Production Dashboard</h1>
@@ -308,8 +310,8 @@ export default function ProductionDashboardPage() {
           title="Video Jobs"
           value={videoStats.total}
           lines={[
-            `${videoStats.editing} editing`,
-            `${videoStats.notStarted} not started`,
+            `${videoStats.editing} editing · ${videoStats.notStarted} not started`,
+            ...(videoStats.proofsOut > 0 ? [`${videoStats.proofsOut} proofs out`] : []),
           ]}
         />
         <StatCard
