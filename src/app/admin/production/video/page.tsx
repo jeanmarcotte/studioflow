@@ -83,6 +83,17 @@ const STATUS_PILL: Record<string, { bg: string; text: string }> = {
   waiting_on_recap: { bg: 'bg-[#f3e8ff]', text: 'text-[#3b0764]' },
 }
 
+const STATUS_DROPDOWN_COLORS: Record<string, string> = {
+  not_started: 'bg-gray-100 text-gray-700',
+  in_progress: 'bg-teal-100 text-teal-700',
+  video_proofs_out: 'bg-sky-100 text-sky-700',
+  waiting_on_recap: 'bg-purple-100 text-purple-700',
+  waiting_for_bride: 'bg-yellow-100 text-yellow-700',
+  raw_video_output: 'bg-orange-100 text-orange-700',
+  complete: 'bg-blue-100 text-blue-700',
+  archived: 'bg-gray-100 text-gray-700',
+}
+
 const JOB_TYPE_LABELS: Record<string, string> = {
   FULL: 'Full video',
   RECAP: 'Recap',
@@ -171,6 +182,7 @@ export default function VideoProductionPage() {
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['completed']))
   const [showVideoOut, setShowVideoOut] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [toast, setToast] = useState('')
   const editingRef = useRef<HTMLDivElement>(null)
 
   // ── Due date editing state ─────────────────────────────────────
@@ -241,6 +253,7 @@ export default function VideoProductionPage() {
       updates.section = 'editing'
     }
 
+    const statusLabel = STATUS_LABELS[newStatus] || newStatus
     try {
       const res = await fetch(`/api/admin/video-jobs/${jobId}/update`, {
         method: 'PATCH',
@@ -249,6 +262,11 @@ export default function VideoProductionPage() {
       })
       if (res.ok) {
         setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j))
+        setToast(`Status updated to ${statusLabel}`)
+        setTimeout(() => setToast(''), 3000)
+      } else {
+        setToast('Error updating status')
+        setTimeout(() => setToast(''), 3000)
       }
     } catch {
       // Fallback to direct Supabase if API fails
@@ -258,6 +276,11 @@ export default function VideoProductionPage() {
         .eq('id', jobId)
       if (!error) {
         setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j))
+        setToast(`Status updated to ${statusLabel}`)
+        setTimeout(() => setToast(''), 3000)
+      } else {
+        setToast('Error updating status')
+        setTimeout(() => setToast(''), 3000)
       }
     }
   }
@@ -548,6 +571,12 @@ export default function VideoProductionPage() {
   // Column defs for Videos Remaining DataTable
   const videosRemainingColumns: ColumnDef<VideoJob>[] = useMemo(() => [
     {
+      id: 'row_number',
+      header: '#',
+      cell: ({ row }) => <span className="text-xs text-muted-foreground tabular-nums">{row.index + 1}</span>,
+      enableSorting: false,
+    },
+    {
       accessorKey: 'couple_name',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
       accessorFn: (row) => row.couples?.couple_name || 'Unknown',
@@ -649,7 +678,7 @@ export default function VideoProductionPage() {
         <select
           value={row.original.status}
           onChange={e => updateJobStatus(row.original.id, e.target.value)}
-          className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto"
+          className={`text-xs rounded-md border-border px-2 py-1 !w-auto ${STATUS_DROPDOWN_COLORS[row.original.status] || 'bg-background'}`}
         >
           {getLaneStatusOptions('editing_full').map(opt =>
             opt.divider
@@ -696,6 +725,12 @@ export default function VideoProductionPage() {
 
   const makeSwimlaneColumns = (laneKey: SwimlaneKey, hideSegments: boolean): ColumnDef<VideoJob>[] => {
     const cols: ColumnDef<VideoJob>[] = [
+      {
+        id: 'row_number',
+        header: '#',
+        cell: ({ row }) => <span className="text-xs text-muted-foreground tabular-nums">{row.index + 1}</span>,
+        enableSorting: false,
+      },
       {
         id: 'couple_name',
         header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
@@ -817,7 +852,7 @@ export default function VideoProductionPage() {
       accessorFn: (row) => STATUS_LABELS[row.status] || row.status,
       cell: ({ row }) => (
         <select value={row.original.status} onChange={e => updateJobStatus(row.original.id, e.target.value)}
-          className="text-xs rounded-md border-border bg-background px-2 py-1 !w-auto">
+          className={`text-xs rounded-md border-border px-2 py-1 !w-auto ${STATUS_DROPDOWN_COLORS[row.original.status] || 'bg-background'}`}>
           {getLaneStatusOptions(laneKey).map(opt =>
             opt.divider ? <option key="_divider" disabled>{'────────────'}</option>
               : <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -858,6 +893,12 @@ export default function VideoProductionPage() {
   // ── Completed 2026 columns ──────────────────────────────────
 
   const completed2026Columns: ColumnDef<VideoJob>[] = useMemo(() => [
+    {
+      id: 'row_number',
+      header: '#',
+      cell: ({ row }) => <span className="text-xs text-muted-foreground tabular-nums">{row.index + 1}</span>,
+      enableSorting: false,
+    },
     {
       accessorKey: 'couple_name',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Couple" />,
@@ -1342,6 +1383,13 @@ export default function VideoProductionPage() {
           { label: 'COMPLETED IN 2026', value: completed2026JobsList.length, scrollToId: 'section-completed-2026', color: 'teal' },
         ]} />
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 rounded-lg px-4 py-2.5 text-sm font-medium shadow-lg transition-all ${toast.includes('Error') ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}>
+          {toast}
+        </div>
+      )}
 
       {/* Pulse animation */}
       <style jsx global>{`
