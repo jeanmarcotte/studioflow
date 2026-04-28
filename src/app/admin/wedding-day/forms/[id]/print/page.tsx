@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Printer, X } from 'lucide-react'
-import { formatPackage, formatTime12h } from '@/lib/formatters'
+import { formatPackage, formatMilitaryTime } from '@/lib/formatters'
 
 interface FormData { [key: string]: any }
 interface CoupleData {
@@ -317,7 +317,7 @@ export default function WeddingDayFormPrintPage() {
           <p className="text-slate-500 text-sm mt-1">{weddingDate}</p>
           {(coverageStart || coverageEnd) && (
             <p className="text-sm font-semibold text-slate-700 mt-1">
-              Coverage: {formatTime12h(coverageStart) || coverageStart} \u2013 {formatTime12h(coverageEnd) || coverageEnd}{totalHours ? ` (${totalHours})` : ''}
+              Coverage: {formatMilitaryTime(coverageStart) || coverageStart} \u2013 {formatMilitaryTime(coverageEnd) || coverageEnd}{totalHours ? ` (${totalHours})` : ''}
             </p>
           )}
         </div>
@@ -345,7 +345,7 @@ export default function WeddingDayFormPrintPage() {
         {/* Contract */}
         <SectionHeader>Contract</SectionHeader>
         <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 mb-1">
-          <InfoRow label="Coverage" value={coverageStart && coverageEnd ? `${formatTime12h(coverageStart) || coverageStart} \u2013 ${formatTime12h(coverageEnd) || coverageEnd}` : null} />
+          <InfoRow label="Coverage" value={coverageStart && coverageEnd ? `${formatMilitaryTime(coverageStart) || coverageStart} \u2013 ${formatMilitaryTime(coverageEnd) || coverageEnd}` : null} />
           <InfoRow label="Hours" value={totalHours || null} />
           <InfoRow label="Package" value={couple.package_type ? formatPackage(couple.package_type) : null} />
           <InfoRow label="Bridal Party" value={form.bridal_party_count ? String(form.bridal_party_count) : null} />

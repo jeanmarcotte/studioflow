@@ -19,6 +19,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #8047 | 3:22 PM | ✅ | WO-959 Production section visual redesign committed and deployed | ~329 |
 | #8043 | 3:21 PM | 🔄 | Redesigned ClientJourney component with slate palette and green success indicators | ~376 |
 | #8042 | 3:20 PM | 🔄 | Updated NotesCard empty state to use slate color palette | ~143 |
 | #8041 | 3:19 PM | 🔄 | Updated TeamCard component styling to use slate palette and tighter spacing | ~317 |

@@ -7,6 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #8047 | 3:22 PM | ✅ | WO-959 Production section visual redesign committed and deployed | ~329 |
 | #8045 | 3:21 PM | 🟣 | HubHeader redesigned with deep slate blue command center gradient | ~416 |
 | #8044 | " | 🔄 | Updated HubHeader phase badges to glassmorphism style | ~324 |
 </claude-mem-context>

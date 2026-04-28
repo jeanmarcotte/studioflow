@@ -22,7 +22,7 @@ import { CoupleResourcesCard } from '@/components/couples/CoupleResourcesCard'
 import { WeddingDayItinerary } from '@/components/couples/WeddingDayItinerary'
 import { EngagementAppointments } from '@/components/couples/EngagementAppointments'
 import { buildPhases, countMilestones } from '@/lib/milestones'
-import { formatPackage, formatTime12h } from '@/lib/formatters'
+import { formatPackage, formatMilitaryTime } from '@/lib/formatters'
 
 export default function CoupleDetailPage() {
   const params = useParams()
@@ -186,7 +186,7 @@ export default function CoupleDetailPage() {
 
   // Coverage hours
   const coverageHours = contract?.start_time && contract?.end_time
-    ? `${formatTime12h(contract.start_time)} – ${formatTime12h(contract.end_time)}`
+    ? `${formatMilitaryTime(contract.start_time)} – ${formatMilitaryTime(contract.end_time)}`
     : 'N/A'
 
   // Finance calculations

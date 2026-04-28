@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Clock, MapPin } from 'lucide-react'
-import { formatTime12h } from '@/lib/formatters'
+import { formatMilitaryTime } from '@/lib/formatters'
 
 interface WeddingDayFormData {
   reception_venue_name: string | null
@@ -27,35 +27,35 @@ export function WeddingDayItinerary({ formData }: WeddingDayItineraryProps) {
   if (formData.groom_start_time) {
     timeline.push({
       label: 'Groom Prep',
-      time: `${formatTime12h(formData.groom_start_time)}${formData.groom_finish_time ? ` — ${formatTime12h(formData.groom_finish_time)}` : ''}`
+      time: `${formatMilitaryTime(formData.groom_start_time)}${formData.groom_finish_time ? ` — ${formatMilitaryTime(formData.groom_finish_time)}` : ''}`
     })
   }
 
   if (formData.bride_start_time) {
     timeline.push({
       label: 'Bride Prep',
-      time: `${formatTime12h(formData.bride_start_time)}${formData.bride_finish_time ? ` — ${formatTime12h(formData.bride_finish_time)}` : ''}`
+      time: `${formatMilitaryTime(formData.bride_start_time)}${formData.bride_finish_time ? ` — ${formatMilitaryTime(formData.bride_finish_time)}` : ''}`
     })
   }
 
   if (formData.ceremony_start_time) {
     timeline.push({
       label: 'Ceremony',
-      time: `${formatTime12h(formData.ceremony_start_time)}${formData.ceremony_finish_time ? ` — ${formatTime12h(formData.ceremony_finish_time)}` : ''}`
+      time: `${formatMilitaryTime(formData.ceremony_start_time)}${formData.ceremony_finish_time ? ` — ${formatMilitaryTime(formData.ceremony_finish_time)}` : ''}`
     })
   }
 
   if (formData.park_start_time) {
     timeline.push({
       label: 'Park/Photos',
-      time: `${formatTime12h(formData.park_start_time)}${formData.park_finish_time ? ` — ${formatTime12h(formData.park_finish_time)}` : ''}`
+      time: `${formatMilitaryTime(formData.park_start_time)}${formData.park_finish_time ? ` — ${formatMilitaryTime(formData.park_finish_time)}` : ''}`
     })
   }
 
   if (formData.venue_arrival_time) {
     timeline.push({
       label: 'Venue Arrival',
-      time: formatTime12h(formData.venue_arrival_time) || ''
+      time: formatMilitaryTime(formData.venue_arrival_time) || ''
     })
   }
 

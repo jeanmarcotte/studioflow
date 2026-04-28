@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { DollarSign, Calendar, Video, Camera, TrendingUp, BarChart3, Loader2, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { format, parseISO, differenceInDays } from 'date-fns'
-import { formatTime12h } from '@/lib/formatters'
+import { formatMilitaryTime } from '@/lib/formatters'
 
 const YEARS = [2025, 2026, 2027]
 
@@ -214,7 +214,7 @@ export default function ReportsPage() {
     const rows = couples.map(c => {
       const con = contractMap.get(c.id) as any
       const dow = c.wedding_date ? format(parseISO(c.wedding_date), 'EEEE') : ''
-      return [c.wedding_date ?? '', dow, c.couple_name, con?.reception_venue ?? '', con?.ceremony_location ?? '', formatTime12h(con?.start_time), formatTime12h(con?.end_time), c.package_type ?? '', con?.appointment_notes ?? '']
+      return [c.wedding_date ?? '', dow, c.couple_name, con?.reception_venue ?? '', con?.ceremony_location ?? '', formatMilitaryTime(con?.start_time), formatMilitaryTime(con?.end_time), c.package_type ?? '', con?.appointment_notes ?? '']
     })
 
     downloadCSV(`sigs-wedding-calendar-${selectedYear}.csv`, headers, rows)

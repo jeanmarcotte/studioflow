@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { format, differenceInDays, parseISO, addDays } from 'date-fns'
-import { formatTime12h } from '@/lib/formatters'
+import { formatMilitaryTime } from '@/lib/formatters'
 
 interface UpcomingWedding {
   id: string
@@ -123,7 +123,7 @@ export default function WeekAhead() {
           type,
           names,
           location: a.location,
-          time: a.start_time ? formatTime12h(a.start_time) : null,
+          time: a.start_time ? formatMilitaryTime(a.start_time) : null,
         })
       }
 

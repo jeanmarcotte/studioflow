@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Calendar, Camera, Clock, X, Video, ClipboardList, DollarSign, BookOpen, Pencil, Phone } from 'lucide-react'
 import { format, differenceInDays, parseISO, addDays } from 'date-fns'
-import { formatWeddingDate, formatDateCompact, formatDate, formatCurrency, formatTime12h } from '@/lib/formatters'
+import { formatWeddingDate, formatDateCompact, formatDate, formatCurrency, formatMilitaryTime } from '@/lib/formatters'
 import * as d3 from 'd3'
 import WeekAhead from '@/components/dashboard/WeekAhead'
 import ProductionFloor from '@/components/dashboard/ProductionFloor'
@@ -537,7 +537,7 @@ export default function AdminDashboardPage() {
                   const bride = (a.couples as any)?.bride_first_name || ''
                   const groom = (a.couples as any)?.groom_first_name || ''
                   const names = [bride, groom].filter(Boolean).join(' & ')
-                  const time = a.start_time ? formatTime12h(a.start_time) : ''
+                  const time = a.start_time ? formatMilitaryTime(a.start_time) : ''
                   return (
                     <div key={a.id} className="flex items-center gap-2 text-sm py-1">
                       <span className="font-medium text-gray-700 w-28">{dow} {dateStr}</span>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Building2, Clock } from 'lucide-react'
-import { formatTime12h } from '@/lib/formatters'
+import { formatMilitaryTime } from '@/lib/formatters'
 
 interface TodayWedding {
   coupleId: string
@@ -115,7 +115,7 @@ export default function WeddingDayBanner() {
                 {w.startTime && (
                   <span className="flex items-center gap-1">
                     <Clock className="h-3.5 w-3.5 text-teal-700" />
-                    Start: {formatTime12h(w.startTime)}
+                    Start: {formatMilitaryTime(w.startTime)}
                   </span>
                 )}
               </div>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { format } from 'date-fns'
-import { formatTime12h } from '@/lib/formatters'
+import { formatMilitaryTime } from '@/lib/formatters'
 import { buildCrewEmailHtml } from '@/lib/crew-email-html'
 
 const supabase = createClient(
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     // Coverage hours
     let coverageText = ''
     if (start_time && end_time) {
-      coverageText = `${formatTime12h(start_time)} – ${formatTime12h(end_time)}`
+      coverageText = `${formatMilitaryTime(start_time)} – ${formatMilitaryTime(end_time)}`
       const parseTime = (t: string) => {
         const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
         if (!match) return null

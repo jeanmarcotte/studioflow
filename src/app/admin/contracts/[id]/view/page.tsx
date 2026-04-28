@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Loader2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
-import { formatTime12h } from '@/lib/formatters'
+import { formatMilitaryTime } from '@/lib/formatters'
 import Image from 'next/image'
 
 function check(value: boolean | null | undefined): string {
@@ -254,7 +254,7 @@ export default function ContractViewPage() {
         </div>
 
         <div className="mt-4">
-          <p>Wedding Prints: Hours: <span className="field-sm">{formatTime12h(contract.start_time)}</span> to <span className="field-sm">{formatTime12h(contract.end_time)}</span></p>
+          <p>Wedding Prints: Hours: <span className="field-sm">{formatMilitaryTime(contract.start_time)}</span> to <span className="field-sm">{formatMilitaryTime(contract.end_time)}</span></p>
           <p className="text-xs">*All weddings on USB/Dropbox, ready to print. 300 DPI 4x6, no watermarks</p>
         </div>
 
@@ -398,11 +398,11 @@ export default function ContractViewPage() {
 
         <div className="mt-6 print-section print:break-inside-avoid">
           <p className="font-bold mb-2">Approximate Timeline</p>
-          <p>Groom: <span className="field-sm">{formatTime12h(contract.groom_start_time) || display(contract.groom_start_time)}</span> to <span className="field-sm">{formatTime12h(contract.groom_end_time) || display(contract.groom_end_time)}</span></p>
-          <p>Bride: <span className="field-sm">{formatTime12h(contract.bride_start_time) || display(contract.bride_start_time)}</span> to <span className="field-sm">{formatTime12h(contract.bride_end_time) || display(contract.bride_end_time)}</span></p>
+          <p>Groom: <span className="field-sm">{formatMilitaryTime(contract.groom_start_time) || display(contract.groom_start_time)}</span> to <span className="field-sm">{formatMilitaryTime(contract.groom_end_time) || display(contract.groom_end_time)}</span></p>
+          <p>Bride: <span className="field-sm">{formatMilitaryTime(contract.bride_start_time) || display(contract.bride_start_time)}</span> to <span className="field-sm">{formatMilitaryTime(contract.bride_end_time) || display(contract.bride_end_time)}</span></p>
           <p>Drive 15</p>
-          <p>1st look: <span className="field-sm">{formatTime12h(contract.first_look_start) || display(contract.first_look_start)}</span> to <span className="field-sm">{formatTime12h(contract.first_look_end) || display(contract.first_look_end)}</span></p>
-          <p>Arrive at Ceremony: <span className="field-sm">{formatTime12h(contract.ceremony_arrival) || display(contract.ceremony_arrival)}</span></p>
+          <p>1st look: <span className="field-sm">{formatMilitaryTime(contract.first_look_start) || display(contract.first_look_start)}</span> to <span className="field-sm">{formatMilitaryTime(contract.first_look_end) || display(contract.first_look_end)}</span></p>
+          <p>Arrive at Ceremony: <span className="field-sm">{formatMilitaryTime(contract.ceremony_arrival) || display(contract.ceremony_arrival)}</span></p>
           <p>Ceremony <span className="field-sm">{display(contract.ceremony_start)}</span> to <span className="field-sm">{display(contract.ceremony_end)}</span></p>
           <p>Park ideas: <span className="field-sm">{display(contract.park_start)}</span> to <span className="field-sm">{display(contract.park_end)}</span></p>
           <p>Venue: <span className="field-sm">{display(contract.venue_start)}</span> to <span className="field-sm">{display(contract.venue_end)}</span></p>

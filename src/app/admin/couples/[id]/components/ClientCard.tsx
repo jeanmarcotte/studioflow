@@ -3,7 +3,7 @@
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { DM_Serif_Display } from 'next/font/google';
 import { T, card, sectionLabel, fieldLabel, pillBase, badge } from './designTokens';
-import { formatPackage, formatTime12h } from '@/lib/formatters';
+import { formatPackage, formatMilitaryTime } from '@/lib/formatters';
 
 const display = DM_Serif_Display({ weight: '400', subsets: ['latin'], display: 'swap' });
 
@@ -67,8 +67,8 @@ export function ClientCard({ couple, contract, extrasOrders }: ClientCardProps) 
     const endMin = toMin(contract.end_time);
     let hrs = (endMin - startMin) / 60;
     if (hrs < 0) hrs += 24;
-    const startFmt = formatTime12h(contract.start_time);
-    const endFmt = formatTime12h(contract.end_time);
+    const startFmt = formatMilitaryTime(contract.start_time);
+    const endFmt = formatMilitaryTime(contract.end_time);
     if (isNaN(hrs) || !startFmt || !endFmt) {
       coverage = startFmt && endFmt ? `${startFmt} – ${endFmt}` : 'TBD';
     } else {

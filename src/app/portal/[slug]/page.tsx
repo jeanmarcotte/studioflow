@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { Playfair_Display } from 'next/font/google'
-import { formatWeddingDate, formatCurrency, formatTime12h } from '@/lib/formatters'
+import { formatWeddingDate, formatCurrency, formatMilitaryTime } from '@/lib/formatters'
 import { differenceInDays, parseISO, format } from 'date-fns'
 import { ChevronDown } from 'lucide-react'
 
@@ -405,7 +405,7 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
                     CONTRACT
                   </p>
                   <p className="text-sm font-medium" style={{ color: '#fff' }}>
-                    Coverage: {formatTime12h(coverageStart)} → {formatTime12h(coverageEnd)}
+                    Coverage: {formatMilitaryTime(coverageStart)} → {formatMilitaryTime(coverageEnd)}
                     {coverageHours > 0 ? ` (${coverageHours} hours)` : ''}
                   </p>
                 </div>
@@ -420,7 +420,7 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
                   {schedule.map((item, i) => (
                     <div key={i} className="bg-white rounded-xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
                       <p className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>
-                        {formatTime12h(item.time)}{item.endTime ? ` → ${formatTime12h(item.endTime)}` : ''}
+                        {formatMilitaryTime(item.time)}{item.endTime ? ` → ${formatMilitaryTime(item.endTime)}` : ''}
                       </p>
                       <p className="text-sm font-medium mt-1" style={{ color: '#1a1a1a' }}>{item.label}</p>
                       {item.location && (
@@ -458,7 +458,7 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
                   {schedule.map((item, i) => (
                     <div key={i} className="flex items-start gap-4 px-5 py-3" style={{ borderBottom: i < schedule.length - 1 ? '1px solid #f5f2ed' : 'none' }}>
                       <div className="text-sm font-medium whitespace-nowrap" style={{ color: '#1a1a1a', minWidth: 110 }}>
-                        {formatTime12h(item.time)}{item.endTime ? ` → ${formatTime12h(item.endTime)}` : ''}
+                        {formatMilitaryTime(item.time)}{item.endTime ? ` → ${formatMilitaryTime(item.endTime)}` : ''}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{item.label}</p>

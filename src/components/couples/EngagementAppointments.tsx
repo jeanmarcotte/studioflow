@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Camera, Plus, MoreHorizontal, X } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
-import { formatTime12h } from '@/lib/formatters'
+import { formatMilitaryTime } from '@/lib/formatters'
 import { toast } from 'sonner'
 import {
   DropdownMenu,
@@ -162,7 +162,7 @@ export function EngagementAppointments({ coupleId }: { coupleId: string }) {
                   <span>{formatApptDate(a.appointment_date)}</span>
                   {(a.start_time || a.end_time) && (
                     <span className="text-muted-foreground">
-                      {formatTime12h(a.start_time)}{a.end_time ? `–${formatTime12h(a.end_time)}` : ''}
+                      {formatMilitaryTime(a.start_time)}{a.end_time ? `–${formatMilitaryTime(a.end_time)}` : ''}
                     </span>
                   )}
                   {a.location && <span className="text-muted-foreground">— {a.location}</span>}

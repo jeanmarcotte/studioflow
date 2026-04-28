@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #8047 | 3:22 PM | ✅ | WO-959 Production section visual redesign committed and deployed | ~329 |
 | #8037 | 3:07 PM | 🔴 | Consistent 12-Hour Time Formatting in Contract Displays | ~406 |
 </claude-mem-context>
