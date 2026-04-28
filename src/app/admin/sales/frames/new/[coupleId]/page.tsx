@@ -27,8 +27,6 @@ interface CoupleData {
   bride_first_name: string
   groom_first_name: string
   wedding_date: string | null
-  balance_owing: number | null
-  total_paid: number | null
 }
 
 interface ContractData {
@@ -121,6 +119,7 @@ export default function FrameSalePresentation() {
   const [saleAmountManuallyEdited, setSaleAmountManuallyEdited] = useState(false)
   const [discountApplies, setDiscountApplies] = useState(true)
   const [discountManuallyToggled, setDiscountManuallyToggled] = useState(false)
+  const [contractBalance, setContractBalance] = useState(0)
 
   // Redistribute installments evenly based on current total
   const redistribute = useCallback((total: number, count: number) => {
@@ -135,7 +134,7 @@ export default function FrameSalePresentation() {
     async function fetch() {
       const { data: coupleData } = await supabase
         .from('couples')
-        .select('id, bride_first_name, groom_first_name, wedding_date, balance_owing, total_paid')
+        .select('id, bride_first_name, groom_first_name, wedding_date')
         .eq('id', coupleId)
         .limit(1)
 
@@ -143,13 +142,23 @@ export default function FrameSalePresentation() {
       setCouple(c)
 
       if (c) {
-        const { data: contractData } = await supabase
-          .from('contracts')
-          .select('id, total, reception_venue, num_videographers, video_highlights, video_long_form')
-          .eq('couple_id', c.id)
-          .limit(1)
-        const ct = contractData?.[0] ?? null
+        const [contractRes, paymentsRes] = await Promise.all([
+          supabase
+            .from('contracts')
+            .select('id, total, reception_venue, num_videographers, video_highlights, video_long_form')
+            .eq('couple_id', c.id)
+            .limit(1),
+          supabase
+            .from('payments')
+            .select('amount')
+            .eq('couple_id', c.id)
+            .eq('payment_type', 'contract'),
+        ])
+        const ct = contractRes.data?.[0] ?? null
         setContract(ct)
+        const totalPaid = paymentsRes.data?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) ?? 0
+        const balance = (ct?.total ?? 0) - totalPaid
+        setContractBalance(balance)
         const vid = !!(ct?.num_videographers && ct.num_videographers > 0) || !!ct?.video_highlights || !!ct?.video_long_form
         const ms = vid ? [...PV_MILESTONES] : [...PO_MILESTONES]
         setEditMilestones(ms)
@@ -217,10 +226,9 @@ export default function FrameSalePresentation() {
   // Auto-redistribute when saleAmount or deposit changes
   useEffect(() => {
     if (!couple) return
-    const bal = couple.balance_owing ?? 0
-    const total = bal + saleAmount - depositAmount
+    const total = contractBalance + saleAmount - depositAmount
     redistribute(total, editMilestones.length)
-  }, [saleAmount, depositAmount]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [saleAmount, depositAmount, contractBalance]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function goNext() {
     if (page < 4) { setDirection('forward'); setPage(page + 1) }
@@ -235,7 +243,7 @@ export default function FrameSalePresentation() {
     if (!couple) return
     setSaving(true)
 
-    const bal = couple.balance_owing ?? 0
+    const bal = contractBalance
     const numInstallments = editMilestones.length
     const totalInstallments = editAmounts.reduce((s, a) => s + a, 0)
     const newBalance = bal + EXTRAS_SALE_AMOUNT
@@ -308,7 +316,7 @@ export default function FrameSalePresentation() {
     if (!couple) return
     setSaving(true)
 
-    const bal = couple.balance_owing ?? 0
+    const bal = contractBalance
     const numInstallments = editMilestones.length
     const newBalance = bal + saleAmount
     const today = new Date().toISOString().split('T')[0]
@@ -403,7 +411,7 @@ export default function FrameSalePresentation() {
   }
 
   const hasVideo = !!(contract?.num_videographers && contract.num_videographers > 0) || !!contract?.video_highlights || !!contract?.video_long_form
-  const balanceOwing = couple.balance_owing ?? 0
+  const balanceOwing = contractBalance
 
   const slideVariants = {
     enter: (dir: string) => ({ opacity: 0, x: dir === 'forward' ? 50 : -50 }),

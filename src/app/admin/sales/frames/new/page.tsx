@@ -58,15 +58,29 @@ export default function FrameSaleCoupleSelector() {
     fetch()
   }, [])
 
+  const [realPaid, setRealPaid] = useState<number>(0)
+  const [realBalance, setRealBalance] = useState<number>(0)
+
   async function selectCouple(couple: CoupleOption) {
     setSelected(couple)
     setSearch(`${couple.bride_first_name} & ${couple.groom_first_name}`)
-    const { data } = await supabase
-      .from('contracts')
-      .select('reception_venue, total')
-      .eq('couple_id', couple.id)
-      .limit(1)
-    setContract(data?.[0] ?? null)
+    const [contractRes, paymentsRes] = await Promise.all([
+      supabase
+        .from('contracts')
+        .select('reception_venue, total')
+        .eq('couple_id', couple.id)
+        .limit(1),
+      supabase
+        .from('payments')
+        .select('amount')
+        .eq('couple_id', couple.id)
+        .eq('payment_type', 'contract'),
+    ])
+    const ct = contractRes.data?.[0] ?? null
+    setContract(ct)
+    const totalPaid = paymentsRes.data?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) ?? 0
+    setRealPaid(totalPaid)
+    setRealBalance((ct?.total ?? 0) - totalPaid)
   }
 
   const filtered = search.trim().length > 0 && !selected
@@ -224,8 +238,8 @@ export default function FrameSaleCoupleSelector() {
                   <div className="grid grid-cols-1 md:grid-cols-3">
                     {[
                       { label: 'Contract', value: formatCurrency(contract?.total) },
-                      { label: 'Paid', value: formatCurrency(selected.total_paid) },
-                      { label: 'Balance', value: formatCurrency(selected.balance_owing) },
+                      { label: 'Paid', value: formatCurrency(realPaid) },
+                      { label: 'Balance', value: formatCurrency(realBalance) },
                     ].map((stat, i) => (
                       <div
                         key={stat.label}
