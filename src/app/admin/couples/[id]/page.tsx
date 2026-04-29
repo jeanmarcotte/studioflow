@@ -39,6 +39,7 @@ export default function CoupleDetailPage() {
   const [extrasInstallments, setExtrasInstallments] = useState<any[]>([])
   const [extrasOrders, setExtrasOrders] = useState<any[]>([])
   const [clientExtras, setClientExtras] = useState<any[]>([])
+  const [c1LineItems, setC1LineItems] = useState<any[]>([])
   const [c2LineItems, setC2LineItems] = useState<any[]>([])
   const [c3LineItems, setC3LineItems] = useState<any[]>([])
   const [productCatalog, setProductCatalog] = useState<any[]>([])
@@ -99,6 +100,14 @@ export default function CoupleDetailPage() {
             .eq('contract_id', contractData[0].id)
             .order('installment_number', { ascending: true })
           setContractInstallments(contractInstData || [])
+
+          // C1 line items (linked via contract_id, product codes via product_catalog)
+          const { data: c1Data } = await supabase
+            .from('c1_line_items')
+            .select('product_code, quantity, notes, product_catalog(item_name, category)')
+            .eq('contract_id', contractData[0].id)
+            .order('created_at')
+          setC1LineItems(c1Data || [])
         }
 
         // Fetch extras orders
@@ -450,6 +459,7 @@ export default function CoupleDetailPage() {
             total: contractTotal + c2Total
           }}
           products={contract}
+          lineItems={c1LineItems}
         />
       ) : (
         <ContractPackageCard />

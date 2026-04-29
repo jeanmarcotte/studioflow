@@ -3,6 +3,18 @@
 import { Badge } from '@/components/ui/badge'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 
+interface CatalogRef {
+  item_name?: string | null
+  category?: string | null
+}
+
+interface C1LineItem {
+  product_code: string | null
+  quantity: number | null
+  notes?: string | null
+  product_catalog?: CatalogRef | CatalogRef[] | null
+}
+
 interface ContractPackageProps {
   signedDate?: string
   isActive?: boolean
@@ -34,6 +46,96 @@ interface ContractPackageProps {
     total: number
   }
   products?: Record<string, any> | null
+  lineItems?: C1LineItem[]
+}
+
+// Match category from any reasonable label that the catalog may return.
+const CATEGORY_ORDER: Array<{ key: string; label: string; matchers: RegExp[] }> = [
+  { key: 'package', label: 'Package', matchers: [/^package/i] },
+  { key: 'album', label: 'Albums', matchers: [/^album/i] },
+  { key: 'portrait', label: 'Portraits & Prints', matchers: [/^portrait/i, /^print/i] },
+  { key: 'canvas', label: 'Canvas', matchers: [/^canvas/i] },
+  { key: 'frame', label: 'Frames', matchers: [/^frame/i] },
+  { key: 'collage', label: 'Collage', matchers: [/^collage/i] },
+  { key: 'digital', label: 'Digital Delivery', matchers: [/^digital/i] },
+  { key: 'service', label: 'Services', matchers: [/^service/i] },
+  { key: 'production', label: 'Production', matchers: [/^production/i] },
+  { key: 'stationery', label: 'Stationery', matchers: [/^stationery/i] },
+  { key: 'glass', label: 'Glass', matchers: [/^glass/i] },
+  { key: 'mounting', label: 'Mounting', matchers: [/^mounting/i] },
+]
+
+function categoryBucket(rawCategory: string | null | undefined): { key: string; label: string } {
+  if (rawCategory) {
+    for (const c of CATEGORY_ORDER) {
+      if (c.matchers.some(rx => rx.test(rawCategory))) return { key: c.key, label: c.label }
+    }
+    return { key: `__${rawCategory}`, label: rawCategory }
+  }
+  return { key: '__other', label: 'Other' }
+}
+
+function catalogOf(item: C1LineItem): CatalogRef | null {
+  const c = item.product_catalog
+  if (!c) return null
+  if (Array.isArray(c)) return c[0] ?? null
+  return c
+}
+
+function C1LineItemsBlock({ lineItems }: { lineItems?: C1LineItem[] }) {
+  const items = lineItems || []
+  if (items.length === 0) return null
+
+  const buckets = new Map<string, { label: string; rows: C1LineItem[] }>()
+  for (const item of items) {
+    const cat = catalogOf(item)
+    const { key, label } = categoryBucket(cat?.category)
+    if (!buckets.has(key)) buckets.set(key, { label, rows: [] })
+    buckets.get(key)!.rows.push(item)
+  }
+
+  const orderedKeys: string[] = []
+  for (const c of CATEGORY_ORDER) if (buckets.has(c.key)) orderedKeys.push(c.key)
+  for (const k of Array.from(buckets.keys())) if (!orderedKeys.includes(k)) orderedKeys.push(k)
+
+  return (
+    <div className="border-t p-4">
+      <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+        Contract Line Items ({items.length} {items.length === 1 ? 'product' : 'products'})
+      </h4>
+      <div className="space-y-4">
+        {orderedKeys.map(key => {
+          const bucket = buckets.get(key)!
+          return (
+            <div key={key}>
+              <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">{bucket.label}</h5>
+              <ul className="divide-y">
+                {bucket.rows.map((item, idx) => {
+                  const cat = catalogOf(item)
+                  const itemName = cat?.item_name || item.notes || '—'
+                  return (
+                    <li
+                      key={`${item.product_code ?? 'na'}-${idx}`}
+                      className="py-2 grid grid-cols-[140px_1fr_auto] gap-3 items-baseline"
+                    >
+                      <span className="font-mono text-xs text-gray-500">{item.product_code || '—'}</span>
+                      <span className="text-sm text-gray-900">
+                        <span className="font-medium">{itemName}</span>
+                        {item.notes && cat?.item_name ? (
+                          <span className="text-gray-500"> — {item.notes}</span>
+                        ) : null}
+                      </span>
+                      <span className="text-sm text-gray-600">× {item.quantity ?? 0}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 const PRINT_FIELDS: Array<[string, string]> = [
@@ -104,7 +206,8 @@ export function ContractPackageCard({
   engagement,
   team,
   financials,
-  products
+  products,
+  lineItems
 }: ContractPackageProps) {
   if (!coverage || !engagement || !team || !financials) {
     return (
@@ -383,6 +486,7 @@ export function ContractPackageCard({
         <div className="border-t p-4">
           {productsContent}
         </div>
+        <C1LineItemsBlock lineItems={lineItems} />
       </div>
 
       {/* Mobile: Collapsible Accordion */}
@@ -402,6 +506,11 @@ export function ContractPackageCard({
         <CollapsibleSection title="Included Products" defaultOpen={false} className="border-0 rounded-none">
           {productsContent}
         </CollapsibleSection>
+        {lineItems && lineItems.length > 0 && (
+          <CollapsibleSection title="Contract Line Items" defaultOpen={false} className="border-0 rounded-none">
+            <C1LineItemsBlock lineItems={lineItems} />
+          </CollapsibleSection>
+        )}
       </div>
     </div>
   )
