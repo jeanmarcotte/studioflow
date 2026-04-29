@@ -1,3 +1,18 @@
+interface CatalogItem {
+  product_code: string
+  item_name: string
+  category?: string | null
+  retail_price?: number | null
+}
+
+interface C2LineItem {
+  id: string
+  product_code: string | null
+  quantity: number | null
+  unit_price?: number | null
+  notes?: string | null
+}
+
 interface FramesAlbumsProps {
   items?: Record<string, string>
   specs?: Record<string, string>
@@ -6,9 +21,46 @@ interface FramesAlbumsProps {
     discount: number
     salePrice: number
   }
+  lineItems?: C2LineItem[]
+  catalog?: CatalogItem[]
 }
 
-export function FramesAlbumsCard({ items, specs, financials }: FramesAlbumsProps) {
+function buildCatalogMap(catalog: CatalogItem[] | undefined): Map<string, CatalogItem> {
+  const map = new Map<string, CatalogItem>()
+  for (const c of catalog || []) {
+    if (c?.product_code) map.set(c.product_code, c)
+  }
+  return map
+}
+
+function LineItemsBlock({ lineItems, catalog }: { lineItems?: C2LineItem[]; catalog?: CatalogItem[] }) {
+  const byCode = buildCatalogMap(catalog)
+  const items = lineItems || []
+  return (
+    <div className="border-t p-4">
+      <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Included Items</h4>
+      {items.length === 0 ? (
+        <p className="text-sm text-gray-500">No line items recorded.</p>
+      ) : (
+        <ul className="divide-y">
+          {items.map(item => {
+            const cat = item.product_code ? byCode.get(item.product_code) : null
+            const itemName = cat?.item_name || item.notes || '—'
+            return (
+              <li key={item.id} className="py-2 grid grid-cols-[140px_1fr_auto] gap-3 items-baseline">
+                <span className="font-mono text-xs text-gray-500">{item.product_code || '—'}</span>
+                <span className="text-sm font-medium text-gray-900">{itemName}</span>
+                <span className="text-sm text-gray-600">× {item.quantity ?? 0}</span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+export function FramesAlbumsCard({ items, specs, financials, lineItems, catalog }: FramesAlbumsProps) {
   if (!financials) {
     return (
       <div className="border rounded-lg overflow-hidden">
@@ -18,6 +70,7 @@ export function FramesAlbumsCard({ items, specs, financials }: FramesAlbumsProps
         <div className="p-6">
           <p className="text-sm text-gray-500">No frames &amp; albums sale recorded.</p>
         </div>
+        <LineItemsBlock lineItems={lineItems} catalog={catalog} />
       </div>
     )
   }
@@ -81,6 +134,8 @@ export function FramesAlbumsCard({ items, specs, financials }: FramesAlbumsProps
           </div>
         </div>
       </div>
+
+      <LineItemsBlock lineItems={lineItems} catalog={catalog} />
     </div>
   )
 }

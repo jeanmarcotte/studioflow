@@ -39,6 +39,9 @@ export default function CoupleDetailPage() {
   const [extrasInstallments, setExtrasInstallments] = useState<any[]>([])
   const [extrasOrders, setExtrasOrders] = useState<any[]>([])
   const [clientExtras, setClientExtras] = useState<any[]>([])
+  const [c2LineItems, setC2LineItems] = useState<any[]>([])
+  const [c3LineItems, setC3LineItems] = useState<any[]>([])
+  const [productCatalog, setProductCatalog] = useState<any[]>([])
   const [weddingDayForm, setWeddingDayForm] = useState<any>(null)
   const [videoOrder, setVideoOrder] = useState<any>(null)
 
@@ -122,6 +125,42 @@ export default function CoupleDetailPage() {
           .eq('couple_id', coupleId)
           .order('invoice_date')
         setClientExtras(clientExtrasData || [])
+
+        // C2 line items (linked via extras_order_id, has product_code)
+        let c2Items: any[] = []
+        if (extrasData?.[0]?.id) {
+          const { data: c2Data } = await supabase
+            .from('c2_line_items')
+            .select('id, product_code, quantity, unit_price, notes')
+            .eq('extras_order_id', extrasData[0].id)
+            .order('created_at')
+          c2Items = c2Data || []
+        }
+        setC2LineItems(c2Items)
+
+        // C3 line items (linked via couple_id, has product_code)
+        const { data: c3Data } = await supabase
+          .from('c3_line_items')
+          .select('id, product_code, quantity, unit_price, total, notes, invoice_date, tax_mode, subtotal, hst, salesperson, payment_note')
+          .eq('couple_id', coupleId)
+          .order('created_at')
+        const c3Items = c3Data || []
+        setC3LineItems(c3Items)
+
+        // Product catalog lookup for line item names
+        const allCodes = Array.from(new Set([
+          ...c2Items.map(i => i.product_code).filter(Boolean),
+          ...c3Items.map(i => i.product_code).filter(Boolean),
+        ]))
+        if (allCodes.length > 0) {
+          const { data: catalogData } = await supabase
+            .from('product_catalog')
+            .select('product_code, item_name, category, retail_price')
+            .in('product_code', allCodes)
+          setProductCatalog(catalogData || [])
+        } else {
+          setProductCatalog([])
+        }
 
         const { data: formData } = await supabase
           .from('wedding_day_forms')
@@ -427,13 +466,19 @@ export default function CoupleDetailPage() {
             discount: extrasDiscount,
             salePrice: extrasSale
           }}
+          lineItems={c2LineItems}
+          catalog={productCatalog}
         />
       ) : (
-        <FramesAlbumsCard />
+        <FramesAlbumsCard lineItems={c2LineItems} catalog={productCatalog} />
       )}
 
       {/* C3 Extras & Add-ons — ALWAYS RENDER */}
-      <ExtrasCard extras={clientExtras || []} />
+      <ExtrasCard
+        extras={clientExtras || []}
+        lineItems={c3LineItems}
+        catalog={productCatalog}
+      />
 
       {/* Appointments */}
       <EngagementAppointments coupleId={coupleId} />
