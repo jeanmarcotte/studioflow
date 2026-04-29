@@ -254,11 +254,18 @@ export default function CrewCallSheetPage() {
   // ── Auto-generate call sheet from wedding_assignments ─────────
 
   const ensureCallSheet = useCallback(async (coupleId: string, assignment: Assignment) => {
-    // Check if call sheet already exists
+    // Check if call sheet already exists WITH members
     const { data: existing } = await supabase.from('crew_call_sheets')
-      .select('id').eq('couple_id', coupleId).limit(1)
+      .select('id, crew_call_sheet_members(id)').eq('couple_id', coupleId).limit(10)
 
-    if (existing?.length) return // Already has a call sheet — do nothing
+    const sheetWithMembers = existing?.find((s: any) => s.crew_call_sheet_members?.length > 0)
+    if (sheetWithMembers) return // Already has a call sheet with members — do nothing
+
+    // Clean up any empty sheets for this couple
+    const emptySheets = existing?.filter((s: any) => !s.crew_call_sheet_members?.length)
+    if (emptySheets?.length) {
+      await supabase.from('crew_call_sheets').delete().in('id', emptySheets.map((s: any) => s.id))
+    }
 
     // Create new call sheet
     const { data: newSheet, error: sheetError } = await supabase.from('crew_call_sheets')
@@ -444,13 +451,15 @@ export default function CrewCallSheetPage() {
   // ── Load crew entries from DB call sheet members ────────────────
 
   const loadCrewFromDb = useCallback(async (coupleId: string) => {
+    // Find the most recent call sheet that has members
     const { data: sheets } = await supabase.from('crew_call_sheets')
-      .select('id').eq('couple_id', coupleId).order('created_at', { ascending: false }).limit(1)
-    if (!sheets?.length) return null
+      .select('id, crew_call_sheet_members(id)').eq('couple_id', coupleId).order('created_at', { ascending: false }).limit(10)
+    const sheet = sheets?.find((s: any) => s.crew_call_sheet_members?.length > 0)
+    if (!sheet) return null
 
     const { data: members } = await supabase.from('crew_call_sheet_members')
       .select('team_member_id, member_name, member_email, role, call_time, meeting_point, special_notes')
-      .eq('call_sheet_id', sheets[0].id)
+      .eq('call_sheet_id', sheet.id)
     if (!members?.length) return null
 
     const contract = contracts.find(c => c.couple_id === coupleId)
