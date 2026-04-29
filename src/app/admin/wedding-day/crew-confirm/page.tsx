@@ -264,7 +264,20 @@ export default function CrewCallSheetPage() {
       .select('team_member_id, member_name, member_email, role, call_time, meeting_point, special_notes')
       .eq('call_sheet_id', sheets[0].id)
     if (!members?.length) return null
-    return members.map(m => ({
+
+    // Dedupe by team_member_id, preferring rows with call_time set
+    // (some sheets carry both a "real" entry and a raw assignment-style entry per member)
+    const byKey = new Map<string, typeof members[number]>()
+    for (const m of members) {
+      const key = m.team_member_id || `name:${(m.member_name || '').toLowerCase()}`
+      const existing = byKey.get(key)
+      if (!existing) { byKey.set(key, m); continue }
+      const existingHasTime = !!existing.call_time
+      const candidateHasTime = !!m.call_time
+      if (!existingHasTime && candidateHasTime) byKey.set(key, m)
+    }
+
+    return Array.from(byKey.values()).map(m => ({
       team_member_id: m.team_member_id || '',
       member_name: m.member_name || '',
       member_email: m.member_email || '',

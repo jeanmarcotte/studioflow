@@ -143,7 +143,7 @@ Render order on the page: Q08 → Q09 → Q10 → Q11 → Q12 → Q13.
 |-------|------|-----------|----------|----------|
 | `/admin/wedding-day/forms` | Wedding Day Forms | wedding_day_forms, couples | wedding_day_forms (INSERT) | `trg_flip_m15_on_form`, `trigger_day_form_milestone` |
 | `/admin/wedding-day/forms/[id]/print` | Wedding Day Form Print | wedding_day_forms, couples | None (read-only, print) | None |
-| `/admin/wedding-day/crew-confirm` | Crew Confirmation | crew_call_sheets, crew_call_sheet_members, team_members, couples, meeting_points | crew_call_sheets, crew_call_sheet_members | None (m16 has no trigger) |
+| `/admin/wedding-day/crew-confirm` | Crew Confirmation | crew_call_sheets, crew_call_sheet_members, team_members, couples, meeting_points | crew_call_sheets, crew_call_sheet_members (via `/api/admin/crew-call-sheet` server route on Send only — page itself is read-only; loadSavedCrew dedupes by team_member_id, preferring rows with call_time set) | `trg_flip_m16_on_crew_call` (on INSERT into `crew_call_sheets`) |
 | `/admin/wedding-day/checklist` | Wedding Day Checklist | couples, wedding_day_forms | — | None |
 | `/admin/wedding-day/coordination` | Day-of Coordination | couples, wedding_assignments | — | None |
 | `/admin/wedding-day/equipment` | Equipment Prep | — | — | None |
