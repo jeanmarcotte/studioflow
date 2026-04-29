@@ -8,6 +8,7 @@ interface ResourceLink {
   label: string
   href: string | null
   exists: boolean
+  emptyText?: string
 }
 
 interface CoupleResourcesCardProps {
@@ -39,7 +40,7 @@ export function CoupleResourcesCard({ resources }: CoupleResourcesCardProps) {
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400">
                 <X className="w-4 h-4" />
-                {resource.href === null ? 'Coming soon' : 'Not submitted'}
+                {resource.href === null ? (resource.emptyText ?? 'Not available') : 'Not submitted'}
               </span>
             )}
           </div>

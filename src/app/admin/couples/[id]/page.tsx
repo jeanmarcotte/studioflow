@@ -253,12 +253,14 @@ export default function CoupleDetailPage() {
     {
       label: 'Frames & Albums (C2)',
       href: extrasOrder ? `/admin/albums/${coupleId}/view` : null,
-      exists: !!extrasOrder
+      exists: !!extrasOrder,
+      emptyText: 'No record'
     },
     {
       label: 'Extras (C3)',
       href: clientExtras && clientExtras.length > 0 ? `/admin/extras/${coupleId}/view` : null,
-      exists: clientExtras && clientExtras.length > 0
+      exists: clientExtras && clientExtras.length > 0,
+      emptyText: 'No record'
     },
     {
       label: 'Wedding Day Form',
