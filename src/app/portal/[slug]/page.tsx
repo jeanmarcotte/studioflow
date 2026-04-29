@@ -229,14 +229,21 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
               </div>
             )}
 
-            {/* Quick link button */}
-            <div className="flex justify-center mb-8">
+            {/* Quick link buttons */}
+            <div className="flex flex-col sm:flex-row justify-center gap-3 mb-8">
               <a
                 href={`/portal/${slug}/wedding-day`}
                 className="flex items-center justify-center px-6 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
                 style={{ border: `1.5px solid ${TEAL}`, color: TEAL, minHeight: 48 }}
               >
                 Wedding Day Form
+              </a>
+              <a
+                href={`/portal/${slug}/payments`}
+                className="flex items-center justify-center px-6 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
+                style={{ border: `1.5px solid ${TEAL}`, color: TEAL, minHeight: 48 }}
+              >
+                View Account
               </a>
             </div>
 
