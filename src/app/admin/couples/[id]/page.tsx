@@ -329,7 +329,6 @@ export default function CoupleDetailPage() {
       <CoupleHeader
         coupleName={coupleName}
         packageType={packageType}
-        status={status}
         phase={phase}
         weddingDate={weddingDateFormatted}
         daysUntil={daysUntil}

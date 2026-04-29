@@ -1,6 +1,5 @@
 'use client'
 
-import { Badge } from '@/components/ui/badge'
 import { ExternalLink } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { formatPackage } from '@/lib/formatters'
@@ -21,7 +20,6 @@ function formatPhase(phase: string): string {
 interface CoupleHeaderProps {
   coupleName: string
   packageType: string
-  status: string
   phase: string
   weddingDate: string
   daysUntil: number
@@ -30,19 +28,9 @@ interface CoupleHeaderProps {
   portalSlug?: string | null
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  booked: 'bg-green-500/20 text-green-300 border border-green-500/30',
-  post_production: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
-  completed: 'bg-slate-500/20 text-slate-300 border border-slate-500/30',
-  cancelled: 'bg-red-500/20 text-red-300 border border-red-500/30',
-  lead: 'bg-slate-500/20 text-slate-300 border border-slate-500/30',
-  quoted: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30',
-}
-
 export function CoupleHeader({
   coupleName,
   packageType,
-  status,
   phase,
   weddingDate,
   daysUntil,
@@ -50,7 +38,6 @@ export function CoupleHeader({
   bookedDate,
   portalSlug
 }: CoupleHeaderProps) {
-  const statusBadge = STATUS_COLORS[status] ?? 'bg-slate-500/20 text-slate-300 border border-slate-500/30'
   const daysColor = daysUntil < 0 ? 'text-amber-200' : 'text-emerald-200'
   const daysText = daysUntil < 0
     ? `${Math.abs(daysUntil)} days ago`
@@ -71,7 +58,6 @@ export function CoupleHeader({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className={statusBadge}>{status}</Badge>
           {(() => {
             const phaseColor = PHASE_COLORS[phase] ?? '#6b7280'
             const isArchived = phase === 'archived'
