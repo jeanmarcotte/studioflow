@@ -13,5 +13,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #8072 | 9:07 PM | ✅ | Final WO-967 implementation committed and deployed | ~387 |
+| #8070 | 5:47 PM | 🔴 | WO-967 bugfix: Fixed member_email NOT NULL constraint and added DB loading | ~462 |
+| #8069 | 5:44 PM | 🔄 | Crew confirm now loads from database instead of rebuilding in-memory | ~570 |
 | #8067 | 5:33 PM | 🟣 | Crew confirm auto-generates call sheet from wedding_assignments | ~511 |
 </claude-mem-context>

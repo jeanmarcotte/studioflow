@@ -10,4 +10,10 @@
 | #7527 | 11:56 AM | ✅ | Work order WO-855 completed and committed for documents page mobile responsiveness | ~564 |
 | #7521 | 11:54 AM | ✅ | DocumentsTable filter bar converted to mobile-responsive stacked layout | ~610 |
 | #7517 | 11:52 AM | 🔵 | Documents page structure reviewed for mobile responsiveness audit | ~660 |
+
+### Apr 28, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #8080 | 9:53 PM | 🔴 | Remove Couples Status Column References — Post-WO-942 Cleanup | ~595 |
 </claude-mem-context>

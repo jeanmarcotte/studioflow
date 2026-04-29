@@ -67,9 +67,9 @@ even if data is missing (show empty state):
 
 | Q# | Invoice | Component | Data Source | Empty State |
 |----|---------|-----------|-------------|-------------|
-| Q09 | C3 Extras & Add-ons | ExtrasCard | client_extras | "No extras or add-ons recorded." |
 | Q10 | C1 Contract Package | ContractPackageCard | contracts | "No contract on file." |
 | Q11 | C2 Frames & Albums | FramesAlbumsCard | extras_orders | "No frames & albums sale recorded." |
+| Q09 | C3 Extras & Add-ons | ExtrasCard | client_extras | "No extras or add-ons recorded." |
 
 CRITICAL: Q10 reads from `contracts`. Q11 reads from `extras_orders`.
 Q09 reads from `client_extras`. NEVER swap these data sources.

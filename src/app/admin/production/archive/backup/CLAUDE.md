@@ -8,4 +8,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #7533 | 12:27 PM | 🔵 | Backup log page structure reviewed for mobile responsiveness | ~586 |
+
+### Apr 28, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #8080 | 9:53 PM | 🔴 | Remove Couples Status Column References — Post-WO-942 Cleanup | ~595 |
 </claude-mem-context>

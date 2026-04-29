@@ -9,4 +9,10 @@
 |----|------|---|-------|------|
 | #7351 | 3:06 PM | 🟣 | Deployed Complete C3 Extras Sale System to Production | ~413 |
 | #7345 | 3:02 PM | 🟣 | C3 Extras Couple Picker Implementation | ~433 |
+
+### Apr 28, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #8080 | 9:53 PM | 🔴 | Remove Couples Status Column References — Post-WO-942 Cleanup | ~595 |
 </claude-mem-context>

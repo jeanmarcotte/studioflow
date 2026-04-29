@@ -14,4 +14,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #7507 | 11:14 AM | 🔵 | ProductionSidebar component reviewed showing desktop-only visibility pattern | ~516 |
+
+### Apr 28, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #8080 | 9:53 PM | 🔴 | Remove Couples Status Column References — Post-WO-942 Cleanup | ~595 |
 </claude-mem-context>

@@ -376,10 +376,7 @@ export default function CoupleDetailPage() {
         hasClientExtras={clientExtras.length > 0}
       />
 
-      {/* Q09 — C3 Extras & Add-ons — ALWAYS RENDER */}
-      <ExtrasCard extras={clientExtras || []} />
-
-      {/* Q10 — C1 Contract Package — ALWAYS RENDER */}
+      {/* C1 Contract Package — ALWAYS RENDER */}
       {contract ? (
         <ContractPackageCard
           signedDate={signedDate}
@@ -416,7 +413,7 @@ export default function CoupleDetailPage() {
         <ContractPackageCard />
       )}
 
-      {/* Q11 — C2 Frames & Albums — ALWAYS RENDER */}
+      {/* C2 Frames & Albums — ALWAYS RENDER */}
       {extrasOrder ? (
         <FramesAlbumsCard
           items={extrasItems}
@@ -430,6 +427,9 @@ export default function CoupleDetailPage() {
       ) : (
         <FramesAlbumsCard />
       )}
+
+      {/* C3 Extras & Add-ons — ALWAYS RENDER */}
+      <ExtrasCard extras={clientExtras || []} />
 
       {/* Appointments */}
       <EngagementAppointments coupleId={coupleId} />
