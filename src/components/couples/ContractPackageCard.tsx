@@ -224,8 +224,8 @@ export function ContractPackageCard({
         <dd className="text-gray-900">{engagement.included ? '✓ Included' : 'Not included'}</dd>
       </div>
       {engagement.location && (
-        <div className="flex justify-between">
-          <dt className="text-gray-500">Location</dt>
+        <div>
+          <dt className="text-gray-500 mb-1">Location</dt>
           <dd className="text-gray-900">{engagement.location}</dd>
         </div>
       )}
