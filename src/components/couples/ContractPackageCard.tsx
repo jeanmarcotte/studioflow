@@ -33,6 +33,68 @@ interface ContractPackageProps {
     c2FramesAlbums: number
     total: number
   }
+  products?: Record<string, any> | null
+}
+
+const PRINT_FIELDS: Array<[string, string]> = [
+  ['prints_postcard_thankyou', 'Postcard Thank You Cards'],
+  ['prints_5x7', '5×7 Prints'],
+  ['prints_8x10', '8×10 Prints'],
+  ['prints_11x14', '11×14 Prints'],
+  ['prints_16x16', '16×16 Prints'],
+  ['prints_16x20', '16×20 Prints'],
+  ['prints_20x24', '20×24 Prints'],
+  ['prints_24x30', '24×30 Prints'],
+  ['prints_30x40', '30×40 Prints'],
+]
+
+const DIGITAL_BOOL_FIELDS: Array<[string, string]> = [
+  ['usb_dropbox_delivery', 'USB / Dropbox Delivery'],
+  ['web_personal_page', 'Personal Web Page'],
+  ['post_production', 'Post Production'],
+]
+
+const DIGITAL_COUNT_FIELDS: Array<[string, string]> = [
+  ['web_engagement_upload', 'Engagement Upload'],
+  ['web_wedding_upload', 'Wedding Upload'],
+]
+
+const VIDEO_BOOL_FIELDS: Array<[string, string]> = [
+  ['video_long_form', 'Long Form Video'],
+  ['video_recap', 'Recap Video'],
+  ['video_slideshow', 'Slideshow'],
+  ['video_instagram_facebook', 'Instagram/Facebook Edit'],
+  ['video_digital_titles', 'Digital Titles'],
+  ['video_after_effects', 'After Effects'],
+  ['video_baby_pictures', 'Baby Pictures'],
+  ['video_dating_pictures', 'Dating Pictures'],
+  ['video_honeymoon_pictures', 'Honeymoon Pictures'],
+  ['video_invitation', 'Video Invitation'],
+  ['video_music', 'Music'],
+  ['video_end_credits', 'End Credits'],
+  ['video_hd', 'HD'],
+  ['video_sd', 'SD'],
+  ['video_gopro', 'GoPro'],
+  ['video_drone', 'Video Drone'],
+  ['video_led_lights', 'LED Lights'],
+  ['video_proof', 'Video Proof'],
+  ['video_usb', 'Video USB'],
+  ['video_single_camera', 'Single Camera'],
+  ['video_multi_camera', 'Multi Camera'],
+]
+
+const VIDEO_COUNT_FIELDS: Array<[string, string]> = [
+  ['video_highlights', 'Highlight Videos'],
+]
+
+function toInt(v: any): number {
+  if (v === null || v === undefined || v === '') return 0
+  const n = typeof v === 'number' ? v : parseInt(String(v), 10)
+  return Number.isFinite(n) ? n : 0
+}
+
+function isTrue(v: any): boolean {
+  return v === true || v === 'true' || v === 1 || v === '1'
 }
 
 export function ContractPackageCard({
@@ -41,7 +103,8 @@ export function ContractPackageCard({
   coverage,
   engagement,
   team,
-  financials
+  financials,
+  products
 }: ContractPackageProps) {
   if (!coverage || !engagement || !team || !financials) {
     return (
@@ -144,6 +207,148 @@ export function ContractPackageCard({
     </dl>
   )
 
+  // Build "Included Products" manifest
+  const p = products || {}
+
+  const printItems = PRINT_FIELDS
+    .map(([col, label]) => ({ label, qty: toInt(p[col]) }))
+    .filter(item => item.qty > 0)
+
+  const brideGroomAlbumQty = toInt(p.bride_groom_album_qty)
+  const parentAlbumsQty = toInt(p.parent_albums_qty)
+  const hasAlbums = brideGroomAlbumQty > 0 || parentAlbumsQty > 0
+
+  const digitalBoolItems = DIGITAL_BOOL_FIELDS
+    .filter(([col]) => isTrue(p[col]))
+    .map(([, label]) => label)
+  const digitalCountItems = DIGITAL_COUNT_FIELDS
+    .map(([col, label]) => ({ label, qty: toInt(p[col]) }))
+    .filter(item => item.qty > 0)
+  const hasDigital = digitalBoolItems.length > 0 || digitalCountItems.length > 0
+
+  const videoBoolItems = VIDEO_BOOL_FIELDS
+    .filter(([col]) => isTrue(p[col]))
+    .map(([, label]) => label)
+  const videoCountItems = VIDEO_COUNT_FIELDS
+    .map(([col, label]) => ({ label, qty: toInt(p[col]) }))
+    .filter(item => item.qty > 0)
+  const hasVideo = videoBoolItems.length > 0 || videoCountItems.length > 0
+
+  const hasAnyProducts = printItems.length > 0 || hasAlbums || hasDigital || hasVideo
+
+  const albumLine = (
+    size: any, spreads: any, images: any, cover: any
+  ): string => {
+    const parts = []
+    if (size) parts.push(String(size))
+    const sp = toInt(spreads)
+    if (sp > 0) parts.push(`${sp} spreads`)
+    const im = toInt(images)
+    if (im > 0) parts.push(`${im} images`)
+    if (cover) parts.push(`${cover} cover`)
+    return parts.join(' · ')
+  }
+
+  const productsContent = (
+    <div>
+      <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Included Products</h4>
+      {!hasAnyProducts ? (
+        <p className="text-sm text-gray-500">No product details on file.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {printItems.length > 0 && (
+            <div>
+              <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Prints</h5>
+              <ul className="space-y-1 text-sm">
+                {printItems.map(item => (
+                  <li key={item.label} className="flex justify-between">
+                    <span className="text-gray-700">{item.label}</span>
+                    <span className="text-gray-900">{item.qty}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {hasAlbums && (
+            <div>
+              <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Albums</h5>
+              <div className="space-y-3 text-sm">
+                {brideGroomAlbumQty > 0 && (
+                  <div>
+                    <div className="flex justify-between text-gray-900">
+                      <span>Bride & Groom Album</span>
+                      <span>{brideGroomAlbumQty}</span>
+                    </div>
+                    {(() => {
+                      const line = albumLine(p.bride_groom_album_size, p.bride_groom_album_spreads, p.bride_groom_album_images, p.bride_groom_album_cover)
+                      return line ? <div className="text-xs text-gray-500 mt-0.5">{line}</div> : null
+                    })()}
+                  </div>
+                )}
+                {parentAlbumsQty > 0 && (
+                  <div>
+                    <div className="flex justify-between text-gray-900">
+                      <span>Parent Albums</span>
+                      <span>{parentAlbumsQty}</span>
+                    </div>
+                    {(() => {
+                      const line = albumLine(p.parent_albums_size, p.parent_albums_spreads, p.parent_albums_images, p.parent_albums_cover)
+                      return line ? <div className="text-xs text-gray-500 mt-0.5">{line}</div> : null
+                    })()}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {(hasDigital || hasVideo) && (
+            <div className="space-y-4">
+              {hasDigital && (
+                <div>
+                  <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Digital Delivery</h5>
+                  <ul className="space-y-1 text-sm">
+                    {digitalBoolItems.map(label => (
+                      <li key={label} className="flex justify-between">
+                        <span className="text-gray-700">{label}</span>
+                        <span className="text-gray-900">✓</span>
+                      </li>
+                    ))}
+                    {digitalCountItems.map(item => (
+                      <li key={item.label} className="flex justify-between">
+                        <span className="text-gray-700">{item.label}</span>
+                        <span className="text-gray-900">{item.qty}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {hasVideo && (
+                <div>
+                  <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Video</h5>
+                  <ul className="space-y-1 text-sm">
+                    {videoCountItems.map(item => (
+                      <li key={item.label} className="flex justify-between">
+                        <span className="text-gray-700">{item.label}</span>
+                        <span className="text-gray-900">{item.qty}</span>
+                      </li>
+                    ))}
+                    {videoBoolItems.map(label => (
+                      <li key={label} className="flex justify-between">
+                        <span className="text-gray-700">{label}</span>
+                        <span className="text-gray-900">✓</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <div className="border rounded-lg overflow-hidden">
       {/* Header */}
@@ -156,22 +361,27 @@ export function ContractPackageCard({
       </div>
 
       {/* Desktop: 4-Column Grid */}
-      <div className="hidden md:grid grid-cols-4 divide-x">
-        <div className="p-4">
-          <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Coverage</h4>
-          {coverageContent}
+      <div className="hidden md:block">
+        <div className="grid grid-cols-4 divide-x">
+          <div className="p-4">
+            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Coverage</h4>
+            {coverageContent}
+          </div>
+          <div className="p-4">
+            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Engagement</h4>
+            {engagementContent}
+          </div>
+          <div className="p-4">
+            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Team</h4>
+            {teamContent}
+          </div>
+          <div className="p-4">
+            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Financials</h4>
+            {financialsContent}
+          </div>
         </div>
-        <div className="p-4">
-          <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Engagement</h4>
-          {engagementContent}
-        </div>
-        <div className="p-4">
-          <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Team</h4>
-          {teamContent}
-        </div>
-        <div className="p-4">
-          <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Financials</h4>
-          {financialsContent}
+        <div className="border-t p-4">
+          {productsContent}
         </div>
       </div>
 
@@ -188,6 +398,9 @@ export function ContractPackageCard({
         </CollapsibleSection>
         <CollapsibleSection title="Financial Summary" defaultOpen={true} className="border-0 rounded-none">
           {financialsContent}
+        </CollapsibleSection>
+        <CollapsibleSection title="Included Products" defaultOpen={false} className="border-0 rounded-none">
+          {productsContent}
         </CollapsibleSection>
       </div>
     </div>

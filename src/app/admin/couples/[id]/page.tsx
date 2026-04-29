@@ -410,6 +410,7 @@ export default function CoupleDetailPage() {
             c2FramesAlbums: c2Total,
             total: contractTotal + c2Total
           }}
+          products={contract}
         />
       ) : (
         <ContractPackageCard />
