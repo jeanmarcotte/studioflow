@@ -84,6 +84,42 @@ function catalogOf(item: C1LineItem): CatalogRef | null {
   return c
 }
 
+// Time format in the DB is inconsistent: "09:45", "10am", "9:30am", "11:00pm", "22:30", or null.
+function parseTime(s: string | null | undefined): number | null {
+  if (!s || typeof s !== 'string') return null
+  const trimmed = s.trim().toLowerCase().replace(/\s+/g, '')
+  const m12 = trimmed.match(/^(\d{1,2})(?::(\d{2}))?(am|pm)$/)
+  if (m12) {
+    let h = parseInt(m12[1], 10)
+    const min = m12[2] ? parseInt(m12[2], 10) : 0
+    if (h === 12) h = 0
+    if (m12[3] === 'pm') h += 12
+    return h + min / 60
+  }
+  const m24 = trimmed.match(/^(\d{1,2}):(\d{2})$/)
+  if (m24) {
+    const h = parseInt(m24[1], 10)
+    const min = parseInt(m24[2], 10)
+    if (h >= 0 && h < 24 && min >= 0 && min < 60) return h + min / 60
+  }
+  return null
+}
+
+function calculateHours(startTime: string | null | undefined, endTime: string | null | undefined): number | null {
+  const s = parseTime(startTime)
+  const e = parseTime(endTime)
+  if (s === null || e === null) return null
+  let diff = e - s
+  if (diff < 0) diff += 24
+  return diff
+}
+
+function formatMoney(n: number | null | undefined): string {
+  const num = typeof n === 'number' ? n : (n != null ? Number(n) : 0)
+  if (!Number.isFinite(num)) return '$0.00'
+  return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 function PackageContents({ lineItems }: { lineItems?: C1LineItem[] }) {
   const items = lineItems || []
 
@@ -155,6 +191,7 @@ export function ContractPackageCard({
   engagement,
   team,
   financials,
+  products,
   lineItems
 }: ContractPackageProps) {
   if (!coverage || !engagement || !team || !financials) {
@@ -177,6 +214,13 @@ export function ContractPackageCard({
   if (coverage.locationFlags.park) locations.push('Park')
   if (coverage.locationFlags.reception) locations.push('Reception')
 
+  // Total coverage hours, derived from the contract's start/end time.
+  // Falls back to the existing formatted string (e.g. "09:45 – 22:45") if parsing fails.
+  const calculatedHours = calculateHours(products?.start_time, products?.end_time)
+  const hoursDisplay = calculatedHours !== null
+    ? `${Number.isInteger(calculatedHours) ? calculatedHours : calculatedHours.toFixed(1)} hours`
+    : coverage.hours
+
   const coverageContent = (
     <dl className="space-y-2 text-sm">
       <div className="flex justify-between">
@@ -185,7 +229,7 @@ export function ContractPackageCard({
       </div>
       <div className="flex justify-between">
         <dt className="text-gray-500">Hours</dt>
-        <dd className="text-gray-900">{coverage.hours}</dd>
+        <dd className="text-gray-900">{hoursDisplay}</dd>
       </div>
       <div className="flex justify-between">
         <dt className="text-gray-500">Day</dt>
@@ -242,19 +286,37 @@ export function ContractPackageCard({
     </dl>
   )
 
+  // C1 contract financials only — read directly from the contracts row.
+  const taxRaw = products?.tax
+  const totalRaw = products?.total
+  const subtotalRaw = products?.subtotal
+
+  const taxNum = taxRaw != null && taxRaw !== '' ? Number(taxRaw) : null
+  const totalNum = totalRaw != null && totalRaw !== '' ? Number(totalRaw) : financials.c1Contract
+  let subtotalNum: number | null = subtotalRaw != null && subtotalRaw !== '' ? Number(subtotalRaw) : null
+  if (subtotalNum === null && taxNum !== null && Number.isFinite(totalNum)) {
+    subtotalNum = totalNum - taxNum
+  }
+
+  const showBreakdown = taxNum !== null && Number.isFinite(taxNum) && taxNum !== 0 && subtotalNum !== null
+
   const financialsContent = (
     <dl className="space-y-2 text-sm">
-      <div className="flex justify-between">
-        <dt className="text-gray-500">C1 Contract</dt>
-        <dd className="text-gray-900">${financials.c1Contract.toLocaleString()}</dd>
-      </div>
-      <div className="flex justify-between">
-        <dt className="text-gray-500">C2 Frames & Albums</dt>
-        <dd className="text-gray-900">${financials.c2FramesAlbums.toLocaleString()}</dd>
-      </div>
-      <div className="flex justify-between pt-2 border-t mt-2">
-        <dt className="text-gray-700 font-medium">Total</dt>
-        <dd className="text-gray-900 font-medium">${financials.total.toLocaleString()}</dd>
+      {showBreakdown && (
+        <>
+          <div className="flex justify-between">
+            <dt className="text-gray-500">Subtotal</dt>
+            <dd className="text-gray-900 tabular-nums">{formatMoney(subtotalNum)}</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-gray-500">HST</dt>
+            <dd className="text-gray-900 tabular-nums">{formatMoney(taxNum)}</dd>
+          </div>
+        </>
+      )}
+      <div className={`flex justify-between ${showBreakdown ? 'pt-2 border-t mt-2' : ''}`}>
+        <dt className={showBreakdown ? 'text-gray-700 font-medium' : 'text-gray-500'}>Total</dt>
+        <dd className={`text-gray-900 tabular-nums ${showBreakdown ? 'font-medium' : ''}`}>{formatMoney(totalNum)}</dd>
       </div>
     </dl>
   )
