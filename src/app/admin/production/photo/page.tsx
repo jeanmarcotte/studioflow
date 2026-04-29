@@ -200,6 +200,7 @@ export default function PhotoProductionPage() {
         supabase
           .from('jobs')
           .select('*')
+          .neq('category', 'video')
           .neq('status', 'completed')
           .neq('status', 'picked_up')
           .order('created_at', { ascending: false }),
@@ -211,6 +212,7 @@ export default function PhotoProductionPage() {
         supabase
           .from('jobs')
           .select('id', { count: 'exact', head: true })
+          .neq('category', 'video')
           .in('status', DONE_EDITING_STATUSES),
         // Waiting for order (past weddings without photo order)
         supabase
@@ -222,15 +224,18 @@ export default function PhotoProductionPage() {
         // Re-edit counts (for YTD sum)
         supabase
           .from('jobs')
-          .select('reedit_count'),
+          .select('reedit_count')
+          .neq('category', 'video'),
         // Photos progress (all jobs including completed for true progress + YTD)
         supabase
           .from('jobs')
-          .select('job_type, edited_so_far, photos_taken, total_proofs, status'),
+          .select('job_type, edited_so_far, photos_taken, total_proofs, status')
+          .neq('category', 'video'),
         // Cemetery — done editing jobs
         supabase
           .from('jobs')
           .select('*')
+          .neq('category', 'video')
           .in('status', DONE_EDITING_STATUSES)
           .order('created_at', { ascending: false }),
       ])
