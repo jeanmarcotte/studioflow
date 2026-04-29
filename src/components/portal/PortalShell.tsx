@@ -51,7 +51,7 @@ export function PortalShell({ couple, children }: Props) {
   // Home page gets a full-width, scroll-snap layout — no header/tabs
   if (isHome) {
     return (
-      <div className={dmSans.className} style={{ height: '100vh', overflow: 'hidden' }}>
+      <div className={`${dmSans.className} h-screen overflow-hidden lg:h-auto lg:overflow-visible lg:min-h-screen`}>
         {children}
         {/* Mobile Bottom Nav */}
         <nav

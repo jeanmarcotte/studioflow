@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { Playfair_Display } from 'next/font/google'
 import { formatWeddingDate, formatMilitaryTime } from '@/lib/formatters'
 import { PortalGallery } from '@/components/portal/PortalGallery'
+import { PortalDotNav } from '@/components/portal/PortalDotNav'
 import { differenceInDays, parseISO, format } from 'date-fns'
 import { ChevronDown } from 'lucide-react'
 
@@ -147,7 +148,8 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
         @media (min-width: 640px) { .portal-snap { scroll-snap-align: start; } }
       `}</style>
 
-      <div className="portal-scroll">
+      {/* MOBILE / TABLET LAYOUT — unchanged from before, hidden on lg+ */}
+      <div className="portal-scroll lg:hidden">
         {/* ═══════════════════════════════════════════
             ZONE 1 — Landing
             ═══════════════════════════════════════════ */}
@@ -511,6 +513,148 @@ export default async function PortalHomePage({ params }: { params: Promise<{ slu
             </footer>
           </div>
         </section>
+      </div>
+
+      {/* ═══════════════════════════════════════════
+          DESKTOP LAYOUT (lg+) — 4 zones, dot nav
+          ═══════════════════════════════════════════ */}
+      <div className="hidden lg:block" style={{ backgroundColor: '#FAFAF8' }}>
+        <PortalDotNav
+          zones={[
+            { id: 'zone-hero', label: 'Welcome' },
+            { id: 'zone-theatre', label: 'Film' },
+            { id: 'zone-links', label: 'Quick Links' },
+            { id: 'zone-gallery', label: 'Gallery' },
+          ]}
+        />
+
+        {/* Zone 1 — Hero (full bleed) */}
+        <section id="zone-hero" className="relative w-full" style={{ height: '60vh', minHeight: 480 }}>
+          {couple.hero_image_url ? (
+            <Image
+              src={couple.hero_image_url}
+              alt={`${bride} & ${groom}`}
+              fill
+              sizes="100vw"
+              priority
+              style={{
+                objectFit: 'cover',
+                objectPosition: `${couple.hero_focal_x ?? 50}% ${couple.hero_focal_y ?? 50}%`,
+              }}
+            />
+          ) : (
+            <div
+              className="absolute inset-0"
+              style={{ background: `linear-gradient(135deg, ${TEAL} 0%, ${DARK_TEAL} 100%)` }}
+            />
+          )}
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.0) 50%, rgba(0,0,0,0.55) 100%)' }} />
+          <div className="absolute inset-x-0 bottom-0 px-12 pb-12 text-white">
+            <div className="max-w-6xl mx-auto">
+              <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                Welcome
+              </p>
+              <h1 className={`${playfair.className} text-5xl xl:text-6xl mb-2`}>
+                {bride} & {groom}
+              </h1>
+              <p className="text-base" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                {formatWeddingDate(couple.wedding_date)}
+                {countdownText && <span style={{ marginLeft: 16 }}>· {countdownText}</span>}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Zones 2 + 3 — Theatre + Quick Links side by side */}
+        <div className="max-w-6xl mx-auto px-12 py-16 grid gap-8" style={{ gridTemplateColumns: '3fr 2fr' }}>
+          <section id="zone-theatre">
+            <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: '#aaa' }}>Theatre</p>
+            {videoId ? (
+              <div className="rounded-xl overflow-hidden" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+                <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    title="Wedding Film"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div
+                className="rounded-xl flex items-center justify-center text-center px-8"
+                style={{ aspectRatio: '16 / 9', backgroundColor: '#ebe5de' }}
+              >
+                <div>
+                  <p className={`${playfair.className} italic text-xl mb-2`} style={{ color: '#78716c' }}>
+                    Your wedding film is being crafted
+                  </p>
+                  <p className="text-sm" style={{ color: '#a8a29e' }}>
+                    Check back soon — we&apos;re hard at work.
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section id="zone-links">
+            <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: '#aaa' }}>Quick Links</p>
+            <div className="bg-white rounded-xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+              <a
+                href={`/portal/${slug}/payments`}
+                className="block px-5 py-4 hover:bg-stone-50 transition-colors"
+                style={{ borderBottom: '1px solid #f5f2ed' }}
+              >
+                <p className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>View Account</p>
+                <p className="text-xs mt-1" style={{ color: '#777' }}>Contract total, payments, balance</p>
+              </a>
+              <a
+                href={`/portal/${slug}/wedding-day`}
+                className="block px-5 py-4 hover:bg-stone-50 transition-colors"
+                style={{ borderBottom: '1px solid #f5f2ed' }}
+              >
+                <p className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>Wedding Day Form</p>
+                <p className="text-xs mt-1" style={{ color: '#777' }}>Schedule, locations, contacts</p>
+              </a>
+              <a
+                href="sms:+14168318942"
+                className="block px-5 py-4 hover:bg-stone-50 transition-colors"
+                style={{ borderBottom: '1px solid #f5f2ed' }}
+              >
+                <p className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>Text Marianna</p>
+                <p className="text-xs mt-1" style={{ color: TEAL }}>(416) 831-8942</p>
+              </a>
+              <a
+                href="mailto:info@sigsphoto.ca"
+                className="block px-5 py-4 hover:bg-stone-50 transition-colors"
+              >
+                <p className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>Email SIGS</p>
+                <p className="text-xs mt-1" style={{ color: TEAL }}>info@sigsphoto.ca</p>
+              </a>
+            </div>
+          </section>
+        </div>
+
+        {/* Zone 4 — Gallery (existing component, untouched) */}
+        <section id="zone-gallery" className="px-12 py-16" style={{ backgroundColor: BEIGE }}>
+          <div className="max-w-4xl mx-auto">
+            <PortalGallery
+              heroUrl={couple.hero_image_url}
+              leftUrl={couple.collage_img_left}
+              centerUrl={couple.collage_img_center}
+              rightUrl={couple.collage_img_right}
+              caption={couple.collage_caption}
+              bride={bride}
+              groom={groom}
+            />
+          </div>
+        </section>
+
+        <footer className="text-center py-8" style={{ backgroundColor: BEIGE }}>
+          <p className="text-xs" style={{ color: '#bbb' }}>&copy; 2026 SIGS Photography Ltd.</p>
+          <p className="text-xs mt-1" style={{ color: '#bbb' }}>sigsphoto.ca</p>
+        </footer>
       </div>
     </>
   )
