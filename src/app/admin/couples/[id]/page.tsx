@@ -315,7 +315,7 @@ export default function CoupleDetailPage() {
     },
     {
       label: 'Wedding Day Form',
-      href: weddingDayForm?.id ? `/admin/wedding-day/forms/${weddingDayForm.id}/print` : null,
+      href: weddingDayForm?.id ? `/client/wedding-day-form/${coupleId}` : null,
       exists: !!weddingDayForm
     },
     {
