@@ -214,6 +214,7 @@ export default function CrewCallSheetPage() {
   const [showVendors, setShowVendors] = useState(false)
   const [sendError, setSendError] = useState('')
   const [confirmationStatuses, setConfirmationStatuses] = useState<ConfirmationStatus[]>([])
+  const [dataSource, setDataSource] = useState<'call_sheet' | 'assignments' | null>(null)
   const [loading, setLoading] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -251,54 +252,29 @@ export default function CrewCallSheetPage() {
   const selectedAssignment = useMemo(() => assignments.find(a => a.couple_id === selectedCoupleId) || null, [assignments, selectedCoupleId])
   const selectedMilestone = useMemo(() => milestones.find(m => m.couple_id === selectedCoupleId) || null, [milestones, selectedCoupleId])
 
-  // ── Auto-generate call sheet from wedding_assignments ─────────
+  // ── Load saved call sheet members (read-only fallback) ────────
 
-  const ensureCallSheet = useCallback(async (coupleId: string, assignment: Assignment) => {
-    // Check if call sheet already exists
-    const { data: existing } = await supabase.from('crew_call_sheets')
-      .select('id').eq('couple_id', coupleId).limit(1)
-
-    if (existing?.length) return // Already has a call sheet — do nothing
-
-    // Create new call sheet
-    const { data: newSheet, error: sheetError } = await supabase.from('crew_call_sheets')
-      .insert({ couple_id: coupleId })
-      .select('id')
+  const loadSavedCrew = useCallback(async (coupleId: string, defaultCallTime: string): Promise<CrewEntry[] | null> => {
+    const { data: sheets } = await supabase.from('crew_call_sheets')
+      .select('id').eq('couple_id', coupleId)
+      .order('sent_at', { ascending: false, nullsFirst: false })
       .limit(1)
-
-    if (sheetError || !newSheet?.length) {
-      console.error('Failed to create call sheet:', sheetError)
-      return
-    }
-
-    const callSheetId = newSheet[0].id
-
-    // Build members from assignment slots
-    const slots: { name: string | null; role: string }[] = [
-      { name: assignment.photo_1, role: 'photo_1' },
-      { name: assignment.photo_2, role: 'photo_2' },
-      { name: assignment.video_1, role: 'video_1' },
-    ]
-
-    const members: { call_sheet_id: string; team_member_id: string | null; member_name: string; member_email: string | null; role: string }[] = []
-    for (const slot of slots) {
-      if (!slot.name) continue
-      const matched = teamMembers.find(m => m.first_name.toLowerCase() === slot.name!.toLowerCase())
-      members.push({
-        call_sheet_id: callSheetId,
-        team_member_id: matched?.id || null,
-        member_name: matched ? `${matched.first_name}${matched.last_name ? ' ' + matched.last_name : ''}` : slot.name,
-        member_email: matched?.email || null,
-        role: slot.role,
-      })
-    }
-
-    if (members.length > 0) {
-      const { error: membersError } = await supabase.from('crew_call_sheet_members')
-        .insert(members)
-      if (membersError) console.error('Failed to create call sheet members:', membersError)
-    }
-  }, [teamMembers])
+    if (!sheets?.length) return null
+    const { data: members } = await supabase.from('crew_call_sheet_members')
+      .select('team_member_id, member_name, member_email, role, call_time, meeting_point, special_notes')
+      .eq('call_sheet_id', sheets[0].id)
+    if (!members?.length) return null
+    return members.map(m => ({
+      team_member_id: m.team_member_id || '',
+      member_name: m.member_name || '',
+      member_email: m.member_email || '',
+      role: m.role || '',
+      checked: true,
+      call_time: m.call_time || defaultCallTime,
+      meeting_location: m.meeting_point || '',
+      special_notes: m.special_notes || '',
+    }))
+  }, [])
 
   // ── Fetch weather for selected couple ──────────────────────────
 
@@ -452,6 +428,7 @@ export default function CrewCallSheetPage() {
       setWeather({ high: null, low: null, precipitation: null, sunrise: null, sunset: null, available: false })
       setSchedule([]); setWeddingLocations([])
       setUploadedDocs([]); setUploadError('')
+      setDataSource(null)
       return
     }
 
@@ -461,14 +438,14 @@ export default function CrewCallSheetPage() {
     const startMins = contract?.start_time ? parseTimeStr(contract.start_time) : null
     const defaultCallTime = startMins !== null ? minutesToTimeStr(startMins - 60) : ''
 
-    const entries: CrewEntry[] = []
+    // Build fallback entries from wedding_assignments (case-insensitive match)
+    const fallbackEntries: CrewEntry[] = []
     const addEntry = (name: string | null, role: string) => {
       if (!name) return
-      const member = teamMembers.find(m => m.first_name === name)
+      const member = teamMembers.find(m => m.first_name.toLowerCase() === name.toLowerCase())
       if (!member) return
-      // Auto-select meeting point if usual_for matches crew member's first name
       const usualMp = meetingPoints.find(mp => mp.usual_for && mp.usual_for.toLowerCase() === name.toLowerCase())
-      entries.push({
+      fallbackEntries.push({
         team_member_id: member.id,
         member_name: `${member.first_name} ${member.last_name || ''}`.trim(),
         member_email: member.email || '', role, checked: true,
@@ -481,14 +458,21 @@ export default function CrewCallSheetPage() {
     addEntry(selectedAssignment.photo_1, 'Lead Photographer')
     addEntry(selectedAssignment.photo_2, '2nd Photographer')
     addEntry(selectedAssignment.video_1, 'Videographer')
-    setCrewEntries(entries)
+    setCrewEntries(fallbackEntries)
+    setDataSource(fallbackEntries.length > 0 ? 'assignments' : null)
 
     setSentTimestamp(null); setSendError('')
-    // Auto-generate call sheet from wedding_assignments if none exists
-    ensureCallSheet(selectedCoupleId, selectedAssignment).then(() => {
-      fetchHistory(selectedCoupleId)
-      fetchConfirmationStatuses(selectedCoupleId)
+
+    // Try to load saved call sheet members (read-only); override if exists
+    loadSavedCrew(selectedCoupleId, defaultCallTime).then(saved => {
+      if (saved && saved.length > 0) {
+        setCrewEntries(saved)
+        setDataSource('call_sheet')
+      }
     })
+
+    fetchHistory(selectedCoupleId)
+    fetchConfirmationStatuses(selectedCoupleId)
     fetchUploadedDocs(selectedCoupleId)
     fetchWeddingDayForm(selectedCoupleId)
 
@@ -962,7 +946,23 @@ export default function CrewCallSheetPage() {
           {/* Section 3: Crew Assignment Cards — Simplified */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h2 className={playfair.className} style={{ fontSize: '1.1rem', color: 'var(--primary)', margin: 0 }}>Crew Assignments</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 className={playfair.className} style={{ fontSize: '1.1rem', color: 'var(--primary)', margin: 0 }}>Crew Assignments</h2>
+                {dataSource === 'call_sheet' && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    padding: '2px 8px', borderRadius: '9999px', fontSize: '0.7rem', fontWeight: 600,
+                    background: '#dcfce7', color: '#166534',
+                  }}>From Call Sheet</span>
+                )}
+                {dataSource === 'assignments' && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    padding: '2px 8px', borderRadius: '9999px', fontSize: '0.7rem', fontWeight: 600,
+                    background: '#fef3c7', color: '#92400e',
+                  }}>From Assignments</span>
+                )}
+              </div>
               <div style={{ position: 'relative' }}>
                 <button onClick={() => setShowAddCrew(!showAddCrew)} style={{
                   display: 'inline-flex', alignItems: 'center', gap: '4px',
