@@ -124,8 +124,8 @@ If any of these four are missing, the trigger is not ready to build.
 | m27 | `m27_video_long_form` | Video Long Form | `trg_flip_video_milestones` → `fn_flip_video_milestones()` | `video_jobs` | AFTER UPDATE FULL → complete | ✅ | 2026-04-25 |
 | m28 | `m28_recap_edited` | Recap Edited | `trg_flip_video_milestones` → `fn_flip_video_milestones()` | `video_jobs` | AFTER UPDATE RECAP → complete | ✅ | 2026-04-25 |
 | m29 | `m29_lab_order_back` | Lab Order Back | `trg_flip_wedding_lab_milestones` → `fn_flip_wedding_lab_milestones()` | `jobs` | AFTER UPDATE wedding non-proofs → at_studio (first) | ✅ | 2026-04-25 |
-| m30 | `m30_hires_on_usb` | Hi-Res Delivered | `trg_flip_m34_all_picked_up` → `fn_flip_m34_all_picked_up()` | `jobs` | AFTER UPDATE — ALL wedding jobs picked_up (combined m30+m31+m34) | ✅ | 2026-04-25 |
-| m31 | `m31_video_on_usb` | Video Delivered | `trg_flip_m34_all_picked_up` → `fn_flip_m34_all_picked_up()` | `jobs` | AFTER UPDATE — ALL wedding jobs picked_up (combined m30+m31+m34) | ✅ | 2026-04-25 |
+| m30 | `m30_hires_on_usb` | Hi-Res Delivered | `trg_flip_m34_all_picked_up` → `fn_flip_m34_all_picked_up()` | `jobs` | AFTER UPDATE — ALL wedding jobs in `picked_up` OR `completed` (combined m30+m31+m34) | ✅ | 2026-04-29 |
+| m31 | `m31_video_on_usb` | Video Delivered | `trg_flip_m34_all_picked_up` → `fn_flip_m34_all_picked_up()` | `jobs` | AFTER UPDATE — ALL wedding jobs in `picked_up` OR `completed` (combined m30+m31+m34) | ✅ | 2026-04-29 |
 | m32 | `m32_ready_at_studio` | Ready at Studio | `trg_flip_wedding_lab_milestones` → `fn_flip_wedding_lab_milestones()` | `jobs` | AFTER UPDATE — ALL wedding non-proofs at_studio/picked_up | ✅ | 2026-04-25 |
 
 **Consequences:**
@@ -168,7 +168,7 @@ If any of these four are missing, the trigger is not ready to build.
 | # | Column | Name | Trigger | Table | Event | Status | Verified |
 |---|--------|------|---------|-------|-------|--------|----------|
 | m33 | `m33_final_payment` | Final Payment | `check_and_flip_m33` | `payments` | INSERT/UPDATE/DELETE → checks `couple_financial_summary.balance_due <= 0` | ✅ | 2026-04-25 |
-| m34 | `m34_items_picked_up` | Items Picked Up | `trg_flip_m34_all_picked_up` → `fn_flip_m34_all_picked_up()` | `jobs` | AFTER UPDATE — ALL wedding jobs picked_up (also flips m30+m31) | ✅ | 2026-04-25 |
+| m34 | `m34_items_picked_up` | Items Picked Up | `trg_flip_m34_all_picked_up` → `fn_flip_m34_all_picked_up()` | `jobs` | AFTER UPDATE — fires on `picked_up` OR `completed`; ALL wedding jobs must be in a done state (picked_up/completed). Also flips m30+m31. | ✅ | 2026-04-29 |
 | m35 | `m35_archived` | Archived | ⏸️ BLOCKED | — | Intentionally on hold. Should fire from archive system when implemented | ⏸️ | 2026-04-25 |
 | m36 | `m36_complete` | Complete | `trg_flip_m36_complete` → `fn_flip_m36_complete()` | `couple_milestones` | BEFORE UPDATE — checks ALL m01-m35 = true, sets m36 via NEW | ✅ | 2026-04-25 |
 
