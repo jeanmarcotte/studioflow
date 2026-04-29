@@ -58,6 +58,27 @@
 | `/admin/couples/[id]/upload-contract` | Upload Contract | couples, contracts | contracts | None |
 | `/admin/couples/[id]/upload-extras` | Upload Extras | couples, extras_orders | extras_orders | None |
 
+#### `/admin/couples/[id]` — Couple Detail Page
+
+##### MANDATORY INVOICE SECTIONS (NEVER REMOVE)
+
+The couple detail page MUST always render these 3 invoice sections,
+even if data is missing (show empty state):
+
+| Q# | Invoice | Component | Data Source | Empty State |
+|----|---------|-----------|-------------|-------------|
+| Q09 | C3 Extras & Add-ons | ExtrasCard | client_extras | "No extras or add-ons recorded." |
+| Q10 | C1 Contract Package | ContractPackageCard | contracts | "No contract on file." |
+| Q11 | C2 Frames & Albums | FramesAlbumsCard | extras_orders | "No frames & albums sale recorded." |
+
+CRITICAL: Q10 reads from `contracts`. Q11 reads from `extras_orders`.
+Q09 reads from `client_extras`. NEVER swap these data sources.
+
+These sections are NEVER conditionally hidden. If data is absent,
+render the card with an empty state message.
+
+Render order on the page: Q08 → Q09 → Q10 → Q11 → Q12 → Q13.
+
 ### Production
 
 | Route | Page | Reads From | Writes To | Triggers |

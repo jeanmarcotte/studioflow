@@ -4,9 +4,9 @@ import { Badge } from '@/components/ui/badge'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 
 interface ContractPackageProps {
-  signedDate: string
-  isActive: boolean
-  coverage: {
+  signedDate?: string
+  isActive?: boolean
+  coverage?: {
     package: string
     hours: string
     day: string
@@ -20,15 +20,15 @@ interface ContractPackageProps {
     drone: boolean
     guests: number
   }
-  engagement: {
+  engagement?: {
     included: boolean
     location: string | null
   }
-  team: {
+  team?: {
     photographers: number
     videographers: number
   }
-  financials: {
+  financials?: {
     c1Contract: number
     c2FramesAlbums: number
     total: number
@@ -43,6 +43,18 @@ export function ContractPackageCard({
   team,
   financials
 }: ContractPackageProps) {
+  if (!coverage || !engagement || !team || !financials) {
+    return (
+      <div className="border rounded-lg overflow-hidden">
+        <div className="bg-teal-600 px-4 md:px-5 py-4 flex justify-between items-center">
+          <span className="text-white font-medium text-sm md:text-base">Contract Package (C1) — As Signed</span>
+        </div>
+        <div className="p-6">
+          <p className="text-sm text-gray-500">No contract on file.</p>
+        </div>
+      </div>
+    )
+  }
   const locations = []
   if (coverage.locationFlags.groom) locations.push('Groom Prep')
   if (coverage.locationFlags.bride) locations.push('Bride Prep')

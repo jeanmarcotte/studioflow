@@ -376,8 +376,11 @@ export default function CoupleDetailPage() {
         hasClientExtras={clientExtras.length > 0}
       />
 
-      {/* 7. C1 Contract Package */}
-      {contract && (
+      {/* Q09 — C3 Extras & Add-ons — ALWAYS RENDER */}
+      <ExtrasCard extras={clientExtras || []} />
+
+      {/* Q10 — C1 Contract Package — ALWAYS RENDER */}
+      {contract ? (
         <ContractPackageCard
           signedDate={signedDate}
           isActive={!couple.is_cancelled}
@@ -409,13 +412,12 @@ export default function CoupleDetailPage() {
             total: contractTotal + c2Total
           }}
         />
+      ) : (
+        <ContractPackageCard />
       )}
 
-      {/* 7b. Appointments */}
-      <EngagementAppointments coupleId={coupleId} />
-
-      {/* 8. C2 Frames & Albums */}
-      {extrasOrder && (
+      {/* Q11 — C2 Frames & Albums — ALWAYS RENDER */}
+      {extrasOrder ? (
         <FramesAlbumsCard
           items={extrasItems}
           specs={extrasSpecs}
@@ -425,12 +427,12 @@ export default function CoupleDetailPage() {
             salePrice: extrasSale
           }}
         />
+      ) : (
+        <FramesAlbumsCard />
       )}
 
-      {/* 9. C3 Extras */}
-      {clientExtras && clientExtras.length > 0 && (
-        <ExtrasCard extras={clientExtras} />
-      )}
+      {/* Appointments */}
+      <EngagementAppointments coupleId={coupleId} />
 
       {/* Pickup Slip - at the very bottom */}
       <PickupSlipCard coupleId={couple.id} coupleName={couple.couple_name} />

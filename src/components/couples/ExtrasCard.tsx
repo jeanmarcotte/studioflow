@@ -16,7 +16,18 @@ interface ExtrasCardProps {
 }
 
 export function ExtrasCard({ extras }: ExtrasCardProps) {
-  if (!extras || extras.length === 0) return null
+  if (!extras || extras.length === 0) {
+    return (
+      <div className="border rounded-lg overflow-hidden">
+        <div className="bg-teal-600 px-4 md:px-5 py-4 flex justify-between items-center">
+          <span className="text-white font-medium">Extras (C3)</span>
+        </div>
+        <div className="p-6">
+          <p className="text-sm text-gray-500">No extras or add-ons recorded.</p>
+        </div>
+      </div>
+    )
+  }
 
   const totalAmount = extras.reduce((sum, item) => sum + Number(item.total), 0)
 

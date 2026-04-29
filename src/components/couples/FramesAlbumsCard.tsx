@@ -1,7 +1,7 @@
 interface FramesAlbumsProps {
-  items: Record<string, string>
-  specs: Record<string, string>
-  financials: {
+  items?: Record<string, string>
+  specs?: Record<string, string>
+  financials?: {
     retailValue: number
     discount: number
     salePrice: number
@@ -9,6 +9,19 @@ interface FramesAlbumsProps {
 }
 
 export function FramesAlbumsCard({ items, specs, financials }: FramesAlbumsProps) {
+  if (!financials) {
+    return (
+      <div className="border rounded-lg overflow-hidden">
+        <div className="bg-teal-600 px-4 md:px-5 py-4 flex justify-between items-center">
+          <span className="text-white font-medium">Frames & Albums (C2)</span>
+        </div>
+        <div className="p-6">
+          <p className="text-sm text-gray-500">No frames &amp; albums sale recorded.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="border rounded-lg overflow-hidden">
       {/* Header */}
@@ -24,7 +37,7 @@ export function FramesAlbumsCard({ items, specs, financials }: FramesAlbumsProps
           <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 pb-2 border-b-2 border-amber-500">
             Items
           </h4>
-          {items && Object.keys(items).length > 0 ? (
+          {items && Object.keys(items as Record<string, string>).length > 0 ? (
             <div className="space-y-2">
               {Object.entries(items).map(([key, value]) => (
                 <div key={key} className="flex justify-between text-sm">
