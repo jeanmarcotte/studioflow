@@ -67,11 +67,13 @@ even if data is missing (show empty state):
 
 | Q# | Invoice | Component | Data Source | Empty State |
 |----|---------|-----------|-------------|-------------|
-| Q10 | C1 Contract Package | ContractPackageCard | contracts (full product manifest: prints, albums, digital, video) + c1_line_items (joined to product_catalog) | "No contract on file." |
+| Q10 | C1 Contract Package | ContractPackageCard | contracts (coverage / engagement / team / financials) + c1_line_items (joined to product_catalog) — single source for the Package Contents display | "No contract on file." / "Product details not yet mapped." |
 | Q11 | C2 Frames & Albums | FramesAlbumsCard | extras_orders + c2_line_items (joined to product_catalog) | "No frames & albums sale recorded." / "No line items recorded." |
 | Q09 | C3 Extras & Add-ons | ExtrasCard | client_extras + c3_line_items (joined to product_catalog) | "No extras or add-ons recorded." / "No line items recorded." |
 
-CRITICAL: Q10 reads from `contracts` (and `c1_line_items` for the product code list).
+CRITICAL: Q10 reads coverage/engagement/team/financials from `contracts`, but Package Contents
+comes ONLY from `c1_line_items JOIN product_catalog` (the legacy `contracts` product manifest
+columns — prints_*, video_*, web_*, post_production, *_album_* — are no longer rendered).
 Q11 reads from `extras_orders`. Q09 reads from `client_extras`. NEVER swap these data sources.
 
 These sections are NEVER conditionally hidden. If data is absent,

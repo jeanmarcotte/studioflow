@@ -45,18 +45,20 @@ interface ContractPackageProps {
     c2FramesAlbums: number
     total: number
   }
+  // Retained for backwards compatibility with page.tsx; no longer rendered.
   products?: Record<string, any> | null
   lineItems?: C1LineItem[]
 }
 
-// Match category from any reasonable label that the catalog may return.
+// Order: Package, Album, Portrait, Print, Canvas, Collage, Frame, Digital, Service, Production, Stationery, Glass, Mounting.
+// Portrait and Print merge into a single bucket called "Portraits & Prints".
 const CATEGORY_ORDER: Array<{ key: string; label: string; matchers: RegExp[] }> = [
   { key: 'package', label: 'Package', matchers: [/^package/i] },
   { key: 'album', label: 'Albums', matchers: [/^album/i] },
   { key: 'portrait', label: 'Portraits & Prints', matchers: [/^portrait/i, /^print/i] },
   { key: 'canvas', label: 'Canvas', matchers: [/^canvas/i] },
-  { key: 'frame', label: 'Frames', matchers: [/^frame/i] },
   { key: 'collage', label: 'Collage', matchers: [/^collage/i] },
+  { key: 'frame', label: 'Frames', matchers: [/^frame/i] },
   { key: 'digital', label: 'Digital Delivery', matchers: [/^digital/i] },
   { key: 'service', label: 'Services', matchers: [/^service/i] },
   { key: 'production', label: 'Production', matchers: [/^production/i] },
@@ -82,9 +84,14 @@ function catalogOf(item: C1LineItem): CatalogRef | null {
   return c
 }
 
-function C1LineItemsBlock({ lineItems }: { lineItems?: C1LineItem[] }) {
+function PackageContents({ lineItems }: { lineItems?: C1LineItem[] }) {
   const items = lineItems || []
-  if (items.length === 0) return null
+
+  if (items.length === 0) {
+    return (
+      <p className="text-sm text-gray-400 italic">Product details not yet mapped.</p>
+    )
+  }
 
   const buckets = new Map<string, { label: string; rows: C1LineItem[] }>()
   for (const item of items) {
@@ -99,104 +106,46 @@ function C1LineItemsBlock({ lineItems }: { lineItems?: C1LineItem[] }) {
   for (const k of Array.from(buckets.keys())) if (!orderedKeys.includes(k)) orderedKeys.push(k)
 
   return (
-    <div className="border-t p-4">
-      <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-        Contract Line Items ({items.length} {items.length === 1 ? 'product' : 'products'})
-      </h4>
-      <div className="space-y-4">
-        {orderedKeys.map(key => {
-          const bucket = buckets.get(key)!
-          return (
-            <div key={key}>
-              <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">{bucket.label}</h5>
-              <ul className="divide-y">
-                {bucket.rows.map((item, idx) => {
-                  const cat = catalogOf(item)
-                  const itemName = cat?.item_name || item.notes || '—'
-                  return (
-                    <li
-                      key={`${item.product_code ?? 'na'}-${idx}`}
-                      className="py-2 grid grid-cols-[140px_1fr_auto] gap-3 items-baseline"
-                    >
-                      <span className="font-mono text-xs text-gray-500">{item.product_code || '—'}</span>
-                      <span className="text-sm text-gray-900">
-                        <span className="font-medium">{itemName}</span>
-                        {item.notes && cat?.item_name ? (
-                          <span className="text-gray-500"> — {item.notes}</span>
-                        ) : null}
-                      </span>
-                      <span className="text-sm text-gray-600">× {item.quantity ?? 0}</span>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          )
-        })}
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {orderedKeys.map(key => {
+        const bucket = buckets.get(key)!
+        return (
+          <div key={key} className="rounded-md border border-gray-200 bg-white">
+            <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wider px-4 pt-3 pb-2 border-b border-gray-100">
+              {bucket.label}
+            </h5>
+            <ul className="px-4 py-2 divide-y divide-gray-100">
+              {bucket.rows.map((item, idx) => {
+                const cat = catalogOf(item)
+                const itemName = cat?.item_name || item.notes || '—'
+                const code = item.product_code || ''
+                return (
+                  <li
+                    key={`${code || 'na'}-${idx}`}
+                    title={code || undefined}
+                    className="py-2 flex items-baseline justify-between gap-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <span className="text-sm font-medium text-gray-900 truncate">{itemName}</span>
+                      {code && (
+                        <span className="md:hidden block font-mono text-xs text-gray-400 mt-0.5">{code}</span>
+                      )}
+                      {item.notes && cat?.item_name && (
+                        <span className="block text-sm text-gray-400 mt-0.5">{item.notes}</span>
+                      )}
+                    </div>
+                    <span className="text-sm text-gray-500 tabular-nums whitespace-nowrap">
+                      × {item.quantity ?? 0}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )
+      })}
     </div>
   )
-}
-
-const PRINT_FIELDS: Array<[string, string]> = [
-  ['prints_postcard_thankyou', 'Postcard Thank You Cards'],
-  ['prints_5x7', '5×7 Prints'],
-  ['prints_8x10', '8×10 Prints'],
-  ['prints_11x14', '11×14 Prints'],
-  ['prints_16x16', '16×16 Prints'],
-  ['prints_16x20', '16×20 Prints'],
-  ['prints_20x24', '20×24 Prints'],
-  ['prints_24x30', '24×30 Prints'],
-  ['prints_30x40', '30×40 Prints'],
-]
-
-const DIGITAL_BOOL_FIELDS: Array<[string, string]> = [
-  ['usb_dropbox_delivery', 'USB / Dropbox Delivery'],
-  ['web_personal_page', 'Personal Web Page'],
-  ['post_production', 'Post Production'],
-]
-
-const DIGITAL_COUNT_FIELDS: Array<[string, string]> = [
-  ['web_engagement_upload', 'Engagement Upload'],
-  ['web_wedding_upload', 'Wedding Upload'],
-]
-
-const VIDEO_BOOL_FIELDS: Array<[string, string]> = [
-  ['video_long_form', 'Long Form Video'],
-  ['video_recap', 'Recap Video'],
-  ['video_slideshow', 'Slideshow'],
-  ['video_instagram_facebook', 'Instagram/Facebook Edit'],
-  ['video_digital_titles', 'Digital Titles'],
-  ['video_after_effects', 'After Effects'],
-  ['video_baby_pictures', 'Baby Pictures'],
-  ['video_dating_pictures', 'Dating Pictures'],
-  ['video_honeymoon_pictures', 'Honeymoon Pictures'],
-  ['video_invitation', 'Video Invitation'],
-  ['video_music', 'Music'],
-  ['video_end_credits', 'End Credits'],
-  ['video_hd', 'HD'],
-  ['video_sd', 'SD'],
-  ['video_gopro', 'GoPro'],
-  ['video_drone', 'Video Drone'],
-  ['video_led_lights', 'LED Lights'],
-  ['video_proof', 'Video Proof'],
-  ['video_usb', 'Video USB'],
-  ['video_single_camera', 'Single Camera'],
-  ['video_multi_camera', 'Multi Camera'],
-]
-
-const VIDEO_COUNT_FIELDS: Array<[string, string]> = [
-  ['video_highlights', 'Highlight Videos'],
-]
-
-function toInt(v: any): number {
-  if (v === null || v === undefined || v === '') return 0
-  const n = typeof v === 'number' ? v : parseInt(String(v), 10)
-  return Number.isFinite(n) ? n : 0
-}
-
-function isTrue(v: any): boolean {
-  return v === true || v === 'true' || v === 1 || v === '1'
 }
 
 export function ContractPackageCard({
@@ -206,7 +155,6 @@ export function ContractPackageCard({
   engagement,
   team,
   financials,
-  products,
   lineItems
 }: ContractPackageProps) {
   if (!coverage || !engagement || !team || !financials) {
@@ -221,6 +169,7 @@ export function ContractPackageCard({
       </div>
     )
   }
+
   const locations = []
   if (coverage.locationFlags.groom) locations.push('Groom Prep')
   if (coverage.locationFlags.bride) locations.push('Bride Prep')
@@ -310,146 +259,17 @@ export function ContractPackageCard({
     </dl>
   )
 
-  // Build "Included Products" manifest
-  const p = products || {}
-
-  const printItems = PRINT_FIELDS
-    .map(([col, label]) => ({ label, qty: toInt(p[col]) }))
-    .filter(item => item.qty > 0)
-
-  const brideGroomAlbumQty = toInt(p.bride_groom_album_qty)
-  const parentAlbumsQty = toInt(p.parent_albums_qty)
-  const hasAlbums = brideGroomAlbumQty > 0 || parentAlbumsQty > 0
-
-  const digitalBoolItems = DIGITAL_BOOL_FIELDS
-    .filter(([col]) => isTrue(p[col]))
-    .map(([, label]) => label)
-  const digitalCountItems = DIGITAL_COUNT_FIELDS
-    .map(([col, label]) => ({ label, qty: toInt(p[col]) }))
-    .filter(item => item.qty > 0)
-  const hasDigital = digitalBoolItems.length > 0 || digitalCountItems.length > 0
-
-  const videoBoolItems = VIDEO_BOOL_FIELDS
-    .filter(([col]) => isTrue(p[col]))
-    .map(([, label]) => label)
-  const videoCountItems = VIDEO_COUNT_FIELDS
-    .map(([col, label]) => ({ label, qty: toInt(p[col]) }))
-    .filter(item => item.qty > 0)
-  const hasVideo = videoBoolItems.length > 0 || videoCountItems.length > 0
-
-  const hasAnyProducts = printItems.length > 0 || hasAlbums || hasDigital || hasVideo
-
-  const albumLine = (
-    size: any, spreads: any, images: any, cover: any
-  ): string => {
-    const parts = []
-    if (size) parts.push(String(size))
-    const sp = toInt(spreads)
-    if (sp > 0) parts.push(`${sp} spreads`)
-    const im = toInt(images)
-    if (im > 0) parts.push(`${im} images`)
-    if (cover) parts.push(`${cover} cover`)
-    return parts.join(' · ')
-  }
-
-  const productsContent = (
-    <div>
-      <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Included Products</h4>
-      {!hasAnyProducts ? (
-        <p className="text-sm text-gray-500">No product details on file.</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {printItems.length > 0 && (
-            <div>
-              <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Prints</h5>
-              <ul className="space-y-1 text-sm">
-                {printItems.map(item => (
-                  <li key={item.label} className="flex justify-between">
-                    <span className="text-gray-700">{item.label}</span>
-                    <span className="text-gray-900">{item.qty}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {hasAlbums && (
-            <div>
-              <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Albums</h5>
-              <div className="space-y-3 text-sm">
-                {brideGroomAlbumQty > 0 && (
-                  <div>
-                    <div className="flex justify-between text-gray-900">
-                      <span>Bride & Groom Album</span>
-                      <span>{brideGroomAlbumQty}</span>
-                    </div>
-                    {(() => {
-                      const line = albumLine(p.bride_groom_album_size, p.bride_groom_album_spreads, p.bride_groom_album_images, p.bride_groom_album_cover)
-                      return line ? <div className="text-xs text-gray-500 mt-0.5">{line}</div> : null
-                    })()}
-                  </div>
-                )}
-                {parentAlbumsQty > 0 && (
-                  <div>
-                    <div className="flex justify-between text-gray-900">
-                      <span>Parent Albums</span>
-                      <span>{parentAlbumsQty}</span>
-                    </div>
-                    {(() => {
-                      const line = albumLine(p.parent_albums_size, p.parent_albums_spreads, p.parent_albums_images, p.parent_albums_cover)
-                      return line ? <div className="text-xs text-gray-500 mt-0.5">{line}</div> : null
-                    })()}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {(hasDigital || hasVideo) && (
-            <div className="space-y-4">
-              {hasDigital && (
-                <div>
-                  <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Digital Delivery</h5>
-                  <ul className="space-y-1 text-sm">
-                    {digitalBoolItems.map(label => (
-                      <li key={label} className="flex justify-between">
-                        <span className="text-gray-700">{label}</span>
-                        <span className="text-gray-900">✓</span>
-                      </li>
-                    ))}
-                    {digitalCountItems.map(item => (
-                      <li key={item.label} className="flex justify-between">
-                        <span className="text-gray-700">{item.label}</span>
-                        <span className="text-gray-900">{item.qty}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {hasVideo && (
-                <div>
-                  <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Video</h5>
-                  <ul className="space-y-1 text-sm">
-                    {videoCountItems.map(item => (
-                      <li key={item.label} className="flex justify-between">
-                        <span className="text-gray-700">{item.label}</span>
-                        <span className="text-gray-900">{item.qty}</span>
-                      </li>
-                    ))}
-                    {videoBoolItems.map(label => (
-                      <li key={label} className="flex justify-between">
-                        <span className="text-gray-700">{label}</span>
-                        <span className="text-gray-900">✓</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+  const itemCount = (lineItems || []).length
+  const packageHeading = (
+    <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+      <span aria-hidden="true">📦</span>
+      <span>Package Contents</span>
+      {itemCount > 0 && (
+        <span className="text-gray-400 normal-case tracking-normal font-normal">
+          ({itemCount} {itemCount === 1 ? 'item' : 'items'})
+        </span>
       )}
-    </div>
+    </h4>
   )
 
   return (
@@ -463,7 +283,7 @@ export function ContractPackageCard({
         </div>
       </div>
 
-      {/* Desktop: 4-Column Grid */}
+      {/* Desktop: 4-Column Grid + Package Contents */}
       <div className="hidden md:block">
         <div className="grid grid-cols-4 divide-x">
           <div className="p-4">
@@ -483,10 +303,13 @@ export function ContractPackageCard({
             {financialsContent}
           </div>
         </div>
-        <div className="border-t p-4">
-          {productsContent}
+        <div className="border-t border-gray-100 bg-stone-50/30 px-5 py-5">
+          {packageHeading}
+          <PackageContents lineItems={lineItems} />
+          {itemCount > 0 && (
+            <p className="mt-4 text-xs text-gray-400 italic">Hover any item to see its product code.</p>
+          )}
         </div>
-        <C1LineItemsBlock lineItems={lineItems} />
       </div>
 
       {/* Mobile: Collapsible Accordion */}
@@ -503,14 +326,13 @@ export function ContractPackageCard({
         <CollapsibleSection title="Financial Summary" defaultOpen={true} className="border-0 rounded-none">
           {financialsContent}
         </CollapsibleSection>
-        <CollapsibleSection title="Included Products" defaultOpen={false} className="border-0 rounded-none">
-          {productsContent}
+        <CollapsibleSection
+          title={`Package Contents${itemCount > 0 ? ` (${itemCount} ${itemCount === 1 ? 'item' : 'items'})` : ''}`}
+          defaultOpen={false}
+          className="border-0 rounded-none"
+        >
+          <PackageContents lineItems={lineItems} />
         </CollapsibleSection>
-        {lineItems && lineItems.length > 0 && (
-          <CollapsibleSection title="Contract Line Items" defaultOpen={false} className="border-0 rounded-none">
-            <C1LineItemsBlock lineItems={lineItems} />
-          </CollapsibleSection>
-        )}
       </div>
     </div>
   )
