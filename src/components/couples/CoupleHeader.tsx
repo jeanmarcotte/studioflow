@@ -2,6 +2,20 @@
 
 import { Badge } from '@/components/ui/badge'
 import { ExternalLink } from 'lucide-react'
+import { motion } from 'framer-motion'
+
+const PHASE_COLORS: Record<string, string> = {
+  pre_wedding: '#0d9488',
+  wedding_day: '#d97706',
+  post_production: '#2563eb',
+  completed: '#16a34a',
+  archived: '#6b7280',
+}
+
+function formatPhase(phase: string): string {
+  if (!phase) return ''
+  return phase.split('_').map(w => w ? w[0].toUpperCase() + w.slice(1) : w).join(' ')
+}
 
 interface CoupleHeaderProps {
   coupleName: string
@@ -55,9 +69,48 @@ export function CoupleHeader({
             Signed {signedDate} · Booked {bookedDate}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Badge className={statusBadge}>{status}</Badge>
-          <Badge variant="outline" className="border-white/40 text-teal-100">{phase}</Badge>
+          {(() => {
+            const phaseColor = PHASE_COLORS[phase] ?? '#6b7280'
+            const isArchived = phase === 'archived'
+            return (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+                className="flex items-center gap-2"
+              >
+                <span className="relative flex h-3 w-3">
+                  {!isArchived && (
+                    <motion.span
+                      className="absolute inline-flex h-full w-full rounded-full"
+                      style={{ backgroundColor: phaseColor }}
+                      animate={{ scale: [1, 1.8, 1], opacity: [0.75, 0, 0.75] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                  )}
+                  <span
+                    className="relative inline-flex rounded-full h-3 w-3"
+                    style={{ backgroundColor: phaseColor }}
+                  />
+                </span>
+                <motion.span
+                  className="px-3 py-1 rounded-full text-sm font-medium border border-white/40 text-white"
+                  animate={isArchived ? undefined : {
+                    boxShadow: [
+                      `0 0 0 0 ${phaseColor}00`,
+                      `0 0 8px 2px ${phaseColor}66`,
+                      `0 0 0 0 ${phaseColor}00`,
+                    ],
+                  }}
+                  transition={isArchived ? undefined : { duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  {formatPhase(phase)}
+                </motion.span>
+              </motion.div>
+            )
+          })()}
         </div>
       </div>
       {portalSlug && (
