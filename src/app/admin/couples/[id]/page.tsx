@@ -22,7 +22,9 @@ import { CoupleResourcesCard } from '@/components/couples/CoupleResourcesCard'
 import { WeddingDayItinerary } from '@/components/couples/WeddingDayItinerary'
 import { EngagementAppointments } from '@/components/couples/EngagementAppointments'
 import { buildPhases, countMilestones } from '@/lib/milestones'
-import { formatPackage, formatMilitaryTime } from '@/lib/formatters'
+import { formatPackage } from '@/lib/formatters'
+import { formatPackageType, formatHoursDisplay, formatTotalHoursOnly } from '@/lib/coupleFormatters'
+import { buildInvoiceSummaries } from '@/lib/couplePageData'
 
 export default function CoupleDetailPage() {
   const params = useParams()
@@ -217,7 +219,7 @@ export default function CoupleDetailPage() {
   // --- Derived data ---
 
   const coupleName = couple.couple_name || 'Unknown'
-  const packageType = couple.package_type || 'Photo + Video'
+  const packageType = formatPackageType(couple.package_type)
   const phase = couple.phase || 'new_client'
   const weddingDate = couple.wedding_date ? parseISO(couple.wedding_date) : null
   const daysUntil = weddingDate ? differenceInDays(weddingDate, new Date()) : 0
@@ -232,42 +234,43 @@ export default function CoupleDetailPage() {
   const journeyPhases = buildPhases(ms, couple.package_type)
   const { total: totalMilestones, completed: completedMilestones } = countMilestones(ms, couple.package_type)
 
-  // Coverage hours
-  const coverageHours = contract?.start_time && contract?.end_time
-    ? `${formatMilitaryTime(contract.start_time)} – ${formatMilitaryTime(contract.end_time)}`
-    : 'N/A'
+  // Coverage hours — long form for the Info Grid, short form for the C1 card
+  const coverageHours = formatHoursDisplay(contract?.start_time, contract?.end_time)
+  const coverageHoursShort = formatTotalHoursOnly(contract?.start_time, contract?.end_time)
 
-  // Finance calculations
-  const contractTotal = parseFloat(couple.contract_total || '0')
-  const c2Total = extrasOrders.reduce((sum: number, o: any) => sum + parseFloat(o.extras_sale_amount || '0'), 0)
-  const c3Total = clientExtras.reduce((sum: number, e: any) => sum + parseFloat(String(e.total || '0')), 0)
+  // Single source of truth for "does C1/C2/C3 exist?" and headline totals
+  const extrasOrder = extrasOrders[0]
+  const invoices = buildInvoiceSummaries(contract, extrasOrder, clientExtras, coupleId, c3LineItems)
+
+  // Finance calculations — totals come from invoices, payment matching stays here
+  const contractTotal = invoices.c1.total
+  const c2Total = invoices.c2.total
+  const c3Total = invoices.c3.total
   const totalInvoiced = contractTotal + c2Total + c3Total
   const totalReceived = payments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || '0'), 0)
   const balanceDue = totalInvoiced - totalReceived
 
   const financeLines = [
-    {
-      label: 'C1 Contract',
+    invoices.c1.exists && {
+      label: invoices.c1.label,
       invoiced: contractTotal,
       received: Math.min(totalReceived, contractTotal),
       balance: Math.max(contractTotal - totalReceived, 0)
     },
-    {
-      label: 'C2 Frames & Albums',
+    invoices.c2.exists && {
+      label: invoices.c2.label,
       invoiced: c2Total,
       received: Math.max(Math.min(totalReceived - contractTotal, c2Total), 0),
       balance: c2Total - Math.max(Math.min(totalReceived - contractTotal, c2Total), 0)
     },
-    {
-      label: 'C3 Extras',
+    invoices.c3.exists && {
+      label: invoices.c3.label,
       invoiced: c3Total,
       received: 0,
       balance: c3Total
     }
-  ].filter(line => line.invoiced > 0)
+  ].filter((line): line is { label: string; invoiced: number; received: number; balance: number } => !!line)
 
-  // Extras order (first one = frames & albums)
-  const extrasOrder = extrasOrders[0]
   const extrasItems: Record<string, string> = extrasOrder?.items && typeof extrasOrder.items === 'object'
     ? extrasOrder.items
     : {}
@@ -291,23 +294,23 @@ export default function CoupleDetailPage() {
     contract?.loc_reception && 'Reception'
   ].filter(Boolean).join(', ') || 'Not specified'
 
-  // Build resources array
+  // Build resources array — C1/C2/C3 existence + URLs come from invoices
   const resources = [
     {
       label: 'Contract (C1)',
-      href: contract?.id ? `/admin/contracts/${contract.id}/view` : null,
-      exists: !!contract
+      href: invoices.c1.viewUrl,
+      exists: invoices.c1.exists
     },
     {
       label: 'Frames & Albums (C2)',
-      href: extrasOrder ? `/admin/albums/${coupleId}/view` : null,
-      exists: !!extrasOrder,
+      href: invoices.c2.viewUrl,
+      exists: invoices.c2.exists,
       emptyText: 'No record'
     },
     {
       label: 'Extras (C3)',
-      href: clientExtras && clientExtras.length > 0 ? `/admin/extras/${coupleId}/view` : null,
-      exists: clientExtras && clientExtras.length > 0,
+      href: invoices.c3.viewUrl,
+      exists: invoices.c3.exists && !!invoices.c3.viewUrl,
       emptyText: 'No record'
     },
     {
@@ -421,8 +424,8 @@ export default function CoupleDetailPage() {
         payments={payments}
         contractInstallments={contractInstallments}
         extrasInstallments={extrasInstallments}
-        hasExtrasOrder={!!extrasOrder}
-        contractId={contract?.id || null}
+        hasExtrasOrder={invoices.c2.exists}
+        contractId={invoices.c1.id}
         hasClientExtras={clientExtras.length > 0}
       />
 
@@ -433,7 +436,7 @@ export default function CoupleDetailPage() {
           isActive={!couple.is_cancelled}
           coverage={{
             package: formatPackage(couple.package_type),
-            hours: coverageHours,
+            hours: coverageHoursShort,
             day: contract.day_of_week || 'Saturday',
             locationFlags: {
               groom: contract.loc_groom || false,
@@ -487,6 +490,7 @@ export default function CoupleDetailPage() {
         extras={clientExtras || []}
         lineItems={c3LineItems}
         catalog={productCatalog}
+        headerTotal={invoices.c3.total}
       />
 
       {/* Appointments */}

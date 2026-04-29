@@ -6,6 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+import { formatCurrency } from '@/lib/coupleFormatters'
+
+function fmtSigned(n: number): string {
+  if (n < 0) return `-${formatCurrency(Math.abs(n))}`
+  return formatCurrency(n)
+}
 
 interface FinanceLine {
   label: string
@@ -95,10 +101,10 @@ export function FinanceCard({
                 <span className="text-gray-900">{line.label}</span>
               )}
             </div>
-            <div className="text-right text-gray-900">${line.invoiced.toLocaleString()}</div>
-            <div className="text-right text-gray-900">${line.received.toLocaleString()}</div>
-            <div className={`text-right font-medium ${line.balance > 0 ? 'text-red-600' : line.balance < 0 ? 'text-teal-600' : 'text-gray-500'}`}>
-              {line.balance < 0 ? `-$${Math.abs(line.balance).toLocaleString()}` : `$${line.balance.toLocaleString()}`}
+            <div className="text-right text-gray-900 tabular-nums">{formatCurrency(line.invoiced)}</div>
+            <div className="text-right text-gray-900 tabular-nums">{formatCurrency(line.received)}</div>
+            <div className={`text-right font-medium tabular-nums ${line.balance > 0 ? 'text-red-600' : line.balance < 0 ? 'text-teal-600' : 'text-gray-500'}`}>
+              {fmtSigned(line.balance)}
             </div>
           </div>
           )
@@ -125,16 +131,16 @@ export function FinanceCard({
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div>
                   <span className="text-gray-500 uppercase block">Invoiced</span>
-                  <span className="text-gray-900 text-sm">${line.invoiced.toLocaleString()}</span>
+                  <span className="text-gray-900 text-sm tabular-nums">{formatCurrency(line.invoiced)}</span>
                 </div>
                 <div>
                   <span className="text-gray-500 uppercase block">Received</span>
-                  <span className="text-gray-900 text-sm">${line.received.toLocaleString()}</span>
+                  <span className="text-gray-900 text-sm tabular-nums">{formatCurrency(line.received)}</span>
                 </div>
                 <div>
                   <span className="text-gray-500 uppercase block">Balance</span>
-                  <span className={`text-sm font-medium ${line.balance > 0 ? 'text-red-600' : line.balance < 0 ? 'text-teal-600' : 'text-gray-500'}`}>
-                    {line.balance < 0 ? `-$${Math.abs(line.balance).toLocaleString()}` : `$${line.balance.toLocaleString()}`}
+                  <span className={`text-sm font-medium tabular-nums ${line.balance > 0 ? 'text-red-600' : line.balance < 0 ? 'text-teal-600' : 'text-gray-500'}`}>
+                    {fmtSigned(line.balance)}
                   </span>
                 </div>
               </div>
@@ -147,15 +153,15 @@ export function FinanceCard({
         <div className="pt-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Total invoiced</span>
-            <span className="text-gray-900">${totalInvoiced.toLocaleString()}</span>
+            <span className="text-gray-900 tabular-nums">{formatCurrency(totalInvoiced)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Total received</span>
-            <span className="text-gray-900">${totalReceived.toLocaleString()}</span>
+            <span className="text-gray-900 tabular-nums">{formatCurrency(totalReceived)}</span>
           </div>
           <div className="flex justify-between text-base font-medium pt-2 border-t">
             <span className="text-gray-900">Balance due</span>
-            <span className="text-gray-900">${balanceDue.toLocaleString()}</span>
+            <span className="text-gray-900 tabular-nums">{formatCurrency(balanceDue)}</span>
           </div>
         </div>
 
@@ -197,15 +203,15 @@ export function FinanceCard({
                               {p.payment_type || '—'}
                             </span>
                           </td>
-                          <td className="p-3 text-sm text-right font-semibold text-gray-900">${Number(p.amount).toLocaleString()}</td>
+                          <td className="p-3 text-sm text-right font-semibold text-gray-900 tabular-nums">{formatCurrency(Number(p.amount))}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 bg-gray-50">
                         <td colSpan={4} className="p-3 text-sm font-semibold text-gray-700">Total Received</td>
-                        <td className="p-3 text-right font-bold text-gray-900">
-                          ${payments.reduce((sum, p) => sum + Number(p.amount), 0).toLocaleString()}
+                        <td className="p-3 text-right font-bold text-gray-900 tabular-nums">
+                          {formatCurrency(payments.reduce((sum, p) => sum + Number(p.amount), 0))}
                         </td>
                       </tr>
                     </tfoot>
@@ -246,7 +252,7 @@ export function FinanceCard({
                           <td className="p-3 text-sm text-gray-600 whitespace-nowrap">
                             {inst.due_date ? new Date(inst.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                           </td>
-                          <td className="p-3 text-sm text-right font-semibold text-gray-900">${Number(inst.amount).toLocaleString()}</td>
+                          <td className="p-3 text-sm text-right font-semibold text-gray-900 tabular-nums">{formatCurrency(Number(inst.amount))}</td>
                           <td className="p-3 text-center">
                             {inst.paid ? (
                               <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Paid</span>
@@ -301,7 +307,7 @@ export function FinanceCard({
                           <td className="p-3 text-sm text-gray-600 whitespace-nowrap">
                             {inst.due_date ? new Date(inst.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                           </td>
-                          <td className="p-3 text-sm text-right font-semibold text-gray-900">${Number(inst.amount).toLocaleString()}</td>
+                          <td className="p-3 text-sm text-right font-semibold text-gray-900 tabular-nums">{formatCurrency(Number(inst.amount))}</td>
                           <td className="p-3 text-center">
                             {inst.paid ? (
                               <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Paid</span>

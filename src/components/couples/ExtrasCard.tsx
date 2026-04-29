@@ -1,3 +1,5 @@
+import { formatCurrency } from '@/lib/coupleFormatters'
+
 interface ExtraItem {
   id: string
   item_type: string
@@ -32,6 +34,9 @@ interface ExtrasCardProps {
   extras: ExtraItem[]
   lineItems?: C3LineItem[]
   catalog?: CatalogItem[]
+  // Pre-computed C3 total from buildInvoiceSummaries — covers both client_extras
+  // and c3_line_items so the header is correct even when only line items exist.
+  headerTotal?: number
 }
 
 function buildCatalogMap(catalog: CatalogItem[] | undefined): Map<string, CatalogItem> {
@@ -73,7 +78,7 @@ function C3LineItemsBlock({ lineItems, catalog }: { lineItems?: C3LineItem[]; ca
   )
 }
 
-export function ExtrasCard({ extras, lineItems, catalog }: ExtrasCardProps) {
+export function ExtrasCard({ extras, lineItems, catalog, headerTotal }: ExtrasCardProps) {
   const hasExtras = !!(extras && extras.length > 0)
   const hasLineItems = !!(lineItems && lineItems.length > 0)
 
@@ -91,14 +96,19 @@ export function ExtrasCard({ extras, lineItems, catalog }: ExtrasCardProps) {
     )
   }
 
-  const totalAmount = (extras || []).reduce((sum, item) => sum + Number(item.total), 0)
+  // Prefer the pre-computed total from buildInvoiceSummaries; fall back to
+  // summing locally so the card still behaves when used outside the couple page.
+  const localTotal =
+    (extras || []).reduce((sum, item) => sum + Number(item.total ?? 0), 0) +
+    (lineItems || []).reduce((sum, item) => sum + Number(item.total ?? 0), 0)
+  const totalAmount = headerTotal != null ? headerTotal : localTotal
 
   return (
     <div className="border rounded-lg overflow-hidden">
       {/* Header */}
       <div className="bg-teal-600 px-5 py-4 flex justify-between items-center">
         <span className="text-white font-medium">Extras (C3)</span>
-        <span className="text-white font-medium text-lg">${totalAmount.toLocaleString()}</span>
+        <span className="text-white font-medium text-lg">{formatCurrency(totalAmount)}</span>
       </div>
 
       {hasExtras && (

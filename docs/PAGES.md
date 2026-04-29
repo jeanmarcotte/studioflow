@@ -81,6 +81,30 @@ render the card with an empty state message.
 
 Render order on the page: Q08 → Q09 → Q10 → Q11 → Q12 → Q13.
 
+##### DATA CONTRACT (WO-982)
+
+`src/app/admin/couples/[id]/page.tsx` is the SINGLE data loader for the couple
+detail page. All formatting and invoice-existence checks flow DOWN through props
+from a single computation; no component re-fetches or re-formats on its own.
+
+- **`src/lib/coupleFormatters.ts`** — every component on the couple page imports
+  formatters (`formatPackageType`, `formatHoursDisplay`, `formatTotalHoursOnly`,
+  `formatCurrency`, `formatCoupleName`, `parseTime`, `calculateTotalHours`)
+  from here. Components MUST NOT define their own currency / hours / package-type
+  formatters.
+- **`src/lib/couplePageData.ts`** — exports `buildInvoiceSummaries(contract,
+  extrasOrder, clientExtras, coupleId, c3LineItems?)` returning a
+  `CoupleInvoices` object with `c1`, `c2`, `c3` summaries (`exists`, `id`,
+  `total`, `status`, `label`, `viewUrl`). Every component that needs to know
+  whether C1/C2/C3 exists or what its headline total is reads from this object.
+  C3 total includes both `client_extras.total` and `c3_line_items.total` so the
+  ExtrasCard header is correct even when only line items have been entered.
+- The Info Grid Coverage section uses `formatHoursDisplay` (long form, e.g.
+  "10:30 – 22:30 (12 hrs)"). The C1 ContractPackageCard uses
+  `formatTotalHoursOnly` (short form, e.g. "12 hours"). Both come from the same
+  `contracts.start_time` / `contracts.end_time` fields — the page computes both
+  strings and passes them down.
+
 ### Production
 
 | Route | Page | Reads From | Writes To | Triggers |

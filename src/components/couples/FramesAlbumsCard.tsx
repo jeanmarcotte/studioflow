@@ -1,3 +1,5 @@
+import { formatCurrency } from '@/lib/coupleFormatters'
+
 interface CatalogItem {
   product_code: string
   item_name: string
@@ -80,7 +82,7 @@ export function FramesAlbumsCard({ items, specs, financials, lineItems, catalog 
       {/* Header */}
       <div className="bg-teal-600 px-4 md:px-5 py-4 flex justify-between items-center">
         <span className="text-white font-medium">Frames & Albums</span>
-        <span className="text-white font-medium text-lg">${financials.salePrice.toLocaleString()}</span>
+        <span className="text-white font-medium text-lg">{formatCurrency(financials.salePrice)}</span>
       </div>
 
       {/* 3-Column Grid — stacks on mobile */}
@@ -130,7 +132,7 @@ export function FramesAlbumsCard({ items, specs, financials, lineItems, catalog 
           </h4>
           <div className="text-center">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Package Price</p>
-            <p className="text-2xl font-semibold text-gray-900">${financials.salePrice.toLocaleString()}</p>
+            <p className="text-2xl font-semibold text-gray-900">{formatCurrency(financials.salePrice)}</p>
           </div>
         </div>
       </div>
