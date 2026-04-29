@@ -296,6 +296,7 @@ export default function CoupleDetailPage() {
         daysUntil={daysUntil}
         signedDate={signedDate}
         bookedDate={bookedDate}
+        portalSlug={couple.portal_slug}
       />
 
       {/* 2. Info Grid */}
