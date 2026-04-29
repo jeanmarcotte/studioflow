@@ -109,10 +109,10 @@ export default function CoupleArchiveDetail() {
         // Fetch couple status
         const { data: coupleData } = await supabase
           .from('couples')
-          .select('status')
+          .select('phase')
           .eq('id', coupleId)
           .limit(1)
-        if (coupleData && coupleData[0]) a.couple_status = coupleData[0].status
+        if (coupleData && coupleData[0]) a.couple_status = coupleData[0].phase
 
         setArchive(a)
 

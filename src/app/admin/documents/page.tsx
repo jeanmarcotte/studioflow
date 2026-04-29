@@ -59,7 +59,7 @@ export default function DocumentsPage() {
       try {
         const { data: couples } = await supabase
           .from('couples')
-          .select('id, bride_first_name, groom_first_name, wedding_date, status, email')
+          .select('id, bride_first_name, groom_first_name, wedding_date, phase, email')
           .gte('wedding_date', '2025-01-01')
           .lte('wedding_date', '2028-12-31')
           .order('wedding_date', { ascending: true })

@@ -59,8 +59,9 @@ export default function WeddingDayFormsPage() {
       const [bookedRes, formsRes] = await Promise.all([
         supabase
           .from('couples')
-          .select('id, couple_name, wedding_date, email, status')
-          .eq('status', 'booked')
+          .select('id, couple_name, wedding_date, email, phase')
+          .not('is_cancelled', 'eq', true)
+          .not('booked_date', 'is', null)
           .order('wedding_date', { ascending: true }),
         supabase
           .from('wedding_day_forms')
@@ -84,7 +85,7 @@ export default function WeddingDayFormsPage() {
       if (nonBookedWithForms.length > 0) {
         const { data } = await supabase
           .from('couples')
-          .select('id, couple_name, wedding_date, email, status')
+          .select('id, couple_name, wedding_date, email, phase')
           .in('id', nonBookedWithForms)
         extraCouples = data ?? []
       }

@@ -39,7 +39,7 @@ export default function WeddingDayBanner() {
         .from('couples')
         .select('id, bride_first_name, groom_first_name, wedding_date')
         .eq('wedding_date', today)
-        .eq('status', 'booked')
+        .not('is_cancelled', 'eq', true)
 
       if (!couples || couples.length === 0) return
 

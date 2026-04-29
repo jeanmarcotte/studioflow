@@ -76,7 +76,8 @@ export default function BackupLogPage() {
       const { data } = await supabase
         .from('couples')
         .select('id, couple_name, wedding_date')
-        .in('status', ['booked', 'completed'])
+        .not('is_cancelled', 'eq', true)
+        .not('booked_date', 'is', null)
         .order('wedding_date', { ascending: false })
       if (data) setCouples(data)
     }

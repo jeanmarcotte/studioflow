@@ -80,7 +80,8 @@ export default function C3ExtrasPage() {
         supabase
           .from('couples')
           .select('id, bride_first_name, groom_first_name, wedding_date')
-          .eq('status', 'booked')
+          .not('is_cancelled', 'eq', true)
+          .not('booked_date', 'is', null)
           .order('wedding_date', { ascending: true }),
         supabase
           .from('product_catalog')
