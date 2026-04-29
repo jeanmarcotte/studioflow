@@ -3,6 +3,7 @@
 import { Badge } from '@/components/ui/badge'
 import { ExternalLink } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { formatPackage } from '@/lib/formatters'
 
 const PHASE_COLORS: Record<string, string> = {
   pre_wedding: '#0d9488',
@@ -60,7 +61,7 @@ export function CoupleHeader({
       <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 md:gap-0">
         <div>
           <h1 className="text-xl md:text-2xl font-bold">
-            {coupleName} <span className="text-teal-100 text-lg font-normal">— {packageType}</span>
+            {coupleName} <span className="text-teal-100 text-lg font-normal">— {formatPackage(packageType)}</span>
           </h1>
           <p className="mt-2 text-teal-100 text-sm md:text-base">
             {weddingDate} · <span className={daysColor}>{daysText}</span>
@@ -81,20 +82,12 @@ export function CoupleHeader({
                 transition={{ duration: 0.5, ease: 'easeOut' }}
                 className="flex items-center gap-2"
               >
-                <span className="relative flex h-3 w-3">
-                  {!isArchived && (
-                    <motion.span
-                      className="absolute inline-flex h-full w-full rounded-full"
-                      style={{ backgroundColor: phaseColor }}
-                      animate={{ scale: [1, 1.8, 1], opacity: [0.75, 0, 0.75] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-                  )}
-                  <span
-                    className="relative inline-flex rounded-full h-3 w-3"
-                    style={{ backgroundColor: phaseColor }}
-                  />
-                </span>
+                <motion.span
+                  className="inline-flex h-3 w-3 rounded-full"
+                  style={{ backgroundColor: phaseColor }}
+                  animate={isArchived ? undefined : { scale: [1, 1.25, 1], opacity: [1, 0.6, 1] }}
+                  transition={isArchived ? undefined : { duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                />
                 <motion.span
                   className="px-3 py-1 rounded-full text-sm font-medium border border-white/40 text-white"
                   animate={isArchived ? undefined : {

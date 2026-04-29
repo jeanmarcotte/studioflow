@@ -104,8 +104,10 @@ export function formatPackage(pkg: string | null | undefined): string {
   const map: Record<string, string> = {
     photo_only: 'Photo Only',
     photo_video: 'Photo + Video',
+    video_only: 'Video Only',
   }
-  return map[pkg] ?? pkg
+  if (map[pkg]) return map[pkg]
+  return pkg.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 /** Currency — "$5,300" or "$5,300.00" */
