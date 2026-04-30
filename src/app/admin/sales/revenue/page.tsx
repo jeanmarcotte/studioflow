@@ -151,10 +151,10 @@ export default function RevenuePerClientDashboard() {
 
       setCoupleRows(rows)
 
-      // Product breakdown from client_extras
+      // Product breakdown from c3_line_items (group by catalog item_name, fall back to product_code)
       const productAgg = new Map<string, { count: number; revenue: number }>()
-      for (const e of clientExtras) {
-        const key = e.item_type || 'Other'
+      for (const e of c3LineItems as any[]) {
+        const key = e.product_catalog?.item_name || e.product_code || 'Other'
         const existing = productAgg.get(key) ?? { count: 0, revenue: 0 }
         existing.count += Number(e.quantity) || 1
         existing.revenue += Number(e.total) || 0
@@ -183,7 +183,7 @@ export default function RevenuePerClientDashboard() {
       setC2Signed(m06Signed.length)
       setC2AvgSale(signedAmounts.length > 0 ? signedAmounts.reduce((s: number, a: number) => s + a, 0) / signedAmounts.length : 0)
 
-      // C3 add-on: couples with wedding done or C2 signed → how many have client_extras
+      // C3 add-on: couples with wedding done or C2 signed → how many have c3_line_items
       const c3EligibleCouples = couples.filter((c: any) => {
         const m = milestoneMap.get(c.id)
         const hasC2 = c2Map.has(c.id) && (c2Map.get(c.id)?.status === 'signed' || c2Map.get(c.id)?.status === 'completed')

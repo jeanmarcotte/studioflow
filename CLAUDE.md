@@ -265,7 +265,7 @@ All entity pages follow: **List → Production → Detail**
 |-------|------|---------|
 | `client_quotes` | 7 | Quotes page |
 | `extras_orders` | 49 | Frame Sales (C2). `extras_sale_amount` is source of truth, NOT `total` |
-| `client_extras` | 19 | Extras page (TBD) |
+| `c3_line_items` |  | C3 Extras (single C3 table — header `client_extras` DROPPED in WO-991) |
 | `addon_invoices` | | Sale 3 type |
 
 ### Production Tables
@@ -288,7 +288,7 @@ All entity pages follow: **List → Production → Detail**
 1. **Balance = SUM(couple_charges) − SUM(payments)** — ALWAYS calculated live, NEVER stored
 2. **C1 matching STOPS at C2 signing date** — post-C2 payments belong to C2 schedule
 3. **contract_balance_remaining is SACRED** — trust Marianna's number, never recalculate
-4. **Q10 = extras_orders, Q11 = client_extras** — NEVER swap these tables
+4. **Q10 = extras_orders (C2), Q09 = c3_line_items (C3)** — NEVER swap these tables. `client_extras` was DROPPED in WO-991; `c3_line_items` is the single C3 table.
 5. **Milestones are manually managed** — no auto-population from other tables
 6. **C2 standard installment descriptions are hardcoded** — not stored in DB
 7. **last_installment_amount = 2× standard installment** — must be set per couple

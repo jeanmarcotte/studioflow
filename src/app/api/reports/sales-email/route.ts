@@ -25,15 +25,15 @@ export async function GET() {
     const supabase = getServiceClient()
     const resend = getResend()
 
-    const [meetingsRes, extrasOrdersRes, clientExtrasRes] = await Promise.all([
+    const [meetingsRes, extrasOrdersRes, c3LineItemsRes] = await Promise.all([
       supabase.from('sales_meetings').select('*').order('appt_date', { ascending: false }),
       supabase
         .from('extras_orders')
         .select('*, couples(bride_first_name, groom_first_name, wedding_date)')
         .order('order_date', { ascending: false }),
       supabase
-        .from('client_extras')
-        .select('*')
+        .from('c3_line_items')
+        .select('couple_id, total, invoice_date')
         .not('invoice_date', 'is', null),
     ])
 
@@ -44,7 +44,7 @@ export async function GET() {
       groom_first_name: o.couples?.groom_first_name || null,
       wedding_date: o.couples?.wedding_date || null,
     }))
-    const clientExtras = clientExtrasRes.data || []
+    const c3LineItems = c3LineItemsRes.data || []
 
     const now = new Date()
     const year2026 = 2026
@@ -71,8 +71,8 @@ export async function GET() {
     const conversionC2 = orders2026.length > 0 ? Math.round(signed2026.length / orders2026.length * 100) : 0
 
     // C3
-    const extras2026 = clientExtras.filter((e: any) => e.invoice_date && new Date(e.invoice_date).getFullYear() === year2026)
-    const extras2025 = clientExtras.filter((e: any) => e.invoice_date && new Date(e.invoice_date).getFullYear() === 2025)
+    const extras2026 = c3LineItems.filter((e: any) => e.invoice_date && new Date(e.invoice_date).getFullYear() === year2026)
+    const extras2025 = c3LineItems.filter((e: any) => e.invoice_date && new Date(e.invoice_date).getFullYear() === 2025)
     const couples2026 = new Set(extras2026.map((e: any) => e.couple_id)).size
     const revenueExtras2026 = extras2026.reduce((s: number, e: any) => s + (Number(e.total) || 0), 0)
     const revenueExtras2025 = extras2025.reduce((s: number, e: any) => s + (Number(e.total) || 0), 0)

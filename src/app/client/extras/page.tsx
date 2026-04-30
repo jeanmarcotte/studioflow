@@ -10,24 +10,22 @@ import { InfoPageTemplate } from "@/components/templates"
 import {
   DataTable,
   DataTableColumnHeader,
-  StatusBadge,
   StatCard,
 } from "@/components/ui"
-import { Package, DollarSign, FileText, Plus } from "lucide-react"
+import { Package, DollarSign, Plus } from "lucide-react"
 import { formatWeddingDate, formatDateCompact, formatCurrency } from "@/lib/formatters"
 
 interface Extra {
   id: string
   couple_id: string
-  item_type: string
-  description: string | null
+  product_code: string | null
+  item_name: string
+  category: string
   quantity: number
   unit_price: number
-  tax_mode: string
   subtotal: number
   hst: number
   total: number
-  status: string
   invoice_date: string
   created_at: string
   couple_name: string
@@ -52,20 +50,26 @@ const columns: ColumnDef<Extra>[] = [
     cell: ({ row }) => formatWeddingDate(row.original.wedding_date),
   },
   {
-    accessorKey: "item_type",
+    accessorKey: "item_name",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Item Type" />
+      <DataTableColumnHeader column={column} title="Product" />
+    ),
+    cell: ({ row }) => (
+      <div className="flex flex-col">
+        <span>{row.original.item_name}</span>
+        {row.original.product_code && (
+          <span className="font-mono text-[10px] text-muted-foreground">{row.original.product_code}</span>
+        )}
+      </div>
     ),
   },
   {
-    accessorKey: "description",
+    accessorKey: "category",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Description" />
+      <DataTableColumnHeader column={column} title="Category" />
     ),
     cell: ({ row }) => (
-      <span className="text-muted-foreground max-w-[200px] truncate block">
-        {row.original.description || "—"}
-      </span>
+      <span className="text-muted-foreground">{row.original.category}</span>
     ),
   },
   {
@@ -87,13 +91,6 @@ const columns: ColumnDef<Extra>[] = [
     ),
   },
   {
-    accessorKey: "status",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-  {
     accessorKey: "invoice_date",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Invoice Date" />
@@ -112,8 +109,8 @@ export default function ExtrasListPage() {
   useEffect(() => {
     async function fetchExtras() {
       const { data, error } = await supabase
-        .from("client_extras")
-        .select("*, couples(couple_name, wedding_date)")
+        .from("c3_line_items")
+        .select("*, couples(couple_name, wedding_date), product_catalog(item_name, category)")
         .order("created_at", { ascending: false })
 
       if (error) {
@@ -123,7 +120,18 @@ export default function ExtrasListPage() {
       }
 
       const mapped = (data || []).map((row: any) => ({
-        ...row,
+        id: row.id,
+        couple_id: row.couple_id,
+        product_code: row.product_code,
+        item_name: row.product_catalog?.item_name || row.product_code || "—",
+        category: row.product_catalog?.category || "Other",
+        quantity: Number(row.quantity) || 0,
+        unit_price: Number(row.unit_price) || 0,
+        subtotal: Number(row.subtotal) || 0,
+        hst: Number(row.hst) || 0,
+        total: Number(row.total) || 0,
+        invoice_date: row.invoice_date,
+        created_at: row.created_at,
         couple_name: row.couples?.couple_name || "Unknown",
         wedding_date: row.couples?.wedding_date || null,
       }))
@@ -149,8 +157,8 @@ export default function ExtrasListPage() {
     return extras.filter(
       (e) =>
         e.couple_name.toLowerCase().includes(lower) ||
-        e.item_type?.toLowerCase().includes(lower) ||
-        e.description?.toLowerCase().includes(lower)
+        e.item_name.toLowerCase().includes(lower) ||
+        (e.product_code || "").toLowerCase().includes(lower)
     )
   }, [extras, search])
 
@@ -161,7 +169,7 @@ export default function ExtrasListPage() {
         subtitle={`${extras.length} extra${extras.length !== 1 ? "s" : ""} total`}
         primaryAction={{
           label: "New Extra",
-          onClick: () => router.push("/client/extras/new"),
+          onClick: () => router.push("/admin/sales/extras/new"),
           icon: <Plus className="h-4 w-4 mr-2" />,
         }}
         statsRow={
@@ -180,7 +188,7 @@ export default function ExtrasListPage() {
         }
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Search couples, items..."
+        searchPlaceholder="Search couples, products..."
         isLoading={loading}
         error={error}
       >
@@ -188,7 +196,7 @@ export default function ExtrasListPage() {
           columns={columns}
           data={filteredExtras}
           onRowClick={(row) => router.push(`/client/extras/${row.id}`)}
-          emptyMessage="No extras yet. Click 'New Extra' to create your first one."
+          emptyMessage="No extras yet."
         />
       </InfoPageTemplate>
     </Layout>

@@ -69,12 +69,12 @@ even if data is missing (show empty state):
 |----|---------|-----------|-------------|-------------|
 | Q10 | C1 Contract Package | ContractPackageCard | contracts (coverage / engagement / team / financials) + c1_line_items (joined to product_catalog) — single source for the Package Contents display | "No contract on file." / "Product details not yet mapped." |
 | Q11 | C2 Frames & Albums | FramesAlbumsCard | extras_orders + c2_line_items (joined to product_catalog) | "No frames & albums sale recorded." / "No line items recorded." |
-| Q09 | C3 Extras & Add-ons | ExtrasCard | client_extras + c3_line_items (joined to product_catalog) | "No extras or add-ons recorded." / "No line items recorded." |
+| Q09 | C3 Extras & Add-ons | ExtrasCard | c3_line_items (joined to product_catalog) — single C3 table; header `client_extras` was DROPPED in WO-991 | "No extras or add-ons recorded." |
 
 CRITICAL: Q10 reads coverage/engagement/team/financials from `contracts`, but Package Contents
 comes ONLY from `c1_line_items JOIN product_catalog` (the legacy `contracts` product manifest
 columns — prints_*, video_*, web_*, post_production, *_album_* — are no longer rendered).
-Q11 reads from `extras_orders`. Q09 reads from `client_extras`. NEVER swap these data sources.
+Q11 reads from `extras_orders`. Q09 reads from `c3_line_items`. NEVER swap these data sources.
 
 These sections are NEVER conditionally hidden. If data is absent,
 render the card with an empty state message.
@@ -98,10 +98,11 @@ from a single computation; no component re-fetches or re-formats on its own.
   `total`, `status`, `label`, `viewUrl`). Every component that needs to know
   whether C1/C2/C3 exists or what its headline total is reads from this object.
   **C3 invoiced total is sourced exclusively from `couple_charges` (the financial
-  ledger, single source of truth) where `contract_type = 'C3'`.** `client_extras`
-  and `c3_line_items` are used only for existence checks and view-url gating —
-  never for summing totals. Summing `client_extras.total` plus `c3_line_items.total`
-  on top of `couple_charges` was double-counting (BUG-FIX-FINANCE-C3-DOUBLE-COUNT).
+  ledger, single source of truth) where `contract_type = 'C3'`.** `c3_line_items`
+  is used only for existence checks and view-url gating — never for summing totals.
+  Summing line-item totals on top of `couple_charges` was double-counting
+  (BUG-FIX-FINANCE-C3-DOUBLE-COUNT). The former `client_extras` header table was
+  DROPPED in WO-991; `c3_line_items` is now the single C3 table.
 - The Info Grid Coverage section uses `formatHoursDisplay` (long form, e.g.
   "10:30 – 22:30 (12 hrs)"). The C1 ContractPackageCard uses
   `formatTotalHoursOnly` (short form, e.g. "12 hours"). Both come from the same
@@ -221,7 +222,7 @@ from a single computation; no component re-fetches or re-formats on its own.
 | `/admin/client/communication` | Client Communication | couples | — | None |
 | `/admin/client/extras-sales` | Client Extras Sales | extras_orders, couples | — | None |
 | `/admin/client/new-quote` | New Quote (Admin) | couples, product_catalog | client_quotes (INSERT) | None |
-| `/admin/extras-quotes` | Extras Quotes | client_extras, couples | — | None |
+| `/admin/extras-quotes` | Extras Quotes | c3_line_items, couples | — | None |
 
 ### Marketing & Settings
 
@@ -252,10 +253,10 @@ from a single computation; no component re-fetches or re-formats on its own.
 | `/client/video-order-public` | Video Order Form (public) | — | video_orders (INSERT) | `trg_flip_m25_on_video_order`, `video_order_submitted_trigger` |
 | `/client/wedding-day-form` | Wedding Day Form (lookup) | couples | — | None |
 | `/client/wedding-day-form/[coupleId]` | Wedding Day Form (fill) | couples, contracts | wedding_day_forms (INSERT) | `trg_flip_m15_on_form`, `trigger_day_form_milestone` |
-| `/client/extras-quote` | Extras Quote (client) | product_catalog | client_extras | None |
-| `/client/extras` | Client Extras List | client_extras | — | None |
-| `/client/extras/new` | New Extras Request | product_catalog | client_extras (INSERT) | None |
-| `/client/extras/[id]` | Extras Detail | client_extras | — | None |
+| `/client/extras-quote` | Extras Quote (client) | product_catalog | c3_line_items | None |
+| `/client/extras` | Client Extras List | c3_line_items, product_catalog | — | None |
+| `/client/extras/new` | New Extras Request | — | redirects to /admin/sales/extras/new | None |
+| `/client/extras/[id]` | Extras Detail (read-only) | c3_line_items, product_catalog | — | None |
 
 ### Crew Portal
 

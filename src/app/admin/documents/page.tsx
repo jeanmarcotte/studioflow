@@ -69,7 +69,7 @@ export default function DocumentsPage() {
         const [
           { data: contracts },
           { data: extrasOrders },
-          { data: clientExtras },
+          { data: c3LineItems },
           { data: weddingDayForms },
           { data: photoOrders },
           { data: videoOrders },
@@ -77,7 +77,7 @@ export default function DocumentsPage() {
         ] = await Promise.all([
           supabase.from('contracts').select('id, couple_id'),
           supabase.from('extras_orders').select('id, couple_id, status'),
-          supabase.from('client_extras').select('couple_id'),
+          supabase.from('c3_line_items').select('couple_id'),
           supabase.from('wedding_day_forms').select('id, couple_id'),
           supabase.from('photo_orders').select('id, couple_id'),
           supabase.from('video_orders').select('id, couple_id'),
@@ -100,7 +100,7 @@ export default function DocumentsPage() {
           }
         })
 
-        const extrasSet = new Set((clientExtras || []).map((r: any) => r.couple_id))
+        const extrasSet = new Set((c3LineItems || []).map((r: any) => r.couple_id))
 
         const wdfMap = new Map<string, string[]>()
         ;(weddingDayForms || []).forEach((r: any) => {
