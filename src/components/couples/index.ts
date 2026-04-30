@@ -6,7 +6,6 @@ export { Q05ClientJourney } from './Q05-ClientJourney';
 export { Q06Forms, type Q06FormsProps } from './Q06-Forms';
 export { Q07FinancialSummaryBar, type Q07FinancialSummaryBarProps } from './Q07-FinancialSummaryBar';
 export { Q08FinanceLedger, type Q08FinanceLedgerProps } from './Q08-FinanceLedger';
-export { Q09ExtrasAddOns, type Q09ExtrasAddOnsProps } from './Q09-ExtrasAddOns';
 export { Q10ContractPackage, type Q10ContractPackageProps } from './Q10-ContractPackage';
 export { Q11FramesAndAlbums, type Q11FramesAndAlbumsProps } from './Q11-FramesAndAlbums';
 export { Q12Documents, type Q12DocumentsProps } from './Q12-Documents';

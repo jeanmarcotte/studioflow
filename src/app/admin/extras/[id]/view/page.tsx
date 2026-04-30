@@ -50,7 +50,6 @@ export default function ExtrasViewPage() {
   const params = useParams()
   const id = params.id as string
 
-  const [extras, setExtras] = useState<any[]>([])
   const [lineItems, setLineItems] = useState<C3LineItem[]>([])
   const [catalog, setCatalog] = useState<CatalogItem[]>([])
   const [couple, setCouple] = useState<any>(null)
@@ -70,12 +69,6 @@ export default function ExtrasViewPage() {
       if (!id) return
 
       // id is always a couple_id
-      const { data: extrasData } = await supabase
-        .from('client_extras')
-        .select('*')
-        .eq('couple_id', id)
-        .order('invoice_date')
-
       const { data: c3Data } = await supabase
         .from('c3_line_items')
         .select('id, product_code, quantity, unit_price, total, notes, invoice_date, tax_mode, subtotal, hst, salesperson, payment_note')
@@ -90,15 +83,13 @@ export default function ExtrasViewPage() {
             .in('product_code', codes)
         : { data: [] }
 
-      const hasExtras = !!(extrasData && extrasData.length > 0)
       const hasLineItems = !!(c3Data && c3Data.length > 0)
 
-      if (!hasExtras && !hasLineItems) {
+      if (!hasLineItems) {
         setLoading(false)
         return
       }
 
-      setExtras(extrasData || [])
       setLineItems(c3Data || [])
       setCatalog((catalogData as CatalogItem[]) || [])
 
@@ -124,7 +115,7 @@ export default function ExtrasViewPage() {
     )
   }
 
-  if (extras.length === 0 && lineItems.length === 0) {
+  if (lineItems.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-gray-500">No extras found</p>
@@ -142,25 +133,19 @@ export default function ExtrasViewPage() {
       })()
     : 'n/a'
 
-  // Prefer c3_line_items when present (has product codes); otherwise fall back to client_extras
-  const useLineItems = lineItems.length > 0
   const catalogByCode = new Map<string, CatalogItem>()
   for (const c of catalog) {
     if (c?.product_code) catalogByCode.set(c.product_code, c)
   }
 
   // Earliest invoice_date across the displayed rows
-  const dateSource: Array<string | null | undefined> = useLineItems
-    ? lineItems.map(i => i.invoice_date)
-    : extras.map(e => e.invoice_date)
-  const earliestInvoiceDate = dateSource
+  const earliestInvoiceDate = lineItems
+    .map(i => i.invoice_date)
     .filter(Boolean)
     .sort()[0]
   const signedDateStr = formatDate(earliestInvoiceDate)
 
-  const grandTotal = useLineItems
-    ? lineItems.reduce((sum, item) => sum + Number(item.total || 0), 0)
-    : extras.reduce((sum, item) => sum + Number(item.total || 0), 0)
+  const grandTotal = lineItems.reduce((sum, item) => sum + Number(item.total || 0), 0)
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -227,31 +212,20 @@ export default function ExtrasViewPage() {
             </tr>
           </thead>
           <tbody>
-            {useLineItems
-              ? lineItems.map((item) => {
-                  const cat = item.product_code ? catalogByCode.get(item.product_code) : null
-                  const itemName = cat?.item_name || item.notes || ''
-                  return (
-                    <tr key={item.id} className="border-b border-gray-300">
-                      <td className="py-1 pr-4 font-mono text-xs text-gray-500">{item.product_code || '—'}</td>
-                      <td className="py-1 pr-4">{display(cat?.category)}</td>
-                      <td className="py-1 pr-4">{display(itemName)}</td>
-                      <td className="py-1 pr-4 text-center">{item.quantity === null || item.quantity === undefined ? 'n/a' : item.quantity}</td>
-                      <td className="py-1 pr-4 text-right">{currency(item.unit_price)}</td>
-                      <td className="py-1 text-right">{currency(item.total)}</td>
-                    </tr>
-                  )
-                })
-              : extras.map((item) => (
-                  <tr key={item.id} className="border-b border-gray-300">
-                    <td className="py-1 pr-4 font-mono text-xs text-gray-500">—</td>
-                    <td className="py-1 pr-4">{display(item.item_type)}</td>
-                    <td className="py-1 pr-4">{display(item.description)}</td>
-                    <td className="py-1 pr-4 text-center">{item.quantity === null || item.quantity === undefined ? 'n/a' : item.quantity}</td>
-                    <td className="py-1 pr-4 text-right">{currency(item.unit_price)}</td>
-                    <td className="py-1 text-right">{currency(item.total)}</td>
-                  </tr>
-                ))}
+            {lineItems.map((item) => {
+              const cat = item.product_code ? catalogByCode.get(item.product_code) : null
+              const itemName = cat?.item_name || item.notes || ''
+              return (
+                <tr key={item.id} className="border-b border-gray-300">
+                  <td className="py-1 pr-4 font-mono text-xs text-gray-500">{item.product_code || '—'}</td>
+                  <td className="py-1 pr-4">{display(cat?.category)}</td>
+                  <td className="py-1 pr-4">{display(itemName)}</td>
+                  <td className="py-1 pr-4 text-center">{item.quantity === null || item.quantity === undefined ? 'n/a' : item.quantity}</td>
+                  <td className="py-1 pr-4 text-right">{currency(item.unit_price)}</td>
+                  <td className="py-1 text-right">{currency(item.total)}</td>
+                </tr>
+              )
+            })}
           </tbody>
           <tfoot>
             <tr className="border-t-2 border-black">

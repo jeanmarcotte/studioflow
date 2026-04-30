@@ -8,7 +8,7 @@
  * Data Sources:
  * - contracts.total (C1)
  * - extras_orders.extras_sale_amount (C2)
- * - SUM(client_extras.total) (C3)
+ * - SUM(couple_charges.amount) WHERE contract_type='C3' (C3 — ledger is source of truth)
  * - SUM(payments.amount)
  *
  * Critical Rules:

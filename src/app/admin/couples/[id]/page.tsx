@@ -40,7 +40,6 @@ export default function CoupleDetailPage() {
   const [contractInstallments, setContractInstallments] = useState<any[]>([])
   const [extrasInstallments, setExtrasInstallments] = useState<any[]>([])
   const [extrasOrders, setExtrasOrders] = useState<any[]>([])
-  const [clientExtras, setClientExtras] = useState<any[]>([])
   const [c1LineItems, setC1LineItems] = useState<any[]>([])
   const [c2LineItems, setC2LineItems] = useState<any[]>([])
   const [c3LineItems, setC3LineItems] = useState<any[]>([])
@@ -138,13 +137,6 @@ export default function CoupleDetailPage() {
             .order('installment_number', { ascending: true })
           setExtrasInstallments(extrasInstData || [])
         }
-
-        const { data: clientExtrasData } = await supabase
-          .from('client_extras')
-          .select('*')
-          .eq('couple_id', coupleId)
-          .order('invoice_date')
-        setClientExtras(clientExtrasData || [])
 
         // C2 line items (linked via extras_order_id, has product_code)
         let c2Items: any[] = []
@@ -249,7 +241,7 @@ export default function CoupleDetailPage() {
 
   // Single source of truth for "does C1/C2/C3 exist?" and headline totals
   const extrasOrder = extrasOrders[0]
-  const invoices = buildInvoiceSummaries(contract, extrasOrder, clientExtras, coupleId, c3LineItems, coupleCharges)
+  const invoices = buildInvoiceSummaries(contract, extrasOrder, coupleId, c3LineItems, coupleCharges)
 
   // Finance calculations — totals come from invoices, payment matching stays here
   const contractTotal = invoices.c1.total
@@ -435,7 +427,7 @@ export default function CoupleDetailPage() {
         extrasInstallments={extrasInstallments}
         hasExtrasOrder={invoices.c2.exists}
         contractId={invoices.c1.id}
-        hasClientExtras={clientExtras.length > 0}
+        hasClientExtras={c3LineItems.length > 0}
       />
 
       {/* C1 Contract Package — ALWAYS RENDER */}
@@ -496,7 +488,6 @@ export default function CoupleDetailPage() {
 
       {/* C3 Extras & Add-ons — ALWAYS RENDER */}
       <ExtrasCard
-        extras={clientExtras || []}
         lineItems={c3LineItems}
         catalog={productCatalog}
         headerTotal={invoices.c3.total}

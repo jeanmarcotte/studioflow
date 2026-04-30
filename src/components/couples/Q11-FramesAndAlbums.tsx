@@ -9,8 +9,8 @@
  * - extras_orders table (order_type = frames_albums)
  *
  * Critical Rules:
- * - SOURCE OF TRUTH: extras_orders table — NOT client_extras
- * - client_extras stores C3 add-ons — separate from this section
+ * - SOURCE OF TRUTH: extras_orders table (C2) — NOT c3_line_items
+ * - c3_line_items stores C3 add-ons — separate from this section
  *
  * Guards:
  * - Hidden if no extras_orders record exists

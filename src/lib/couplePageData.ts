@@ -31,7 +31,6 @@ function sumChargeAmounts(rows: any[] | null | undefined, contractType: string):
 export function buildInvoiceSummaries(
   contract: any | null,
   extrasOrder: any | null,
-  clientExtras: any[] | null,
   coupleId: string,
   c3LineItems?: any[] | null,
   coupleCharges?: any[] | null
@@ -58,12 +57,11 @@ export function buildInvoiceSummaries(
     viewUrl: c2Exists ? `/admin/albums/${coupleId}/view` : null,
   }
 
-  // C3 — invoiced total comes ONLY from couple_charges (the financial ledger,
-  // single source of truth). client_extras / c3_line_items hold item details
-  // and are used for existence checks + view-url gating, never to sum totals.
-  const c3HasClientExtras = (clientExtras ?? []).length > 0
-  const c3HasLineItems = (c3LineItems ?? []).length > 0
-  const c3Exists = c3HasClientExtras || c3HasLineItems
+  // C3 — single C3 table is c3_line_items (header dropped in WO-991).
+  // Existence: any line items exist for this couple.
+  // Invoiced total: sum of couple_charges WHERE contract_type='C3' (the ledger
+  // is the single source of truth for amounts).
+  const c3Exists = (c3LineItems ?? []).length > 0
   const c3Total = sumChargeAmounts(coupleCharges, 'C3')
   const c3: InvoiceSummary = {
     exists: c3Exists,
@@ -71,7 +69,7 @@ export function buildInvoiceSummaries(
     total: c3Total,
     status: c3Exists ? 'active' : null,
     label: 'C3 Extras',
-    viewUrl: c3HasClientExtras ? `/admin/extras/${coupleId}/view` : null,
+    viewUrl: c3Exists ? `/admin/extras/${coupleId}/view` : null,
   }
 
   return { c1, c2, c3 }

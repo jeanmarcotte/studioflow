@@ -79,7 +79,7 @@ export default function RevenuePerClientDashboard() {
 
   useEffect(() => {
     async function fetchData() {
-      const [couplesRes, contractsRes, extrasOrdersRes, clientExtrasRes, milestonesRes] = await Promise.all([
+      const [couplesRes, contractsRes, extrasOrdersRes, c3LineItemsRes, milestonesRes] = await Promise.all([
         supabase
           .from('couples')
           .select('id, bride_first_name, groom_first_name, wedding_date, wedding_year, phase, is_cancelled')
@@ -91,8 +91,8 @@ export default function RevenuePerClientDashboard() {
           .from('extras_orders')
           .select('couple_id, extras_sale_amount, status'),
         supabase
-          .from('client_extras')
-          .select('couple_id, item_type, quantity, total, invoice_date'),
+          .from('c3_line_items')
+          .select('couple_id, product_code, quantity, total, invoice_date, product_catalog(item_name, category)'),
         supabase
           .from('couple_milestones')
           .select('couple_id, m06_eng_session_shot, m11_frame_sale_complete, m19_wedding_day'),
@@ -101,7 +101,7 @@ export default function RevenuePerClientDashboard() {
       const couples = couplesRes.data ?? []
       const contracts = contractsRes.data ?? []
       const extrasOrders = extrasOrdersRes.data ?? []
-      const clientExtras = clientExtrasRes.data ?? []
+      const c3LineItems = c3LineItemsRes.data ?? []
       const milestones = milestonesRes.data ?? []
 
       // Build lookup maps
@@ -124,7 +124,7 @@ export default function RevenuePerClientDashboard() {
       }
 
       const c3Map = new Map<string, number>()
-      for (const e of clientExtras) {
+      for (const e of c3LineItems) {
         const amt = Number(e.total) || 0
         c3Map.set(e.couple_id, (c3Map.get(e.couple_id) ?? 0) + amt)
       }

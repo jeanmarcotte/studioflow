@@ -6,7 +6,7 @@
  * @updated 2026-04-01
  *
  * Data Sources:
- * - contracts + extras_orders + client_extras + payments + contract_installments
+ * - contracts + extras_orders + c3_line_items + payments + contract_installments
  *
  * Sub-sections:
  * - Q08a: Original Contract (C1) — installment schedule with payment matching
