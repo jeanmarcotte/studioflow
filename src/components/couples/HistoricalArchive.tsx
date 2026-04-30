@@ -398,20 +398,15 @@ export function HistoricalArchive() {
                   </div>
                 ) : (
                   <>
-                    {yearGroups.groups.map(([year, rows], idx) => {
-                      const expand =
-                        yearFilter === year ||
-                        (yearFilter === 'all' && idx === 0)
-                      return (
-                        <YearGroup
-                          key={`${yearFilter}-${year}`}
-                          year={year}
-                          rows={rows}
-                          defaultExpanded={expand}
-                          onRowClick={handleRowClick}
-                        />
-                      )
-                    })}
+                    {yearGroups.groups.map(([year, rows]) => (
+                      <YearGroup
+                        key={`${yearFilter}-${year}`}
+                        year={year}
+                        rows={rows}
+                        defaultExpanded={true}
+                        onRowClick={handleRowClick}
+                      />
+                    ))}
                     {yearGroups.undated.length > 0 && (
                       <div className="px-4 py-2 text-xs text-muted-foreground">
                         {yearGroups.undated.length} undated couple
