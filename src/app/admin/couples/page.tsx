@@ -8,7 +8,7 @@ import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
 import { Users, Search, Calendar, AlertTriangle, Wrench } from 'lucide-react'
 import { formatCurrency, formatWeddingDateShort, formatPackage } from '@/lib/formatters'
 import Link from 'next/link'
-import { HistoricalCouplesArchive } from '@/components/couples/HistoricalCouplesArchive'
+import { HistoricalArchive } from '@/components/couples/HistoricalArchive'
 
 interface CoupleRow {
   id: string
@@ -718,7 +718,7 @@ export default function CouplesPage() {
           />
         </div>
 
-        <HistoricalCouplesArchive />
+        <HistoricalArchive />
       </div>
 
       {/* Right Sidebar */}
