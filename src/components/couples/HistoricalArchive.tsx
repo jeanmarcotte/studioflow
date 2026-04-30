@@ -112,15 +112,16 @@ function buildColumns(onRowClick: (c: HistoricalCouple) => void) {
 function YearGroup({
   year,
   rows,
-  defaultExpanded,
+  expanded,
+  onToggle,
   onRowClick,
 }: {
   year: number
   rows: RowShape[]
-  defaultExpanded: boolean
+  expanded: boolean
+  onToggle: (year: number) => void
   onRowClick: (c: HistoricalCouple) => void
 }) {
-  const [expanded, setExpanded] = useState(defaultExpanded)
   const [sorting, setSorting] = useState<SortingState>([])
 
   const sigsCount = useMemo(() => rows.filter(r => r.company === 'SIGS').length, [rows])
@@ -141,7 +142,7 @@ function YearGroup({
     <div className="border-b last:border-b-0">
       <button
         type="button"
-        onClick={() => setExpanded(v => !v)}
+        onClick={() => onToggle(year)}
         className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors text-sm"
       >
         <span className="flex items-center gap-2">
@@ -214,13 +215,14 @@ function YearGroup({
 }
 
 export function HistoricalArchive() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(true)
   const [couples, setCouples] = useState<HistoricalCouple[]>([])
   const [loading, setLoading] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [yearFilter, setYearFilter] = useState<YearValue>('all')
+  const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set())
   const [selected, setSelected] = useState<HistoricalCouple | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const tableRef = useRef<HTMLDivElement | null>(null)
@@ -323,11 +325,30 @@ export function HistoricalArchive() {
 
   const handleYearChange = (v: YearValue) => {
     setYearFilter(v)
+    if (typeof v === 'number') {
+      // Pill click expands that year group
+      setExpandedYears(prev => {
+        const next = new Set(prev)
+        next.add(v)
+        return next
+      })
+    }
     // Smooth scroll to the table
     requestAnimationFrame(() => {
       tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
   }
+
+  const toggleYear = (year: number) => {
+    setExpandedYears(prev => {
+      const next = new Set(prev)
+      if (next.has(year)) next.delete(year)
+      else next.add(year)
+      return next
+    })
+  }
+
+  const hasSearch = debouncedSearch.length > 0
 
   const handleRowClick = (c: HistoricalCouple) => {
     setSelected(c)
@@ -400,10 +421,11 @@ export function HistoricalArchive() {
                   <>
                     {yearGroups.groups.map(([year, rows]) => (
                       <YearGroup
-                        key={`${yearFilter}-${year}`}
+                        key={year}
                         year={year}
                         rows={rows}
-                        defaultExpanded={true}
+                        expanded={hasSearch || expandedYears.has(year)}
+                        onToggle={toggleYear}
                         onRowClick={handleRowClick}
                       />
                     ))}
