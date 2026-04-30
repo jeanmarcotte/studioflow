@@ -93,12 +93,15 @@ from a single computation; no component re-fetches or re-formats on its own.
   from here. Components MUST NOT define their own currency / hours / package-type
   formatters.
 - **`src/lib/couplePageData.ts`** — exports `buildInvoiceSummaries(contract,
-  extrasOrder, clientExtras, coupleId, c3LineItems?)` returning a
-  `CoupleInvoices` object with `c1`, `c2`, `c3` summaries (`exists`, `id`,
+  extrasOrder, clientExtras, coupleId, c3LineItems?, coupleCharges?)` returning
+  a `CoupleInvoices` object with `c1`, `c2`, `c3` summaries (`exists`, `id`,
   `total`, `status`, `label`, `viewUrl`). Every component that needs to know
   whether C1/C2/C3 exists or what its headline total is reads from this object.
-  C3 total includes both `client_extras.total` and `c3_line_items.total` so the
-  ExtrasCard header is correct even when only line items have been entered.
+  **C3 invoiced total is sourced exclusively from `couple_charges` (the financial
+  ledger, single source of truth) where `contract_type = 'C3'`.** `client_extras`
+  and `c3_line_items` are used only for existence checks and view-url gating —
+  never for summing totals. Summing `client_extras.total` plus `c3_line_items.total`
+  on top of `couple_charges` was double-counting (BUG-FIX-FINANCE-C3-DOUBLE-COUNT).
 - The Info Grid Coverage section uses `formatHoursDisplay` (long form, e.g.
   "10:30 – 22:30 (12 hrs)"). The C1 ContractPackageCard uses
   `formatTotalHoursOnly` (short form, e.g. "12 hours"). Both come from the same

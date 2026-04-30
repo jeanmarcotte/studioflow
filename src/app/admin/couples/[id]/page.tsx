@@ -44,6 +44,7 @@ export default function CoupleDetailPage() {
   const [c1LineItems, setC1LineItems] = useState<any[]>([])
   const [c2LineItems, setC2LineItems] = useState<any[]>([])
   const [c3LineItems, setC3LineItems] = useState<any[]>([])
+  const [coupleCharges, setCoupleCharges] = useState<any[]>([])
   const [productCatalog, setProductCatalog] = useState<any[]>([])
   const [weddingDayForm, setWeddingDayForm] = useState<any>(null)
   const [videoOrder, setVideoOrder] = useState<any>(null)
@@ -93,6 +94,14 @@ export default function CoupleDetailPage() {
           .eq('couple_id', coupleId)
           .order('payment_date')
         setPayments(paymentsData || [])
+
+        // Financial ledger — single source of truth for invoiced amounts (C1/C2/C3)
+        const { data: chargesData } = await supabase
+          .from('couple_charges')
+          .select('contract_type, amount, charge_date')
+          .eq('couple_id', coupleId)
+          .order('charge_date')
+        setCoupleCharges(chargesData || [])
 
         // Fetch contract installments (C1)
         if (contractData?.[0]?.id) {
@@ -240,7 +249,7 @@ export default function CoupleDetailPage() {
 
   // Single source of truth for "does C1/C2/C3 exist?" and headline totals
   const extrasOrder = extrasOrders[0]
-  const invoices = buildInvoiceSummaries(contract, extrasOrder, clientExtras, coupleId, c3LineItems)
+  const invoices = buildInvoiceSummaries(contract, extrasOrder, clientExtras, coupleId, c3LineItems, coupleCharges)
 
   // Finance calculations — totals come from invoices, payment matching stays here
   const contractTotal = invoices.c1.total
