@@ -78,6 +78,24 @@ const SOURCE_LABELS: Record<TrackingSource, { label: string; icon: typeof Camera
   checklist: { label: 'Deliverables', icon: ListChecks },
 }
 
+const PHOTO_STATUS_OPTIONS = [
+  'not_started',
+  'in_progress',
+  'waiting_approval',
+  'at_lab',
+  'at_studio',
+  'completed',
+  'picked_up',
+  'on_hold',
+] as const
+
+const VIDEO_STATUS_OPTIONS = [
+  'not_started',
+  'in_progress',
+  'waiting_for_bride',
+  'complete',
+] as const
+
 const YEAR_OPTIONS = [2025, 2026, 2027]
 
 export function ProductionChecklistClient() {
@@ -177,6 +195,27 @@ export function ProductionChecklistClient() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Update failed')
       toast.success(`${item.item_name || 'Item'} marked complete`)
+      await fetchData()
+    } catch (err: any) {
+      toast.error(`Failed: ${err.message}`)
+    } finally {
+      setItemBusy(item.source_id!, false)
+    }
+  }
+
+  const updateJobStatus = async (item: ItemRow, newStatus: string) => {
+    if (!item.source_id) return
+    const table = item.tracking_source === 'photo_job' ? 'jobs' : 'video_jobs'
+    setItemBusy(item.source_id, true)
+    try {
+      const res = await fetch('/api/production/update-job-status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: item.source_id, table, status: newStatus }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Update failed')
+      toast.success(`${item.item_name || 'Job'} → ${newStatus.replace(/_/g, ' ')}`)
       await fetchData()
     } catch (err: any) {
       toast.error(`Failed: ${err.message}`)
@@ -290,7 +329,7 @@ export function ProductionChecklistClient() {
     })
   }
 
-  const sharedColumns: ColumnDef<ItemRow>[] = useMemo(() => [
+  const baseColumns: ColumnDef<ItemRow>[] = useMemo(() => [
     {
       id: 'row_number',
       header: '#',
@@ -320,23 +359,68 @@ export function ProductionChecklistClient() {
       cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.original.source || '—'}</span>,
       size: 70,
     },
-    {
-      accessorKey: 'job_status',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-      cell: ({ row }) => {
-        const s = (row.original.job_status || 'pending').toLowerCase()
-        const cls = STATUS_COLORS[s] || STATUS_COLORS.pending
-        return (
-          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>
-            {s.replace(/_/g, ' ')}
-          </span>
-        )
-      },
-    },
   ], [])
 
-  const readOnlyColumns: ColumnDef<ItemRow>[] = useMemo(() => [
-    ...sharedColumns,
+  const readOnlyStatusColumn: ColumnDef<ItemRow> = useMemo(() => ({
+    accessorKey: 'job_status',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    cell: ({ row }) => {
+      const s = (row.original.job_status || 'pending').toLowerCase()
+      const cls = STATUS_COLORS[s] || STATUS_COLORS.pending
+      return (
+        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>
+          {s.replace(/_/g, ' ')}
+        </span>
+      )
+    },
+  }), [])
+
+  const jobStatusColumn: ColumnDef<ItemRow> = useMemo(() => ({
+    accessorKey: 'job_status',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    cell: ({ row }) => {
+      const item = row.original
+      const current = (item.job_status || 'not_started').toLowerCase()
+      const options = item.tracking_source === 'photo_job'
+        ? PHOTO_STATUS_OPTIONS
+        : VIDEO_STATUS_OPTIONS
+      const cls = STATUS_COLORS[current] || STATUS_COLORS.pending
+      const busy = item.source_id ? busyItems.has(item.source_id) : false
+      const value = (options as readonly string[]).includes(current) ? current : ''
+      return (
+        <select
+          value={value}
+          disabled={busy || !item.source_id}
+          onChange={(e) => updateJobStatus(item, e.target.value)}
+          className={`appearance-none rounded-full border-0 px-2 py-0.5 pr-6 text-xs font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed ${cls}`}
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e\")",
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 0.4rem center',
+            backgroundSize: '0.7rem',
+          }}
+        >
+          {value === '' && <option value="" disabled>{current.replace(/_/g, ' ')}</option>}
+          {options.map(opt => (
+            <option key={opt} value={opt}>
+              {opt.replace(/_/g, ' ')}
+            </option>
+          ))}
+        </select>
+      )
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [busyItems])
+
+  const sharedColumns: ColumnDef<ItemRow>[] = useMemo(
+    () => [...baseColumns, readOnlyStatusColumn],
+    [baseColumns, readOnlyStatusColumn]
+  )
+
+  const jobColumns: ColumnDef<ItemRow>[] = useMemo(() => [
+    ...baseColumns,
+    jobStatusColumn,
     {
       id: 'is_complete',
       accessorFn: (row) => (row.is_complete ? 1 : 0),
@@ -355,7 +439,7 @@ export function ProductionChecklistClient() {
         </span>
       ),
     },
-  ], [sharedColumns])
+  ], [baseColumns, jobStatusColumn])
 
   const deliverableColumns: ColumnDef<ItemRow>[] = useMemo(() => [
     ...sharedColumns,
@@ -552,7 +636,7 @@ export function ProductionChecklistClient() {
                     if (items.length === 0) return null
                     const meta = SOURCE_LABELS[ts]
                     const Icon = meta.icon
-                    const cols = ts === 'checklist' ? deliverableColumns : readOnlyColumns
+                    const cols = ts === 'checklist' ? deliverableColumns : jobColumns
                     return (
                       <section key={ts}>
                         <div className="flex items-center gap-2 mb-2">
