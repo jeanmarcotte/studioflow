@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { formatDateCompact, formatWeddingDateShort } from '@/lib/formatters'
+import { formatDateCompact, formatWeddingDateShortWithYear } from '@/lib/formatters'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -116,7 +116,7 @@ export function ProductionChecklistClient() {
   const [search, setSearch] = useState<string>('')
 
   const yearStart = `${year}-01-01`
-  const yearEnd = `${year}-12-31`
+  const nextYearStart = `${year + 1}-01-01`
 
   const fetchData = async () => {
     setLoading(true)
@@ -125,7 +125,7 @@ export function ProductionChecklistClient() {
         .from('couples')
         .select('id, bride_first_name, groom_first_name, wedding_date')
         .gte('wedding_date', yearStart)
-        .lte('wedding_date', yearEnd)
+        .lt('wedding_date', nextYearStart)
         .order('wedding_date', { ascending: true }),
       supabase
         .from('vw_couple_production_checklist')
@@ -144,9 +144,25 @@ export function ProductionChecklistClient() {
     const allRows = (viewRes.data || []) as ChecklistRow[]
     const filteredRows = allRows.filter(r => coupleIds.has(r.couple_id))
 
+    // Default-open only couples that still have pending items.
+    // Couples whose items are all complete start collapsed.
+    const itemsByCouple = new Map<string, ChecklistRow[]>()
+    filteredRows.forEach(r => {
+      if (!itemsByCouple.has(r.couple_id)) itemsByCouple.set(r.couple_id, [])
+      itemsByCouple.get(r.couple_id)!.push(r)
+    })
+    const initialOpen = new Set<string>()
+    couplesData.forEach(c => {
+      const items = itemsByCouple.get(c.id) || []
+      const total = items.length
+      const complete = items.filter(i => i.is_complete).length
+      const allComplete = total > 0 && complete === total
+      if (!allComplete) initialOpen.add(c.id)
+    })
+
     setCouples(couplesData)
     setRows(filteredRows)
-    setOpenCouples(prev => prev.size === 0 ? new Set(couplesData.map(c => c.id)) : prev)
+    setOpenCouples(prev => prev.size === 0 ? initialOpen : prev)
     setLoading(false)
   }
 
@@ -589,7 +605,7 @@ export function ProductionChecklistClient() {
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                       <span className="font-semibold">{coupleDisplay(group.couple)}</span>
                       <span className="text-xs text-muted-foreground">
-                        {group.couple.wedding_date ? formatWeddingDateShort(group.couple.wedding_date) : '—'}
+                        {group.couple.wedding_date ? formatWeddingDateShortWithYear(group.couple.wedding_date) : '—'}
                       </span>
                     </div>
                     <div className="mt-2 flex items-center gap-3">

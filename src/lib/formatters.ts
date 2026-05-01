@@ -98,6 +98,15 @@ export function formatWeddingDateShort(date: string | Date | null | undefined): 
   return `${dow} ${monthDay}`;
 }
 
+/** Short wedding date WITH year — "FRI Apr 24, 2026" */
+export function formatWeddingDateShortWithYear(date: string | Date | null | undefined): string {
+  const parsed = parseDateSafe(date);
+  if (!parsed) return '—';
+  const dow = format(parsed, 'EEE').toUpperCase();
+  const monthDayYear = format(parsed, 'MMM d, yyyy');
+  return `${dow} ${monthDayYear}`;
+}
+
 /** Package type — "Photo Only" or "Photo + Video" */
 export function formatPackage(pkg: string | null | undefined): string {
   if (!pkg) return '—'
