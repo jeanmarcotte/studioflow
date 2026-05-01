@@ -3,10 +3,23 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-import { ChevronDown, ChevronRight, Check, X, RefreshCw, Camera, Video, ListChecks } from 'lucide-react'
+import {
+  ChevronDown, ChevronRight, Check, X, RefreshCw,
+  Camera, Video, ListChecks, CheckCircle2, CheckSquare, Square,
+} from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { Playfair_Display, Nunito } from 'next/font/google'
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { formatDateCompact, formatWeddingDateShort } from '@/lib/formatters'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
@@ -39,6 +52,12 @@ interface ItemRow extends ChecklistRow {
   rowId: string
 }
 
+interface ConfirmState {
+  coupleId: string
+  coupleName: string
+  pendingCount: number
+}
+
 const STATUS_COLORS: Record<string, string> = {
   not_started: 'bg-gray-100 text-gray-700',
   pending: 'bg-gray-100 text-gray-700',
@@ -68,6 +87,9 @@ export function ProductionChecklistClient() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [openCouples, setOpenCouples] = useState<Set<string>>(new Set())
+  const [busyItems, setBusyItems] = useState<Set<string>>(new Set())
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null)
+  const [batchBusy, setBatchBusy] = useState(false)
 
   // Filters
   const [coupleFilter, setCoupleFilter] = useState<string>('all')
@@ -106,7 +128,7 @@ export function ProductionChecklistClient() {
 
     setCouples(couplesData)
     setRows(filteredRows)
-    setOpenCouples(new Set(couplesData.map(c => c.id)))
+    setOpenCouples(prev => prev.size === 0 ? new Set(couplesData.map(c => c.id)) : prev)
     setLoading(false)
   }
 
@@ -134,11 +156,75 @@ export function ProductionChecklistClient() {
     }
   }
 
-  const coupleMap = useMemo(() => {
-    const m = new Map<string, CoupleRow>()
-    couples.forEach(c => m.set(c.id, c))
-    return m
-  }, [couples])
+  const setItemBusy = (id: string, busy: boolean) => {
+    setBusyItems(prev => {
+      const next = new Set(prev)
+      if (busy) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
+  const markItemComplete = async (item: ItemRow) => {
+    if (!item.source_id) return
+    setItemBusy(item.source_id, true)
+    try {
+      const res = await fetch('/api/production/mark-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_id: item.source_id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Update failed')
+      toast.success(`${item.item_name || 'Item'} marked complete`)
+      await fetchData()
+    } catch (err: any) {
+      toast.error(`Failed: ${err.message}`)
+    } finally {
+      setItemBusy(item.source_id!, false)
+    }
+  }
+
+  const markItemIncomplete = async (item: ItemRow) => {
+    if (!item.source_id) return
+    setItemBusy(item.source_id, true)
+    try {
+      const res = await fetch('/api/production/mark-complete', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_id: item.source_id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Update failed')
+      toast.success(`${item.item_name || 'Item'} marked incomplete`)
+      await fetchData()
+    } catch (err: any) {
+      toast.error(`Failed: ${err.message}`)
+    } finally {
+      setItemBusy(item.source_id!, false)
+    }
+  }
+
+  const confirmMarkAll = async () => {
+    if (!confirm) return
+    setBatchBusy(true)
+    try {
+      const res = await fetch('/api/production/mark-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couple_id: confirm.coupleId, mark_all: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Update failed')
+      toast.success(`${data.updated} item${data.updated === 1 ? '' : 's'} marked complete`)
+      setConfirm(null)
+      await fetchData()
+    } catch (err: any) {
+      toast.error(`Failed: ${err.message}`)
+    } finally {
+      setBatchBusy(false)
+    }
+  }
 
   // Apply filters
   const filteredRows = useMemo(() => {
@@ -188,7 +274,9 @@ export function ProductionChecklistClient() {
           const key: TrackingSource = (i.tracking_source as TrackingSource) || 'checklist'
           sections[key].push({ ...i, rowId: `${i.couple_id}-${i.tracking_source}-${i.source_id}-${i.product_code}` })
         })
-        return { couple: c, items, total, complete, sections }
+        const pendingChecklistCount = sections.checklist.filter(i => !i.is_complete).length
+        const allComplete = total > 0 && complete === total
+        return { couple: c, items, total, complete, sections, pendingChecklistCount, allComplete }
       })
       .filter(g => g.items.length > 0 || coupleFilter === 'all')
   }, [couples, filteredRows, coupleFilter])
@@ -202,7 +290,7 @@ export function ProductionChecklistClient() {
     })
   }
 
-  const itemColumns: ColumnDef<ItemRow>[] = useMemo(() => [
+  const sharedColumns: ColumnDef<ItemRow>[] = useMemo(() => [
     {
       id: 'row_number',
       header: '#',
@@ -245,6 +333,10 @@ export function ProductionChecklistClient() {
         )
       },
     },
+  ], [])
+
+  const readOnlyColumns: ColumnDef<ItemRow>[] = useMemo(() => [
+    ...sharedColumns,
     {
       id: 'is_complete',
       accessorFn: (row) => (row.is_complete ? 1 : 0),
@@ -263,7 +355,46 @@ export function ProductionChecklistClient() {
         </span>
       ),
     },
-  ], [])
+  ], [sharedColumns])
+
+  const deliverableColumns: ColumnDef<ItemRow>[] = useMemo(() => [
+    ...sharedColumns,
+    {
+      id: 'is_complete',
+      accessorFn: (row) => (row.is_complete ? 1 : 0),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Complete" />,
+      cell: ({ row }) => {
+        const item = row.original
+        const busy = item.source_id ? busyItems.has(item.source_id) : false
+        const isComplete = item.is_complete
+        return (
+          <button
+            type="button"
+            disabled={busy || !item.source_id}
+            onClick={() => isComplete ? markItemIncomplete(item) : markItemComplete(item)}
+            aria-label={isComplete ? 'Mark incomplete' : 'Mark complete'}
+            className="inline-flex items-center justify-center rounded p-1 transition-colors hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isComplete
+              ? <CheckSquare className="h-5 w-5 text-green-600" />
+              : <Square className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+            }
+          </button>
+        )
+      },
+      size: 90,
+    },
+    {
+      accessorKey: 'completed_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Completed" />,
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">
+          {row.original.completed_date ? formatDateCompact(row.original.completed_date) : '—'}
+        </span>
+      ),
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [sharedColumns, busyItems])
 
   if (loading) {
     return (
@@ -354,36 +485,65 @@ export function ProductionChecklistClient() {
         {couplesWithItems.map(group => {
           const isOpen = openCouples.has(group.couple.id)
           const pct = group.total === 0 ? 0 : (group.complete / group.total) * 100
+          const showCompleteBadge = group.allComplete
+          const showMarkAll = group.pendingChecklistCount > 0
+
           return (
             <div key={group.couple.id} className="rounded-lg border bg-card">
-              <button
-                onClick={() => toggleCouple(group.couple.id)}
-                className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-muted/40 transition-colors"
-              >
-                {isOpen
-                  ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                }
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <span className="font-semibold">{coupleDisplay(group.couple)}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {group.couple.wedding_date ? formatWeddingDateShort(group.couple.wedding_date) : '—'}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-center gap-3">
-                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-green-500 transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
+              {/* Header row — toggle area + action area as siblings (no nested buttons) */}
+              <div className="px-4 py-3 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => toggleCouple(group.couple.id)}
+                  className="flex-1 min-w-0 flex items-center gap-3 text-left rounded -mx-1 px-1 py-1 hover:bg-muted/40 transition-colors"
+                >
+                  {isOpen
+                    ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  }
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <span className="font-semibold">{coupleDisplay(group.couple)}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {group.couple.wedding_date ? formatWeddingDateShort(group.couple.wedding_date) : '—'}
+                      </span>
                     </div>
-                    <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-                      {group.complete}/{group.total} complete
-                    </span>
+                    <div className="mt-2 flex items-center gap-3">
+                      {showCompleteBadge ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-semibold">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          COMPLETE
+                        </span>
+                      ) : (
+                        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-green-500 transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      )}
+                      <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+                        {group.complete}/{group.total} complete
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </button>
+                </button>
+
+                {showMarkAll && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirm({
+                      coupleId: group.couple.id,
+                      coupleName: coupleDisplay(group.couple),
+                      pendingCount: group.pendingChecklistCount,
+                    })}
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    Mark All Complete
+                  </button>
+                )}
+              </div>
 
               {isOpen && (
                 <div className="border-t px-4 py-4 space-y-5">
@@ -392,6 +552,7 @@ export function ProductionChecklistClient() {
                     if (items.length === 0) return null
                     const meta = SOURCE_LABELS[ts]
                     const Icon = meta.icon
+                    const cols = ts === 'checklist' ? deliverableColumns : readOnlyColumns
                     return (
                       <section key={ts}>
                         <div className="flex items-center gap-2 mb-2">
@@ -400,7 +561,7 @@ export function ProductionChecklistClient() {
                           <span className="text-xs text-muted-foreground">({items.length})</span>
                         </div>
                         <DataTable
-                          columns={itemColumns}
+                          columns={cols}
                           data={items}
                           showPagination={items.length > 25}
                           pageSize={25}
@@ -420,6 +581,33 @@ export function ProductionChecklistClient() {
           )
         })}
       </div>
+
+      {/* Confirmation dialog for "Mark All Complete" */}
+      <AlertDialog
+        open={confirm !== null}
+        onOpenChange={(o) => { if (!o && !batchBusy) setConfirm(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark all deliverables complete?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirm
+                ? `Mark all ${confirm.pendingCount} pending deliverable${confirm.pendingCount === 1 ? '' : 's'} for ${confirm.coupleName} as complete? Photo and video job statuses will not be changed.`
+                : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={batchBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmMarkAll}
+              disabled={batchBusy}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {batchBusy ? 'Marking…' : 'Mark Complete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
