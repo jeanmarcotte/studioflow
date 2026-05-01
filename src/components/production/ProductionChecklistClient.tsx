@@ -220,20 +220,32 @@ export function ProductionChecklistClient() {
   }
 
   const updateJobStatus = async (item: ItemRow, newStatus: string) => {
-    if (!item.source_id) return
+    if (!item.source_id) {
+      console.warn('[updateJobStatus] missing source_id on item', item)
+      toast.error('Cannot update — missing job ID')
+      return
+    }
     const table = item.tracking_source === 'photo_job' ? 'jobs' : 'video_jobs'
+    const payload = { job_id: item.source_id, table, status: newStatus }
+    console.log('[updateJobStatus] PATCH /api/production/update-job-status', payload)
     setItemBusy(item.source_id, true)
     try {
       const res = await fetch('/api/production/update-job-status', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ job_id: item.source_id, table, status: newStatus }),
+        body: JSON.stringify(payload),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Update failed')
+      const text = await res.text()
+      let data: any = {}
+      try { data = text ? JSON.parse(text) : {} } catch { data = { error: text } }
+      console.log('[updateJobStatus] response', res.status, data)
+      if (!res.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`)
+      }
       toast.success(`${item.item_name || 'Job'} → ${newStatus.replace(/_/g, ' ')}`)
       await fetchData()
     } catch (err: any) {
+      console.error('[updateJobStatus] failed', err)
       toast.error(`Failed: ${err.message}`)
     } finally {
       setItemBusy(item.source_id!, false)
