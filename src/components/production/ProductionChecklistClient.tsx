@@ -147,7 +147,7 @@ export function ProductionChecklistClient() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Refresh failed')
-      toast.success(`Refreshed ${data.couples_processed} couples · ${data.items_added} items added`)
+      toast.success(`Refreshed: ${data.jobs_created} jobs created, ${data.checklist_items_added} items added`)
       await fetchData()
     } catch (err: any) {
       toast.error(`Refresh failed: ${err.message}`)

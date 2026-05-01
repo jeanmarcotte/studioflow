@@ -27,25 +27,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: couplesErr.message }, { status: 500 })
   }
 
-  let itemsAdded = 0
+  let jobsCreated = 0
+  let checklistItemsAdded = 0
   let processed = 0
-  const failures: { couple_id: string; error: string }[] = []
+  const failures: { couple_id: string; step: 'photo_jobs' | 'checklist'; error: string }[] = []
 
   for (const c of couples || []) {
-    const { data, error } = await supabaseAdmin.rpc('populate_couple_checklist', {
+    let stepFailed = false
+
+    const jobsRes = await supabaseAdmin.rpc('auto_generate_photo_jobs', {
       p_couple_id: c.id,
     })
-    if (error) {
-      failures.push({ couple_id: c.id, error: error.message })
-      continue
+    if (jobsRes.error) {
+      failures.push({ couple_id: c.id, step: 'photo_jobs', error: jobsRes.error.message })
+      stepFailed = true
+    } else {
+      jobsCreated += Number(jobsRes.data) || 0
     }
-    processed += 1
-    itemsAdded += Number(data) || 0
+
+    const checklistRes = await supabaseAdmin.rpc('populate_couple_checklist', {
+      p_couple_id: c.id,
+    })
+    if (checklistRes.error) {
+      failures.push({ couple_id: c.id, step: 'checklist', error: checklistRes.error.message })
+      stepFailed = true
+    } else {
+      checklistItemsAdded += Number(checklistRes.data) || 0
+    }
+
+    if (!stepFailed) processed += 1
   }
 
   return NextResponse.json({
     couples_processed: processed,
-    items_added: itemsAdded,
+    jobs_created: jobsCreated,
+    checklist_items_added: checklistItemsAdded,
     failures,
   })
 }
