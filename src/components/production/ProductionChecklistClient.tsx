@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import {
@@ -20,6 +20,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { formatDateCompact, formatWeddingDateShortWithYear } from '@/lib/formatters'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
@@ -219,7 +226,7 @@ export function ProductionChecklistClient() {
     }
   }
 
-  const updateJobStatus = async (item: ItemRow, newStatus: string) => {
+  const updateJobStatus = useCallback(async (item: ItemRow, newStatus: string) => {
     if (!item.source_id) {
       console.warn('[updateJobStatus] missing source_id on item', item)
       toast.error('Cannot update — missing job ID')
@@ -250,7 +257,8 @@ export function ProductionChecklistClient() {
     } finally {
       setItemBusy(item.source_id!, false)
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year])
 
   const markItemIncomplete = async (item: ItemRow) => {
     if (!item.source_id) return
@@ -406,40 +414,14 @@ export function ProductionChecklistClient() {
   const jobStatusColumn: ColumnDef<ItemRow> = useMemo(() => ({
     accessorKey: 'job_status',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-    cell: ({ row }) => {
-      const item = row.original
-      const current = (item.job_status || 'not_started').toLowerCase()
-      const options = item.tracking_source === 'photo_job'
-        ? PHOTO_STATUS_OPTIONS
-        : VIDEO_STATUS_OPTIONS
-      const cls = STATUS_COLORS[current] || STATUS_COLORS.pending
-      const busy = item.source_id ? busyItems.has(item.source_id) : false
-      const value = (options as readonly string[]).includes(current) ? current : ''
-      return (
-        <select
-          value={value}
-          disabled={busy || !item.source_id}
-          onChange={(e) => updateJobStatus(item, e.target.value)}
-          className={`appearance-none rounded-full border-0 px-2 py-0.5 pr-6 text-xs font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed ${cls}`}
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e\")",
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'right 0.4rem center',
-            backgroundSize: '0.7rem',
-          }}
-        >
-          {value === '' && <option value="" disabled>{current.replace(/_/g, ' ')}</option>}
-          {options.map(opt => (
-            <option key={opt} value={opt}>
-              {opt.replace(/_/g, ' ')}
-            </option>
-          ))}
-        </select>
-      )
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [busyItems])
+    cell: ({ row }) => (
+      <JobStatusCell
+        item={row.original}
+        busy={row.original.source_id ? busyItems.has(row.original.source_id) : false}
+        onChange={updateJobStatus}
+      />
+    ),
+  }), [busyItems, updateJobStatus])
 
   const sharedColumns: ColumnDef<ItemRow>[] = useMemo(
     () => [...baseColumns, readOnlyStatusColumn],
@@ -725,6 +707,48 @@ export function ProductionChecklistClient() {
 }
 
 // ── Sub-components ─────────────────────────────────────────────────
+
+function JobStatusCell({
+  item,
+  busy,
+  onChange,
+}: {
+  item: ItemRow
+  busy: boolean
+  onChange: (item: ItemRow, newStatus: string) => Promise<void> | void
+}) {
+  const current = (item.job_status || 'not_started').toLowerCase()
+  const options = item.tracking_source === 'photo_job'
+    ? PHOTO_STATUS_OPTIONS
+    : VIDEO_STATUS_OPTIONS
+  const cls = STATUS_COLORS[current] || STATUS_COLORS.pending
+  const value = (options as readonly string[]).includes(current) ? current : ''
+
+  return (
+    <Select
+      value={value || undefined}
+      disabled={busy || !item.source_id}
+      onValueChange={(v) => {
+        if (!v || v === current) return
+        void onChange(item, v)
+      }}
+    >
+      <SelectTrigger
+        size="sm"
+        className={`h-7 rounded-full border-0 px-2.5 text-xs font-medium capitalize w-auto min-w-[120px] focus:ring-2 focus:ring-offset-1 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed ${cls}`}
+      >
+        <SelectValue placeholder={current.replace(/_/g, ' ') || 'Set status'} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((opt) => (
+          <SelectItem key={opt} value={opt} className="text-xs capitalize">
+            {opt.replace(/_/g, ' ')}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
 
 function MetricCard({ label, value, accent }: {
   label: string
