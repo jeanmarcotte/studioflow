@@ -28,6 +28,7 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   Eye,
+  ListChecks,
 } from 'lucide-react'
 
 export interface SidebarItem {
@@ -96,6 +97,7 @@ export const studioflowAdminConfig: SidebarConfig = {
             { title: 'Dashboard', href: '/admin/production/dashboard', icon: LayoutDashboard },
             { title: 'Photo Editing', href: '/admin/production/photo', icon: Camera },
             { title: 'Video Editing', href: '/admin/production/video', icon: Video },
+            { title: 'Production Checklist', href: '/admin/production/checklist', icon: ListChecks },
             { title: 'Archive', href: '/admin/production/archive', icon: Archive },
           ],
         },
