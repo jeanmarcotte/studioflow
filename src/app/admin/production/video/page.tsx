@@ -95,9 +95,11 @@ const STATUS_DROPDOWN_COLORS: Record<string, string> = {
 }
 
 const JOB_TYPE_LABELS: Record<string, string> = {
-  FULL: 'Full video',
-  RECAP: 'Recap',
-  ENG_SLIDESHOW: 'Slideshow',
+  'PROD-VID-LONGFORM': 'Full video',
+  'PROD-VID-RECAP': 'Recap',
+  'PROD-VID-SLIDESHOW': 'Slideshow',
+  'PROD-VID-RAW': 'Raw video',
+  'PROD-VID-SOCIAL': 'Social video',
 }
 
 type SwimlaneKey = 'editing_full' | 'editing_recap' | 'editing_eng_slideshow' | 'reediting' | 'waiting_photo' | 'completed'
@@ -188,7 +190,7 @@ export default function VideoProductionPage() {
   // ── Due date editing state ─────────────────────────────────────
   const [editingDueDate, setEditingDueDate] = useState<string | null>(null)
   const [awaitingOrderCouples, setAwaitingOrderCouples] = useState<AwaitingOrderCouple[]>([])
-  const [booked2026Count, setBooked2026Count] = useState(0)
+  const [videoCouples, setVideoCouples] = useState<{ id: string; wedding_date: string | null }[]>([])
   const [completed2026Collapsed, setCompleted2026Collapsed] = useState(true)
 
   // ── Fetch jobs ─────────────────────────────────────────────────
@@ -196,7 +198,7 @@ export default function VideoProductionPage() {
   useEffect(() => {
     const fetchJobs = async () => {
       const today = new Date().toISOString().split('T')[0]
-      const [videoRes, photoRes, awaitingRes, booked2026Res] = await Promise.all([
+      const [videoRes, photoRes, awaitingRes, videoCouplesRes] = await Promise.all([
         supabase
           .from('video_jobs')
           .select('*, couples(id, couple_name, wedding_date)')
@@ -213,11 +215,9 @@ export default function VideoProductionPage() {
           .order('wedding_date', { ascending: true }),
         supabase
           .from('couples')
-          .select('id', { count: 'exact', head: true })
+          .select('id, wedding_date, contracts!inner(num_videographers)')
           .eq('is_cancelled', false)
-          .gte('wedding_date', '2026-01-01')
-          .lte('wedding_date', '2026-12-31')
-          .in('package_type', ['photo_video']),
+          .gt('contracts.num_videographers', 0),
       ])
 
       if (!videoRes.error && videoRes.data) setJobs(videoRes.data)
@@ -236,7 +236,12 @@ export default function VideoProductionPage() {
           wedding_date: c.wedding_date,
         })))
       }
-      setBooked2026Count(booked2026Res.count ?? 0)
+      if (!videoCouplesRes.error && videoCouplesRes.data) {
+        setVideoCouples((videoCouplesRes.data as any[]).map((c) => ({
+          id: c.id,
+          wedding_date: c.wedding_date,
+        })))
+      }
       setLoading(false)
     }
     fetchJobs()
@@ -367,23 +372,23 @@ export default function VideoProductionPage() {
     }
 
     for (const job of result) {
-      if (job.section === 'completed') {
+      if (job.status === 'complete') {
         lanes.completed.push(job)
         // Also show in respective lanes when toggled on
-        if (showCompleted && job.job_type !== 'RECAP' && job.job_type !== 'ENG_SLIDESHOW') {
+        if (showCompleted && job.job_type === 'PROD-VID-LONGFORM') {
           lanes.editing_full.push(job)
         }
-        if (showCompletedRecaps && job.job_type === 'RECAP') {
+        if (showCompletedRecaps && job.job_type === 'PROD-VID-RECAP') {
           lanes.editing_recap.push(job)
         }
-        if (showCompletedSlideshows && job.job_type === 'ENG_SLIDESHOW') {
+        if (showCompletedSlideshows && job.job_type === 'PROD-VID-SLIDESHOW') {
           lanes.editing_eng_slideshow.push(job)
         }
       } else if (job.section === 'reediting') {
         lanes.reediting.push(job)
-      } else if (job.job_type === 'RECAP') {
+      } else if (job.job_type === 'PROD-VID-RECAP') {
         lanes.editing_recap.push(job)
-      } else if (job.job_type === 'ENG_SLIDESHOW') {
+      } else if (job.job_type === 'PROD-VID-SLIDESHOW') {
         lanes.editing_eng_slideshow.push(job)
       } else {
         lanes.editing_full.push(job)
@@ -415,8 +420,8 @@ export default function VideoProductionPage() {
     const activeJobs = jobs.filter(j => j.section !== 'completed')
     const completedCount = jobs.filter(j => j.section === 'completed').length
 
-    const recapsPending = jobs.filter(j => j.job_type === 'RECAP' && j.section !== 'completed').length
-    const slideshowsPending = jobs.filter(j => j.job_type === 'ENG_SLIDESHOW' && j.section !== 'completed').length
+    const recapsPending = jobs.filter(j => j.job_type === 'PROD-VID-RECAP' && j.status !== 'complete').length
+    const slideshowsPending = jobs.filter(j => j.job_type === 'PROD-VID-SLIDESHOW' && j.status !== 'complete').length
 
     // Overdue (for banner)
     const overdueJobs = activeJobs.filter(j => isOverdue(j))
@@ -435,15 +440,15 @@ export default function VideoProductionPage() {
 
     const remaining2025 = jobs.filter(j => {
       const wd = j.wedding_date || j.couples?.wedding_date
-      return j.job_type === 'FULL' && j.status !== 'complete' && wd && wd >= '2025-01-01' && wd <= '2025-12-31'
+      return j.job_type === 'PROD-VID-LONGFORM' && j.status !== 'complete' && wd && wd >= '2025-01-01' && wd <= '2025-12-31'
     }).length
     const remaining2026 = jobs.filter(j => {
       const wd = j.wedding_date || j.couples?.wedding_date
-      return j.job_type === 'FULL' && j.status !== 'complete' && wd && wd >= '2026-01-01' && wd <= '2026-12-31'
+      return j.job_type === 'PROD-VID-LONGFORM' && j.status !== 'complete' && wd && wd >= '2026-01-01' && wd <= '2026-12-31'
     }).length
     const remaining2027 = jobs.filter(j => {
       const wd = j.wedding_date || j.couples?.wedding_date
-      return j.job_type === 'FULL' && j.status !== 'complete' && wd && wd >= '2027-01-01' && wd <= '2027-12-31'
+      return j.job_type === 'PROD-VID-LONGFORM' && j.status !== 'complete' && wd && wd >= '2027-01-01' && wd <= '2027-12-31'
     }).length
 
     return {
@@ -475,54 +480,67 @@ export default function VideoProductionPage() {
 
   const notStartedCount = useMemo(() => jobs.filter(j => j.status === 'not_started').length, [jobs])
 
-  const pipelineStats = useMemo(() => {
-    const counts: Record<string, Record<string, number>> = {}
+  // Sidebar metric definitions match docs/SIGS-DesignSystem requirements: each box
+  // maps to the exact query in the Video Production WO.
+  const sidebarMetrics = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0]
+
+    const couplesWithLongform = new Set<string>()
+    const couplesWithLongformPending2025 = new Set<string>()
+    const couplesWithLongformPending2026 = new Set<string>()
+
     for (const j of jobs) {
-      if (!counts[j.job_type]) counts[j.job_type] = {}
-      counts[j.job_type][j.status] = (counts[j.job_type][j.status] || 0) + 1
+      if (j.job_type !== 'PROD-VID-LONGFORM') continue
+      couplesWithLongform.add(j.couple_id)
+      if (j.status === 'complete') continue
+      const wd = j.wedding_date || j.couples?.wedding_date
+      if (!wd) continue
+      if (wd >= '2025-01-01' && wd <= '2025-12-31') couplesWithLongformPending2025.add(j.couple_id)
+      else if (wd >= '2026-01-01' && wd <= '2026-12-31') couplesWithLongformPending2026.add(j.couple_id)
     }
-    const fullTotal = Object.values(counts['FULL'] || {}).reduce((s, n) => s + n, 0)
-    // Sidebar counts
-    const fullEditing = jobs.filter(j => j.job_type === 'FULL' && j.section === 'editing').length
-    const recapEditing = jobs.filter(j => j.job_type === 'RECAP' && j.section === 'editing').length
-    const slideshowEditing = jobs.filter(j => j.job_type === 'ENG_SLIDESHOW' && j.section === 'editing').length
 
-    // 2025 not_started FULL videos
-    const fullNotStarted2025 = jobs.filter(j => {
-      const wd = j.wedding_date || j.couples?.wedding_date
-      return j.job_type === 'FULL' && j.status === 'not_started' && wd && wd >= '2025-01-01' && wd <= '2025-12-31'
-    }).length
+    const remaining2025 = new Set<string>(couplesWithLongformPending2025)
+    const remaining2026 = new Set<string>(couplesWithLongformPending2026)
+    let waitingForPhoto = 0
 
-    // 2026 completed FULL videos
-    const fullCompleted2026 = jobs.filter(j => {
-      const wd = j.wedding_date || j.couples?.wedding_date
-      return j.job_type === 'FULL' && j.section === 'completed' && wd && wd >= '2026-01-01' && wd <= '2026-12-31'
+    for (const c of videoCouples) {
+      if (!c.wedding_date) continue
+      const isVideoYearMatch2025 = c.wedding_date >= '2025-01-01' && c.wedding_date <= '2025-12-31'
+      const isVideoYearMatch2026 = c.wedding_date >= '2026-01-01' && c.wedding_date <= '2026-12-31'
+      if (!couplesWithLongform.has(c.id)) {
+        if (isVideoYearMatch2025) remaining2025.add(c.id)
+        if (isVideoYearMatch2026) remaining2026.add(c.id)
+        if (c.wedding_date < todayStr) waitingForPhoto++
+      }
+    }
+
+    const completedIn2026 = jobs.filter(j => {
+      const wd = j.couples?.wedding_date
+      return j.job_type === 'PROD-VID-LONGFORM'
+        && j.status === 'complete'
+        && wd && wd >= '2026-01-01' && wd <= '2026-12-31'
     }).length
 
     return {
-      fullInProgress: counts['FULL']?.['in_progress'] || 0,
-      fullVideoOut: counts['FULL']?.['video_proofs_out'] || 0,
-      fullWaitingBride: counts['FULL']?.['waiting_for_bride'] || 0,
-      fullNotStarted: counts['FULL']?.['not_started'] || 0,
-      fullComplete: counts['FULL']?.['complete'] || 0,
-      fullTotal,
-      slideshowsNotStarted: counts['ENG_SLIDESHOW']?.['not_started'] || 0,
-      fullEditing,
-      recapEditing,
-      slideshowEditing,
-      fullNotStarted2025,
-      fullCompleted2026,
+      videoProofsOut: jobs.filter(j => j.status === 'video_proofs_out').length,
+      remaining2025: remaining2025.size,
+      remaining2026: remaining2026.size,
+      videosReadyToEdit: jobs.filter(j => j.job_type === 'PROD-VID-LONGFORM' && j.status === 'not_started').length,
+      recapsQueue: jobs.filter(j => j.job_type === 'PROD-VID-RECAP' && j.status !== 'complete').length,
+      slideshowsQueue: jobs.filter(j => j.job_type === 'PROD-VID-SLIDESHOW' && j.status !== 'complete').length,
+      waitingForPhoto,
+      completedIn2026,
     }
-  }, [jobs])
+  }, [jobs, videoCouples])
 
   const edited2026Stats = useMemo(() => {
     const completed = jobs.filter(j => j.completed_date && j.completed_date >= '2026-01-01')
     const typeCounts: Record<string, number> = {}
     completed.forEach(j => { typeCounts[j.job_type] = (typeCounts[j.job_type] || 0) + 1 })
-    const full = typeCounts['FULL'] || 0
-    const recap = typeCounts['RECAP'] || 0
+    const full = typeCounts['PROD-VID-LONGFORM'] || 0
+    const recap = typeCounts['PROD-VID-RECAP'] || 0
     // Build ordered breakdown with actual type labels uppercase
-    const typeOrder = ['FULL', 'RECAP']
+    const typeOrder = ['PROD-VID-LONGFORM', 'PROD-VID-RECAP', 'PROD-VID-SLIDESHOW']
     const breakdown = Object.entries(typeCounts)
       .sort(([a], [b]) => {
         const ai = typeOrder.indexOf(a), bi = typeOrder.indexOf(b)
@@ -531,10 +549,10 @@ export default function VideoProductionPage() {
         if (bi >= 0) return 1
         return a.localeCompare(b)
       })
-      .map(([type, count]) => ({
-        label: (type === 'ENG_SLIDESHOW' ? 'SLIDESHOW' : type.replace(/_/g, ' ')).toUpperCase(),
-        count,
-      }))
+      .map(([type, count]) => {
+        const friendly = (JOB_TYPE_LABELS[type] || type.replace(/^PROD-VID-/, '').replace(/_/g, ' ')).toUpperCase()
+        return { label: friendly, count }
+      })
     return { total: completed.length, full, recap, other: completed.length - full - recap, breakdown }
   }, [jobs])
 
@@ -551,7 +569,7 @@ export default function VideoProductionPage() {
   }, [jobs, search])
 
   const videosRemainingByYear = useMemo(() => {
-    let result = jobs.filter(j => j.job_type === 'FULL' && j.status !== 'complete')
+    let result = jobs.filter(j => j.job_type === 'PROD-VID-LONGFORM' && j.status !== 'complete')
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter(j =>
@@ -994,7 +1012,7 @@ export default function VideoProductionPage() {
     <div className="space-y-0">
       <ProductionPageHeader
         title="Video Production"
-        subtitle={`${jobs.filter(j => j.section === 'editing' && j.status !== 'video_proofs_out').length} active jobs`}
+        subtitle={`${jobs.filter(j => j.status !== 'complete' && j.status !== 'video_proofs_out' && j.status !== 'archived').length} active jobs`}
         actionLabel="+ Add Job"
         actionHref="/admin/production/editing/new"
       />
@@ -1255,7 +1273,7 @@ export default function VideoProductionPage() {
                         onClick={() => setShowCompleted(!showCompleted)}
                         className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        {showCompleted ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type !== 'RECAP' && j.job_type !== 'ENG_SLIDESHOW').length})
+                        {showCompleted ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type === 'PROD-VID-LONGFORM').length})
                       </button>
                     </div>
                   )}
@@ -1264,7 +1282,7 @@ export default function VideoProductionPage() {
                       onClick={() => setShowCompletedRecaps(!showCompletedRecaps)}
                       className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {showCompletedRecaps ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type === 'RECAP').length})
+                      {showCompletedRecaps ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type === 'PROD-VID-RECAP').length})
                     </button>
                   )}
                   {lane.key === 'editing_eng_slideshow' && (
@@ -1272,7 +1290,7 @@ export default function VideoProductionPage() {
                       onClick={() => setShowCompletedSlideshows(!showCompletedSlideshows)}
                       className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {showCompletedSlideshows ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type === 'ENG_SLIDESHOW').length})
+                      {showCompletedSlideshows ? 'Hide' : 'Show'} Completed ({processedJobs.completed.filter(j => j.job_type === 'PROD-VID-SLIDESHOW').length})
                     </button>
                   )}
                 </div>
@@ -1373,14 +1391,14 @@ export default function VideoProductionPage() {
         </div>
 
         <ProductionSidebar boxes={[
-          { label: 'VIDEO PROOFS OUT', value: pipelineStats.fullVideoOut, scrollToId: 'section-video-out', color: 'teal' },
-          { label: '2025 VIDEOS REMAINING', value: pipelineStats.fullNotStarted2025, scrollToId: 'section-videos-remaining', color: 'teal' },
-          { label: '2026 VIDEOS REMAINING', value: Math.max(0, booked2026Count - pipelineStats.fullCompleted2026), scrollToId: 'section-videos-remaining', color: 'teal' },
-          { label: 'VIDEOS READY TO EDIT', value: pipelineStats.fullEditing, scrollToId: 'section-editing_full', color: 'teal' },
-          { label: 'RECAPS QUEUE', value: pipelineStats.recapEditing, scrollToId: 'section-editing_recap', color: 'teal' },
-          { label: 'SLIDESHOWS QUEUE', value: pipelineStats.slideshowEditing, scrollToId: 'section-editing_eng_slideshow', color: 'teal' },
-          { label: 'WAITING FOR PHOTO', value: awaitingOrderCouples.length, scrollToId: 'section-video-out', color: 'red' },
-          { label: 'COMPLETED IN 2026', value: completed2026JobsList.length, scrollToId: 'section-completed-2026', color: 'teal' },
+          { label: 'VIDEO PROOFS OUT', value: sidebarMetrics.videoProofsOut, scrollToId: 'section-video-out', color: 'teal' },
+          { label: '2025 VIDEOS REMAINING', value: sidebarMetrics.remaining2025, scrollToId: 'section-videos-remaining', color: 'teal' },
+          { label: '2026 VIDEOS REMAINING', value: sidebarMetrics.remaining2026, scrollToId: 'section-videos-remaining', color: 'teal' },
+          { label: 'VIDEOS READY TO EDIT', value: sidebarMetrics.videosReadyToEdit, scrollToId: 'section-editing_full', color: 'teal' },
+          { label: 'RECAPS QUEUE', value: sidebarMetrics.recapsQueue, scrollToId: 'section-editing_recap', color: 'teal' },
+          { label: 'SLIDESHOWS QUEUE', value: sidebarMetrics.slideshowsQueue, scrollToId: 'section-editing_eng_slideshow', color: 'teal' },
+          { label: 'WAITING FOR PHOTO', value: sidebarMetrics.waitingForPhoto, scrollToId: 'section-video-out', color: 'red' },
+          { label: 'COMPLETED IN 2026', value: sidebarMetrics.completedIn2026, scrollToId: 'section-completed-2026', color: 'teal' },
         ]} />
       </div>
 

@@ -8,4 +8,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #6147 | 12:18 PM | 🔵 | Book Appointment modal implementation examined | ~487 |
+
+### May 1, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #8361 | 3:21 PM | 🟣 | Production Checklist Job Status Dropdown (WO-1008) | ~726 |
 </claude-mem-context>

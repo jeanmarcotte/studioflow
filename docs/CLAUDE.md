@@ -15,4 +15,16 @@
 |----|------|---|-------|------|
 | #8019 | 2:24 PM | 🟣 | Portal Admin list page redesigned with stats and sortable table | ~314 |
 | #8018 | " | ✅ | Updated PAGES.md documentation with Portal Admin List route | ~257 |
+
+### May 1, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #8361 | 3:21 PM | 🟣 | Production Checklist Job Status Dropdown (WO-1008) | ~726 |
+
+### May 3, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #8387 | 12:27 PM | 🔵 | Video Job Type Migration Scope Identified | ~407 |
 </claude-mem-context>

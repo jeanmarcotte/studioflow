@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #8361 | 3:21 PM | 🟣 | Production Checklist Job Status Dropdown (WO-1008) | ~726 |
 | #8350 | 3:15 PM | 🔵 | Existing job update API pattern with status history tracking | ~384 |
 </claude-mem-context>

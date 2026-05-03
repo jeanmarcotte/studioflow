@@ -99,34 +99,7 @@
 | src/app/admin/production/report/page.tsx | 741 | `${formatVideoJobType(job.job_type)}` — display | NEEDS REVIEW (use product_catalog.item_name) |
 | src/app/admin/production/report/page.tsx | 843 | `${formatVideoJobType(job.job_type)}` — display | NEEDS REVIEW |
 | src/app/admin/production/report/page.tsx | 879 | `${formatVideoJobType(job.job_type)}` — display | NEEDS REVIEW |
-| src/app/admin/production/video/page.tsx | 23 | `job_type: string` — interface field | NEEDS REVIEW |
-| src/app/admin/production/video/page.tsx | 373 | `if (showCompleted && job.job_type !== 'RECAP' && job.job_type !== 'ENG_SLIDESHOW')` — filter | YES (filter by `product_code NOT IN ('PROD-VID-RECAP','PROD-VID-SLIDESHOW')`) |
-| src/app/admin/production/video/page.tsx | 376 | `if (showCompletedRecaps && job.job_type === 'RECAP')` — filter | YES (`product_code = 'PROD-VID-RECAP'`) |
-| src/app/admin/production/video/page.tsx | 379 | `if (showCompletedSlideshows && job.job_type === 'ENG_SLIDESHOW')` — filter | YES (`product_code = 'PROD-VID-SLIDESHOW'`) |
-| src/app/admin/production/video/page.tsx | 384 | `} else if (job.job_type === 'RECAP') {` — branch | YES |
-| src/app/admin/production/video/page.tsx | 386 | `} else if (job.job_type === 'ENG_SLIDESHOW') {` — branch | YES |
-| src/app/admin/production/video/page.tsx | 418 | `jobs.filter(j => j.job_type === 'RECAP' && j.section !== 'completed').length` — count | YES |
-| src/app/admin/production/video/page.tsx | 419 | `jobs.filter(j => j.job_type === 'ENG_SLIDESHOW' && j.section !== 'completed').length` — count | YES |
-| src/app/admin/production/video/page.tsx | 438 | `j.job_type === 'FULL' && j.status !== 'complete' && wd >= '2025-…'` — filter | YES (`product_code = 'PROD-VID-LONGFORM'`) |
-| src/app/admin/production/video/page.tsx | 442 | `j.job_type === 'FULL' && … '2026-…'` — filter | YES |
-| src/app/admin/production/video/page.tsx | 446 | `j.job_type === 'FULL' && … '2027-…'` — filter | YES |
-| src/app/admin/production/video/page.tsx | 481 | `if (!counts[j.job_type]) counts[j.job_type] = {}` — group key | YES (group by product_code) |
-| src/app/admin/production/video/page.tsx | 482 | `counts[j.job_type][j.status] = (counts[j.job_type][j.status] \|\| 0) + 1` — group | YES |
-| src/app/admin/production/video/page.tsx | 486 | `j.job_type === 'FULL' && j.section === 'editing'` — filter | YES |
-| src/app/admin/production/video/page.tsx | 487 | `j.job_type === 'RECAP' && j.section === 'editing'` — filter | YES |
-| src/app/admin/production/video/page.tsx | 488 | `j.job_type === 'ENG_SLIDESHOW' && j.section === 'editing'` — filter | YES |
-| src/app/admin/production/video/page.tsx | 493 | `j.job_type === 'FULL' && j.status === 'not_started' && wd >= '2025-…'` — filter | YES |
-| src/app/admin/production/video/page.tsx | 499 | `j.job_type === 'FULL' && j.section === 'completed' && wd >= '2026-…'` — filter | YES |
-| src/app/admin/production/video/page.tsx | 521 | `completed.forEach(j => { typeCounts[j.job_type] = … })` — group | YES |
-| src/app/admin/production/video/page.tsx | 554 | `jobs.filter(j => j.job_type === 'FULL' && j.status !== 'complete')` — filter | YES |
-| src/app/admin/production/video/page.tsx | 604 | `accessorFn: (row) => row.product_code ?? JOB_TYPE_LABELS[row.job_type] ?? row.job_type` — sort key | YES (drop fallback once product_code NOT NULL) |
-| src/app/admin/production/video/page.tsx | 606 | `row.original.product_code ?? JOB_TYPE_LABELS[row.original.job_type] ?? row.original.job_type` — cell | YES |
-| src/app/admin/production/video/page.tsx | 759 | `accessorFn: (row) => row.product_code ?? JOB_TYPE_LABELS[row.job_type] ?? row.job_type` — sort key | YES |
-| src/app/admin/production/video/page.tsx | 762 | `row.original.product_code ?? JOB_TYPE_LABELS[row.original.job_type] ?? row.original.job_type` — cell | YES |
-| src/app/admin/production/video/page.tsx | 1132 | `JOB_TYPE_LABELS[job.job_type] \|\| job.job_type` — cell | NEEDS REVIEW (use product_catalog.item_name) |
-| src/app/admin/production/video/page.tsx | 1258 | `processedJobs.completed.filter(j => j.job_type !== 'RECAP' && j.job_type !== 'ENG_SLIDESHOW').length` — count | YES |
-| src/app/admin/production/video/page.tsx | 1267 | `processedJobs.completed.filter(j => j.job_type === 'RECAP').length` — count | YES |
-| src/app/admin/production/video/page.tsx | 1275 | `processedJobs.completed.filter(j => j.job_type === 'ENG_SLIDESHOW').length` — count | YES |
+| src/app/admin/production/video/page.tsx | (all) | All `'FULL'` / `'RECAP'` / `'ENG_SLIDESHOW'` literals migrated to `'PROD-VID-LONGFORM'` / `'PROD-VID-RECAP'` / `'PROD-VID-SLIDESHOW'` (the values now stored in `video_jobs.job_type`). `JOB_TYPE_LABELS` keys updated to match. Interface field + label fallbacks remain — drop after `product_code` is NOT NULL. | RESOLVED 2026-05-03 (FIX-VIDEO-PRODUCTION-PAGE.md) |
 | src/app/api/admin/reports/send-production-report/route.ts | 188 | `videoCompleted2026.forEach((v) => { vidTypeCounts[v.job_type] = … })` — count | YES (key by product_code) |
 | src/app/api/admin/reports/send-production-report/route.ts | 352 | `${formatVideoJobType(vj.job_type)}` — HTML cell | NEEDS REVIEW (use product_catalog.item_name) |
 | src/app/api/admin/reports/send-production-report/route.ts | 399 | `${formatVideoJobType(vj.job_type)}` — HTML cell | NEEDS REVIEW |

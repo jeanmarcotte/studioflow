@@ -8,5 +8,4 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #8361 | 3:21 PM | 🟣 | Production Checklist Job Status Dropdown (WO-1008) | ~726 |
-| #8354 | 3:19 PM | 🟣 | Client-side handler for job status updates in production checklist | ~417 |
 </claude-mem-context>
