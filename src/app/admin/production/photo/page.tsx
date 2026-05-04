@@ -158,7 +158,7 @@ export default function PhotoProductionPage() {
   const [filterVendor, setFilterVendor] = useState('')
 
   // Collapsed lanes
-  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['not_started', 'proofs_delivered', 'waiting_approval', 'ready_to_order', 'at_lab', 'at_studio', 'on_hold']))
+  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set(['not_started', 'proofs_delivered', 'waiting_approval', 'ready_to_order', 'at_lab', 'at_studio', 'on_hold', 'upcoming']))
 
   // Stats (fetched separately since main query excludes completed)
   const [completedCount, setCompletedCount] = useState(0)
@@ -477,12 +477,38 @@ export default function PhotoProductionPage() {
 
   // ── Lane data ─────────────────────────────────────────────────
 
+  const todayStr = new Date().toISOString().slice(0, 10)
+
+  // WO-1034: a not_started job is only "Ready to Start" once the wedding has happened.
+  // Future-dated not_started jobs are surfaced separately as "Upcoming".
+  const isReadyToStart = (j: Job) => {
+    if (j.status !== 'not_started') return false
+    const wd = j.couples?.wedding_date
+    return !!wd && wd <= todayStr
+  }
+  const isUpcoming = (j: Job) => {
+    if (j.status !== 'not_started') return false
+    const wd = j.couples?.wedding_date
+    return !!wd && wd > todayStr
+  }
+  const byWeddingDateAsc = (a: Job, b: Job) =>
+    (a.couples?.wedding_date || '9999').localeCompare(b.couples?.wedding_date || '9999')
+
   const laneData = useMemo(() => {
-    return LANES.map(lane => ({
-      ...lane,
-      jobs: filteredJobs.filter(j => j.status === lane.key),
-    }))
-  }, [filteredJobs])
+    return LANES.map(lane => {
+      let laneJobs = filteredJobs.filter(j => j.status === lane.key)
+      if (lane.key === 'not_started') {
+        laneJobs = laneJobs.filter(isReadyToStart).sort(byWeddingDateAsc)
+      }
+      return { ...lane, jobs: laneJobs }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredJobs, todayStr])
+
+  const upcomingJobs = useMemo(() => {
+    return filteredJobs.filter(isUpcoming).sort(byWeddingDateAsc)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredJobs, todayStr])
 
   const activeCount = jobs.length
 
@@ -492,9 +518,9 @@ export default function PhotoProductionPage() {
     reeditCount: jobs.filter(j => j.status === 'ready_to_reedit' || j.status === 'reediting').length,
     atLabCount: jobs.filter(j => j.status === 'at_lab').length,
     readyToOrderCount: jobs.filter(j => j.status === 'ready_to_order').length,
-    notStartedCount: jobs.filter(j => j.status === 'not_started').length,
+    notStartedCount: jobs.filter(j => j.status === 'not_started' && j.couples?.wedding_date && j.couples.wedding_date <= todayStr).length,
     photosPercent: totalProofsAll > 0 ? Math.round((editedSoFar / totalProofsAll) * 100) : 0,
-  }), [jobs, editedSoFar, totalProofsAll])
+  }), [jobs, editedSoFar, totalProofsAll, todayStr])
 
   // ── Currently Editing data ───────────────────────────────────
 
@@ -1244,6 +1270,35 @@ export default function PhotoProductionPage() {
                 </div>
               )
             })}
+
+            {/* WO-1034: Upcoming — future-wedding not_started jobs (informational) */}
+            <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20">
+              <button
+                onClick={() => toggleLane('upcoming')}
+                className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  {collapsedLanes.has('upcoming')
+                    ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  }
+                  <span className="font-semibold text-sm text-muted-foreground">📅 Upcoming</span>
+                  <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-muted text-muted-foreground">
+                    {upcomingJobs.length}
+                  </span>
+                </div>
+              </button>
+              {!collapsedLanes.has('upcoming') && upcomingJobs.length > 0 && (
+                <div className="border-t opacity-80">
+                  <DataTable columns={laneColumns} data={upcomingJobs} showPagination={false} emptyMessage="No upcoming jobs" />
+                </div>
+              )}
+              {!collapsedLanes.has('upcoming') && upcomingJobs.length === 0 && (
+                <div className="border-t px-4 py-6 text-center text-sm text-muted-foreground">
+                  No upcoming jobs
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ⏸️ WAITING FOR PHOTO ORDER */}
