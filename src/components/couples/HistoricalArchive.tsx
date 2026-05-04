@@ -14,7 +14,6 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { formatWeddingDate } from '@/lib/formatters'
 import { YearSelector, type YearValue } from './YearSelector'
-import { HistoricalCoupleSheet } from './HistoricalCoupleSheet'
 import {
   companyFor,
   type Company,
@@ -23,23 +22,30 @@ import {
 
 const COUPLES_TABLE_MIN_YEAR = 2025
 
-interface RowShape extends HistoricalCouple {
-  rowNum: number
-  company: Company
-}
+type ArchiveSource = 'couples' | 'historical'
 
-interface CouplesArchiveRow {
+interface UnifiedArchiveRow {
   id: string
+  source: ArchiveSource
   bride_first_name: string | null
   bride_last_name: string | null
   groom_first_name: string | null
   groom_last_name: string | null
+  bride_email: string | null
+  groom_email: string | null
+  phone_1: string | null
+  phone_2: string | null
+  ceremony_venue: string | null
+  reception_venue: string | null
+  park_name: string | null
   wedding_date: string | null
   wedding_year: number | null
+  glacier_archived: boolean | null
+  company: Company
   rowNum: number
 }
 
-const SEARCH_FIELDS: (keyof HistoricalCouple)[] = [
+const SEARCH_TEXT_FIELDS: (keyof UnifiedArchiveRow)[] = [
   'bride_first_name',
   'bride_last_name',
   'groom_first_name',
@@ -53,27 +59,6 @@ const SEARCH_FIELDS: (keyof HistoricalCouple)[] = [
   'park_name',
 ]
 
-const COUPLES_SEARCH_FIELDS: (keyof CouplesArchiveRow)[] = [
-  'bride_first_name',
-  'bride_last_name',
-  'groom_first_name',
-  'groom_last_name',
-]
-
-function CompanyBadge({ company }: { company: Company }) {
-  const cls =
-    company === 'SIGS'
-      ? 'bg-teal-100 text-teal-700'
-      : company === 'Excellence'
-        ? 'bg-green-100 text-green-700'
-        : 'bg-gray-100 text-gray-600'
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>
-      {company}
-    </span>
-  )
-}
-
 function ArchiveStatusBadge({ verified }: { verified: boolean }) {
   const cls = verified
     ? 'bg-green-100 text-green-700'
@@ -85,71 +70,27 @@ function ArchiveStatusBadge({ verified }: { verified: boolean }) {
   )
 }
 
-const columnHelper = createColumnHelper<RowShape>()
-const couplesColumnHelper = createColumnHelper<CouplesArchiveRow>()
+function isVerified(row: UnifiedArchiveRow): boolean {
+  if (row.source === 'historical') return row.glacier_archived === true
+  return false
+}
 
-function buildHistoricalColumns() {
+function detailHrefFor(row: UnifiedArchiveRow): string {
+  return row.source === 'couples'
+    ? `/admin/couples/${row.id}`
+    : `/admin/archives/${row.id}`
+}
+
+const columnHelper = createColumnHelper<UnifiedArchiveRow>()
+
+function buildColumns() {
   return [
     columnHelper.accessor('rowNum', {
       header: '#',
       cell: info => <span className="text-muted-foreground">{info.getValue()}</span>,
       size: 40,
     }),
-    columnHelper.accessor(row => row.bride_first_name ?? '', {
-      id: 'bride',
-      header: 'Bride',
-      cell: info => {
-        const r = info.row.original
-        const name = [r.bride_first_name, r.bride_last_name].filter(Boolean).join(' ').trim()
-        return name || <span className="text-muted-foreground/40">—</span>
-      },
-    }),
-    columnHelper.accessor(row => row.groom_first_name ?? '', {
-      id: 'groom',
-      header: 'Groom',
-      cell: info => {
-        const r = info.row.original
-        const name = [r.groom_first_name, r.groom_last_name].filter(Boolean).join(' ').trim()
-        return name || <span className="text-muted-foreground/40">—</span>
-      },
-    }),
-    columnHelper.accessor(row => row.wedding_date ?? '', {
-      id: 'wedding_date',
-      header: 'Wedding Date',
-      cell: info => {
-        const v = info.row.original.wedding_date
-        if (!v) {
-          const yr = info.row.original.wedding_year
-          return yr ? <span className="text-muted-foreground">{yr}</span> : <span className="text-muted-foreground/40">—</span>
-        }
-        return formatWeddingDate(v)
-      },
-    }),
-    columnHelper.accessor(row => row.ceremony_venue ?? '', {
-      id: 'ceremony',
-      header: 'Ceremony',
-      cell: info => info.row.original.ceremony_venue || <span className="text-muted-foreground/40">—</span>,
-    }),
-    columnHelper.accessor(row => row.reception_venue ?? '', {
-      id: 'reception',
-      header: 'Reception',
-      cell: info => info.row.original.reception_venue || <span className="text-muted-foreground/40">—</span>,
-    }),
-    columnHelper.accessor('company', {
-      header: 'Company',
-      cell: info => <CompanyBadge company={info.getValue()} />,
-    }),
-  ]
-}
-
-function buildCouplesColumns() {
-  return [
-    couplesColumnHelper.accessor('rowNum', {
-      header: '#',
-      cell: info => <span className="text-muted-foreground">{info.getValue()}</span>,
-      size: 40,
-    }),
-    couplesColumnHelper.accessor(
+    columnHelper.accessor(
       row => [row.bride_first_name, row.groom_first_name].filter(Boolean).join(' & '),
       {
         id: 'couple_name',
@@ -164,7 +105,7 @@ function buildCouplesColumns() {
           }
           return (
             <Link
-              href={`/admin/couples/${r.id}`}
+              href={detailHrefFor(r)}
               className="text-blue-600 hover:underline font-medium"
             >
               {label}
@@ -173,42 +114,44 @@ function buildCouplesColumns() {
         },
       },
     ),
-    couplesColumnHelper.accessor(row => row.wedding_date ?? '', {
+    columnHelper.accessor(row => row.wedding_date ?? '', {
       id: 'wedding_date',
       header: 'Wedding Date',
       cell: info => {
-        const v = info.row.original.wedding_date
-        if (!v) return <span className="text-muted-foreground/40">—</span>
-        return formatWeddingDate(v)
+        const r = info.row.original
+        if (r.wedding_date) return formatWeddingDate(r.wedding_date)
+        if (r.wedding_year != null) {
+          return <span className="text-muted-foreground">{r.wedding_year}</span>
+        }
+        return <span className="text-muted-foreground/40">—</span>
+      },
+      sortingFn: (a, b, columnId) => {
+        const av = a.original.wedding_date
+        const bv = b.original.wedding_date
+        // Rows without a date sort to the end (regardless of asc/desc)
+        if (!av && !bv) return 0
+        if (!av) return 1
+        if (!bv) return -1
+        return av.localeCompare(bv)
       },
     }),
-    couplesColumnHelper.display({
+    columnHelper.display({
       id: 'archive_status',
       header: 'Archive Status',
-      cell: () => <ArchiveStatusBadge verified={false} />,
+      cell: info => <ArchiveStatusBadge verified={isVerified(info.row.original)} />,
     }),
   ]
 }
 
-function HistoricalYearGroup({
-  year,
+function ArchiveTable({
   rows,
-  expanded,
-  onToggle,
-  onRowClick,
+  initialSort,
 }: {
-  year: number
-  rows: RowShape[]
-  expanded: boolean
-  onToggle: (year: number) => void
-  onRowClick: (c: HistoricalCouple) => void
+  rows: UnifiedArchiveRow[]
+  initialSort: SortingState
 }) {
-  const [sorting, setSorting] = useState<SortingState>([])
-
-  const sigsCount = useMemo(() => rows.filter(r => r.company === 'SIGS').length, [rows])
-  const excellenceCount = useMemo(() => rows.filter(r => r.company === 'Excellence').length, [rows])
-
-  const columns = useMemo(() => buildHistoricalColumns(), [])
+  const [sorting, setSorting] = useState<SortingState>(initialSort)
+  const columns = useMemo(() => buildColumns(), [])
 
   const table = useReactTable({
     data: rows,
@@ -220,106 +163,62 @@ function HistoricalYearGroup({
   })
 
   return (
-    <div className="border-b last:border-b-0">
-      <button
-        type="button"
-        onClick={() => onToggle(year)}
-        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors text-sm"
-      >
-        <span className="flex items-center gap-2">
-          {expanded ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-          <span className="font-semibold">{year}</span>
-          <span className="text-muted-foreground">
-            ({rows.length} couple{rows.length !== 1 ? 's' : ''})
-          </span>
-        </span>
-        <span className="flex items-center gap-2">
-          {sigsCount > 0 && (
-            <span className="inline-flex items-center rounded-full bg-teal-100 text-teal-700 px-2 py-0.5 text-xs font-medium">
-              SIGS {sigsCount}
-            </span>
-          )}
-          {excellenceCount > 0 && (
-            <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-medium">
-              Excellence {excellenceCount}
-            </span>
-          )}
-        </span>
-      </button>
-      {expanded && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100">
-              {table.getHeaderGroups().map(hg => (
-                <tr key={hg.id}>
-                  {hg.headers.map(h => (
-                    <th
-                      key={h.id}
-                      className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-200 select-none whitespace-nowrap"
-                      onClick={h.column.getToggleSortingHandler()}
-                    >
-                      <span className="flex items-center gap-1">
-                        {flexRender(h.column.columnDef.header, h.getContext())}
-                        {{ asc: ' ↑', desc: ' ↓' }[h.column.getIsSorted() as string] ?? null}
-                      </span>
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map((row, i) => (
-                <tr
-                  key={row.id}
-                  onClick={() => onRowClick(row.original)}
-                  className={`cursor-pointer hover:bg-blue-50 transition-colors ${
-                    i % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                  }`}
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-100">
+          {table.getHeaderGroups().map(hg => (
+            <tr key={hg.id}>
+              {hg.headers.map(h => (
+                <th
+                  key={h.id}
+                  className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-200 select-none whitespace-nowrap"
+                  onClick={h.column.getToggleSortingHandler()}
                 >
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-4 py-2 align-top">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
+                  <span className="flex items-center gap-1">
+                    {flexRender(h.column.columnDef.header, h.getContext())}
+                    {{ asc: ' ↑', desc: ' ↓' }[h.column.getIsSorted() as string] ?? null}
+                  </span>
+                </th>
               ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            </tr>
+          ))}
+        </thead>
+        <tbody>
+          {table.getRowModel().rows.map((row, i) => (
+            <tr
+              key={row.id}
+              className={`hover:bg-blue-50 transition-colors ${
+                i % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+              }`}
+            >
+              {row.getVisibleCells().map(cell => (
+                <td key={cell.id} className="px-4 py-2 align-top">
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
 
-function CouplesYearGroup({
+function YearGroup({
   year,
   rows,
   expanded,
   onToggle,
+  showCompanyCounts,
 }: {
   year: number
-  rows: CouplesArchiveRow[]
+  rows: UnifiedArchiveRow[]
   expanded: boolean
   onToggle: (year: number) => void
+  showCompanyCounts: boolean
 }) {
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: 'wedding_date', desc: false },
-  ])
-
-  const columns = useMemo(() => buildCouplesColumns(), [])
-
-  const table = useReactTable({
-    data: rows,
-    columns,
-    state: { sorting },
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-  })
+  const sigsCount = useMemo(() => rows.filter(r => r.company === 'SIGS').length, [rows])
+  const excellenceCount = useMemo(() => rows.filter(r => r.company === 'Excellence').length, [rows])
 
   return (
     <div className="border-b last:border-b-0">
@@ -339,46 +238,26 @@ function CouplesYearGroup({
             ({rows.length} couple{rows.length !== 1 ? 's' : ''})
           </span>
         </span>
+        {showCompanyCounts && (
+          <span className="flex items-center gap-2">
+            {sigsCount > 0 && (
+              <span className="inline-flex items-center rounded-full bg-teal-100 text-teal-700 px-2 py-0.5 text-xs font-medium">
+                SIGS {sigsCount}
+              </span>
+            )}
+            {excellenceCount > 0 && (
+              <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-medium">
+                Excellence {excellenceCount}
+              </span>
+            )}
+          </span>
+        )}
       </button>
       {expanded && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100">
-              {table.getHeaderGroups().map(hg => (
-                <tr key={hg.id}>
-                  {hg.headers.map(h => (
-                    <th
-                      key={h.id}
-                      className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-200 select-none whitespace-nowrap"
-                      onClick={h.column.getToggleSortingHandler()}
-                    >
-                      <span className="flex items-center gap-1">
-                        {flexRender(h.column.columnDef.header, h.getContext())}
-                        {{ asc: ' ↑', desc: ' ↓' }[h.column.getIsSorted() as string] ?? null}
-                      </span>
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map((row, i) => (
-                <tr
-                  key={row.id}
-                  className={`hover:bg-blue-50 transition-colors ${
-                    i % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                  }`}
-                >
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-4 py-2 align-top">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ArchiveTable
+          rows={rows}
+          initialSort={[{ id: 'wedding_date', desc: false }]}
+        />
       )}
     </div>
   )
@@ -387,15 +266,13 @@ function CouplesYearGroup({
 export function HistoricalArchive() {
   const [isOpen, setIsOpen] = useState(true)
   const [historicalCouples, setHistoricalCouples] = useState<HistoricalCouple[]>([])
-  const [couplesTableRows, setCouplesTableRows] = useState<CouplesArchiveRow[]>([])
+  const [couplesTableRows, setCouplesTableRows] = useState<UnifiedArchiveRow[]>([])
   const [loading, setLoading] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [yearFilter, setYearFilter] = useState<YearValue>('all')
   const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set())
-  const [selected, setSelected] = useState<HistoricalCouple | null>(null)
-  const [sheetOpen, setSheetOpen] = useState(false)
   const tableRef = useRef<HTMLDivElement | null>(null)
 
   // Lazy-fetch on first expand
@@ -424,17 +301,27 @@ export function HistoricalArchive() {
         setHistoricalCouples((historicalRes.data ?? []) as HistoricalCouple[])
       }
       if (!couplesRes.error && couplesRes.data) {
-        const rows: CouplesArchiveRow[] = couplesRes.data.map((r: any, i: number) => ({
+        const rows: UnifiedArchiveRow[] = couplesRes.data.map((r: any) => ({
           id: r.id,
-          bride_first_name: r.bride_first_name,
-          bride_last_name: r.bride_last_name,
-          groom_first_name: r.groom_first_name,
-          groom_last_name: r.groom_last_name,
-          wedding_date: r.wedding_date,
+          source: 'couples',
+          bride_first_name: r.bride_first_name ?? null,
+          bride_last_name: r.bride_last_name ?? null,
+          groom_first_name: r.groom_first_name ?? null,
+          groom_last_name: r.groom_last_name ?? null,
+          bride_email: null,
+          groom_email: null,
+          phone_1: null,
+          phone_2: null,
+          ceremony_venue: null,
+          reception_venue: null,
+          park_name: null,
+          wedding_date: r.wedding_date ?? null,
           wedding_year:
             r.wedding_year ??
             (r.wedding_date ? new Date(r.wedding_date + 'T12:00:00').getFullYear() : null),
-          rowNum: i + 1,
+          glacier_archived: null,
+          company: 'SIGS',
+          rowNum: 0,
         }))
         setCouplesTableRows(rows)
       }
@@ -449,124 +336,111 @@ export function HistoricalArchive() {
     return () => clearTimeout(t)
   }, [search])
 
-  // Years available — combined from both data sources
-  const years = useMemo(() => {
-    const set = new Set<number>()
-    for (const c of historicalCouples) {
-      if (c.wedding_year != null && c.wedding_year < COUPLES_TABLE_MIN_YEAR) set.add(c.wedding_year)
-    }
-    for (const r of couplesTableRows) {
-      if (r.wedding_year != null && r.wedding_year >= COUPLES_TABLE_MIN_YEAR) set.add(r.wedding_year)
-    }
-    return Array.from(set).sort((a, b) => b - a)
-  }, [historicalCouples, couplesTableRows])
-
-  const enrichedHistorical: RowShape[] = useMemo(
+  const enrichedHistorical: UnifiedArchiveRow[] = useMemo(
     () =>
       historicalCouples
         .filter(c => c.wedding_year == null || c.wedding_year < COUPLES_TABLE_MIN_YEAR)
-        .map((c, i) => ({
-          ...c,
-          rowNum: i + 1,
+        .map(c => ({
+          id: c.id,
+          source: 'historical',
+          bride_first_name: c.bride_first_name,
+          bride_last_name: c.bride_last_name,
+          groom_first_name: c.groom_first_name,
+          groom_last_name: c.groom_last_name,
+          bride_email: c.bride_email,
+          groom_email: c.groom_email,
+          phone_1: c.phone_1,
+          phone_2: c.phone_2,
+          ceremony_venue: c.ceremony_venue,
+          reception_venue: c.reception_venue,
+          park_name: c.park_name,
+          wedding_date: c.wedding_date,
+          wedding_year: c.wedding_year,
+          glacier_archived: c.glacier_archived,
           company: companyFor(c),
+          rowNum: 0,
         })),
     [historicalCouples],
   )
 
-  const filteredHistorical = useMemo(() => {
-    let result = enrichedHistorical
-    if (yearFilter !== 'all') {
-      if (typeof yearFilter === 'number' && yearFilter >= COUPLES_TABLE_MIN_YEAR) {
-        return []
-      }
-      result = result.filter(r => r.wedding_year === yearFilter)
+  // Years available — combined from both data sources
+  const years = useMemo(() => {
+    const set = new Set<number>()
+    for (const c of enrichedHistorical) {
+      if (c.wedding_year != null) set.add(c.wedding_year)
     }
-    if (debouncedSearch) {
-      const qDigits = debouncedSearch.replace(/\D/g, '')
-      result = result.filter(r => {
-        for (const f of SEARCH_FIELDS) {
-          const v = r[f]
-          if (typeof v === 'string' && v.toLowerCase().includes(debouncedSearch)) return true
-        }
-        if (qDigits) {
-          if (r.phone_1 && r.phone_1.replace(/\D/g, '').includes(qDigits)) return true
-          if (r.phone_2 && r.phone_2.replace(/\D/g, '').includes(qDigits)) return true
-        }
-        return false
-      })
+    for (const r of couplesTableRows) {
+      if (r.wedding_year != null) set.add(r.wedding_year)
     }
-    return result
-  }, [enrichedHistorical, yearFilter, debouncedSearch])
+    return Array.from(set).sort((a, b) => b - a)
+  }, [enrichedHistorical, couplesTableRows])
 
-  const filteredCouples = useMemo(() => {
-    let result = couplesTableRows
-    if (yearFilter !== 'all') {
-      if (typeof yearFilter === 'number' && yearFilter < COUPLES_TABLE_MIN_YEAR) {
-        return []
+  function applySearch(rows: UnifiedArchiveRow[], query: string): UnifiedArchiveRow[] {
+    if (!query) return rows
+    const qDigits = query.replace(/\D/g, '')
+    return rows.filter(r => {
+      for (const f of SEARCH_TEXT_FIELDS) {
+        const v = r[f]
+        if (typeof v === 'string' && v.toLowerCase().includes(query)) return true
       }
-      result = result.filter(r => r.wedding_year === yearFilter)
-    }
-    if (debouncedSearch) {
-      result = result.filter(r => {
-        for (const f of COUPLES_SEARCH_FIELDS) {
-          const v = r[f]
-          if (typeof v === 'string' && v.toLowerCase().includes(debouncedSearch)) return true
-        }
-        return false
-      })
-    }
-    return result
-  }, [couplesTableRows, yearFilter, debouncedSearch])
-
-  const totalHistorical = filteredHistorical.length
-  const totalCouples = filteredCouples.length
-  const totalCount = totalHistorical + totalCouples
-  const sigsCount = useMemo(() => filteredHistorical.filter(r => r.company === 'SIGS').length, [filteredHistorical])
-  const excellenceCount = useMemo(
-    () => filteredHistorical.filter(r => r.company === 'Excellence').length,
-    [filteredHistorical],
-  )
-
-  const historicalGroups = useMemo(() => {
-    const groups = new Map<number, RowShape[]>()
-    const undated: RowShape[] = []
-    for (const r of filteredHistorical) {
-      if (r.wedding_year == null) {
-        undated.push(r)
-      } else {
-        const arr = groups.get(r.wedding_year) ?? []
-        arr.push(r)
-        groups.set(r.wedding_year, arr)
+      if (qDigits) {
+        if (r.phone_1 && r.phone_1.replace(/\D/g, '').includes(qDigits)) return true
+        if (r.phone_2 && r.phone_2.replace(/\D/g, '').includes(qDigits)) return true
       }
-    }
-    const sorted = Array.from(groups.entries()).sort(([a], [b]) => b - a)
-    const renumberedGroups = sorted.map(([year, rows]) => {
-      const renum = rows.map((r, i) => ({ ...r, rowNum: i + 1 }))
-      return [year, renum] as const
+      return false
     })
-    const undatedRenum = undated.map((r, i) => ({ ...r, rowNum: i + 1 }))
-    return { groups: renumberedGroups, undated: undatedRenum }
-  }, [filteredHistorical])
+  }
 
-  const couplesGroups = useMemo(() => {
-    const groups = new Map<number, CouplesArchiveRow[]>()
-    for (const r of filteredCouples) {
-      if (r.wedding_year == null) continue
-      const arr = groups.get(r.wedding_year) ?? []
-      arr.push(r)
-      groups.set(r.wedding_year, arr)
-    }
-    const sorted = Array.from(groups.entries()).sort(([a], [b]) => b - a)
-    return sorted.map(([year, rows]) => {
-      const sortedRows = [...rows].sort((a, b) => {
-        const da = a.wedding_date ?? ''
-        const db = b.wedding_date ?? ''
-        return da.localeCompare(db)
-      })
-      const renum = sortedRows.map((r, i) => ({ ...r, rowNum: i + 1 }))
-      return [year, renum] as const
+  // Filtered rows for year-specific view
+  const filteredYearRows = useMemo(() => {
+    if (yearFilter === 'all') return [] as UnifiedArchiveRow[]
+    const isCouplesYear = typeof yearFilter === 'number' && yearFilter >= COUPLES_TABLE_MIN_YEAR
+    const source = isCouplesYear ? couplesTableRows : enrichedHistorical
+    const result = source.filter(r => r.wedding_year === yearFilter)
+    const searched = applySearch(result, debouncedSearch)
+    // Renumber, with rows having no wedding_date sorted to the end of group
+    const sorted = [...searched].sort((a, b) => {
+      const da = a.wedding_date ?? ''
+      const db = b.wedding_date ?? ''
+      if (!da && !db) return 0
+      if (!da) return 1
+      if (!db) return -1
+      return da.localeCompare(db)
     })
-  }, [filteredCouples])
+    return sorted.map((r, i) => ({ ...r, rowNum: i + 1 }))
+  }, [yearFilter, couplesTableRows, enrichedHistorical, debouncedSearch])
+
+  // Combined rows for ALL view
+  const combinedAllRows = useMemo(() => {
+    if (yearFilter !== 'all') return [] as UnifiedArchiveRow[]
+    const combined = [...couplesTableRows, ...enrichedHistorical]
+    const searched = applySearch(combined, debouncedSearch)
+    const sorted = [...searched].sort((a, b) => {
+      const da = a.wedding_date ?? ''
+      const db = b.wedding_date ?? ''
+      // Date desc; missing dates go last
+      if (!da && !db) return 0
+      if (!da) return 1
+      if (!db) return -1
+      return db.localeCompare(da)
+    })
+    return sorted.map((r, i) => ({ ...r, rowNum: i + 1 }))
+  }, [yearFilter, couplesTableRows, enrichedHistorical, debouncedSearch])
+
+  const totalCount =
+    yearFilter === 'all' ? combinedAllRows.length : filteredYearRows.length
+  const sigsCount = useMemo(() => {
+    const rows = yearFilter === 'all' ? combinedAllRows : filteredYearRows
+    return rows.filter(r => r.source === 'historical' && r.company === 'SIGS').length
+  }, [yearFilter, combinedAllRows, filteredYearRows])
+  const excellenceCount = useMemo(() => {
+    const rows = yearFilter === 'all' ? combinedAllRows : filteredYearRows
+    return rows.filter(r => r.source === 'historical' && r.company === 'Excellence').length
+  }, [yearFilter, combinedAllRows, filteredYearRows])
+
+  const showCompanyCountsInSummary =
+    yearFilter === 'all' ||
+    (typeof yearFilter === 'number' && yearFilter < COUPLES_TABLE_MIN_YEAR)
 
   const handleYearChange = (v: YearValue) => {
     setYearFilter(v)
@@ -590,16 +464,6 @@ export function HistoricalArchive() {
       return next
     })
   }
-
-  const hasSearch = debouncedSearch.length > 0
-
-  const handleHistoricalRowClick = (c: HistoricalCouple) => {
-    setSelected(c)
-    setSheetOpen(true)
-  }
-
-  const showCouplesOnlySummary =
-    typeof yearFilter === 'number' && yearFilter >= COUPLES_TABLE_MIN_YEAR
 
   const totalDataCount = historicalCouples.length + couplesTableRows.length
 
@@ -649,12 +513,7 @@ export function HistoricalArchive() {
 
                 <YearSelector years={years} value={yearFilter} onChange={handleYearChange} />
 
-                {showCouplesOnlySummary ? (
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground">{totalCouples}</span>{' '}
-                    couple{totalCouples !== 1 ? 's' : ''}
-                  </p>
-                ) : (
+                {showCompanyCountsInSummary ? (
                   <p className="text-sm text-muted-foreground">
                     <span className="font-semibold text-foreground">{totalCount}</span>{' '}
                     couple{totalCount !== 1 ? 's' : ''}
@@ -667,6 +526,11 @@ export function HistoricalArchive() {
                       </>
                     )}
                   </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-semibold text-foreground">{totalCount}</span>{' '}
+                    couple{totalCount !== 1 ? 's' : ''}
+                  </p>
                 )}
               </div>
 
@@ -676,46 +540,25 @@ export function HistoricalArchive() {
                   <div className="px-4 py-8 text-center text-sm text-muted-foreground">
                     No historical couples match your filters.
                   </div>
+                ) : yearFilter === 'all' ? (
+                  <ArchiveTable
+                    rows={combinedAllRows}
+                    initialSort={[{ id: 'wedding_date', desc: true }]}
+                  />
                 ) : (
-                  <>
-                    {couplesGroups.map(([year, rows]) => (
-                      <CouplesYearGroup
-                        key={`couples-${year}`}
-                        year={year}
-                        rows={rows}
-                        expanded={hasSearch || expandedYears.has(year)}
-                        onToggle={toggleYear}
-                      />
-                    ))}
-                    {historicalGroups.groups.map(([year, rows]) => (
-                      <HistoricalYearGroup
-                        key={`historical-${year}`}
-                        year={year}
-                        rows={rows}
-                        expanded={hasSearch || expandedYears.has(year)}
-                        onToggle={toggleYear}
-                        onRowClick={handleHistoricalRowClick}
-                      />
-                    ))}
-                    {historicalGroups.undated.length > 0 && (
-                      <div className="px-4 py-2 text-xs text-muted-foreground">
-                        {historicalGroups.undated.length} undated couple
-                        {historicalGroups.undated.length !== 1 ? 's' : ''} hidden (no wedding_year)
-                      </div>
-                    )}
-                  </>
+                  <YearGroup
+                    year={yearFilter as number}
+                    rows={filteredYearRows}
+                    expanded={expandedYears.has(yearFilter as number) || debouncedSearch.length > 0}
+                    onToggle={toggleYear}
+                    showCompanyCounts={(yearFilter as number) < COUPLES_TABLE_MIN_YEAR}
+                  />
                 )}
               </div>
             </>
           )}
         </div>
       )}
-
-      <HistoricalCoupleSheet
-        couple={selected}
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-      />
     </div>
   )
 }
