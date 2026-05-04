@@ -32,6 +32,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #8497 | 7:22 AM | ✅ | Documented WO-1032 Post-Shoot Backup API and photo page integration | ~328 |
 | #8469 | 7:02 AM | 🟣 | Digital Archive Card Added to Couple Detail Page | ~727 |
 | #8458 | 6:33 AM | 🔵 | WO-1032 Requirements: Digital Archive Card for Couple Detail Page | ~654 |
 </claude-mem-context>

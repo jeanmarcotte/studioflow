@@ -30,6 +30,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #8504 | 8:08 AM | 🟣 | Historical Archive Merges Active Couples (2025-2027) with Legacy Data | ~723 |
 | #8469 | 7:02 AM | 🟣 | Digital Archive Card Added to Couple Detail Page | ~727 |
 | #8466 | " | 🔵 | Toast notifications use Sonner library and m20_files_backed_up milestone exists | ~351 |
 </claude-mem-context>

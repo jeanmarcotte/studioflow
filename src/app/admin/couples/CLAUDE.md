@@ -28,4 +28,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #7593 | 6:32 AM | ✅ | Couples page year filter defaults to current year | ~309 |
+
+### May 4, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #8504 | 8:08 AM | 🟣 | Historical Archive Merges Active Couples (2025-2027) with Legacy Data | ~723 |
 </claude-mem-context>
