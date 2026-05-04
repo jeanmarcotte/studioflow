@@ -9,6 +9,7 @@ import { formatDateCompact } from '@/lib/formatters'
 import { Playfair_Display, Nunito } from 'next/font/google'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table'
+import { PostShootBackupAlert, type BackupRow } from '@/components/production/PostShootBackupAlert'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700'] })
@@ -189,13 +190,16 @@ export default function PhotoProductionPage() {
   const [cemeteryJobs, setCemeteryJobs] = useState<Job[]>([])
   const [cemeteryOpen, setCemeteryOpen] = useState(false)
 
+  // Post-Shoot Backup (WO-1032)
+  const [backupRows, setBackupRows] = useState<BackupRow[]>([])
+
   // ── Fetch ─────────────────────────────────────────────────────
 
   useEffect(() => {
     const fetchAll = async () => {
       const today = new Date().toISOString().split('T')[0]
 
-      const [jobsRes, couplesRes, completedRes, waitingRes, reeditRes, photosRes, cemeteryRes] = await Promise.all([
+      const [jobsRes, couplesRes, completedRes, waitingRes, reeditRes, photosRes, cemeteryRes, backupPhotoRes, backupVideoRes] = await Promise.all([
         // Active jobs — exclude completed & picked_up
         supabase
           .from('jobs')
@@ -238,6 +242,20 @@ export default function PhotoProductionPage() {
           .neq('category', 'video')
           .in('status', DONE_EDITING_STATUSES)
           .order('created_at', { ascending: false }),
+        // WO-1032 backup: photo (PROD-WED-PROOFS, past wedding, not backed up)
+        supabase
+          .from('jobs')
+          .select('id, raw_file_path, raw_file_count, raw_file_size_gb, backed_up, couples!inner(bride_first_name, groom_first_name, wedding_date)')
+          .eq('job_type', 'PROD-WED-PROOFS')
+          .lt('couples.wedding_date', today)
+          .or('backed_up.is.null,backed_up.eq.false'),
+        // WO-1032 backup: video (PROD-VID-LONGFORM, past wedding, not backed up)
+        supabase
+          .from('video_jobs')
+          .select('id, raw_file_path, raw_file_count, raw_file_size_gb, backed_up, couples!inner(bride_first_name, groom_first_name, wedding_date)')
+          .eq('job_type', 'PROD-VID-LONGFORM')
+          .lt('couples.wedding_date', today)
+          .or('backed_up.is.null,backed_up.eq.false'),
       ])
 
       // Build couple lookup map
@@ -301,6 +319,42 @@ export default function PhotoProductionPage() {
         })
         setCemeteryJobs(enrichedCemetery as Job[])
       }
+
+      // Post-Shoot Backup rows (WO-1032)
+      const backups: BackupRow[] = []
+      if (!backupPhotoRes.error && backupPhotoRes.data) {
+        for (const row of backupPhotoRes.data as any[]) {
+          const c = Array.isArray(row.couples) ? row.couples[0] : row.couples
+          backups.push({
+            job_id: row.id,
+            source: 'jobs',
+            kind: 'photo',
+            bride_first_name: c?.bride_first_name ?? null,
+            groom_first_name: c?.groom_first_name ?? null,
+            wedding_date: c?.wedding_date ?? null,
+            raw_file_path: row.raw_file_path,
+            raw_file_count: row.raw_file_count,
+            raw_file_size_gb: row.raw_file_size_gb,
+          })
+        }
+      }
+      if (!backupVideoRes.error && backupVideoRes.data) {
+        for (const row of backupVideoRes.data as any[]) {
+          const c = Array.isArray(row.couples) ? row.couples[0] : row.couples
+          backups.push({
+            job_id: row.id,
+            source: 'video_jobs',
+            kind: 'video',
+            bride_first_name: c?.bride_first_name ?? null,
+            groom_first_name: c?.groom_first_name ?? null,
+            wedding_date: c?.wedding_date ?? null,
+            raw_file_path: row.raw_file_path,
+            raw_file_count: row.raw_file_count,
+            raw_file_size_gb: row.raw_file_size_gb,
+          })
+        }
+      }
+      setBackupRows(backups)
 
       setLoading(false)
     }
@@ -887,6 +941,14 @@ export default function PhotoProductionPage() {
           </div>
         </div>
       )}
+
+      {/* Post-Shoot Backup alert (WO-1032) */}
+      <PostShootBackupAlert
+        rows={backupRows}
+        onMarkedBackedUp={(jobId, source) =>
+          setBackupRows(prev => prev.filter(r => !(r.job_id === jobId && r.source === source)))
+        }
+      />
 
       {/* Content area: jobs panel + stats sidebar */}
       <div className="flex">

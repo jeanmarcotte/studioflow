@@ -30,5 +30,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #8466 | 7:02 AM | 🔵 | Toast notifications use Sonner library and m20_files_backed_up milestone exists | ~351 |
+| #8469 | 7:02 AM | 🟣 | Digital Archive Card Added to Couple Detail Page | ~727 |
+| #8466 | " | 🔵 | Toast notifications use Sonner library and m20_files_backed_up milestone exists | ~351 |
 </claude-mem-context>
