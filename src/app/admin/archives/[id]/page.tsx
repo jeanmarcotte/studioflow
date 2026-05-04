@@ -6,10 +6,28 @@ import { supabase } from '@/lib/supabase'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { ArrowLeft, Clipboard, AlertTriangle, Shield } from 'lucide-react'
+import { ArrowLeft, Clipboard, AlertTriangle, Shield, Loader2 } from 'lucide-react'
 import { formatWeddingDateShort } from '@/lib/formatters'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { HistoricalArchiveDetail } from '@/components/couples/HistoricalArchiveDetail'
+
+interface HistoricalProfileRow {
+  id: string
+  bride_first_name: string | null
+  bride_last_name: string | null
+  groom_first_name: string | null
+  groom_last_name: string | null
+  bride_email: string | null
+  groom_email: string | null
+  phone_1: string | null
+  phone_2: string | null
+  wedding_date: string | null
+  wedding_year: number | null
+  ceremony_venue: string | null
+  reception_venue: string | null
+  glacier_archived: boolean | null
+}
 
 interface ArchiveDetail {
   id: string
@@ -80,10 +98,11 @@ function timeSinceWedding(weddingDate: string): { label: string; subtitle: strin
 
 export default function CoupleArchiveDetail() {
   const params = useParams()
-  const coupleId = params.coupleId as string
+  const id = params.id as string
 
   const [archive, setArchive] = useState<ArchiveDetail | null>(null)
   const [loading, setLoading] = useState(true)
+  const [historicalProfile, setHistoricalProfile] = useState<HistoricalProfileRow | null>(null)
 
   // Editable state
   const [locations, setLocations] = useState<Record<string, string>>({})
@@ -96,11 +115,27 @@ export default function CoupleArchiveDetail() {
   const [editingField, setEditingField] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetch() {
+    async function load() {
+      // First check if this id is a historical_couple_profiles row.
+      const { data: histData } = await supabase
+        .from('historical_couple_profiles')
+        .select(
+          'id, bride_first_name, bride_last_name, groom_first_name, groom_last_name, bride_email, groom_email, phone_1, phone_2, wedding_date, wedding_year, ceremony_venue, reception_venue, glacier_archived',
+        )
+        .eq('id', id)
+        .limit(1)
+
+      if (histData && histData[0]) {
+        setHistoricalProfile(histData[0] as HistoricalProfileRow)
+        setLoading(false)
+        return
+      }
+
+      // Otherwise fall back to the existing couple-archives editor (id is treated as couples.id).
       const { data: archiveData } = await supabase
         .from('couple_archives')
         .select('*')
-        .eq('couple_id', coupleId)
+        .eq('couple_id', id)
         .limit(1)
 
       if (archiveData && archiveData[0]) {
@@ -110,7 +145,7 @@ export default function CoupleArchiveDetail() {
         const { data: coupleData } = await supabase
           .from('couples')
           .select('phase')
-          .eq('id', coupleId)
+          .eq('id', id)
           .limit(1)
         if (coupleData && coupleData[0]) a.couple_status = coupleData[0].phase
 
@@ -134,8 +169,8 @@ export default function CoupleArchiveDetail() {
       }
       setLoading(false)
     }
-    fetch()
-  }, [coupleId])
+    load()
+  }, [id])
 
   const applicableDeliverables = useMemo(() => {
     if (!archive) return []
@@ -206,7 +241,14 @@ export default function CoupleArchiveDetail() {
     setSaving(false)
   }
 
-  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading...</div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
+      </div>
+    )
+  }
+  if (historicalProfile) return <HistoricalArchiveDetail profile={historicalProfile} />
   if (!archive) return <div className="p-8 text-center text-red-500">Archive not found for this couple.</div>
 
   const time = archive.wedding_date ? timeSinceWedding(archive.wedding_date) : null

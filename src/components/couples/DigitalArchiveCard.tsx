@@ -40,16 +40,33 @@ function formatGB(value: number | string | null | undefined): string {
   return `${(num || 0).toFixed(1)} GB`
 }
 
-export function DigitalArchiveCard({ coupleId }: { coupleId: string }) {
+interface DigitalArchiveCardProps {
+  coupleId?: string
+  historicalProfileId?: string
+}
+
+export function DigitalArchiveCard({ coupleId, historicalProfileId }: DigitalArchiveCardProps) {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<ArchiveResponse | null>(null)
 
+  const lookupId = coupleId ?? historicalProfileId
+  const lookupBy = historicalProfileId ? 'historical_profile_id' : 'couple_id'
+
   useEffect(() => {
+    if (!lookupId) {
+      setData({ driveContents: [], archive: null })
+      setLoading(false)
+      return
+    }
     let cancelled = false
     async function load() {
       setLoading(true)
       try {
-        const res = await fetch(`/api/couples/${coupleId}/archive`)
+        const url =
+          lookupBy === 'historical_profile_id'
+            ? `/api/couples/${lookupId}/archive?by=historical_profile_id`
+            : `/api/couples/${lookupId}/archive`
+        const res = await fetch(url)
         if (!res.ok) throw new Error('Failed to load archive')
         const json = (await res.json()) as ArchiveResponse
         if (!cancelled) setData(json)
@@ -63,7 +80,7 @@ export function DigitalArchiveCard({ coupleId }: { coupleId: string }) {
     return () => {
       cancelled = true
     }
-  }, [coupleId])
+  }, [lookupId, lookupBy])
 
   return (
     <Card>
