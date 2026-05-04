@@ -27,4 +27,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #8387 | 12:27 PM | 🔵 | Video Job Type Migration Scope Identified | ~407 |
+
+### May 4, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #8458 | 6:33 AM | 🔵 | WO-1032 Requirements: Digital Archive Card for Couple Detail Page | ~654 |
 </claude-mem-context>

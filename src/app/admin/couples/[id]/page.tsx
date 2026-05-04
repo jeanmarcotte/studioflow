@@ -21,6 +21,7 @@ import { FinanceCard } from '@/components/couples/FinanceCard'
 import { CoupleResourcesCard } from '@/components/couples/CoupleResourcesCard'
 import { WeddingDayItinerary } from '@/components/couples/WeddingDayItinerary'
 import { EngagementAppointments } from '@/components/couples/EngagementAppointments'
+import { DigitalArchiveCard } from '@/components/couples/DigitalArchiveCard'
 import { buildPhases, countMilestones } from '@/lib/milestones'
 import { formatPackage } from '@/lib/formatters'
 import { formatPackageType, formatHoursDisplay, formatTotalHoursOnly } from '@/lib/coupleFormatters'
@@ -495,6 +496,9 @@ export default function CoupleDetailPage() {
 
       {/* Appointments */}
       <EngagementAppointments coupleId={coupleId} />
+
+      {/* Digital Archive */}
+      <DigitalArchiveCard coupleId={coupleId} />
 
       {/* Pickup Slip - at the very bottom */}
       <PickupSlipCard coupleId={couple.id} coupleName={couple.couple_name} />
